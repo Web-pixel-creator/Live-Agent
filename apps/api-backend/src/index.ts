@@ -262,7 +262,7 @@ async function buildRuntimeCaseWikiSnapshot(params: {
     return { caseWiki: null, selectedSessionId: null };
   }
 
-  const [runs, approvals, recentEvents, selectedEvents] = await Promise.all([
+  const [runs, approvals, recentEvents, selectedEvents, workflowSummary, effectiveGovernance] = await Promise.all([
     listRuns(runLimit),
     listApprovals({
       limit: approvalLimit,
@@ -270,9 +270,9 @@ async function buildRuntimeCaseWikiSnapshot(params: {
     }),
     listRecentEvents(recentEventLimit),
     listEvents({ sessionId: selectedSessionId, limit: eventLimit }),
+    loadWorkflowControlPlaneSummary(),
+    resolveEffectiveGovernancePolicyForTenant(params.tenantId),
   ]);
-
-  const workflowSummary = await loadWorkflowControlPlaneSummary();
   const caseCostSummary = buildRuntimeCaseCostSummary({
     events: selectedEvents,
     config: runtimeCostTrackerConfig,
@@ -290,6 +290,19 @@ async function buildRuntimeCaseWikiSnapshot(params: {
     workflowSummary,
     evidenceSigner: runtimeEvidenceSignerConfig,
     costSummary: caseCostSummary,
+    compliance: {
+      templateId: effectiveGovernance.profile.id,
+      requestedTemplateId: effectiveGovernance.profile.requestedTemplateId,
+      fallbackApplied: effectiveGovernance.profile.fallbackApplied,
+      source: effectiveGovernance.source,
+      controls: effectiveGovernance.profile.controls,
+      retention: {
+        rawMediaDays: effectiveGovernance.profile.retentionPolicy.rawMediaDays,
+        auditLogsDays: effectiveGovernance.profile.retentionPolicy.auditLogsDays,
+        eventsDays: effectiveGovernance.profile.retentionPolicy.eventsDays,
+        sessionsDays: effectiveGovernance.profile.retentionPolicy.sessionsDays,
+      },
+    },
   });
 
   return { caseWiki, selectedSessionId };

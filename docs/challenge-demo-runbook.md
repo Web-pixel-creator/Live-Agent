@@ -144,7 +144,7 @@ $env:RAILWAY_SERVICE_ID="b8c1a952-da24-4410-a53a-82b634b70f47"
 $env:RAILWAY_ENVIRONMENT="production"
 npm run repo:publish -- -DeployRailway -SkipPages -SkipBadgeCheck
 ```
-This flow now surfaces local `artifacts/release-evidence/report.*` and `artifacts/release-evidence/manifest.*` paths immediately after the pre-publish verification gate, then prints effective hosted `badge.json` / `badge-details.json` URLs after Railway deploy verification.
+This flow now surfaces local `artifacts/release-evidence/report.*`, `artifacts/release-evidence/runtime-proof-report.*`, and `artifacts/release-evidence/manifest.*` paths immediately after the pre-publish verification gate, then prints effective hosted `badge.json` / `badge-details.json` URLs after Railway deploy verification.
 It also emits `artifacts/deploy/repo-publish-summary.json` and `artifacts/deploy/railway-deploy-summary.json` so the publish/deploy provenance can be inspected without re-reading terminal output.
 If you need to refresh hosted Railway environment before demo, run:
 ```powershell
@@ -484,21 +484,22 @@ Manual shortcut:
    - When `-IncludeFrontend` is used, `summary.frontendLiveDirectSmoke` also captures the browser-driven direct-live attempt and can seed the same replay transport proof before the operator summary scenario runs.
 7. Local artifact `artifacts/demo-e2e/navigator-visa-flows.json` (must prove `ui.navigator.visa_vertical_flows` across `reminder`, `handoff`, and `escalation` with persistent session, replay bundle, verification, stale-ref recovery, healed recovery, checkpoint resume, and checkpoint-clear evidence for every flow).
    - The proof lane now pins `UI_NAVIGATOR_APPROVAL_KEYWORDS` to the visa-sensitive list inside `scripts/demo-e2e-navigator-visa-flows.ts`, so local `.env` overrides cannot silently drop the approval gate for visa/relocation flows during release validation.
-8. Observability screenshot: dashboard `MLA Telemetry KPI Overview` with latency and error widgets.
-9. Observability screenshot: alert policy `MLA Gateway P95 Latency High` enabled.
-10. Observability screenshot: alert policy `MLA Service Error Rate High` enabled.
-11. Observability screenshot: alert policy `MLA Orchestrator Persistence Failures` enabled.
-11. BigQuery evidence: dataset `agent_analytics` has recent `analytics_event` rows.
-12. Cloud Run deployment proof: `artifacts/deploy/gcp-cloud-run-summary.json` (service URLs, revisions, and runtime env proof).
-13. Firestore proof: `artifacts/deploy/gcp-firestore-summary.json`.
-14. GCP runtime proof: `artifacts/release-evidence/gcp-runtime-proof.json` and `artifacts/release-evidence/gcp-runtime-proof.md`.
-15. Legacy public Railway badge URL remains optional fallback only: `https://live-agent-production.up.railway.app/demo-e2e/badge.json`.
-16. Legacy public Railway details URL remains optional fallback only: `https://live-agent-production.up.railway.app/demo-e2e/badge-details.json`.
-17. Legacy public Railway shield URL remains optional fallback only: `https://img.shields.io/endpoint?url=https%3A%2F%2Flive-agent-production.up.railway.app%2Fdemo-e2e%2Fbadge.json`.
-18. API reliability evidence: `api.sessions.versioning=passed` with `kpi.sessionVersioningValidated=true`, `API_SESSION_VERSION_CONFLICT`, `API_SESSION_IDEMPOTENCY_CONFLICT`.
-19. WebSocket contract evidence: `gateway.websocket.binding_mismatch=passed` with `kpi.gatewayWsSessionMismatchCode=GATEWAY_SESSION_MISMATCH`, `kpi.gatewayWsUserMismatchCode=GATEWAY_USER_MISMATCH`.
-20. WebSocket drain behavior evidence: `gateway.websocket.draining_rejection=passed` with `kpi.gatewayWsDrainingCode=GATEWAY_DRAINING` and successful post-warmup recovery (`kpi.gatewayWsDrainingRecoveryStatus=completed`).
-21. WebSocket conversation-item truncate evidence: `gateway.websocket.item_truncate=passed` with `kpi.gatewayItemTruncateValidated=true`, `kpi.operatorTurnTruncationSummaryValidated=true`, session-local playback truncation event `live.turn.truncated`, and judge-facing Operator Console block `Turn Truncation Evidence` (`turnTruncation.total >= 1`).
+8. Local artifact `artifacts/release-evidence/runtime-proof-report.json` and `artifacts/release-evidence/runtime-proof-report.md` (must condense hosted direct-live proof, compiled Case Wiki proof, and persistent navigator proof into one operator-facing pass/fail report with lane-level summaries and blocker list).
+9. Observability screenshot: dashboard `MLA Telemetry KPI Overview` with latency and error widgets.
+10. Observability screenshot: alert policy `MLA Gateway P95 Latency High` enabled.
+11. Observability screenshot: alert policy `MLA Service Error Rate High` enabled.
+12. Observability screenshot: alert policy `MLA Orchestrator Persistence Failures` enabled.
+13. BigQuery evidence: dataset `agent_analytics` has recent `analytics_event` rows.
+14. Cloud Run deployment proof: `artifacts/deploy/gcp-cloud-run-summary.json` (service URLs, revisions, and runtime env proof).
+15. Firestore proof: `artifacts/deploy/gcp-firestore-summary.json`.
+16. GCP runtime proof: `artifacts/release-evidence/gcp-runtime-proof.json` and `artifacts/release-evidence/gcp-runtime-proof.md`.
+17. Legacy public Railway badge URL remains optional fallback only: `https://live-agent-production.up.railway.app/demo-e2e/badge.json`.
+18. Legacy public Railway details URL remains optional fallback only: `https://live-agent-production.up.railway.app/demo-e2e/badge-details.json`.
+19. Legacy public Railway shield URL remains optional fallback only: `https://img.shields.io/endpoint?url=https%3A%2F%2Flive-agent-production.up.railway.app%2Fdemo-e2e%2Fbadge.json`.
+20. API reliability evidence: `api.sessions.versioning=passed` with `kpi.sessionVersioningValidated=true`, `API_SESSION_VERSION_CONFLICT`, `API_SESSION_IDEMPOTENCY_CONFLICT`.
+21. WebSocket contract evidence: `gateway.websocket.binding_mismatch=passed` with `kpi.gatewayWsSessionMismatchCode=GATEWAY_SESSION_MISMATCH`, `kpi.gatewayWsUserMismatchCode=GATEWAY_USER_MISMATCH`.
+22. WebSocket drain behavior evidence: `gateway.websocket.draining_rejection=passed` with `kpi.gatewayWsDrainingCode=GATEWAY_DRAINING` and successful post-warmup recovery (`kpi.gatewayWsDrainingRecoveryStatus=completed`).
+23. WebSocket conversation-item truncate evidence: `gateway.websocket.item_truncate=passed` with `kpi.gatewayItemTruncateValidated=true`, `kpi.operatorTurnTruncationSummaryValidated=true`, session-local playback truncation event `live.turn.truncated`, and judge-facing Operator Console block `Turn Truncation Evidence` (`turnTruncation.total >= 1`).
 22. WebSocket conversation-item delete evidence: `gateway.websocket.item_delete=passed` with `kpi.gatewayItemDeleteValidated=true`, session-local cleanup event `live.turn.deleted`, and judge-facing Operator Console block `Turn Delete Evidence` (`turnDelete.total >= 1`).
 23. Governance policy lifecycle evidence: `governance.policy.lifecycle=passed` with `kpi.governancePolicyLifecycleValidated=true`, conflict guards (`API_GOVERNANCE_POLICY_VERSION_CONFLICT`, `API_GOVERNANCE_POLICY_IDEMPOTENCY_CONFLICT`), scope guard (`API_TENANT_SCOPE_FORBIDDEN`), and centralized summary proof (`kpi.governancePolicySummaryTemplateId=strict`, `kpi.governancePolicySummarySource=tenant_override`).
 24. Artifact provenance evidence: `artifacts/release-artifact-revalidation/source-run.json` (source run id/branch/age/guardrails/retry settings + `gate.evidenceSnapshot.operatorDamageControlSummaryValidated` / `gate.evidenceSnapshot.badgeEvidenceOperatorTurnTruncationStatus` / `gate.evidenceSnapshot.badgeEvidenceOperatorTurnDeleteStatus` / `gate.evidenceSnapshot.badgeEvidenceOperatorDamageControlStatus` / `gate.evidenceSnapshot.badgeEvidenceGovernancePolicyStatus` / `gate.evidenceSnapshot.badgeEvidenceSkillsRegistryStatus` / `gate.evidenceSnapshot.badgeEvidencePluginMarketplaceStatus` / `gate.evidenceSnapshot.badgeEvidenceDeviceNodesStatus` / `gate.evidenceSnapshot.badgeEvidenceAgentUsageStatus` / `gate.evidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsStatus` / `gate.evidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus` / `gate.evidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths` / `gate.evidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath` / `gate.evidenceSnapshot.badgeEvidenceProviderUsageStatus` / `gate.evidenceSnapshot.badgeEvidenceProviderUsageValidated` / `gate.evidenceSnapshot.badgeEvidenceProviderUsageActiveSecondaryProviders` / `gate.evidenceSnapshot.badgeEvidenceProviderUsageEntriesCount` / `gate.evidenceSnapshot.badgeEvidenceProviderUsagePrimaryEntry` / `gate.evidenceSnapshot.badgeEvidenceDeviceNodeUpdatesStatus`, plus optional `gate.evidenceSnapshot.railwayDeploySummary*` / `gate.evidenceSnapshot.repoPublishSummary*` when deploy or publish summaries were bundled with the source run).

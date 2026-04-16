@@ -933,6 +933,7 @@ function runReleaseReadinessWithCaseWikiEvidence(
   options?: Partial<{
     strictFinalRun: boolean;
     promptfooEvalSummary: Record<string, unknown> | null;
+    hostedDirectLiveProof: Record<string, unknown> | null;
     env: Record<string, string | undefined>;
     useLocalRuntimeEvidenceSigningBundle: boolean;
     runtimeEvidenceSigningBundleDir: string;
@@ -946,6 +947,7 @@ function runReleaseReadinessWithCaseWikiEvidence(
   try {
     const summaryPath = join(tempDir, "summary.json");
     const badgeDetailsPath = join(tempDir, "badge-details.json");
+    const hostedDirectLiveProofPath = join(tempDir, "artifacts", "deploy", "direct-live-proof.json");
     const promptfooEvalSummaryPath = join(tempDir, "evals", "latest-run.json");
     const releaseEvidenceReportPath = join(tempDir, "release-evidence", "report.json");
     const releaseEvidenceReportMarkdownPath = join(tempDir, "release-evidence", "report.md");
@@ -953,6 +955,10 @@ function runReleaseReadinessWithCaseWikiEvidence(
     const releaseEvidenceManifestMarkdownPath = join(tempDir, "release-evidence", "manifest.md");
     writeFileSync(summaryPath, `${JSON.stringify(summary, null, 2)}\n`, "utf8");
     writeFileSync(badgeDetailsPath, `${JSON.stringify(badgeDetails, null, 2)}\n`, "utf8");
+    if (Object.prototype.hasOwnProperty.call(options ?? {}, "hostedDirectLiveProof") && options?.hostedDirectLiveProof) {
+      mkdirSync(dirname(hostedDirectLiveProofPath), { recursive: true });
+      writeFileSync(hostedDirectLiveProofPath, `${JSON.stringify(options.hostedDirectLiveProof, null, 2)}\n`, "utf8");
+    }
     const promptfooEvalSummary = Object.prototype.hasOwnProperty.call(options ?? {}, "promptfooEvalSummary")
       ? options?.promptfooEvalSummary
       : createPassingPromptfooEvalSummary();
@@ -1726,6 +1732,68 @@ test(
     assert.match(output, /signature_status=unsigned/i);
     assert.match(output, /signed=0/i);
     assert.match(output, /unsigned=1/i);
+  },
+);
+
+test(
+  "release-readiness accepts hosted signed case wiki evidence promoted from direct-live proof",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessWithCaseWikiEvidence(
+      createPassingSummary(),
+      createCaseWikiEvidenceSignatureBadgeDetails(),
+      {
+        hostedDirectLiveProof: {
+          generatedAt: new Date().toISOString(),
+          status: "pass",
+          runtimeStatus: {
+            preferredMode: "direct_live",
+            activeMode: "direct_live",
+          },
+          replay: {
+            liveTransport: {
+              activeMode: "direct_live",
+              evidenceSource: "session_events",
+              firstAudioMs: 812,
+              firstOutputMs: 812,
+              fallbackEventCount: 0,
+              fallbackReason: null,
+            },
+          },
+          runtimeDiagnostics: {
+            apiBackendEvidenceSigning: {
+              expectedSignatureStatus: "signed",
+              keyState: "loaded",
+            },
+          },
+          caseWikiEvidenceSignatureExpectation: {
+            expectedStatus: "signed",
+            source: "runtime_diagnostics",
+          },
+          caseWiki: {
+            evidenceSignature: {
+              status: "signed",
+              signaturePresent: true,
+              signerId: "api-backend",
+              signedAt: "2026-04-15T12:01:19.698Z",
+              payloadHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              keyId: "runtime-evidence-20260410",
+            },
+          },
+          summary: "direct_live observed via session_events first_audio=812ms",
+        },
+      },
+    );
+    assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /case_wiki\.evidence_signature: validated=True/i);
+    assert.match(output, /case_wiki\.evidence_signature: .*status=pass/i);
+    assert.match(output, /signature_status=signed/i);
+    assert.match(output, /signed=1/i);
+    assert.match(output, /unsigned=0/i);
+    assert.match(output, /runtime_proof\.summary: status=fail/i);
+    assert.match(output, /direct_live=pass/i);
+    assert.match(output, /case_wiki=fail/i);
   },
 );
 

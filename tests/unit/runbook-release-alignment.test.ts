@@ -115,6 +115,8 @@ test("runbook documents release perf artifact-only mode and critical evidence ke
     "`artifacts/demo-e2e/navigator-visa-flows.json`",
     "`artifacts/release-evidence/report.json`",
     "`artifacts/release-evidence/report.md`",
+    "`artifacts/release-evidence/runtime-proof-report.json`",
+    "`artifacts/release-evidence/runtime-proof-report.md`",
     "`evidence.operatorTurnDelete`",
     "`evidence.operatorTurnTruncation`",
     "`evidence.operatorDamageControl`",

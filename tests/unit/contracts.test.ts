@@ -329,6 +329,32 @@ test("case wiki contracts expose stable structured memory shapes", () => {
       ],
       sourceRefs: ["session:session-123", "note:operator-1", "proof:proof-1"],
     },
+    compliance: {
+      templateId: "strict",
+      requestedTemplateId: "strict",
+      fallbackApplied: false,
+      source: "tenant_override",
+      controls: {
+        piiRedactionLevel: "high",
+        crossTenantAdminOnly: true,
+        approvalSlaEnforced: true,
+        auditTrailRequired: true,
+      },
+      retention: {
+        rawMediaDays: 3,
+        auditLogsDays: 540,
+        eventsDays: 540,
+        sessionsDays: 120,
+      },
+      evidenceSigning: {
+        enabled: false,
+        keyState: "missing",
+        expectedSignatureStatus: "unsigned",
+        signerId: "api-backend",
+        keyId: null,
+      },
+      summary: "template=strict | tenant_override | pii=high | rawMedia=3d | audit=required | signing=unsigned",
+    },
     evidenceSignature,
     handoffPack: {
       proofs: [
@@ -803,6 +829,63 @@ test("case wiki contracts expose stable structured memory shapes", () => {
           },
         ],
       },
+      audit: {
+        totalEntries: 2,
+        latestEntries: [
+          {
+            id: "audit:event:evt-case-note-1",
+            ts: "2026-04-09T06:58:00.000Z",
+            actor: "operator",
+            source: "operator_note",
+            action: "blocking_note_added",
+            field: "caseWiki.blockingQuestion",
+            summary: "Missing invitation letter: Customer still needs to upload the invitation letter.",
+            reason: "Request the invitation letter in the next follow-up.",
+            oldValue: null,
+            newValue: "Customer still needs to upload the invitation letter.",
+            sourceRefs: ["event:evt-case-note-1"],
+          },
+          {
+            id: "audit:workflow:control-plane",
+            ts: "2026-04-09T06:57:00.000Z",
+            actor: "workflow-store",
+            source: "workflow",
+            action: "workflow_updated",
+            field: "workflow.currentStage",
+            summary: "Workflow control plane refreshed the active case state.",
+            reason: "active",
+            oldValue: null,
+            newValue: "document_collection",
+            sourceRefs: ["workflow:control-plane"],
+          },
+        ],
+      },
+      compliance: {
+        templateId: "strict",
+        requestedTemplateId: "strict",
+        fallbackApplied: false,
+        source: "tenant_override",
+        controls: {
+          piiRedactionLevel: "high",
+          crossTenantAdminOnly: true,
+          approvalSlaEnforced: true,
+          auditTrailRequired: true,
+        },
+        retention: {
+          rawMediaDays: 3,
+          auditLogsDays: 540,
+          eventsDays: 540,
+          sessionsDays: 120,
+        },
+        evidenceSigning: {
+          enabled: false,
+          keyState: "missing",
+          expectedSignatureStatus: "unsigned",
+          signerId: "api-backend",
+          keyId: null,
+        },
+        summary: "template=strict | tenant_override | pii=high | rawMedia=3d | audit=required | signing=unsigned",
+      },
     },
     entities: [
       {
@@ -824,6 +907,34 @@ test("case wiki contracts expose stable structured memory shapes", () => {
         summary: "Customer asked about spouse visa steps and consultation timing.",
         status: "completed",
         sourceRefs: ["session:session-123"],
+      },
+    ],
+    auditLog: [
+      {
+        id: "audit:event:evt-case-note-1",
+        ts: "2026-04-09T06:58:00.000Z",
+        actor: "operator",
+        source: "operator_note",
+        action: "blocking_note_added",
+        field: "caseWiki.blockingQuestion",
+        summary: "Missing invitation letter: Customer still needs to upload the invitation letter.",
+        reason: "Request the invitation letter in the next follow-up.",
+        oldValue: null,
+        newValue: "Customer still needs to upload the invitation letter.",
+        sourceRefs: ["event:evt-case-note-1"],
+      },
+      {
+        id: "audit:workflow:control-plane",
+        ts: "2026-04-09T06:57:00.000Z",
+        actor: "workflow-store",
+        source: "workflow",
+        action: "workflow_updated",
+        field: "workflow.currentStage",
+        summary: "Workflow control plane refreshed the active case state.",
+        reason: "active",
+        oldValue: null,
+        newValue: "document_collection",
+        sourceRefs: ["workflow:control-plane"],
       },
     ],
     proofs: [
@@ -868,6 +979,8 @@ test("case wiki contracts expose stable structured memory shapes", () => {
   assert.equal(wiki.evidencePack.entities[0]?.kind, "person");
   assert.equal(wiki.evidencePack.questions[0]?.priority, "high");
   assert.equal(wiki.evidencePack.sourceRefs.includes("proof:proof-1"), true);
+  assert.equal(wiki.compliance.templateId, "strict");
+  assert.equal(wiki.compliance.controls.piiRedactionLevel, "high");
   assert.equal(wiki.evidenceSignature?.status, "unsigned");
   assert.equal(wiki.evidenceSignature?.algorithm, "ed25519-sha256");
   assert.equal(wiki.evidenceSignature?.canonicalization, "json-stable-v1");
@@ -898,7 +1011,13 @@ test("case wiki contracts expose stable structured memory shapes", () => {
   assert.equal(wiki.operatorPreviewPack.questions.items[0]?.id, "question-1");
   assert.equal(wiki.operatorPreviewPack.timeline.totalEntries, 1);
   assert.equal(wiki.operatorPreviewPack.timeline.latestEntries[0]?.kind, "session");
+  assert.equal(wiki.operatorPreviewPack.audit.totalEntries, 2);
+  assert.equal(wiki.operatorPreviewPack.audit.latestEntries[0]?.source, "operator_note");
+  assert.equal(wiki.operatorPreviewPack.compliance.templateId, "strict");
+  assert.equal(wiki.operatorPreviewPack.compliance.evidenceSigning.expectedSignatureStatus, "unsigned");
   assert.equal(wiki.entities[0]?.kind, "person");
+  assert.equal(wiki.auditLog[0]?.source, "operator_note");
+  assert.equal(wiki.auditLog[1]?.field, "workflow.currentStage");
   assert.equal(wiki.proofs[0]?.status, "confirmed");
   assert.equal(wiki.recommendedNextAction?.type, "document_request");
 });

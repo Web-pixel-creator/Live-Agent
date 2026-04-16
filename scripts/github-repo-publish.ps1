@@ -367,6 +367,8 @@ function Get-RequiredReleaseEvidenceArtifacts() {
   return @(
     "artifacts/release-evidence/report.json",
     "artifacts/release-evidence/report.md",
+    "artifacts/release-evidence/runtime-proof-report.json",
+    "artifacts/release-evidence/runtime-proof-report.md",
     "artifacts/release-evidence/manifest.json",
     "artifacts/release-evidence/manifest.md",
     "artifacts/demo-e2e/badge-details.json"
@@ -689,6 +691,7 @@ $repoPublishSummary = [ordered]@{
     self = "artifacts/deploy/repo-publish-summary.json"
     railwayDeploySummary = if ($DeployRailway) { "artifacts/deploy/railway-deploy-summary.json" } else { $null }
     releaseEvidenceReportJson = "artifacts/release-evidence/report.json"
+    releaseEvidenceRuntimeProofJson = "artifacts/release-evidence/runtime-proof-report.json"
     releaseEvidenceManifestJson = "artifacts/release-evidence/manifest.json"
     badgeDetailsJson = "artifacts/demo-e2e/badge-details.json"
   }

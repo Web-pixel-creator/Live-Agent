@@ -49,10 +49,14 @@ test("api backend exposes runtime case wiki routes, helpers, inventory, and docs
     "defaultFocus",
     "buildCaseWikiDefaultFocus",
     "operatorPreviewPack",
+    "compliance",
+    "auditLog",
+    "buildAuditLog",
     "questionsValue",
     "timelineValue",
     "questions:",
     "timeline:",
+    "audit:",
     "question:event:",
     "operator.note",
     "case_wiki_note",
@@ -92,8 +96,12 @@ test("api backend exposes runtime case wiki routes, helpers, inventory, and docs
   assert.match(readme, /defaultFocus/i);
   assert.match(readme, /open-question/i);
   assert.match(readme, /operatorPreviewPack/i);
+  assert.match(readme, /compliance/i);
+  assert.match(readme, /auditLog/i);
   assert.match(readme, /Open Questions/i);
   assert.match(readme, /Timeline/i);
+  assert.match(readme, /Audit/i);
+  assert.match(readme, /Compliance/i);
   assert.match(operatorGuide, /case wiki/i);
   assert.match(operatorGuide, /case-wiki\/notes/i);
   assert.match(operatorGuide, /handoffPack/i);
@@ -106,8 +114,12 @@ test("api backend exposes runtime case wiki routes, helpers, inventory, and docs
   assert.match(operatorGuide, /defaultFocus/i);
   assert.match(operatorGuide, /timeline/i);
   assert.match(operatorGuide, /operatorPreviewPack/i);
+  assert.match(operatorGuide, /compliance/i);
+  assert.match(operatorGuide, /auditLog/i);
   assert.match(operatorGuide, /Open Questions/i);
   assert.match(operatorGuide, /Timeline/i);
+  assert.match(operatorGuide, /Audit/i);
+  assert.match(operatorGuide, /Compliance/i);
   assert.match(architecture, /case wiki/i);
   assert.match(architecture, /handoffPack/i);
   assert.match(architecture, /detailPack/i);
@@ -119,7 +131,11 @@ test("api backend exposes runtime case wiki routes, helpers, inventory, and docs
   assert.match(architecture, /defaultFocus/i);
   assert.match(architecture, /timeline/i);
   assert.match(architecture, /operatorPreviewPack/i);
+  assert.match(architecture, /compliance/i);
+  assert.match(architecture, /auditLog/i);
   assert.match(architecture, /Open Questions/i);
   assert.match(architecture, /Timeline/i);
+  assert.match(architecture, /Audit/i);
+  assert.match(architecture, /Compliance/i);
   assert.match(architecture, /case-wiki\/notes/i);
 });

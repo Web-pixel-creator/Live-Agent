@@ -18,6 +18,8 @@ test("repo publish script includes pre-publish release verification controls", (
   assert.match(source, /function Assert-ReleaseEvidenceArtifactsPresent\(\)/);
   assert.match(source, /artifacts\/release-evidence\/report\.json/);
   assert.match(source, /artifacts\/release-evidence\/report\.md/);
+  assert.match(source, /artifacts\/release-evidence\/runtime-proof-report\.json/);
+  assert.match(source, /artifacts\/release-evidence\/runtime-proof-report\.md/);
   assert.match(source, /artifacts\/release-evidence\/manifest\.json/);
   assert.match(source, /artifacts\/release-evidence\/manifest\.md/);
   assert.match(source, /artifacts\/demo-e2e\/badge-details\.json/);
@@ -69,6 +71,7 @@ test("repo publish script includes pre-publish release verification controls", (
   assert.match(source, /validatedInThisRun = \$ValidatedInThisRun/);
   assert.match(source, /releaseEvidenceArtifactsCount = @\(if \(\$releaseEvidenceArtifacts.Count -gt 0\) \{ \$releaseEvidenceArtifacts \} else \{ Get-RequiredReleaseEvidenceArtifacts \}\)\.Count/);
   assert.match(source, /releaseEvidenceReportJson = "artifacts\/release-evidence\/report\.json"/);
+  assert.match(source, /releaseEvidenceRuntimeProofJson = "artifacts\/release-evidence\/runtime-proof-report\.json"/);
   assert.match(source, /releaseEvidenceManifestJson = "artifacts\/release-evidence\/manifest\.json"/);
   assert.match(source, /badgeDetailsJson = "artifacts\/demo-e2e\/badge-details\.json"/);
   assert.match(source, /manifestInventory = if \(\$null -ne \$manifest -and \$null -ne \$manifest\.inventory\)/);
@@ -123,7 +126,7 @@ test("repo publish script includes pre-publish release verification controls", (
   const readme = readFileSync(readmePath, "utf8");
   assert.match(readme, /\-RailwayRootDescriptorCheckMaxAttempts <n>/);
   assert.match(readme, /\-RailwayRootDescriptorCheckRetryBackoffSec <n>/);
-  assert.match(readme, /repo publish surfaces local release-evidence report\/manifest paths after pre-publish verification/);
+  assert.match(readme, /repo publish surfaces local release-evidence report\/runtime-proof-report\/manifest paths after pre-publish verification/);
   assert.match(readme, /artifacts\/deploy\/repo-publish-summary\.json/);
   assert.match(readme, /repo_publish_summary_path/);
   assert.match(readme, /GITHUB_OUTPUT/);

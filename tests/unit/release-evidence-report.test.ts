@@ -37,6 +37,8 @@ test(
     const directLiveProofPath = join(tempRoot, "artifacts", "deploy", "direct-live-proof.json");
     const outputJsonPath = join(tempRoot, "artifacts", "release-evidence", "report.json");
     const outputMarkdownPath = join(tempRoot, "artifacts", "release-evidence", "report.md");
+    const outputRuntimeProofJsonPath = join(tempRoot, "artifacts", "release-evidence", "runtime-proof-report.json");
+    const outputRuntimeProofMarkdownPath = join(tempRoot, "artifacts", "release-evidence", "runtime-proof-report.md");
     const outputManifestJsonPath = join(tempRoot, "artifacts", "release-evidence", "manifest.json");
     const outputManifestMarkdownPath = join(tempRoot, "artifacts", "release-evidence", "manifest.md");
 
@@ -592,6 +594,16 @@ test(
         summary?: string | null;
       };
       artifacts: Array<{ id?: string; present?: boolean }>;
+      runtimeProof: {
+        status?: string;
+        readyForOperatorDemo?: boolean;
+        passedLanes?: number;
+        totalLanes?: number;
+        blockerCount?: number;
+        directLiveStatus?: string;
+        caseWikiStatus?: string;
+        navigatorStatus?: string;
+      };
     };
     assert.equal(manifest.criticalEvidenceStatuses.hostedDirectLiveProofStatus, "pass");
     assert.equal(manifest.criticalEvidenceStatuses.caseWikiGatewayHydrationStatus, "pass");
@@ -696,6 +708,89 @@ test(
       manifest.artifacts.find((entry) => entry.id === "deploy.directLiveProofJson")?.present,
       true,
     );
+    assert.equal(
+      manifest.artifacts.find((entry) => entry.id === "release.runtimeProofReportJson")?.present,
+      true,
+    );
+    assert.equal(
+      manifest.artifacts.find((entry) => entry.id === "release.runtimeProofReportMarkdown")?.present,
+      true,
+    );
+    assert.equal(manifest.runtimeProof.status, "pass");
+    assert.equal(manifest.runtimeProof.readyForOperatorDemo, true);
+    assert.equal(manifest.runtimeProof.passedLanes, 3);
+    assert.equal(manifest.runtimeProof.totalLanes, 3);
+    assert.equal(manifest.runtimeProof.blockerCount, 0);
+    assert.equal(manifest.runtimeProof.directLiveStatus, "pass");
+    assert.equal(manifest.runtimeProof.caseWikiStatus, "pass");
+    assert.equal(manifest.runtimeProof.navigatorStatus, "pass");
+
+    const runtimeProof = JSON.parse(readFileSync(outputRuntimeProofJsonPath, "utf8")) as {
+      status?: string;
+      readyForOperatorDemo?: boolean;
+      summary?: {
+        totalLanes?: number;
+        passedLanes?: number;
+        blockerCount?: number;
+        overallSummary?: string;
+        laneStatuses?: {
+          directLive?: string;
+          caseWiki?: string;
+          navigator?: string;
+        };
+      };
+      lanes?: {
+        directLive?: {
+          status?: string;
+          replayActiveMode?: string | null;
+          replayEvidenceSource?: string | null;
+          firstAudioMs?: number | null;
+          firstOutputMs?: number | null;
+          fallbackEventCount?: number;
+        };
+        caseWiki?: {
+          status?: string;
+          contextSource?: string | null;
+          blocker?: string | null;
+          nextAction?: string | null;
+          caseWikiRate?: number | null;
+        };
+        navigator?: {
+          status?: string;
+          totalFlows?: number;
+          succeededFlows?: number;
+          successRate?: number | null;
+          scenarioNames?: string[];
+        };
+      };
+      blockers?: Array<{ lane?: string; status?: string; reason?: string }>;
+    };
+    assert.equal(runtimeProof.status, "pass");
+    assert.equal(runtimeProof.readyForOperatorDemo, true);
+    assert.equal(runtimeProof.summary?.totalLanes, 3);
+    assert.equal(runtimeProof.summary?.passedLanes, 3);
+    assert.equal(runtimeProof.summary?.blockerCount, 0);
+    assert.equal(runtimeProof.summary?.laneStatuses?.directLive, "pass");
+    assert.equal(runtimeProof.summary?.laneStatuses?.caseWiki, "pass");
+    assert.equal(runtimeProof.summary?.laneStatuses?.navigator, "pass");
+    assert.match(runtimeProof.summary?.overallSummary ?? "", /direct_live=pass/);
+    assert.equal(runtimeProof.lanes?.directLive?.status, "pass");
+    assert.equal(runtimeProof.lanes?.directLive?.replayActiveMode, "direct_live");
+    assert.equal(runtimeProof.lanes?.directLive?.replayEvidenceSource, "session_events");
+    assert.equal(runtimeProof.lanes?.directLive?.firstAudioMs, 640);
+    assert.equal(runtimeProof.lanes?.directLive?.firstOutputMs, 410);
+    assert.equal(runtimeProof.lanes?.directLive?.fallbackEventCount, 0);
+    assert.equal(runtimeProof.lanes?.caseWiki?.status, "pass");
+    assert.equal(runtimeProof.lanes?.caseWiki?.contextSource, "case_wiki");
+    assert.equal(runtimeProof.lanes?.caseWiki?.blocker, "Need passport scan");
+    assert.equal(runtimeProof.lanes?.caseWiki?.nextAction, "Request passport scan");
+    assert.equal(runtimeProof.lanes?.caseWiki?.caseWikiRate, 0.952381);
+    assert.equal(runtimeProof.lanes?.navigator?.status, "pass");
+    assert.equal(runtimeProof.lanes?.navigator?.totalFlows, 3);
+    assert.equal(runtimeProof.lanes?.navigator?.succeededFlows, 3);
+    assert.equal(runtimeProof.lanes?.navigator?.successRate, 1);
+    assert.deepEqual(runtimeProof.lanes?.navigator?.scenarioNames, ["reminder", "handoff", "escalation"]);
+    assert.deepEqual(runtimeProof.blockers, []);
 
     const reportMarkdown = readFileSync(outputMarkdownPath, "utf8");
     assert.match(reportMarkdown, /## Hosted Direct-Live Proof Snapshot/);
@@ -719,7 +814,23 @@ test(
     assert.match(reportMarkdown, /- scenarioNames: reminder, handoff, escalation/);
 
     const manifestMarkdown = readFileSync(outputManifestMarkdownPath, "utf8");
+    const runtimeProofMarkdown = readFileSync(outputRuntimeProofMarkdownPath, "utf8");
+    assert.match(runtimeProofMarkdown, /# Runtime Proof Report/);
+    assert.match(runtimeProofMarkdown, /- Overall status: pass/);
+    assert.match(runtimeProofMarkdown, /\| direct_live \| pass \|/);
+    assert.match(runtimeProofMarkdown, /\| case_wiki \| pass \|/);
+    assert.match(runtimeProofMarkdown, /\| navigator \| pass \|/);
+    assert.match(runtimeProofMarkdown, /## Direct Live Proof/);
+    assert.match(runtimeProofMarkdown, /- firstAudioMs: 640/);
+    assert.match(runtimeProofMarkdown, /## Case Wiki Proof/);
+    assert.match(runtimeProofMarkdown, /- contextSource: case_wiki/);
+    assert.match(runtimeProofMarkdown, /## Navigator Proof/);
+    assert.match(runtimeProofMarkdown, /- totalFlows: 3/);
+    assert.match(runtimeProofMarkdown, /## Blockers/);
+    assert.match(runtimeProofMarkdown, /- none/);
     assert.match(manifestMarkdown, /## Hosted Direct-Live Proof/);
+    assert.match(manifestMarkdown, /## Runtime Proof Report/);
+    assert.match(manifestMarkdown, /\| status \| pass \|/);
     assert.match(manifestMarkdown, /\| freshnessStatus \| pass \|/);
     assert.match(manifestMarkdown, /\| firstAudioMs \| 640 \|/);
     assert.match(manifestMarkdown, /\| firstOutputMs \| 410 \|/);

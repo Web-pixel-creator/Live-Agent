@@ -63,6 +63,8 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     'id="operatorCaseWikiFocusedRoutingCopyBtn"',
     'id="operatorCaseWikiFocusedRoutingExportBtn"',
     'id="operatorCaseWikiQuestionsSnapshot"',
+    'id="operatorCaseWikiComplianceSnapshot"',
+    'id="operatorCaseWikiAuditSnapshot"',
     'id="operatorCaseWikiTimelineSnapshot"',
     'id="operatorSessionOpsLastResult"',
   ];
@@ -94,6 +96,8 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "previewPack: isRecord(snapshot.previewPack) ? snapshot.previewPack : null,",
     "operatorPreviewPack: isRecord(snapshot?.operatorPreviewPack) ? snapshot.operatorPreviewPack : null,",
     "questions: isRecord(value.operatorPreviewPack.questions) ? value.operatorPreviewPack.questions : null,",
+    "compliance: isRecord(value.operatorPreviewPack.compliance) ? value.operatorPreviewPack.compliance : null,",
+    "audit: isRecord(value.operatorPreviewPack.audit) ? value.operatorPreviewPack.audit : null,",
     "timeline: isRecord(value.operatorPreviewPack.timeline) ? value.operatorPreviewPack.timeline : null,",
     "buildOperatorCaseWikiHandoffPreview",
     "resolveOperatorCaseWikiFocusedItem(evidencePack)",
@@ -108,9 +112,15 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "function runOperatorCaseWikiFocusedRoutingCTA()",
     "buildOperatorCaseWikiFocusSummary(focusedItem)",
     "function buildOperatorCaseWikiQuestionsPreview()",
+    "function buildOperatorCaseWikiCompliancePreview()",
+    "function buildOperatorCaseWikiAuditPreview()",
     "function buildOperatorCaseWikiTimelinePreview()",
     "operatorPreviewPack?.questions",
+    "operatorPreviewPack?.compliance",
+    "operatorPreviewPack?.audit",
     "operatorPreviewPack?.timeline",
+    "compliance: isRecord(value.compliance) ? value.compliance : null,",
+    "auditLog: Array.isArray(value.auditLog) ? value.auditLog.filter((item) => isRecord(item)) : [],",
     "function canAppendOperatorCaseWikiNote()",
     "function resetOperatorCaseWikiDraft()",
     "function normalizeOperatorReplayWorkflowBooking(value)",
@@ -157,6 +167,8 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     'operatorCaseWikiFocusedRoutingCtaBtn: document.getElementById("operatorCaseWikiFocusedRoutingCtaBtn")',
     'operatorCaseWikiFocusedRoutingCopyBtn: document.getElementById("operatorCaseWikiFocusedRoutingCopyBtn")',
     'operatorCaseWikiFocusedRoutingExportBtn: document.getElementById("operatorCaseWikiFocusedRoutingExportBtn")',
+    'operatorCaseWikiComplianceSnapshot: document.getElementById("operatorCaseWikiComplianceSnapshot")',
+    'operatorCaseWikiAuditSnapshot: document.getElementById("operatorCaseWikiAuditSnapshot")',
     "buildSessionExportOperatorSessionReplay",
     "buildSessionExportOperatorDiscovery",
     "buildSessionExportOperatorCaseWiki",
@@ -287,6 +299,8 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.match(readmeSource, /workspacePack/i);
   assert.match(readmeSource, /one-click CTA action/i);
   assert.match(readmeSource, /Case Wiki Open Questions/i);
+  assert.match(readmeSource, /Case Wiki Compliance/i);
+  assert.match(readmeSource, /Case Wiki Audit/i);
   assert.match(readmeSource, /refresh recovery follow-?up path/i);
   assert.match(readmeSource, /structured refresh state/i);
   assert.match(readmeSource, /followuptree|followup tree/i);
@@ -311,6 +325,8 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.match(operatorGuideSource, /workspacePack/i);
   assert.match(operatorGuideSource, /one-click CTA action/i);
   assert.match(operatorGuideSource, /Case Wiki Open Questions/i);
+  assert.match(operatorGuideSource, /Case Wiki Compliance/i);
+  assert.match(operatorGuideSource, /Case Wiki Audit/i);
   assert.match(operatorGuideSource, /refresh recovery follow-?up path/i);
   assert.match(operatorGuideSource, /structured refresh state/i);
   assert.match(operatorGuideSource, /followuptree|followup tree/i);

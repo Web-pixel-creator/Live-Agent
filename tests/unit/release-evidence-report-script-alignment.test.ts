@@ -12,11 +12,15 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /OutputMarkdownPath/);
   assert.match(source, /OutputManifestJsonPath/);
   assert.match(source, /OutputManifestMarkdownPath/);
+  assert.match(source, /OutputRuntimeProofJsonPath/);
+  assert.match(source, /OutputRuntimeProofMarkdownPath/);
   assert.match(source, /HostedDirectLiveProofMaxAgeHours/);
   assert.match(source, /artifacts\/release-evidence\/report\.json/);
   assert.match(source, /artifacts\/release-evidence\/report\.md/);
   assert.match(source, /artifacts\/release-evidence\/manifest\.json/);
   assert.match(source, /artifacts\/release-evidence\/manifest\.md/);
+  assert.match(source, /runtime-proof-report\.json/);
+  assert.match(source, /runtime-proof-report\.md/);
   assert.match(source, /turnTruncationStatus/);
   assert.match(source, /turnDeleteStatus/);
   assert.match(source, /operatorDamageControlStatus/);
@@ -72,6 +76,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /runtimeGuardrailsSignalPaths/);
   assert.match(source, /Runtime Guardrails Signal Paths Snapshot/);
   assert.match(source, /Live Transport Snapshot/);
+  assert.match(source, /Runtime Proof Report/);
   assert.match(source, /Hosted Direct-Live Proof Snapshot/);
   assert.match(source, /freshnessStatus/);
   assert.match(source, /freshnessSummary/);
@@ -93,6 +98,8 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /New-ArtifactEntry/);
   assert.match(source, /release\.manifestJson/);
   assert.match(source, /release\.manifestMarkdown/);
+  assert.match(source, /release\.runtimeProofReportJson/);
+  assert.match(source, /release\.runtimeProofReportMarkdown/);
   assert.match(source, /deploy\.directLiveProofJson/);
   assert.match(source, /deploy\.directLiveProofMarkdown/);
   assert.match(source, /deploy\.directLiveProofScreenshot/);
@@ -123,6 +130,8 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /\$report\.caseWikiEvidenceSignature = Resolve-CaseWikiEvidenceSignatureSnapshot/);
   assert.match(source, /\[release-evidence-report\] JSON:/);
   assert.match(source, /\[release-evidence-report\] Markdown:/);
+  assert.match(source, /\[release-evidence-report\] Runtime Proof JSON:/);
+  assert.match(source, /\[release-evidence-report\] Runtime Proof Markdown:/);
   assert.match(source, /\[release-evidence-report\] Manifest JSON:/);
   assert.match(source, /\[release-evidence-report\] Manifest Markdown:/);
 });

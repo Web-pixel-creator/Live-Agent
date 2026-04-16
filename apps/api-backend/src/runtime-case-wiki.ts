@@ -1,7 +1,9 @@
 import type {
   CaseWikiActionPack,
   CaseWikiActionPackItem,
+  CaseWikiAuditEntry,
   CaseWiki,
+  CaseWikiComplianceSummary,
   CaseWikiCostSummary,
   CaseWikiDetailBadge,
   CaseWikiDefaultFocus,
@@ -37,7 +39,11 @@ import type {
   RunListItem,
   SessionListItem,
 } from "./firestore.js";
-import { signEvidencePayload, type RuntimeEvidenceSignerConfig } from "./runtime-evidence-signer.js";
+import {
+  buildRuntimeEvidenceSigningPosture,
+  signEvidencePayload,
+  type RuntimeEvidenceSignerConfig,
+} from "./runtime-evidence-signer.js";
 import type { RuntimeWorkflowControlPlaneSummary } from "./runtime-workflow-control-plane.js";
 
 export type RuntimeCaseWikiBuilderParams = {
@@ -52,6 +58,24 @@ export type RuntimeCaseWikiBuilderParams = {
   now?: Date;
   evidenceSigner?: RuntimeEvidenceSignerConfig | null;
   costSummary?: CaseWikiCostSummary | null;
+  compliance?: {
+    templateId: "baseline" | "strict" | "regulated";
+    requestedTemplateId: string;
+    fallbackApplied: boolean;
+    source: "template_default" | "tenant_override";
+    controls: {
+      piiRedactionLevel: "standard" | "high";
+      crossTenantAdminOnly: boolean;
+      approvalSlaEnforced: boolean;
+      auditTrailRequired: boolean;
+    };
+    retention: {
+      rawMediaDays: number;
+      auditLogsDays: number;
+      eventsDays: number;
+      sessionsDays: number;
+    };
+  } | null;
 };
 
 type RuntimeCaseWikiContext = {
@@ -417,6 +441,237 @@ function buildOperatorNoteTimelineEntries(context: RuntimeCaseWikiContext): Runt
       sourceRefs: buildSourceRef("event", event.eventId),
     };
   });
+}
+
+type RuntimeCaseWikiAuditSeed = {
+  id: string;
+  ts: string;
+  actor?: string | null;
+  source: CaseWikiAuditEntry["source"];
+  action: string;
+  field?: string | null;
+  summary: string;
+  reason?: string | null;
+  oldValue?: string | null;
+  newValue?: string | null;
+  sourceRefs?: string[];
+};
+
+function normalizeAuditValue(value: unknown): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (typeof value === "string") {
+    return toNonEmptyString(value);
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return null;
+}
+
+function summarizeAuditAction(action: string): string {
+  const normalized = toNonEmptyString(action);
+  if (!normalized) {
+    return "Case Wiki audit event recorded.";
+  }
+  return `${toSentenceCase(normalized.replace(/[_-]+/g, " "))}.`;
+}
+
+function buildApprovalAuditEntries(context: RuntimeCaseWikiContext): RuntimeCaseWikiAuditSeed[] {
+  const approval = context.selectedApproval;
+  if (!approval) {
+    return [];
+  }
+  const auditEntries = sortDescByIso(approval.auditLog ?? [], (item) => item.ts);
+  if (auditEntries.length === 0) {
+    const action =
+      approval.status === "approved"
+        ? "decision_approved"
+        : approval.status === "rejected"
+          ? "decision_rejected"
+          : approval.status === "pending"
+            ? "pending_registered"
+            : "approval_status_observed";
+    return [
+      {
+        id: `audit:approval:${approval.approvalId}:status`,
+        ts: approval.updatedAt,
+        actor: "operator",
+        source: "approval",
+        action,
+        field: "approval.status",
+        summary:
+          approval.status === "approved"
+            ? "Operator approved the pending step."
+            : approval.status === "rejected"
+              ? "Operator rejected the pending step."
+              : approval.status === "pending"
+                ? "Approval registered for operator review."
+                : "Approval status observed in the compiled case snapshot.",
+        reason: toNonEmptyString(approval.reason),
+        oldValue: approval.status === "pending" ? null : "pending",
+        newValue: approval.status,
+        sourceRefs: buildSourceRef("approval", approval.approvalId),
+      },
+    ];
+  }
+
+  return auditEntries.map((entry) => {
+    const action = toNonEmptyString(entry.action) ?? "approval_updated";
+    let field: string | null = "approval.status";
+    let summary = summarizeAuditAction(action);
+    let oldValue: string | null = null;
+    let newValue: string | null = normalizeAuditValue(approval.status);
+
+    if (action === "pending_registered") {
+      summary = "Approval registered for operator review.";
+      newValue = "pending";
+    } else if (action === "decision_approved") {
+      summary = "Operator approved the pending step.";
+      oldValue = "pending";
+      newValue = "approved";
+    } else if (action === "decision_rejected") {
+      summary = "Operator rejected the pending step.";
+      oldValue = "pending";
+      newValue = "rejected";
+    } else if (action === "soft_timeout_reminder") {
+      field = "approval.reminder";
+      summary = "Soft-timeout reminder issued for pending approval.";
+      newValue = "soft_timeout_sent";
+    } else if (action === "hard_timeout_auto_reject") {
+      summary = "Pending approval auto-rejected after the hard-timeout deadline.";
+      oldValue = "pending";
+      newValue = "rejected";
+    }
+
+    return {
+      id: `audit:approval:${approval.approvalId}:${action}:${entry.ts}`,
+      ts: entry.ts,
+      actor: toNonEmptyString(entry.actor),
+      source: "approval",
+      action,
+      field,
+      summary,
+      reason: toNonEmptyString(entry.reason),
+      oldValue,
+      newValue,
+      sourceRefs: buildSourceRef("approval", approval.approvalId),
+    };
+  });
+}
+
+function buildOperatorNoteAuditEntries(context: RuntimeCaseWikiContext): RuntimeCaseWikiAuditSeed[] {
+  return sortDescByIso(
+    context.selectedEvents.filter((item) => isCaseWikiNoteEvent(item)),
+    (item) => item.createdAt,
+  ).map((event) => {
+    const payload = isRecord(event.payload) ? event.payload : null;
+    const note = toNonEmptyString(payload?.note) ?? "Operator note captured for the case.";
+    const title = toNonEmptyString(payload?.title);
+    const blocking = payload?.blocking === true;
+    return {
+      id: `audit:event:${event.eventId}`,
+      ts: event.createdAt,
+      actor: "operator",
+      source: "operator_note",
+      action: blocking ? "blocking_note_added" : "note_added",
+      field: blocking ? "caseWiki.blockingQuestion" : "caseWiki.note",
+      summary: title ? `${title}: ${note}` : note,
+      reason: toNonEmptyString(payload?.suggestedNextStep),
+      oldValue: null,
+      newValue: note,
+      sourceRefs: buildSourceRef("event", event.eventId),
+    };
+  });
+}
+
+function buildWorkflowAuditEntry(context: RuntimeCaseWikiContext): RuntimeCaseWikiAuditSeed | null {
+  if (!context.workflowSummary?.workflowUpdatedAt) {
+    return null;
+  }
+
+  return {
+    id: "audit:workflow:control-plane",
+    ts: context.workflowSummary.workflowUpdatedAt,
+    actor: "workflow-store",
+    source: "workflow",
+    action: "workflow_updated",
+    field: "workflow.currentStage",
+    summary:
+      toNonEmptyString(context.workflowSummary.workflowFollowUpSummary) ??
+      toNonEmptyString(context.workflowSummary.workflowHandoffSummary) ??
+      toNonEmptyString(context.workflowSummary.workflowReason) ??
+      "Workflow control plane refreshed the active case state.",
+    reason: toNonEmptyString(context.workflowSummary.workflowExecutionStatus),
+    oldValue: null,
+    newValue:
+      toNonEmptyString(context.workflowSummary.workflowCurrentStage) ??
+      toNonEmptyString(context.workflowSummary.workflowExecutionStatus),
+    sourceRefs: ["workflow:control-plane"],
+  };
+}
+
+function buildRuntimeAuditEntry(context: RuntimeCaseWikiContext): RuntimeCaseWikiAuditSeed | null {
+  if (!context.latestEvent) {
+    return null;
+  }
+  const latestEvent = context.latestEvent;
+  return {
+    id: `audit:event:${latestEvent.eventId}:runtime`,
+    ts: latestEvent.createdAt,
+    actor: toNonEmptyString(latestEvent.source),
+    source: "runtime",
+    action: "runtime_event_observed",
+    field:
+      latestEvent.verificationState
+        ? "runtime.verificationState"
+        : latestEvent.status
+          ? "runtime.status"
+          : "runtime.event",
+    summary:
+      toNonEmptyString(latestEvent.verificationSummary) ??
+      toNonEmptyString(latestEvent.liveTransportFallbackReason) ??
+      `${toReadableToken(latestEvent.source) ?? "Runtime"} event recorded for the case.`,
+    reason:
+      toNonEmptyString(latestEvent.verificationFailureClass) ??
+      toNonEmptyString(latestEvent.type) ??
+      toNonEmptyString(latestEvent.status),
+    oldValue: null,
+    newValue:
+      toNonEmptyString(latestEvent.verificationState) ??
+      toNonEmptyString(latestEvent.status) ??
+      toNonEmptyString(latestEvent.type),
+    sourceRefs: buildSourceRef("event", latestEvent.eventId),
+  };
+}
+
+function buildAuditLog(context: RuntimeCaseWikiContext): CaseWikiAuditEntry[] {
+  const auditSeeds: RuntimeCaseWikiAuditSeed[] = [
+    ...buildApprovalAuditEntries(context),
+    ...buildOperatorNoteAuditEntries(context),
+  ];
+  const workflowEntry = buildWorkflowAuditEntry(context);
+  if (workflowEntry) {
+    auditSeeds.push(workflowEntry);
+  }
+  const runtimeEntry = buildRuntimeAuditEntry(context);
+  if (runtimeEntry) {
+    auditSeeds.push(runtimeEntry);
+  }
+  return sortDescByIso(auditSeeds, (item) => item.ts).map((entry) => ({
+    id: entry.id,
+    ts: entry.ts,
+    actor: toNonEmptyString(entry.actor ?? null),
+    source: entry.source,
+    action: entry.action,
+    field: toNonEmptyString(entry.field ?? null),
+    summary: entry.summary,
+    reason: toNonEmptyString(entry.reason ?? null),
+    oldValue: toNonEmptyString(entry.oldValue ?? null),
+    newValue: toNonEmptyString(entry.newValue ?? null),
+    sourceRefs: [...new Set(entry.sourceRefs ?? [])],
+  }));
 }
 
 function buildTimeline(context: RuntimeCaseWikiContext): CaseWikiTimelineEntry[] {
@@ -1623,10 +1878,63 @@ function buildCaseWikiWorkspacePack(params: {
   };
 }
 
+function buildCaseWikiComplianceSummary(
+  compliance:
+    | RuntimeCaseWikiBuilderParams["compliance"]
+    | null
+    | undefined,
+  evidenceSigner: RuntimeEvidenceSignerConfig | null | undefined,
+): CaseWikiComplianceSummary {
+  const posture = buildRuntimeEvidenceSigningPosture(evidenceSigner);
+  const templateId = compliance?.templateId ?? "baseline";
+  const requestedTemplateId = toNonEmptyString(compliance?.requestedTemplateId) ?? templateId;
+  const source = compliance?.source ?? "template_default";
+  const controls = {
+    piiRedactionLevel: compliance?.controls.piiRedactionLevel ?? "standard",
+    crossTenantAdminOnly: compliance?.controls.crossTenantAdminOnly ?? true,
+    approvalSlaEnforced: compliance?.controls.approvalSlaEnforced ?? true,
+    auditTrailRequired: compliance?.controls.auditTrailRequired ?? true,
+  };
+  const retention = {
+    rawMediaDays: Math.max(1, Math.floor(Number(compliance?.retention.rawMediaDays ?? 7) || 7)),
+    auditLogsDays: Math.max(1, Math.floor(Number(compliance?.retention.auditLogsDays ?? 365) || 365)),
+    eventsDays: Math.max(1, Math.floor(Number(compliance?.retention.eventsDays ?? 365) || 365)),
+    sessionsDays: Math.max(1, Math.floor(Number(compliance?.retention.sessionsDays ?? 90) || 90)),
+  };
+
+  return {
+    templateId,
+    requestedTemplateId,
+    fallbackApplied: compliance?.fallbackApplied === true,
+    source,
+    controls,
+    retention,
+    evidenceSigning: {
+      enabled: posture.enabled,
+      keyState: posture.keyState,
+      expectedSignatureStatus: posture.expectedSignatureStatus,
+      signerId: posture.signerId,
+      keyId: posture.keyId,
+    },
+    summary: [
+      `template=${templateId}`,
+      requestedTemplateId !== templateId ? `requested=${requestedTemplateId}` : null,
+      source === "tenant_override" ? "tenant_override" : "template_default",
+      `pii=${controls.piiRedactionLevel}`,
+      `rawMedia=${retention.rawMediaDays}d`,
+      `audit=${controls.auditTrailRequired ? "required" : "optional"}`,
+      `signing=${posture.expectedSignatureStatus}`,
+    ]
+      .filter((item): item is string => Boolean(item))
+      .join(" | "),
+  };
+}
+
 function buildCaseWikiOperatorPreviewPack(params: {
   caseId: string;
   sessionId: string;
   generatedAt: string;
+  compliance: CaseWikiComplianceSummary;
   overview: {
     title: string;
     summary: string;
@@ -1658,6 +1966,7 @@ function buildCaseWikiOperatorPreviewPack(params: {
   };
   openQuestions: CaseWikiOpenQuestion[];
   timeline: CaseWikiTimelineEntry[];
+  auditLog: CaseWikiAuditEntry[];
 }): CaseWikiOperatorPreviewPack {
   const nextActionPreview = params.recommendedNextAction
     ? {
@@ -1747,6 +2056,23 @@ function buildCaseWikiOperatorPreviewPack(params: {
         sourceRefs: Array.isArray(item.sourceRefs) ? item.sourceRefs : [],
       })),
     },
+    audit: {
+      totalEntries: params.auditLog.length,
+      latestEntries: params.auditLog.slice(0, 6).map((item) => ({
+        id: toNonEmptyString(item.id),
+        ts: toNonEmptyString(item.ts),
+        actor: toNonEmptyString(item.actor ?? null),
+        source: item.source,
+        action: toNonEmptyString(item.action),
+        field: toNonEmptyString(item.field ?? null),
+        summary: toNonEmptyString(item.summary),
+        reason: toNonEmptyString(item.reason ?? null),
+        oldValue: toNonEmptyString(item.oldValue ?? null),
+        newValue: toNonEmptyString(item.newValue ?? null),
+        sourceRefs: Array.isArray(item.sourceRefs) ? item.sourceRefs : [],
+      })),
+    },
+    compliance: params.compliance,
   };
 }
 
@@ -1871,6 +2197,8 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
 
   const entities = buildEntities(context);
   const timeline = buildTimeline(context);
+  const auditLog = buildAuditLog(context);
+  const compliance = buildCaseWikiComplianceSummary(params.compliance, params.evidenceSigner);
   const proofs = buildProofs(context);
   const openQuestions = buildOpenQuestions(context);
   const recommendedNextAction = buildRecommendedNextAction(context, openQuestions);
@@ -1948,6 +2276,7 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     caseId: context.caseId,
     sessionId: context.selectedSession.sessionId,
     generatedAt: context.generatedAt,
+    compliance,
     overview,
     evidencePack,
     highlights,
@@ -1963,6 +2292,7 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     },
     openQuestions,
     timeline,
+    auditLog,
   });
 
   const unsignedWiki: Omit<CaseWiki, "evidenceSignature"> = {
@@ -1974,6 +2304,7 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     overview,
     highlights,
     evidencePack,
+    compliance,
     handoffPack,
     detailPack,
     routingPack,
@@ -1984,6 +2315,7 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     operatorPreviewPack,
     entities,
     timeline,
+    auditLog,
     proofs,
     openQuestions,
     recommendedNextAction,

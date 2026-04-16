@@ -116,7 +116,7 @@ test("repo publish docs include railway badge check override example", () => {
   assert.match(readme, /-RailwayPublicBadgeCheckTimeoutSec 30/);
   assert.match(readme, /-DeployRailwayFrontend/);
   assert.match(readme, /-RailwayFrontendService "Live-Agent-Frontend"/);
-  assert.match(readme, /repo publish surfaces local release-evidence report\/manifest paths after pre-publish verification/);
+  assert.match(readme, /repo publish surfaces local release-evidence report\/runtime-proof-report\/manifest paths after pre-publish verification/);
   assert.match(readme, /artifacts\/deploy\/repo-publish-summary\.json/);
   assert.match(readme, /artifacts\/deploy\/railway-deploy-summary\.json/);
   assert.match(readme, /repo_publish_summary_path/);

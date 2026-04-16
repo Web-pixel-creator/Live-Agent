@@ -207,6 +207,24 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
     userId: "user-case-1",
     now: new Date("2026-04-09T09:05:00.000Z"),
     costSummary,
+    compliance: {
+      templateId: "strict",
+      requestedTemplateId: "strict",
+      fallbackApplied: false,
+      source: "tenant_override",
+      controls: {
+        piiRedactionLevel: "high",
+        crossTenantAdminOnly: true,
+        approvalSlaEnforced: true,
+        auditTrailRequired: true,
+      },
+      retention: {
+        rawMediaDays: 3,
+        auditLogsDays: 540,
+        eventsDays: 540,
+        sessionsDays: 120,
+      },
+    },
   });
 
   assert.ok(wiki, "expected a compiled case wiki");
@@ -219,6 +237,12 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
   assert.match(wiki?.evidenceSignature?.payloadHash ?? "", /^sha256:[a-f0-9]{64}$/);
   assert.equal(wiki?.evidenceSignature?.signature, null);
   assert.equal(wiki?.evidenceSignature?.signedAt, "2026-04-09T09:05:00.000Z");
+  assert.equal(wiki?.compliance.templateId, "strict");
+  assert.equal(wiki?.compliance.source, "tenant_override");
+  assert.equal(wiki?.compliance.controls.piiRedactionLevel, "high");
+  assert.equal(wiki?.compliance.retention.rawMediaDays, 3);
+  assert.equal(wiki?.compliance.evidenceSigning.expectedSignatureStatus, "unsigned");
+  assert.match(wiki?.compliance.summary ?? "", /template=strict/i);
   assert.equal(wiki?.overview.title, "Case case-42 for Canada");
   assert.equal(wiki?.overview.status, "waiting_on_customer");
   assert.equal(wiki?.overview.customerGoal, "Spouse visa consultation");
@@ -287,6 +311,30 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
   assert.equal(wiki?.operatorPreviewPack.questions.items[0]?.id, "question:missing-followup-items");
   assert.equal(wiki?.operatorPreviewPack.timeline.totalEntries, wiki?.timeline.length);
   assert.equal(wiki?.operatorPreviewPack.timeline.latestEntries[0]?.kind, "session");
+  assert.equal(wiki?.operatorPreviewPack.compliance.templateId, "strict");
+  assert.equal(wiki?.operatorPreviewPack.compliance.evidenceSigning.keyState, "missing");
+  assert.ok((wiki?.auditLog.length ?? 0) >= 3);
+  assert.equal(wiki?.auditLog[0]?.source, "runtime");
+  assert.equal(
+    wiki?.auditLog.some(
+      (item) =>
+        item.source === "operator_note" &&
+        item.action === "blocking_note_added" &&
+        /passport scan/i.test(item.summary),
+    ),
+    true,
+  );
+  assert.equal(
+    wiki?.auditLog.some(
+      (item) =>
+        item.source === "approval" &&
+        item.action === "decision_approved" &&
+        item.newValue === "approved",
+    ),
+    true,
+  );
+  assert.equal(wiki?.operatorPreviewPack.audit.totalEntries, wiki?.auditLog.length);
+  assert.equal(wiki?.operatorPreviewPack.audit.latestEntries[0]?.source, "runtime");
   assert.equal(wiki?.entities.some((item) => item.kind === "case" && item.id === "case:case-42"), true);
   assert.equal(wiki?.entities.some((item) => item.kind === "location" && item.label === "Canada"), true);
   assert.equal(wiki?.timeline[0]?.id, "session:session-case-1");
@@ -381,6 +429,9 @@ test("runtime case wiki can attach a signed evidence envelope", () => {
   assert.equal(wiki?.evidenceSignature?.keyId, "case-wiki-unit-key");
   assert.equal(wiki?.evidenceSignature?.signerId, "api-backend-test");
   assert.equal(wiki?.evidenceSignature?.signedAt, "2026-04-10T09:01:00.000Z");
+  assert.equal(wiki?.compliance.templateId, "baseline");
+  assert.equal(wiki?.compliance.evidenceSigning.expectedSignatureStatus, "signed");
+  assert.equal(wiki?.operatorPreviewPack.compliance.evidenceSigning.keyState, "loaded");
   assert.equal(
     verifyEvidencePayloadSignature({
       payload: wiki,
@@ -495,4 +546,7 @@ test("runtime case wiki prioritizes pending approvals as the next action when op
   assert.equal(wiki?.operatorPreviewPack.questions.items[0]?.id, "question:approval:approval-pending-1");
   assert.equal(wiki?.operatorPreviewPack.timeline.totalEntries, wiki?.timeline.length);
   assert.equal(wiki?.operatorPreviewPack.timeline.latestEntries[0]?.kind, "session");
+  assert.equal(wiki?.auditLog.some((item) => item.source === "approval" && item.newValue === "pending"), true);
+  assert.equal(wiki?.operatorPreviewPack.audit.totalEntries, wiki?.auditLog.length);
+  assert.equal(wiki?.operatorPreviewPack.audit.latestEntries.some((item) => item.source === "approval"), true);
 });

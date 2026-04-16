@@ -276,6 +276,72 @@ export type EvidenceSignature = {
   signedAt: string;
 };
 
+export const CASE_WIKI_AUDIT_SOURCES = [
+  "approval",
+  "operator_note",
+  "workflow",
+  "runtime",
+] as const;
+
+export type CaseWikiAuditSource = (typeof CASE_WIKI_AUDIT_SOURCES)[number];
+
+export type CaseWikiAuditEntry = {
+  id: string;
+  ts: string;
+  actor: string | null;
+  source: CaseWikiAuditSource;
+  action: string;
+  field: string | null;
+  summary: string;
+  reason: string | null;
+  oldValue: string | null;
+  newValue: string | null;
+  sourceRefs: string[];
+};
+
+export const CASE_WIKI_COMPLIANCE_TEMPLATES = ["baseline", "strict", "regulated"] as const;
+
+export type CaseWikiComplianceTemplate = (typeof CASE_WIKI_COMPLIANCE_TEMPLATES)[number];
+
+export const CASE_WIKI_COMPLIANCE_SOURCES = ["template_default", "tenant_override"] as const;
+
+export type CaseWikiComplianceSource = (typeof CASE_WIKI_COMPLIANCE_SOURCES)[number];
+
+export const CASE_WIKI_PII_REDACTION_LEVELS = ["standard", "high"] as const;
+
+export type CaseWikiPiiRedactionLevel = (typeof CASE_WIKI_PII_REDACTION_LEVELS)[number];
+
+export const CASE_WIKI_EVIDENCE_SIGNING_KEY_STATES = ["missing", "loaded", "invalid"] as const;
+
+export type CaseWikiEvidenceSigningKeyState = (typeof CASE_WIKI_EVIDENCE_SIGNING_KEY_STATES)[number];
+
+export type CaseWikiComplianceSummary = {
+  templateId: CaseWikiComplianceTemplate;
+  requestedTemplateId: string;
+  fallbackApplied: boolean;
+  source: CaseWikiComplianceSource;
+  controls: {
+    piiRedactionLevel: CaseWikiPiiRedactionLevel;
+    crossTenantAdminOnly: boolean;
+    approvalSlaEnforced: boolean;
+    auditTrailRequired: boolean;
+  };
+  retention: {
+    rawMediaDays: number;
+    auditLogsDays: number;
+    eventsDays: number;
+    sessionsDays: number;
+  };
+  evidenceSigning: {
+    enabled: boolean;
+    keyState: CaseWikiEvidenceSigningKeyState;
+    expectedSignatureStatus: EvidenceSignatureStatus;
+    signerId: string;
+    keyId: string | null;
+  };
+  summary: string;
+};
+
 export const CASE_WIKI_DETAIL_BADGE_TONES = ["neutral", "ok", "watch"] as const;
 
 export type CaseWikiDetailBadgeTone = (typeof CASE_WIKI_DETAIL_BADGE_TONES)[number];
@@ -487,11 +553,30 @@ export type CaseWikiOperatorTimelinePreview = {
   }>;
 };
 
+export type CaseWikiOperatorAuditPreview = {
+  totalEntries: number;
+  latestEntries: Array<{
+    id: string | null;
+    ts: string | null;
+    actor: string | null;
+    source: CaseWikiAuditSource | null;
+    action: string | null;
+    field: string | null;
+    summary: string | null;
+    reason: string | null;
+    oldValue: string | null;
+    newValue: string | null;
+    sourceRefs: string[];
+  }>;
+};
+
 export type CaseWikiOperatorPreviewPack = {
   overview: CaseWikiOperatorOverviewPreview;
   evidence: CaseWikiOperatorEvidencePreview;
   questions: CaseWikiOperatorQuestionsPreview;
   timeline: CaseWikiOperatorTimelinePreview;
+  audit: CaseWikiOperatorAuditPreview;
+  compliance: CaseWikiComplianceSummary;
 };
 
 export type CaseWikiRoutingRoute = {
@@ -590,6 +675,7 @@ export type CaseWiki = {
   overview: CaseWikiOverview;
   highlights: CaseWikiHighlights;
   evidencePack: CaseWikiEvidencePack;
+  compliance: CaseWikiComplianceSummary;
   evidenceSignature?: EvidenceSignature;
   handoffPack: CaseWikiHandoffPack;
   detailPack: CaseWikiDetailPack;
@@ -601,6 +687,7 @@ export type CaseWiki = {
   operatorPreviewPack: CaseWikiOperatorPreviewPack;
   entities: CaseWikiEntity[];
   timeline: CaseWikiTimelineEntry[];
+  auditLog: CaseWikiAuditEntry[];
   proofs: CaseWikiProof[];
   openQuestions: CaseWikiOpenQuestion[];
   recommendedNextAction: CaseWikiNextAction | null;

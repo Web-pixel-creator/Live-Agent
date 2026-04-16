@@ -68,6 +68,8 @@ $ReleaseThresholds = @{
 $MaxAllowedScenarioRetriesUsedCount = if ($StrictFinalRun) { 0 } else { $ReleaseThresholds.MaxScenarioRetriesUsedCount }
 $EffectiveDemoRunMaxAttempts = if ($StrictFinalRun) { 1 } else { $DemoRunMaxAttempts }
 $IsArtifactOnlyMode = $SkipDemoE2E -and $SkipPolicy -and $SkipBadge
+$ReleaseEvidenceRuntimeProofReportPath = Join-Path (Split-Path -Parent $ReleaseEvidenceReportPath) "runtime-proof-report.json"
+$ReleaseEvidenceRuntimeProofReportMarkdownPath = Join-Path (Split-Path -Parent $ReleaseEvidenceReportMarkdownPath) "runtime-proof-report.md"
 $script:ReleaseReadinessDotEnvValues = $null
 
 function To-NumberOrNaN([object]$Value) {
@@ -740,6 +742,8 @@ if ($IsArtifactOnlyMode) {
 if (Test-Path $BadgeDetailsPath) {
   $requiredFiles += $ReleaseEvidenceReportPath
   $requiredFiles += $ReleaseEvidenceReportMarkdownPath
+  $requiredFiles += $ReleaseEvidenceRuntimeProofReportPath
+  $requiredFiles += $ReleaseEvidenceRuntimeProofReportMarkdownPath
   $requiredFiles += $ReleaseEvidenceManifestPath
   $requiredFiles += $ReleaseEvidenceManifestMarkdownPath
 }
@@ -2460,6 +2464,7 @@ if (Test-Path $ReleaseEvidenceReportPath) {
   $caseWikiEvidenceSignedAt = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "signedAt")
   $caseWikiEvidenceSignedAtIsIso = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "signedAtIsIso")
   $caseWikiEvidencePayloadHash = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "payloadHash")
+  $caseWikiEvidenceSource = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "source")
   $caseWikiEvidenceObserved =
     ($caseWikiEvidenceStatus -ne "unavailable") -or
     ((-not [double]::IsNaN($caseWikiEvidenceTotalArtifacts)) -and $caseWikiEvidenceTotalArtifacts -gt 0) -or
@@ -2477,7 +2482,17 @@ if (Test-Path $ReleaseEvidenceReportPath) {
         "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM",
         "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64"
       ))
-    $expectedCaseWikiEvidenceStatus = if ($runtimeEvidenceSigningConfigured) { "pass" } else { "warn" }
+    $hostedDirectLiveProof = Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "hostedDirectLiveProof"
+    $hostedDirectLiveProofStatus = [string](Get-ObjectPropertyValue -Object $hostedDirectLiveProof -Name "status")
+    $hostedDirectLiveProofFreshnessStatus = [string](Get-ObjectPropertyValue -Object $hostedDirectLiveProof -Name "freshnessStatus")
+    $hostedSignedCaseWikiEvidencePromoted =
+      ($caseWikiEvidenceSource -eq "hosted_direct_live_proof") -and
+      ($hostedDirectLiveProofStatus -eq "pass") -and
+      ($hostedDirectLiveProofFreshnessStatus -eq "pass") -and
+      ($caseWikiEvidenceSignatureStatus -eq "signed") -and
+      ($caseWikiEvidenceSignaturePresent -eq $true)
+    $caseWikiEvidenceRequiresSignedEnvelope = $runtimeEvidenceSigningConfigured -or $hostedSignedCaseWikiEvidencePromoted
+    $expectedCaseWikiEvidenceStatus = if ($caseWikiEvidenceRequiresSignedEnvelope) { "pass" } else { "warn" }
 
     if ($caseWikiEvidenceStatus -ne $expectedCaseWikiEvidenceStatus -or $caseWikiEvidenceValidated -ne $true) {
       Fail (
@@ -2515,7 +2530,7 @@ if (Test-Path $ReleaseEvidenceReportPath) {
       Fail "release evidence caseWikiEvidenceSignature.payloadHash must be a canonical sha256:<hex> digest"
     }
 
-    if ($runtimeEvidenceSigningConfigured -eq $true) {
+    if ($caseWikiEvidenceRequiresSignedEnvelope -eq $true) {
       if (
         $caseWikiEvidenceSignatureStatus -ne "signed" -or
         $caseWikiEvidenceSignaturePresent -ne $true -or
@@ -2523,7 +2538,7 @@ if (Test-Path $ReleaseEvidenceReportPath) {
         $caseWikiEvidenceUnsignedArtifacts -ne 0
       ) {
         Fail (
-          "release evidence caseWikiEvidenceSignature expected signedArtifacts=totalArtifacts and unsignedArtifacts=0 when runtime evidence signing is configured"
+          "release evidence caseWikiEvidenceSignature expected signedArtifacts=totalArtifacts and unsignedArtifacts=0 when signed runtime evidence is required"
         )
       }
     }
@@ -3138,6 +3153,18 @@ if (Test-Path $ReleaseEvidenceReportPath) {
       ", case_wiki_rate=" + $caseWikiContextAdoptionRate
     )
   }
+}
+if (Test-Path $ReleaseEvidenceRuntimeProofReportPath) {
+  Write-Host ("release.evidence.runtime_proof_report: " + $ReleaseEvidenceRuntimeProofReportPath)
+  $runtimeProofReport = Get-Content $ReleaseEvidenceRuntimeProofReportPath -Raw | ConvertFrom-Json
+  $runtimeProofStatus = [string](Get-ObjectPropertyValue -Object $runtimeProofReport -Name "status")
+  $runtimeProofReadyForOperatorDemo = Get-ObjectPropertyValue -Object $runtimeProofReport -Name "readyForOperatorDemo"
+  $runtimeProofSummary = [string](Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $runtimeProofReport -Name "summary") -Name "overallSummary")
+  Write-Host (
+    "runtime_proof.summary: status=" + $runtimeProofStatus +
+    ", ready_for_operator_demo=" + $runtimeProofReadyForOperatorDemo +
+    ", summary=" + $runtimeProofSummary
+  )
 }
 if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
   $sourceRunManifest = Get-Content $SourceRunManifestPath -Raw | ConvertFrom-Json

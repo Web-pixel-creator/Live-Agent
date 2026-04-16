@@ -3769,6 +3769,8 @@ const el = {
   operatorCaseWikiFocusedRoutingCopyBtn: document.getElementById("operatorCaseWikiFocusedRoutingCopyBtn"),
   operatorCaseWikiFocusedRoutingExportBtn: document.getElementById("operatorCaseWikiFocusedRoutingExportBtn"),
   operatorCaseWikiQuestionsSnapshot: document.getElementById("operatorCaseWikiQuestionsSnapshot"),
+  operatorCaseWikiComplianceSnapshot: document.getElementById("operatorCaseWikiComplianceSnapshot"),
+  operatorCaseWikiAuditSnapshot: document.getElementById("operatorCaseWikiAuditSnapshot"),
   operatorCaseWikiTimelineSnapshot: document.getElementById("operatorCaseWikiTimelineSnapshot"),
   operatorSessionOpsLastResult: document.getElementById("operatorSessionOpsLastResult"),
   operatorBrowserWorkerControlStatus: document.getElementById("operatorBrowserWorkerControlStatus"),
@@ -26045,6 +26047,7 @@ function buildSessionExportOperatorCaseWiki() {
     sessionId: toOptionalText(snapshot?.sessionId),
     generatedAt: toOptionalText(snapshot?.generatedAt),
     overview: isRecord(snapshot?.overview) ? snapshot.overview : null,
+    compliance: isRecord(snapshot?.compliance) ? snapshot.compliance : null,
     highlights: isRecord(snapshot?.highlights) ? snapshot.highlights : null,
     evidencePack: evidencePack
       ? {
@@ -26062,6 +26065,7 @@ function buildSessionExportOperatorCaseWiki() {
     previewPack: isRecord(snapshot?.previewPack) ? snapshot.previewPack : null,
     workspacePack: isRecord(snapshot?.workspacePack) ? snapshot.workspacePack : null,
     operatorPreviewPack: isRecord(snapshot?.operatorPreviewPack) ? snapshot.operatorPreviewPack : null,
+    auditLog: Array.isArray(snapshot?.auditLog) ? snapshot.auditLog.slice(0, 8) : [],
     recommendedNextAction: isRecord(snapshot?.recommendedNextAction) ? snapshot.recommendedNextAction : null,
     topBlockingQuestion: isRecord(blockingQuestion) ? blockingQuestion : null,
     topProof: isRecord(topProof) ? topProof : null,
@@ -26079,6 +26083,7 @@ function buildSessionExportOperatorCaseWiki() {
       entities: Array.isArray(snapshot?.entities) ? snapshot.entities.length : 0,
       proofs: Array.isArray(snapshot?.proofs) ? snapshot.proofs.length : 0,
       openQuestions: Array.isArray(snapshot?.openQuestions) ? snapshot.openQuestions.length : 0,
+      auditLog: Array.isArray(snapshot?.auditLog) ? snapshot.auditLog.length : 0,
       timeline: Array.isArray(snapshot?.timeline) ? snapshot.timeline.length : 0,
     },
     openQuestions: Array.isArray(snapshot?.openQuestions) ? snapshot.openQuestions.slice(0, 8) : [],
@@ -32416,6 +32421,7 @@ function buildOperatorCaseWikiSnapshot(value) {
     userId: toOptionalText(value.userId),
     generatedAt: toOptionalText(value.generatedAt),
     overview: isRecord(value.overview) ? value.overview : null,
+    compliance: isRecord(value.compliance) ? value.compliance : null,
     highlights: isRecord(value.highlights)
       ? {
           topProof: isRecord(value.highlights.topProof) ? value.highlights.topProof : null,
@@ -32510,11 +32516,14 @@ function buildOperatorCaseWikiSnapshot(value) {
           overview: isRecord(value.operatorPreviewPack.overview) ? value.operatorPreviewPack.overview : null,
           evidence: isRecord(value.operatorPreviewPack.evidence) ? value.operatorPreviewPack.evidence : null,
           questions: isRecord(value.operatorPreviewPack.questions) ? value.operatorPreviewPack.questions : null,
+          compliance: isRecord(value.operatorPreviewPack.compliance) ? value.operatorPreviewPack.compliance : null,
+          audit: isRecord(value.operatorPreviewPack.audit) ? value.operatorPreviewPack.audit : null,
           timeline: isRecord(value.operatorPreviewPack.timeline) ? value.operatorPreviewPack.timeline : null,
         }
       : null,
     entities: Array.isArray(value.entities) ? value.entities.filter((item) => isRecord(item)) : [],
     timeline: Array.isArray(value.timeline) ? value.timeline.filter((item) => isRecord(item)) : [],
+    auditLog: Array.isArray(value.auditLog) ? value.auditLog.filter((item) => isRecord(item)) : [],
     proofs: Array.isArray(value.proofs) ? value.proofs.filter((item) => isRecord(item)) : [],
     openQuestions: Array.isArray(value.openQuestions) ? value.openQuestions.filter((item) => isRecord(item)) : [],
     recommendedNextAction: isRecord(value.recommendedNextAction) ? value.recommendedNextAction : null,
@@ -34037,6 +34046,55 @@ function buildOperatorCaseWikiQuestionsPreview() {
   );
 }
 
+function buildOperatorCaseWikiCompliancePreview() {
+  const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  if (!snapshot) {
+    return "No case wiki compliance loaded yet.";
+  }
+  const operatorPreviewPack = isRecord(snapshot.operatorPreviewPack) ? snapshot.operatorPreviewPack : null;
+  if (isRecord(operatorPreviewPack?.compliance)) {
+    return stringifyOperatorRuntimeFaultValue(
+      operatorPreviewPack.compliance,
+      "No case wiki compliance loaded yet.",
+    );
+  }
+  if (isRecord(snapshot.compliance)) {
+    return stringifyOperatorRuntimeFaultValue(snapshot.compliance, "No case wiki compliance loaded yet.");
+  }
+  return "No case wiki compliance loaded yet.";
+}
+
+function buildOperatorCaseWikiAuditPreview() {
+  const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  if (!snapshot) {
+    return "No case wiki audit loaded yet.";
+  }
+  const operatorPreviewPack = isRecord(snapshot.operatorPreviewPack) ? snapshot.operatorPreviewPack : null;
+  if (isRecord(operatorPreviewPack?.audit)) {
+    return stringifyOperatorRuntimeFaultValue(operatorPreviewPack.audit, "No case wiki audit loaded yet.");
+  }
+  const latestEntries = snapshot.auditLog.slice(0, 6).map((item) => ({
+    id: toOptionalText(item.id),
+    ts: toOptionalText(item.ts),
+    actor: toOptionalText(item.actor),
+    source: toOptionalText(item.source),
+    action: toOptionalText(item.action),
+    field: toOptionalText(item.field),
+    summary: toOptionalText(item.summary),
+    reason: toOptionalText(item.reason),
+    oldValue: toOptionalText(item.oldValue),
+    newValue: toOptionalText(item.newValue),
+    sourceRefs: Array.isArray(item.sourceRefs) ? item.sourceRefs : [],
+  }));
+  return stringifyOperatorRuntimeFaultValue(
+    {
+      totalEntries: snapshot.auditLog.length,
+      latestEntries,
+    },
+    "No case wiki audit loaded yet.",
+  );
+}
+
 function buildOperatorCaseWikiTimelinePreview() {
   const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
   if (!snapshot) {
@@ -34316,6 +34374,12 @@ function renderOperatorSessionOpsPanel() {
   }
   if (el.operatorCaseWikiQuestionsSnapshot instanceof HTMLElement) {
     el.operatorCaseWikiQuestionsSnapshot.textContent = buildOperatorCaseWikiQuestionsPreview();
+  }
+  if (el.operatorCaseWikiComplianceSnapshot instanceof HTMLElement) {
+    el.operatorCaseWikiComplianceSnapshot.textContent = buildOperatorCaseWikiCompliancePreview();
+  }
+  if (el.operatorCaseWikiAuditSnapshot instanceof HTMLElement) {
+    el.operatorCaseWikiAuditSnapshot.textContent = buildOperatorCaseWikiAuditPreview();
   }
   if (el.operatorCaseWikiTimelineSnapshot instanceof HTMLElement) {
     el.operatorCaseWikiTimelineSnapshot.textContent = buildOperatorCaseWikiTimelinePreview();

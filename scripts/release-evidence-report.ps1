@@ -5,6 +5,8 @@ param(
   [string]$OutputMarkdownPath = "artifacts/release-evidence/report.md",
   [string]$OutputManifestJsonPath = "artifacts/release-evidence/manifest.json",
   [string]$OutputManifestMarkdownPath = "artifacts/release-evidence/manifest.md",
+  [string]$OutputRuntimeProofJsonPath = "",
+  [string]$OutputRuntimeProofMarkdownPath = "",
   [int]$HostedDirectLiveProofMaxAgeHours = 24
 )
 
@@ -57,6 +59,35 @@ function Get-StatusValueOrDefault {
   }
 
   return $raw
+}
+
+function Get-AggregateEvidenceStatus {
+  param(
+    [Parameter(Mandatory = $false)]
+    [AllowNull()]
+    [object[]]$Statuses
+  )
+
+  $normalized = @()
+  foreach ($status in @($Statuses)) {
+    $normalized += Get-StatusValueOrDefault -Value $status -DefaultValue "unavailable"
+  }
+
+  if ($normalized.Count -eq 0) {
+    return "unavailable"
+  }
+
+  $passCount = @($normalized | Where-Object { $_ -eq "pass" }).Count
+  if ($passCount -eq $normalized.Count) {
+    return "pass"
+  }
+
+  $observedCount = @($normalized | Where-Object { $_ -ne "unavailable" }).Count
+  if ($observedCount -eq 0) {
+    return "unavailable"
+  }
+
+  return "fail"
 }
 
 function Convert-ToNonNegativeIntOrDefault {
@@ -910,6 +941,16 @@ $resolvedOutputJsonPath = [System.IO.Path]::GetFullPath($OutputJsonPath)
 $resolvedOutputMarkdownPath = [System.IO.Path]::GetFullPath($OutputMarkdownPath)
 $resolvedOutputManifestJsonPath = [System.IO.Path]::GetFullPath($OutputManifestJsonPath)
 $resolvedOutputManifestMarkdownPath = [System.IO.Path]::GetFullPath($OutputManifestMarkdownPath)
+$resolvedOutputRuntimeProofJsonPath = if ([string]::IsNullOrWhiteSpace($OutputRuntimeProofJsonPath)) {
+  [System.IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $resolvedOutputJsonPath) "runtime-proof-report.json"))
+} else {
+  [System.IO.Path]::GetFullPath($OutputRuntimeProofJsonPath)
+}
+$resolvedOutputRuntimeProofMarkdownPath = if ([string]::IsNullOrWhiteSpace($OutputRuntimeProofMarkdownPath)) {
+  [System.IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $resolvedOutputMarkdownPath) "runtime-proof-report.md"))
+} else {
+  [System.IO.Path]::GetFullPath($OutputRuntimeProofMarkdownPath)
+}
 $reportGeneratedAtUtc = [DateTimeOffset]::UtcNow
 $reportGeneratedAt = $reportGeneratedAtUtc.ToString("o")
 
@@ -1361,6 +1402,233 @@ $report.statuses.caseWikiEvidenceSignatureStatus = Get-StatusValueOrDefault -Val
 $json = $report | ConvertTo-Json -Depth 10
 Write-Utf8NoBomFile -Path $resolvedOutputJsonPath -Content $json
 
+$runtimeProofDirectLiveStatus = Get-AggregateEvidenceStatus -Statuses @(
+  $report.statuses.hostedDirectLiveProofStatus
+)
+$runtimeProofCaseWikiStatus = Get-AggregateEvidenceStatus -Statuses @(
+  $report.statuses.caseWikiEvidenceSignatureStatus,
+  $report.statuses.caseWikiRoutingContextStatus,
+  $report.statuses.caseWikiGatewayHydrationStatus,
+  $report.statuses.caseWikiContextAdoptionStatus
+)
+$runtimeProofNavigatorStatus = Get-AggregateEvidenceStatus -Statuses @(
+  $report.statuses.uiRefHealingStatus,
+  $report.statuses.browserWorkerRecoveryStatus,
+  $report.statuses.navigatorVisaFlowsStatus
+)
+$runtimeProofOverallStatus = Get-AggregateEvidenceStatus -Statuses @(
+  $runtimeProofDirectLiveStatus,
+  $runtimeProofCaseWikiStatus,
+  $runtimeProofNavigatorStatus
+)
+
+$runtimeProofBlockers = @()
+if ($runtimeProofDirectLiveStatus -ne "pass") {
+  $runtimeProofBlockers += [ordered]@{
+    lane   = "direct_live"
+    status = $runtimeProofDirectLiveStatus
+    reason = $(if (-not [string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.freshnessSummary) -and $report.hostedDirectLiveProof.freshnessSummary -ne "unavailable") {
+        [string]$report.hostedDirectLiveProof.freshnessSummary
+      } elseif (-not [string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.summary) -and $report.hostedDirectLiveProof.summary -ne "unavailable") {
+        [string]$report.hostedDirectLiveProof.summary
+      } else {
+        "hosted direct-live proof is not in a passing state"
+      })
+  }
+}
+if ($runtimeProofCaseWikiStatus -ne "pass") {
+  $runtimeProofBlockers += [ordered]@{
+    lane   = "case_wiki"
+    status = $runtimeProofCaseWikiStatus
+    reason = $(if (-not [string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.blocker)) {
+        "compiled memory routing proof is incomplete; blocker=" + [string]$report.caseWikiRoutingContext.blocker
+      } elseif (-not [string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.signatureStatus)) {
+        "compiled memory proof is incomplete; signature_status=" + [string]$report.caseWikiEvidenceSignature.signatureStatus
+      } else {
+        "compiled memory routing or signing proof is missing"
+      })
+  }
+}
+if ($runtimeProofNavigatorStatus -ne "pass") {
+  $runtimeProofBlockers += [ordered]@{
+    lane   = "navigator"
+    status = $runtimeProofNavigatorStatus
+    reason = $(if (-not [string]::IsNullOrWhiteSpace([string]$report.navigatorVisaFlows.summary)) {
+        [string]$report.navigatorVisaFlows.summary
+      } elseif (-not [string]::IsNullOrWhiteSpace([string]$report.browserWorkerRecovery.summary)) {
+        [string]$report.browserWorkerRecovery.summary
+      } else {
+        "persistent navigator proof is incomplete"
+      })
+  }
+}
+
+$runtimeProof = [ordered]@{
+  schemaVersion      = "1.0"
+  generatedAt        = $report.generatedAt
+  status             = $runtimeProofOverallStatus
+  readyForOperatorDemo = ($runtimeProofOverallStatus -eq "pass")
+  source             = [ordered]@{
+    badgeDetailsPath               = $resolvedBadgeDetailsPath
+    releaseEvidenceReportJsonPath  = $resolvedOutputJsonPath
+    releaseEvidenceReportMarkdownPath = $resolvedOutputMarkdownPath
+    releaseEvidenceManifestJsonPath = $resolvedOutputManifestJsonPath
+    releaseEvidenceManifestMarkdownPath = $resolvedOutputManifestMarkdownPath
+  }
+  summary            = [ordered]@{
+    totalLanes    = 3
+    passedLanes   = @(@($runtimeProofDirectLiveStatus, $runtimeProofCaseWikiStatus, $runtimeProofNavigatorStatus) | Where-Object { $_ -eq "pass" }).Count
+    blockerCount  = $runtimeProofBlockers.Count
+    overallSummary = ("direct_live=" + $runtimeProofDirectLiveStatus + "; case_wiki=" + $runtimeProofCaseWikiStatus + "; navigator=" + $runtimeProofNavigatorStatus + "; blockers=" + $runtimeProofBlockers.Count)
+    laneStatuses  = [ordered]@{
+      directLive = $runtimeProofDirectLiveStatus
+      caseWiki   = $runtimeProofCaseWikiStatus
+      navigator  = $runtimeProofNavigatorStatus
+    }
+  }
+  lanes              = [ordered]@{
+    directLive = [ordered]@{
+      status               = $runtimeProofDirectLiveStatus
+      hostedProofStatus    = $report.hostedDirectLiveProof.status
+      observed             = $report.hostedDirectLiveProof.observed
+      freshnessStatus      = $report.hostedDirectLiveProof.freshnessStatus
+      freshnessSummary     = $report.hostedDirectLiveProof.freshnessSummary
+      runtimePreferredMode = $report.hostedDirectLiveProof.runtimePreferredMode
+      runtimeActiveMode    = $report.hostedDirectLiveProof.runtimeActiveMode
+      replayActiveMode     = $report.hostedDirectLiveProof.replayActiveMode
+      replayEvidenceSource = $report.hostedDirectLiveProof.replayEvidenceSource
+      firstAudioMs         = $report.hostedDirectLiveProof.firstAudioMs
+      firstOutputMs        = $report.hostedDirectLiveProof.firstOutputMs
+      fallbackEventCount   = $report.hostedDirectLiveProof.fallbackEventCount
+      fallbackReason       = $report.hostedDirectLiveProof.fallbackReason
+      localRuntimeMode     = $report.liveTransport.runtime.activeMode
+      localSessionMode     = $report.liveTransport.session.activeMode
+      summary              = ("hosted=" + $report.hostedDirectLiveProof.status + "; replay_mode=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.replayActiveMode)) { "n/a" } else { [string]$report.hostedDirectLiveProof.replayActiveMode }) + "; first_audio_ms=" + $(if ($null -eq $report.hostedDirectLiveProof.firstAudioMs) { "n/a" } else { [string]$report.hostedDirectLiveProof.firstAudioMs }) + "; fallback_events=" + [string]$report.hostedDirectLiveProof.fallbackEventCount + "; freshness=" + $report.hostedDirectLiveProof.freshnessStatus)
+    }
+    caseWiki = [ordered]@{
+      status               = $runtimeProofCaseWikiStatus
+      signatureStatus      = $report.caseWikiEvidenceSignature.status
+      signatureSource      = $report.caseWikiEvidenceSignature.source
+      signatureKind        = $report.caseWikiEvidenceSignature.signatureStatus
+      signedArtifacts      = $report.caseWikiEvidenceSignature.signedArtifacts
+      totalArtifacts       = $report.caseWikiEvidenceSignature.totalArtifacts
+      routingStatus        = $report.caseWikiRoutingContext.status
+      contextSource        = $report.caseWikiRoutingContext.contextSource
+      focusId              = $report.caseWikiRoutingContext.focusId
+      blocker              = $report.caseWikiRoutingContext.blocker
+      nextAction           = $report.caseWikiRoutingContext.nextAction
+      gatewayHydrationStatus = $report.caseWikiGatewayHydration.status
+      contextAdoptionStatus = $report.caseWikiContextAdoption.status
+      caseWikiRate         = $report.caseWikiContextAdoption.caseWikiRate
+      summary              = ("signature=" + $report.caseWikiEvidenceSignature.status + "; context_source=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.contextSource)) { "n/a" } else { [string]$report.caseWikiRoutingContext.contextSource }) + "; blocker=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.blocker)) { "n/a" } else { [string]$report.caseWikiRoutingContext.blocker }) + "; next_action=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.nextAction)) { "n/a" } else { [string]$report.caseWikiRoutingContext.nextAction }) + "; case_wiki_rate=" + $(if ($null -eq $report.caseWikiContextAdoption.caseWikiRate) { "n/a" } else { [string]$report.caseWikiContextAdoption.caseWikiRate }))
+    }
+    navigator = [ordered]@{
+      status                    = $runtimeProofNavigatorStatus
+      uiRefHealingStatus        = $report.uiRefHealing.status
+      browserWorkerRecoveryStatus = $report.browserWorkerRecovery.status
+      visaFlowsStatus           = $report.navigatorVisaFlows.status
+      adapterMode               = $report.browserWorkerRecovery.adapterMode
+      totalFlows                = $report.navigatorVisaFlows.totalFlows
+      succeededFlows            = $report.navigatorVisaFlows.succeededFlows
+      successRate               = $report.navigatorVisaFlows.successRate
+      persistentSessionCount    = $report.navigatorVisaFlows.persistentSessionCount
+      replayBundleCount         = $report.navigatorVisaFlows.replayBundleCount
+      verifiedCount             = $report.navigatorVisaFlows.verifiedCount
+      staleRecoveryObservedCount = $report.navigatorVisaFlows.staleRecoveryObservedCount
+      healedRecoveryObservedCount = $report.navigatorVisaFlows.healedRecoveryObservedCount
+      resumedCheckpointCount    = $report.navigatorVisaFlows.resumedCheckpointCount
+      scenarioNames             = @($report.navigatorVisaFlows.scenarioNames)
+      summary                   = ("flows=" + [string]$report.navigatorVisaFlows.succeededFlows + "/" + [string]$report.navigatorVisaFlows.totalFlows + "; persistent=" + [string]$report.navigatorVisaFlows.persistentSessionCount + "; verified=" + [string]$report.navigatorVisaFlows.verifiedCount + "; stale_recovery=" + [string]$report.navigatorVisaFlows.staleRecoveryObservedCount + "; resumed=" + [string]$report.navigatorVisaFlows.resumedCheckpointCount)
+    }
+  }
+  blockers           = @($runtimeProofBlockers)
+}
+
+$runtimeProofJson = $runtimeProof | ConvertTo-Json -Depth 10
+Write-Utf8NoBomFile -Path $resolvedOutputRuntimeProofJsonPath -Content $runtimeProofJson
+
+$runtimeProofMarkdown = @(
+  "# Runtime Proof Report",
+  "",
+  "- Generated at: $($runtimeProof.generatedAt)",
+  "- Overall status: $($runtimeProof.status)",
+  "- Ready for operator demo: $($runtimeProof.readyForOperatorDemo)",
+  "- Badge details path: $($runtimeProof.source.badgeDetailsPath)",
+  "- Release evidence report JSON: $($runtimeProof.source.releaseEvidenceReportJsonPath)",
+  "",
+  "| Lane | Status | Summary |",
+  "|---|---|---|",
+  "| direct_live | $($runtimeProof.lanes.directLive.status) | $($runtimeProof.lanes.directLive.summary) |",
+  "| case_wiki | $($runtimeProof.lanes.caseWiki.status) | $($runtimeProof.lanes.caseWiki.summary) |",
+  "| navigator | $($runtimeProof.lanes.navigator.status) | $($runtimeProof.lanes.navigator.summary) |",
+  "",
+  "## Direct Live Proof",
+  "",
+  "- status: $($runtimeProof.lanes.directLive.status)",
+  "- hostedProofStatus: $($runtimeProof.lanes.directLive.hostedProofStatus)",
+  "- observed: $($runtimeProof.lanes.directLive.observed)",
+  "- freshnessStatus: $($runtimeProof.lanes.directLive.freshnessStatus)",
+  "- freshnessSummary: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.directLive.freshnessSummary)) { "n/a" } else { [string]$runtimeProof.lanes.directLive.freshnessSummary })",
+  "- runtimePreferredMode: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.directLive.runtimePreferredMode)) { "n/a" } else { [string]$runtimeProof.lanes.directLive.runtimePreferredMode })",
+  "- runtimeActiveMode: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.directLive.runtimeActiveMode)) { "n/a" } else { [string]$runtimeProof.lanes.directLive.runtimeActiveMode })",
+  "- replayActiveMode: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.directLive.replayActiveMode)) { "n/a" } else { [string]$runtimeProof.lanes.directLive.replayActiveMode })",
+  "- replayEvidenceSource: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.directLive.replayEvidenceSource)) { "n/a" } else { [string]$runtimeProof.lanes.directLive.replayEvidenceSource })",
+  "- firstAudioMs: $(if ($null -eq $runtimeProof.lanes.directLive.firstAudioMs) { "n/a" } else { [string]$runtimeProof.lanes.directLive.firstAudioMs })",
+  "- firstOutputMs: $(if ($null -eq $runtimeProof.lanes.directLive.firstOutputMs) { "n/a" } else { [string]$runtimeProof.lanes.directLive.firstOutputMs })",
+  "- fallbackEventCount: $($runtimeProof.lanes.directLive.fallbackEventCount)",
+  "- fallbackReason: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.directLive.fallbackReason)) { "n/a" } else { [string]$runtimeProof.lanes.directLive.fallbackReason })",
+  "- localRuntimeMode: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.directLive.localRuntimeMode)) { "n/a" } else { [string]$runtimeProof.lanes.directLive.localRuntimeMode })",
+  "- localSessionMode: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.directLive.localSessionMode)) { "n/a" } else { [string]$runtimeProof.lanes.directLive.localSessionMode })",
+  "",
+  "## Case Wiki Proof",
+  "",
+  "- status: $($runtimeProof.lanes.caseWiki.status)",
+  "- signatureStatus: $($runtimeProof.lanes.caseWiki.signatureStatus)",
+  "- signatureSource: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.signatureSource)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.signatureSource })",
+  "- signatureKind: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.signatureKind)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.signatureKind })",
+  "- signedArtifacts: $($runtimeProof.lanes.caseWiki.signedArtifacts)",
+  "- totalArtifacts: $($runtimeProof.lanes.caseWiki.totalArtifacts)",
+  "- routingStatus: $($runtimeProof.lanes.caseWiki.routingStatus)",
+  "- gatewayHydrationStatus: $($runtimeProof.lanes.caseWiki.gatewayHydrationStatus)",
+  "- contextAdoptionStatus: $($runtimeProof.lanes.caseWiki.contextAdoptionStatus)",
+  "- contextSource: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.contextSource)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.contextSource })",
+  "- focusId: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.focusId)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.focusId })",
+  "- blocker: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.blocker)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.blocker })",
+  "- nextAction: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.nextAction)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.nextAction })",
+  "- caseWikiRate: $(if ($null -eq $runtimeProof.lanes.caseWiki.caseWikiRate) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.caseWikiRate })",
+  "",
+  "## Navigator Proof",
+  "",
+  "- status: $($runtimeProof.lanes.navigator.status)",
+  "- uiRefHealingStatus: $($runtimeProof.lanes.navigator.uiRefHealingStatus)",
+  "- browserWorkerRecoveryStatus: $($runtimeProof.lanes.navigator.browserWorkerRecoveryStatus)",
+  "- visaFlowsStatus: $($runtimeProof.lanes.navigator.visaFlowsStatus)",
+  "- adapterMode: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.navigator.adapterMode)) { "n/a" } else { [string]$runtimeProof.lanes.navigator.adapterMode })",
+  "- totalFlows: $($runtimeProof.lanes.navigator.totalFlows)",
+  "- succeededFlows: $($runtimeProof.lanes.navigator.succeededFlows)",
+  "- successRate: $(if ($null -eq $runtimeProof.lanes.navigator.successRate) { "n/a" } else { [string]$runtimeProof.lanes.navigator.successRate })",
+  "- persistentSessionCount: $($runtimeProof.lanes.navigator.persistentSessionCount)",
+  "- replayBundleCount: $($runtimeProof.lanes.navigator.replayBundleCount)",
+  "- verifiedCount: $($runtimeProof.lanes.navigator.verifiedCount)",
+  "- staleRecoveryObservedCount: $($runtimeProof.lanes.navigator.staleRecoveryObservedCount)",
+  "- healedRecoveryObservedCount: $($runtimeProof.lanes.navigator.healedRecoveryObservedCount)",
+  "- resumedCheckpointCount: $($runtimeProof.lanes.navigator.resumedCheckpointCount)",
+  "- scenarioNames: $(if (@($runtimeProof.lanes.navigator.scenarioNames).Count -eq 0) { "(none)" } else { (@($runtimeProof.lanes.navigator.scenarioNames) -join ", ") })",
+  "",
+  "## Blockers",
+  ""
+)
+
+if (@($runtimeProof.blockers).Count -gt 0) {
+  foreach ($blocker in @($runtimeProof.blockers)) {
+    $runtimeProofMarkdown += "- $([string]$blocker.lane): $([string]$blocker.reason) [$([string]$blocker.status)]"
+  }
+} else {
+  $runtimeProofMarkdown += "- none"
+}
+
+Write-Utf8NoBomFile -Path $resolvedOutputRuntimeProofMarkdownPath -Content ($runtimeProofMarkdown -join "`n")
+
 $providerEntriesMarkdown = if (@($report.providerUsage.entries).Count -gt 0) {
   (@($report.providerUsage.entries | ForEach-Object {
     "- entry: $([string]$_.route)/$([string]$_.capability) -> $([string]$_.selectedProvider)/$([string]$_.selectedModel) (default $([string]$_.defaultProvider)/$([string]$_.defaultModel))"
@@ -1643,6 +1911,8 @@ $artifactEntries = @(
   (New-ArtifactEntry -Id "deploy.directLiveProofScreenshot" -Category "deploy" -Label "Hosted direct-live proof screenshot" -Path $resolvedDirectLiveProofPngPath -Required $false -Present (Test-Path $resolvedDirectLiveProofPngPath)),
   (New-ArtifactEntry -Id "release.reportJson" -Category "release_evidence" -Label "Release evidence report JSON" -Path $resolvedOutputJsonPath -Required $true -Present (Test-Path $resolvedOutputJsonPath)),
   (New-ArtifactEntry -Id "release.reportMarkdown" -Category "release_evidence" -Label "Release evidence report Markdown" -Path $resolvedOutputMarkdownPath -Required $true -Present (Test-Path $resolvedOutputMarkdownPath)),
+  (New-ArtifactEntry -Id "release.runtimeProofReportJson" -Category "release_evidence" -Label "Runtime proof report JSON" -Path $resolvedOutputRuntimeProofJsonPath -Required $true -Present (Test-Path $resolvedOutputRuntimeProofJsonPath)),
+  (New-ArtifactEntry -Id "release.runtimeProofReportMarkdown" -Category "release_evidence" -Label "Runtime proof report Markdown" -Path $resolvedOutputRuntimeProofMarkdownPath -Required $true -Present (Test-Path $resolvedOutputRuntimeProofMarkdownPath)),
   (New-ArtifactEntry -Id "release.manifestJson" -Category "release_evidence" -Label "Release evidence manifest JSON" -Path $resolvedOutputManifestJsonPath -Required $true -Present $true),
   (New-ArtifactEntry -Id "release.manifestMarkdown" -Category "release_evidence" -Label "Release evidence manifest Markdown" -Path $resolvedOutputManifestMarkdownPath -Required $true -Present $true),
   (New-ArtifactEntry -Id "release.submissionRefreshStatusJson" -Category "release_evidence" -Label "Submission refresh status JSON" -Path $resolvedSubmissionRefreshStatusPath -Required $false -Present (Test-Path $resolvedSubmissionRefreshStatusPath)),
@@ -1655,9 +1925,11 @@ $manifest = [ordered]@{
   schemaVersion = "1.0"
   generatedAt   = [datetime]::UtcNow.ToString("o")
   source        = [ordered]@{
-    badgeDetailsPath   = $resolvedBadgeDetailsPath
-    reportJsonPath     = $resolvedOutputJsonPath
-    reportMarkdownPath = $resolvedOutputMarkdownPath
+    badgeDetailsPath          = $resolvedBadgeDetailsPath
+    reportJsonPath            = $resolvedOutputJsonPath
+    reportMarkdownPath        = $resolvedOutputMarkdownPath
+    runtimeProofReportJsonPath = $resolvedOutputRuntimeProofJsonPath
+    runtimeProofReportMarkdownPath = $resolvedOutputRuntimeProofMarkdownPath
   }
   inventory     = [ordered]@{
     total           = $artifactEntries.Count
@@ -1665,6 +1937,17 @@ $manifest = [ordered]@{
     missingRequired = $missingRequiredArtifacts.Count
   }
   criticalEvidenceStatuses = $report.statuses
+  runtimeProof = [ordered]@{
+    status               = $runtimeProof.status
+    readyForOperatorDemo = $runtimeProof.readyForOperatorDemo
+    passedLanes          = $runtimeProof.summary.passedLanes
+    totalLanes           = $runtimeProof.summary.totalLanes
+    blockerCount         = $runtimeProof.summary.blockerCount
+    overallSummary       = $runtimeProof.summary.overallSummary
+    directLiveStatus     = $runtimeProof.summary.laneStatuses.directLive
+    caseWikiStatus       = $runtimeProof.summary.laneStatuses.caseWiki
+    navigatorStatus      = $runtimeProof.summary.laneStatuses.navigator
+  }
   hostedDirectLiveProof = [ordered]@{
     status                  = $report.hostedDirectLiveProof.status
     observed                = $report.hostedDirectLiveProof.observed
@@ -1866,6 +2149,20 @@ $manifestMarkdown = @(
   "| providerUsage | $($report.statuses.providerUsageStatus) |",
   "| deviceNodeUpdates | $($report.statuses.deviceNodeUpdatesStatus) |",
   "",
+  "## Runtime Proof Report",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.runtimeProof.status) |",
+  "| readyForOperatorDemo | $($manifest.runtimeProof.readyForOperatorDemo) |",
+  "| passedLanes | $($manifest.runtimeProof.passedLanes) |",
+  "| totalLanes | $($manifest.runtimeProof.totalLanes) |",
+  "| blockerCount | $($manifest.runtimeProof.blockerCount) |",
+  "| directLiveStatus | $($manifest.runtimeProof.directLiveStatus) |",
+  "| caseWikiStatus | $($manifest.runtimeProof.caseWikiStatus) |",
+  "| navigatorStatus | $($manifest.runtimeProof.navigatorStatus) |",
+  "| overallSummary | $($manifest.runtimeProof.overallSummary) |",
+  "",
   "## Case Wiki Evidence Signature",
   "",
   "| Field | Value |",
@@ -2051,5 +2348,7 @@ Write-Utf8NoBomFile -Path $resolvedOutputManifestMarkdownPath -Content ($manifes
 
 Write-Host ("[release-evidence-report] JSON: " + $resolvedOutputJsonPath)
 Write-Host ("[release-evidence-report] Markdown: " + $resolvedOutputMarkdownPath)
+Write-Host ("[release-evidence-report] Runtime Proof JSON: " + $resolvedOutputRuntimeProofJsonPath)
+Write-Host ("[release-evidence-report] Runtime Proof Markdown: " + $resolvedOutputRuntimeProofMarkdownPath)
 Write-Host ("[release-evidence-report] Manifest JSON: " + $resolvedOutputManifestJsonPath)
 Write-Host ("[release-evidence-report] Manifest Markdown: " + $resolvedOutputManifestMarkdownPath)
