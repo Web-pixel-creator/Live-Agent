@@ -276,6 +276,9 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
   assert.match(wiki?.actionPack.proofs[0]?.refsText ?? "", /workflow:control-plane/i);
   assert.equal(wiki?.actionPack.questions[0]?.focusId, "question:missing-followup-items");
   assert.match(wiki?.actionPack.questions[0]?.handoffText ?? "", /Question handoff/i);
+  assert.equal(wiki?.actionPack.questions[0]?.remediationDraft?.kind, "customer_message");
+  assert.equal(wiki?.actionPack.questions[0]?.remediationDraft?.targetLabel, "customer");
+  assert.match(wiki?.actionPack.questions[0]?.remediationDraft?.body ?? "", /Subject: Request missing follow-up items/i);
   assert.equal(wiki?.focusPack.proofs[0]?.focusId, "proof:followup-completeness");
   assert.match(wiki?.focusPack.proofs[0]?.drilldown ?? "", /Follow-up package is complete/i);
   assert.equal(wiki?.focusPack.questions[0]?.focusId, "question:missing-followup-items");
@@ -309,6 +312,8 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
   assert.equal(wiki?.operatorPreviewPack.questions.totalQuestions, wiki?.openQuestions.length);
   assert.equal(wiki?.operatorPreviewPack.questions.blockingQuestions, 2);
   assert.equal(wiki?.operatorPreviewPack.questions.items[0]?.id, "question:missing-followup-items");
+  assert.equal(wiki?.operatorPreviewPack.remediation.focusId, "question:missing-followup-items");
+  assert.equal(wiki?.operatorPreviewPack.remediation.draft?.kind, "customer_message");
   assert.equal(wiki?.operatorPreviewPack.timeline.totalEntries, wiki?.timeline.length);
   assert.equal(wiki?.operatorPreviewPack.timeline.latestEntries[0]?.kind, "session");
   assert.equal(wiki?.operatorPreviewPack.compliance.templateId, "strict");
@@ -529,6 +534,8 @@ test("runtime case wiki prioritizes pending approvals as the next action when op
   assert.equal(wiki?.routingPack.questions[0]?.cta.actionId, "open_workflow_control");
   assert.equal(wiki?.actionPack.questions[0]?.focusId, "question:approval:approval-pending-1");
   assert.match(wiki?.actionPack.questions[0]?.refsText ?? "", /approval:approval-pending-1/i);
+  assert.equal(wiki?.actionPack.questions[0]?.remediationDraft?.kind, "approval_brief");
+  assert.match(wiki?.actionPack.questions[0]?.remediationDraft?.summary ?? "", /approval brief/i);
   assert.equal(wiki?.focusPack.questions[0]?.focusId, "question:approval:approval-pending-1");
   assert.match(wiki?.focusPack.questions[0]?.chipTitle ?? "", /Owner: operator/i);
   assert.equal(wiki?.workspacePack.defaultFocus?.focusKind, "question");
@@ -544,6 +551,8 @@ test("runtime case wiki prioritizes pending approvals as the next action when op
   assert.equal(wiki?.operatorPreviewPack.questions.totalQuestions, 1);
   assert.equal(wiki?.operatorPreviewPack.questions.blockingQuestions, 1);
   assert.equal(wiki?.operatorPreviewPack.questions.items[0]?.id, "question:approval:approval-pending-1");
+  assert.equal(wiki?.operatorPreviewPack.remediation.focusId, "question:approval:approval-pending-1");
+  assert.equal(wiki?.operatorPreviewPack.remediation.draft?.kind, "approval_brief");
   assert.equal(wiki?.operatorPreviewPack.timeline.totalEntries, wiki?.timeline.length);
   assert.equal(wiki?.operatorPreviewPack.timeline.latestEntries[0]?.kind, "session");
   assert.equal(wiki?.auditLog.some((item) => item.source === "approval" && item.newValue === "pending"), true);

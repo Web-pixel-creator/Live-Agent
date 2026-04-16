@@ -33,7 +33,31 @@ test("operator console keeps a priority queue surface for next actions", () => {
     "function runOperatorPriorityQueueAction(actionId, options = {}) {",
     "function createOperatorPriorityQueueActionButton(config) {",
     "function createOperatorPriorityQueueSignalEntry(signal) {",
+    "operatorQueueSnapshot: null,",
+    "operatorQueueLoadedAt: null,",
+    "function buildOperatorPriorityQueueEntriesFromSnapshot() {",
+    "function buildOperatorCaseWikiPriorityQueueEntry() {",
+    "function buildOperatorQueueSnapshot(snapshot) {",
+    "const OPERATOR_QUEUE_SNAPSHOT_STALE_THRESHOLD_MS = 15 * 60 * 1000;",
+    "function buildOperatorQueueSummaryFromSnapshot(snapshot) {",
+    "async function refreshOperatorQueue(options = {}) {",
+    'new URL(`${state.apiBaseUrl}/v1/operator/queue`)',
+    "await refreshOperatorQueue({ silent: true });",
+    "const operatorQueueSnapshot = buildOperatorQueueSnapshot(summary.operatorQueue);",
+    "const operatorQueueSummary = buildOperatorQueueSummaryFromSnapshot(operatorQueueSnapshot);",
+    "renderOperatorTaskQueueWidget(taskQueueSummary, operatorQueueSnapshot);",
+    "const summaryOperatorQueueSnapshot = buildOperatorQueueSnapshot(payload?.data?.operatorQueue);",
+    "if (!summaryOperatorQueueSnapshot) {",
+    "const repoOwnedQueueEntries = buildOperatorPriorityQueueEntriesFromSnapshot();",
+    'actionId: "open_case_wiki_remediation"',
+    'actionId: "copy_case_wiki_remediation_draft"',
+    'actionId: "saved_view_approvals"',
+    'actionId: "saved_view_runtime"',
+    'actionId: "saved_view_incidents"',
+    "void openOperatorCaseWikiFocusedRemediationInOperatorOps();",
+    'void copyOperatorCaseWikiFocusedRemediationBlock("draft");',
     "function syncOperatorPriorityQueue() {",
+    "pushEntry(buildOperatorCaseWikiPriorityQueueEntry());",
     "runOperatorEmptyStateAction(normalizedAction);",
     "buildOperatorRuntimeGuardrailActionTitle(state.operatorRuntimeGuardrailAction)",
     "buildOperatorRuntimeGuardrailActionMeta(state.operatorRuntimeGuardrailAction)",
@@ -62,6 +86,8 @@ test("operator console keeps a priority queue surface for next actions", () => {
     "README missing operator priority-queue note",
   );
   assert.ok(readmeSource.includes("highlighted workspace"), "README missing workspace-first active queue helper note");
+  assert.ok(readmeSource.includes("Open Remediation"), "README missing case wiki queue remediation note");
+  assert.ok(readmeSource.includes("Copy Draft"), "README missing case wiki queue draft note");
   assert.ok(
     operatorGuideSource.includes("`Triage Summary` now behaves like an `Active Queue`"),
     "operator guide missing operator priority-queue note",
@@ -70,4 +96,6 @@ test("operator console keeps a priority queue surface for next actions", () => {
     operatorGuideSource.includes("highlighted workspace"),
     "operator guide missing workspace-first active queue helper note",
   );
+  assert.ok(operatorGuideSource.includes("Open Remediation"), "operator guide missing case wiki remediation note");
+  assert.ok(operatorGuideSource.includes("Copy Draft"), "operator guide missing case wiki draft note");
 });

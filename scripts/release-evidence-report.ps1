@@ -437,7 +437,7 @@ function New-CaseWikiComplianceSnapshot {
     }
   }
 
-  return [ordered]@{
+  $snapshot = [ordered]@{
     status               = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
     validated            = ($Value.validated -eq $true)
     observed             = ($Value.observed -eq $true)
@@ -469,6 +469,43 @@ function New-CaseWikiComplianceSnapshot {
     signatureMatch       = $(if ($null -eq $Value.signatureMatch) { $null } else { $Value.signatureMatch -eq $true })
     summary              = $(if ([string]::IsNullOrWhiteSpace([string]$Value.summary)) { $null } else { [string]$Value.summary })
   }
+
+  if ([string]::IsNullOrWhiteSpace([string]$snapshot.summary)) {
+    $summaryParts = @()
+    if (-not [string]::IsNullOrWhiteSpace([string]$snapshot.templateId)) {
+      $summaryParts += ("template=" + [string]$snapshot.templateId)
+    }
+    if (
+      -not [string]::IsNullOrWhiteSpace([string]$snapshot.requestedTemplateId) -and
+      [string]$snapshot.requestedTemplateId -ne [string]$snapshot.templateId
+    ) {
+      $summaryParts += ("requested=" + [string]$snapshot.requestedTemplateId)
+    }
+    if ([string]$snapshot.source -eq "tenant_override") {
+      $summaryParts += "tenant_override"
+    } elseif ([string]$snapshot.source -eq "template_default") {
+      $summaryParts += "template_default"
+    } elseif (-not [string]::IsNullOrWhiteSpace([string]$snapshot.source)) {
+      $summaryParts += [string]$snapshot.source
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$snapshot.controls.piiRedactionLevel)) {
+      $summaryParts += ("pii=" + [string]$snapshot.controls.piiRedactionLevel)
+    }
+    if ($snapshot.retention.rawMediaDays -gt 0) {
+      $summaryParts += ("rawMedia=" + [string]$snapshot.retention.rawMediaDays + "d")
+    }
+    if ($null -ne $snapshot.controls.auditTrailRequired) {
+      $summaryParts += ("audit=" + $(if ($snapshot.controls.auditTrailRequired) { "required" } else { "optional" }))
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$snapshot.evidenceSigning.expectedSignatureStatus)) {
+      $summaryParts += ("signing=" + [string]$snapshot.evidenceSigning.expectedSignatureStatus)
+    }
+    if ($summaryParts.Count -gt 0) {
+      $snapshot.summary = ($summaryParts -join " | ")
+    }
+  }
+
+  return $snapshot
 }
 
 function New-HostedCaseWikiEvidenceSignatureValue {
@@ -1531,6 +1568,21 @@ if ($report.caseWikiCompliance.observed -eq $true) {
       $report.caseWikiCompliance.status = $(if ($report.caseWikiCompliance.signatureMatch -eq $true) { "pass" } else { "fail" })
       $report.statuses.caseWikiComplianceStatus = $report.caseWikiCompliance.status
     }
+    $report.caseWikiCompliance.summary =
+      "template=" + [string]$report.caseWikiCompliance.templateId +
+      $(if (
+          -not [string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.requestedTemplateId) -and
+          [string]$report.caseWikiCompliance.requestedTemplateId -ne [string]$report.caseWikiCompliance.templateId
+        ) {
+          " | requested=" + [string]$report.caseWikiCompliance.requestedTemplateId
+        } else {
+          ""
+        }) +
+      " | " + $(if ([string]$report.caseWikiCompliance.source -eq "tenant_override") { "tenant_override" } elseif ([string]$report.caseWikiCompliance.source -eq "template_default") { "template_default" } else { [string]$report.caseWikiCompliance.source }) +
+      " | pii=" + [string]$report.caseWikiCompliance.controls.piiRedactionLevel +
+      " | rawMedia=" + [string]$report.caseWikiCompliance.retention.rawMediaDays + "d" +
+      " | audit=" + $(if ($report.caseWikiCompliance.controls.auditTrailRequired) { "required" } else { "optional" }) +
+      " | signing=" + [string]$report.caseWikiCompliance.evidenceSigning.expectedSignatureStatus
   }
 }
 

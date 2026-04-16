@@ -43,12 +43,14 @@ test("api backend exposes runtime case wiki routes, helpers, inventory, and docs
     "detailPack",
     "routingPack",
     "actionPack",
+    "remediationDraft",
     "focusPack",
     "previewPack",
     "workspacePack",
     "defaultFocus",
     "buildCaseWikiDefaultFocus",
     "operatorPreviewPack",
+    "remediation:",
     "compliance",
     "auditLog",
     "buildAuditLog",
@@ -90,12 +92,14 @@ test("api backend exposes runtime case wiki routes, helpers, inventory, and docs
   assert.match(readme, /detailPack/i);
   assert.match(readme, /routingPack/i);
   assert.match(readme, /actionPack/i);
+  assert.match(readme, /remediationDraft/i);
   assert.match(readme, /focusPack/i);
   assert.match(readme, /previewPack/i);
   assert.match(readme, /workspacePack/i);
   assert.match(readme, /defaultFocus/i);
   assert.match(readme, /open-question/i);
   assert.match(readme, /operatorPreviewPack/i);
+  assert.match(readme, /Focused Remediation/i);
   assert.match(readme, /compliance/i);
   assert.match(readme, /auditLog/i);
   assert.match(readme, /Open Questions/i);
@@ -108,12 +112,14 @@ test("api backend exposes runtime case wiki routes, helpers, inventory, and docs
   assert.match(operatorGuide, /detailPack/i);
   assert.match(operatorGuide, /routingPack/i);
   assert.match(operatorGuide, /actionPack/i);
+  assert.match(operatorGuide, /remediationDraft/i);
   assert.match(operatorGuide, /focusPack/i);
   assert.match(operatorGuide, /previewPack/i);
   assert.match(operatorGuide, /workspacePack/i);
   assert.match(operatorGuide, /defaultFocus/i);
   assert.match(operatorGuide, /timeline/i);
   assert.match(operatorGuide, /operatorPreviewPack/i);
+  assert.match(operatorGuide, /Focused Remediation/i);
   assert.match(operatorGuide, /compliance/i);
   assert.match(operatorGuide, /auditLog/i);
   assert.match(operatorGuide, /Open Questions/i);
@@ -125,12 +131,14 @@ test("api backend exposes runtime case wiki routes, helpers, inventory, and docs
   assert.match(architecture, /detailPack/i);
   assert.match(architecture, /routingPack/i);
   assert.match(architecture, /actionPack/i);
+  assert.match(architecture, /remediationDraft/i);
   assert.match(architecture, /focusPack/i);
   assert.match(architecture, /previewPack/i);
   assert.match(architecture, /workspacePack/i);
   assert.match(architecture, /defaultFocus/i);
   assert.match(architecture, /timeline/i);
   assert.match(architecture, /operatorPreviewPack/i);
+  assert.match(architecture, /Focused Remediation/i);
   assert.match(architecture, /compliance/i);
   assert.match(architecture, /auditLog/i);
   assert.match(architecture, /Open Questions/i);

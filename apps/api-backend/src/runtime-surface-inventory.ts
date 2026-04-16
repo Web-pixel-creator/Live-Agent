@@ -281,6 +281,15 @@ const RUNTIME_SURFACE_CONTROL_PLANE_SPECS: RuntimeSurfaceControlPlaneSummary[] =
     operatorVisible: true,
   },
   {
+    id: "operator-queue",
+    label: "Operator queue",
+    method: "GET",
+    path: "/v1/operator/queue",
+    category: "evidence",
+    releaseCritical: false,
+    operatorVisible: true,
+  },
+  {
     id: "runtime-auth-profiles",
     label: "Auth profiles",
     method: "GET",

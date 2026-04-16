@@ -20,6 +20,7 @@ import {
   type OrchestratorResponse,
 } from "./contracts/index.js";
 import {
+  type ApprovalRecord,
   type ApprovalDecision,
   type ApprovalSweepResult,
   type ChannelSessionBindingRecord,
@@ -56,6 +57,7 @@ import {
   type ManagedSkillInstallationStatus,
   type ManagedSkillTrustLevel,
   type OperatorActionRecord,
+  type RunListItem,
   recordOperatorAction,
   recordApprovalDecision,
   resolveDeviceNode,
@@ -68,6 +70,7 @@ import {
   upsertManagedSkill,
   updateSessionStatus,
   type SessionMode,
+  type SessionListItem,
   type SessionStatus,
 } from "./firestore.js";
 import { AnalyticsExporter } from "./analytics-export.js";
@@ -78,6 +81,7 @@ import { buildRuntimeSurfaceInventorySnapshot } from "./runtime-surface-inventor
 import { buildRuntimeSurfaceReadinessSnapshot } from "./runtime-surface-readiness.js";
 import { buildRuntimeSessionReplayMirrorSnapshot } from "./runtime-session-replay-mirror.js";
 import { buildRuntimeCaseWiki } from "./runtime-case-wiki.js";
+import { buildRuntimeOperatorQueueSnapshot } from "./runtime-operator-queue.js";
 import {
   buildRuntimeCaseCostSummary,
   buildRuntimeCostSummary,
@@ -241,6 +245,87 @@ async function loadWorkflowControlPlaneSummary(): Promise<
   }
 }
 
+type RuntimeCaseWikiCollections = {
+  sessions: SessionListItem[];
+  runs: RunListItem[];
+  approvals: ApprovalRecord[];
+  recentEvents: EventListItem[];
+  workflowSummary: ReturnType<typeof buildRuntimeWorkflowControlPlaneSnapshot>["summary"] | null;
+  effectiveGovernance: Awaited<ReturnType<typeof resolveEffectiveGovernancePolicyForTenant>>;
+};
+
+function buildRuntimeCaseWikiFromCollections(params: {
+  selectedSessionId: string;
+  selectedEvents: EventListItem[];
+  collections: RuntimeCaseWikiCollections;
+}): ReturnType<typeof buildRuntimeCaseWiki> | null {
+  const caseCostSummary = buildRuntimeCaseCostSummary({
+    events: params.selectedEvents,
+    config: runtimeCostTrackerConfig,
+    sessionId: params.selectedSessionId,
+    sourceRefs: [`session:${params.selectedSessionId}`],
+  });
+
+  return buildRuntimeCaseWiki({
+    sessions: params.collections.sessions,
+    runs: params.collections.runs,
+    approvals: params.collections.approvals,
+    recentEvents: params.collections.recentEvents,
+    selectedEvents: params.selectedEvents,
+    selectedSessionId: params.selectedSessionId,
+    workflowSummary: params.collections.workflowSummary,
+    evidenceSigner: runtimeEvidenceSignerConfig,
+    costSummary: caseCostSummary,
+    compliance: {
+      templateId: params.collections.effectiveGovernance.profile.id,
+      requestedTemplateId: params.collections.effectiveGovernance.profile.requestedTemplateId,
+      fallbackApplied: params.collections.effectiveGovernance.profile.fallbackApplied,
+      source: params.collections.effectiveGovernance.source,
+      controls: params.collections.effectiveGovernance.profile.controls,
+      retention: {
+        rawMediaDays: params.collections.effectiveGovernance.profile.retentionPolicy.rawMediaDays,
+        auditLogsDays: params.collections.effectiveGovernance.profile.retentionPolicy.auditLogsDays,
+        eventsDays: params.collections.effectiveGovernance.profile.retentionPolicy.eventsDays,
+        sessionsDays: params.collections.effectiveGovernance.profile.retentionPolicy.sessionsDays,
+      },
+    },
+  });
+}
+
+async function loadRuntimeCaseWikiCollections(params: {
+  tenantId: string;
+  sessionLimit?: number;
+  runLimit?: number;
+  approvalLimit?: number;
+  recentEventLimit?: number;
+}): Promise<RuntimeCaseWikiCollections> {
+  const sessionLimit = params.sessionLimit ?? 20;
+  const runLimit = params.runLimit ?? 120;
+  const approvalLimit = params.approvalLimit ?? 120;
+  const recentEventLimit = params.recentEventLimit ?? Math.max(120, sessionLimit * 10);
+
+  const [sessions, runs, approvals, recentEvents, workflowSummary, effectiveGovernance] = await Promise.all([
+    listSessions(sessionLimit, { tenantId: params.tenantId }),
+    listRuns(runLimit),
+    listApprovals({
+      limit: approvalLimit,
+      tenantId: params.tenantId,
+    }),
+    listRecentEvents(recentEventLimit),
+    loadWorkflowControlPlaneSummary(),
+    resolveEffectiveGovernancePolicyForTenant(params.tenantId),
+  ]);
+
+  return {
+    sessions,
+    runs,
+    approvals,
+    recentEvents,
+    workflowSummary,
+    effectiveGovernance,
+  };
+}
+
 async function buildRuntimeCaseWikiSnapshot(params: {
   tenantId: string;
   sessionId?: string | null;
@@ -255,57 +340,90 @@ async function buildRuntimeCaseWikiSnapshot(params: {
   const runLimit = params.runLimit ?? 120;
   const approvalLimit = params.approvalLimit ?? 120;
   const recentEventLimit = params.recentEventLimit ?? Math.max(eventLimit, sessionLimit * 10);
-  const sessions = await listSessions(sessionLimit, { tenantId: params.tenantId });
-  const selectedSessionId = params.sessionId ?? sessions[0]?.sessionId ?? null;
+  const collections = await loadRuntimeCaseWikiCollections({
+    tenantId: params.tenantId,
+    sessionLimit,
+    runLimit,
+    approvalLimit,
+    recentEventLimit,
+  });
+  const selectedSessionId = params.sessionId ?? collections.sessions[0]?.sessionId ?? null;
 
   if (!selectedSessionId) {
     return { caseWiki: null, selectedSessionId: null };
   }
 
-  const [runs, approvals, recentEvents, selectedEvents, workflowSummary, effectiveGovernance] = await Promise.all([
-    listRuns(runLimit),
-    listApprovals({
-      limit: approvalLimit,
-      tenantId: params.tenantId,
-    }),
-    listRecentEvents(recentEventLimit),
-    listEvents({ sessionId: selectedSessionId, limit: eventLimit }),
-    loadWorkflowControlPlaneSummary(),
-    resolveEffectiveGovernancePolicyForTenant(params.tenantId),
-  ]);
-  const caseCostSummary = buildRuntimeCaseCostSummary({
-    events: selectedEvents,
-    config: runtimeCostTrackerConfig,
-    sessionId: selectedSessionId,
-    sourceRefs: [`session:${selectedSessionId}`],
-  });
-
-  const caseWiki = buildRuntimeCaseWiki({
-    sessions,
-    runs,
-    approvals,
-    recentEvents,
-    selectedEvents,
+  const selectedEvents = await listEvents({ sessionId: selectedSessionId, limit: eventLimit });
+  const caseWiki = buildRuntimeCaseWikiFromCollections({
     selectedSessionId,
-    workflowSummary,
-    evidenceSigner: runtimeEvidenceSignerConfig,
-    costSummary: caseCostSummary,
-    compliance: {
-      templateId: effectiveGovernance.profile.id,
-      requestedTemplateId: effectiveGovernance.profile.requestedTemplateId,
-      fallbackApplied: effectiveGovernance.profile.fallbackApplied,
-      source: effectiveGovernance.source,
-      controls: effectiveGovernance.profile.controls,
-      retention: {
-        rawMediaDays: effectiveGovernance.profile.retentionPolicy.rawMediaDays,
-        auditLogsDays: effectiveGovernance.profile.retentionPolicy.auditLogsDays,
-        eventsDays: effectiveGovernance.profile.retentionPolicy.eventsDays,
-        sessionsDays: effectiveGovernance.profile.retentionPolicy.sessionsDays,
-      },
-    },
+    selectedEvents,
+    collections,
   });
 
   return { caseWiki, selectedSessionId };
+}
+
+async function buildRuntimeOperatorQueueForTenant(params: {
+  tenantId: string;
+  limit?: number;
+  sessionId?: string | null;
+  sessionLimit?: number;
+  eventLimit?: number;
+  runLimit?: number;
+  approvalLimit?: number;
+  recentEventLimit?: number;
+}): Promise<{
+  operatorQueue: ReturnType<typeof buildRuntimeOperatorQueueSnapshot>;
+  availableSessionIds: string[];
+  requestedSessionId: string | null;
+  requestedSessionFound: boolean;
+  hydratedSessionLimit: number;
+}> {
+  const limit = params.limit ?? 6;
+  const sessionLimit = params.sessionLimit ?? Math.max(limit * 2, 8);
+  const eventLimit = params.eventLimit ?? 40;
+  const runLimit = params.runLimit ?? Math.max(sessionLimit * 12, 120);
+  const approvalLimit = params.approvalLimit ?? Math.max(sessionLimit * 12, 120);
+  const recentEventLimit = params.recentEventLimit ?? Math.max(eventLimit * 4, sessionLimit * 12);
+  const requestedSessionId = params.sessionId ?? null;
+  const collections = await loadRuntimeCaseWikiCollections({
+    tenantId: params.tenantId,
+    sessionLimit,
+    runLimit,
+    approvalLimit,
+    recentEventLimit,
+  });
+
+  const availableSessionIds = collections.sessions.map((item) => item.sessionId);
+  const requestedSessionFound = !requestedSessionId || availableSessionIds.includes(requestedSessionId);
+  const selectedSessionIds = requestedSessionFound
+    ? requestedSessionId ? [requestedSessionId] : availableSessionIds
+    : [];
+  const selectedEventSets = await Promise.all(
+    selectedSessionIds.map((sessionId) => listEvents({ sessionId, limit: eventLimit })),
+  );
+  const caseWikis = selectedSessionIds
+    .map((selectedSessionId, index) =>
+      buildRuntimeCaseWikiFromCollections({
+        selectedSessionId,
+        selectedEvents: selectedEventSets[index] ?? [],
+        collections,
+      }),
+    )
+    .filter((item): item is NonNullable<ReturnType<typeof buildRuntimeCaseWikiFromCollections>> => Boolean(item));
+
+  return {
+    operatorQueue: buildRuntimeOperatorQueueSnapshot({
+      tenantId: params.tenantId,
+      caseWikis,
+      generatedAt: new Date().toISOString(),
+      limit,
+    }),
+    availableSessionIds,
+    requestedSessionId,
+    requestedSessionFound,
+    hydratedSessionLimit: sessionLimit,
+  };
 }
 const runtimeDiagnosticsSloThresholds = resolveRuntimeDiagnosticsSloThresholds(process.env);
 const configuredChannelAdapters = parseChannelAdapters(
@@ -1520,12 +1638,15 @@ function normalizeOperationPath(pathname: string): string {
     if (pathname === "/v1/runtime/case-wiki") {
       return "/v1/runtime/case-wiki";
     }
-    if (pathname === "/v1/runtime/case-wiki/notes") {
+  if (pathname === "/v1/runtime/case-wiki/notes") {
       return "/v1/runtime/case-wiki/notes";
     }
     if (pathname === "/v1/runtime/auth-profiles") {
       return "/v1/runtime/auth-profiles";
     }
+  if (pathname === "/v1/operator/queue") {
+    return "/v1/operator/queue";
+  }
   if (pathname === "/v1/runtime/auth-profiles/rotate") {
     return "/v1/runtime/auth-profiles/rotate";
   }
@@ -7182,6 +7303,57 @@ export const server = createServer(async (req, res) => {
       return;
     }
 
+    if (url.pathname === "/v1/operator/queue" && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const limit = parseBoundedInt(url.searchParams.get("limit"), 6, 1, 25);
+      const sessionLimit = parseBoundedInt(url.searchParams.get("sessionLimit"), Math.max(limit * 2, 8), 1, 100);
+      const eventLimit = parseBoundedInt(url.searchParams.get("eventLimit"), 40, 10, 200);
+      const runLimit = parseBoundedInt(url.searchParams.get("runLimit"), Math.max(sessionLimit * 12, 120), 20, 500);
+      const approvalLimit = parseBoundedInt(
+        url.searchParams.get("approvalLimit"),
+        Math.max(sessionLimit * 12, 120),
+        20,
+        500,
+      );
+      const recentEventLimit = parseBoundedInt(
+        url.searchParams.get("recentEventLimit"),
+        Math.max(eventLimit * 4, sessionLimit * 12),
+        20,
+        1000,
+      );
+      const requestedSessionId = toOptionalString(url.searchParams.get("sessionId"));
+      const operatorQueueResult = await buildRuntimeOperatorQueueForTenant({
+        tenantId: requestTenant.tenantId,
+        limit,
+        sessionId: requestedSessionId,
+        sessionLimit,
+        eventLimit,
+        runLimit,
+        approvalLimit,
+        recentEventLimit,
+      });
+      if (requestedSessionId && operatorQueueResult.requestedSessionFound !== true) {
+        writeApiError(res, 404, {
+          code: "API_OPERATOR_QUEUE_SESSION_NOT_FOUND",
+          message: "requested sessionId is outside the hydrated operator queue window",
+          details: {
+            requestedSessionId,
+            hydratedSessionLimit: operatorQueueResult.hydratedSessionLimit,
+            tenantId: requestTenant.tenantId,
+          },
+        });
+        return;
+      }
+
+      writeJson(res, 200, {
+        data: operatorQueueResult.operatorQueue,
+        role,
+        tenant: requestTenant,
+        source: "repo_owned_operator_queue",
+      });
+      return;
+    }
+
     if (url.pathname === "/v1/operator/summary" && req.method === "GET") {
       const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
       const traceRunsLimit = parseBoundedInt(url.searchParams.get("traceRunsLimit"), 40, 10, 200);
@@ -7281,6 +7453,15 @@ export const server = createServer(async (req, res) => {
         events: recentEvents,
         sloThresholds: runtimeDiagnosticsSloThresholds,
       });
+      const operatorQueue = await buildRuntimeOperatorQueueForTenant({
+        tenantId: requestTenant.tenantId,
+        limit: 6,
+        sessionLimit: 12,
+        eventLimit: 40,
+        runLimit: 144,
+        approvalLimit: 144,
+        recentEventLimit: 160,
+      });
 
       writeJson(res, 200, {
         data: {
@@ -7291,6 +7472,7 @@ export const server = createServer(async (req, res) => {
             total: activeTasks.length,
             data: activeTasks,
           },
+          operatorQueue: operatorQueue.operatorQueue,
           taskQueue,
           browserWorkers,
           approvals: {

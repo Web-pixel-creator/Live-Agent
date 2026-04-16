@@ -10,6 +10,9 @@ import {
   CASE_WIKI_ROUTING_LANES,
   CASE_WIKI_STATUSES,
   CASE_WIKI_TIMELINE_ENTRY_KINDS,
+  RUNTIME_OPERATOR_QUEUE_ACTION_IDS,
+  RUNTIME_OPERATOR_QUEUE_PRIORITIES,
+  RUNTIME_OPERATOR_QUEUE_TONES,
   createEnvelope,
   createNormalizedError,
   LIVE_CAPABILITY_FLAGS,
@@ -22,6 +25,7 @@ import {
   type LiveRuntimeStatus,
   type RuntimeCaseWikiNoteRequest,
   type RuntimeCaseWikiNoteResponse,
+  type RuntimeOperatorQueueSnapshot,
   type RuntimeLiveSessionEventIngestRequest,
   type RuntimeLiveSessionEventIngestResponse,
   type CaseWiki,
@@ -558,6 +562,35 @@ test("case wiki contracts expose stable structured memory shapes", () => {
           refs: ["session:session-123"],
           refsText: ["Proof refs: Customer wants a spouse relocation consultation.", "session:session-123"].join("\n"),
           focusSummary: "Customer wants a spouse relocation consultation.",
+          remediationDraft: {
+            kind: "customer_message",
+            actionType: "document_request",
+            title: "Request missing visa documents",
+            targetLabel: "customer",
+            owner: "operator",
+            dueBy: null,
+            summary: "Send a customer-ready follow-up for Customer wants a spouse relocation consultation. and request the next required update.",
+            body: [
+              "Subject: Request missing visa documents",
+              "",
+              "Hello,",
+              "",
+              "We are following up on your case.",
+              "Current blocker: Confirmed in the latest live intake.",
+              "Requested next step: Ask the customer for the passport scan and invitation letter before scheduling filing.",
+              "Please reply with the requested update so we can continue.",
+              "",
+              "Regards,",
+              "Operations team",
+            ].join("\n"),
+            checklist: [
+              "Verify the blocker is still current.",
+              "Attach the latest source refs before sending.",
+              "Send through the live or customer follow-up lane.",
+              "Log the response back into Case Wiki.",
+            ],
+            sourceRefs: ["session:session-123"],
+          },
         },
       ],
       questions: [
@@ -575,6 +608,35 @@ test("case wiki contracts expose stable structured memory shapes", () => {
           refs: ["proof:proof-1"],
           refsText: ["Question refs: Has the customer already received the invitation letter?", "proof:proof-1"].join("\n"),
           focusSummary: "Has the customer already received the invitation letter?",
+          remediationDraft: {
+            kind: "customer_message",
+            actionType: "document_request",
+            title: "Request missing visa documents",
+            targetLabel: "customer",
+            owner: "operator",
+            dueBy: null,
+            summary: "Send a customer-ready follow-up for Has the customer already received the invitation letter? and request the next required update.",
+            body: [
+              "Subject: Request missing visa documents",
+              "",
+              "Hello,",
+              "",
+              "We are following up on your case.",
+              "Current blocker: Request the invitation letter or confirm issuance status.",
+              "Requested next step: Ask the customer for the passport scan and invitation letter before scheduling filing.",
+              "Please reply with the requested update so we can continue.",
+              "",
+              "Regards,",
+              "Operations team",
+            ].join("\n"),
+            checklist: [
+              "Verify the blocker is still current.",
+              "Attach the latest source refs before sending.",
+              "Send through the live or customer follow-up lane.",
+              "Log the response back into Case Wiki.",
+            ],
+            sourceRefs: ["proof:proof-1"],
+          },
         },
       ],
     },
@@ -816,6 +878,40 @@ test("case wiki contracts expose stable structured memory shapes", () => {
           },
         ],
       },
+      remediation: {
+        focusKind: "question",
+        focusId: "question-1",
+        focusLabel: "Has the customer already received the invitation letter?",
+        draft: {
+          kind: "customer_message",
+          actionType: "document_request",
+          title: "Request missing visa documents",
+          targetLabel: "customer",
+          owner: "operator",
+          dueBy: null,
+          summary: "Send a customer-ready follow-up for Has the customer already received the invitation letter? and request the next required update.",
+          body: [
+            "Subject: Request missing visa documents",
+            "",
+            "Hello,",
+            "",
+            "We are following up on your case.",
+            "Current blocker: Request the invitation letter or confirm issuance status.",
+            "Requested next step: Ask the customer for the passport scan and invitation letter before scheduling filing.",
+            "Please reply with the requested update so we can continue.",
+            "",
+            "Regards,",
+            "Operations team",
+          ].join("\n"),
+          checklist: [
+            "Verify the blocker is still current.",
+            "Attach the latest source refs before sending.",
+            "Send through the live or customer follow-up lane.",
+            "Log the response back into Case Wiki.",
+          ],
+          sourceRefs: ["proof:proof-1"],
+        },
+      },
       timeline: {
         totalEntries: 1,
         latestEntries: [
@@ -992,6 +1088,8 @@ test("case wiki contracts expose stable structured memory shapes", () => {
   assert.equal(wiki.routingPack.questions[0]?.cta.actionId, "run_negotiation");
   assert.match(wiki.actionPack.proofs[0]?.handoffText ?? "", /Proof handoff/i);
   assert.match(wiki.actionPack.questions[0]?.refsText ?? "", /Question refs/i);
+  assert.equal(wiki.actionPack.questions[0]?.remediationDraft?.kind, "customer_message");
+  assert.equal(wiki.actionPack.questions[0]?.remediationDraft?.targetLabel, "customer");
   assert.match(wiki.focusPack.proofs[0]?.chipTitle ?? "", /Refs:/i);
   assert.match(wiki.focusPack.questions[0]?.handoffPreview ?? "", /Focus question/i);
   assert.match(wiki.previewPack.packValue ?? "", /1 proofs/i);
@@ -1009,6 +1107,8 @@ test("case wiki contracts expose stable structured memory shapes", () => {
   assert.match(wiki.operatorPreviewPack.evidence.topEntity?.summary ?? "", /Applicant relocating with spouse/i);
   assert.equal(wiki.operatorPreviewPack.questions.totalQuestions, 1);
   assert.equal(wiki.operatorPreviewPack.questions.items[0]?.id, "question-1");
+  assert.equal(wiki.operatorPreviewPack.remediation.focusId, "question-1");
+  assert.equal(wiki.operatorPreviewPack.remediation.draft?.kind, "customer_message");
   assert.equal(wiki.operatorPreviewPack.timeline.totalEntries, 1);
   assert.equal(wiki.operatorPreviewPack.timeline.latestEntries[0]?.kind, "session");
   assert.equal(wiki.operatorPreviewPack.audit.totalEntries, 2);
@@ -1020,6 +1120,125 @@ test("case wiki contracts expose stable structured memory shapes", () => {
   assert.equal(wiki.auditLog[1]?.field, "workflow.currentStage");
   assert.equal(wiki.proofs[0]?.status, "confirmed");
   assert.equal(wiki.recommendedNextAction?.type, "document_request");
+});
+
+test("runtime operator queue contracts expose stable queue constants and typed snapshots", () => {
+  assert.deepEqual(RUNTIME_OPERATOR_QUEUE_TONES, ["neutral", "ok", "watch", "fail", "stale"]);
+  assert.deepEqual(RUNTIME_OPERATOR_QUEUE_PRIORITIES, ["critical", "high", "medium"]);
+  assert.deepEqual(RUNTIME_OPERATOR_QUEUE_ACTION_IDS, [
+    "refresh_summary",
+    "open_quick_start",
+    "open_playbook",
+    "open_workflow_control",
+    "open_case_wiki_remediation",
+    "copy_case_wiki_remediation_draft",
+    "run_runtime_guardrail_path",
+    "show_all_cards",
+    "full_ops_view",
+    "open_device_nodes",
+    "run_negotiation",
+    "run_story",
+    "run_ui_task",
+    "saved_view_incidents",
+    "saved_view_runtime",
+    "saved_view_approvals",
+    "saved_view_audit",
+    "jump_status_card",
+  ]);
+
+  const queueSnapshot: RuntimeOperatorQueueSnapshot = {
+    schemaVersion: 1,
+    generatedAt: "2026-04-16T08:00:00.000Z",
+    tenantId: "tenant-queue-demo",
+    totalItems: 1,
+    blockingItems: 1,
+    items: [
+      {
+        id: "operator_queue:session-123",
+        key: "case_wiki:session-123",
+        source: "case_wiki",
+        generatedAt: "2026-04-16T08:00:00.000Z",
+        caseId: "case-123",
+        sessionId: "session-123",
+        tone: "fail",
+        priority: "critical",
+        blocking: true,
+        kicker: "Approval lane",
+        title: "Approve visa intake follow-up",
+        meta: "Focus: Missing passport scan. Blocker: Approval still pending.",
+        focus: {
+          kind: "question",
+          id: "question-approval-1",
+          label: "Missing passport scan",
+          summary: "Approval is blocking the next operator step.",
+        },
+        question: {
+          id: "question-approval-1",
+          priority: "high",
+          blocking: true,
+          owner: "operator",
+          question: "Has an operator approved the next customer follow-up?",
+          suggestedNextStep: "Open the approval lane and confirm the follow-up.",
+        },
+        route: {
+          lane: "approval_queue",
+          owner: "operator",
+          priority: "high",
+          status: "pending",
+          blocking: true,
+          approvalRequired: true,
+          dueBy: "2026-04-16T09:00:00.000Z",
+          summary: "Approval pending before the customer follow-up can be sent.",
+        },
+        remediation: {
+          focusKind: "question",
+          focusId: "question-approval-1",
+          focusLabel: "Missing passport scan",
+          draft: {
+            kind: "approval_brief",
+            actionType: "approval_request",
+            title: "Approve visa intake follow-up",
+            targetLabel: "operator",
+            owner: "operator",
+            dueBy: "2026-04-16T09:00:00.000Z",
+            summary: "Approve the follow-up draft before it is sent to the customer.",
+            body: "Approve the follow-up draft before it is sent to the customer.",
+            checklist: ["Review the case blocker.", "Approve the follow-up draft."],
+            sourceRefs: ["approval:approval-1"],
+          },
+        },
+        recommendedNextAction: {
+          type: "approval_request",
+          title: "Approve visa intake follow-up",
+          owner: "operator",
+          summary: "Approve the follow-up draft before it is sent to the customer.",
+          dueBy: "2026-04-16T09:00:00.000Z",
+          blocking: true,
+        },
+        compliance: {
+          templateId: "strict",
+          piiRedactionLevel: "high",
+          expectedSignatureStatus: "unsigned",
+        },
+        primary: {
+          label: "Open Remediation",
+          shortLabel: "Open",
+          actionId: "open_case_wiki_remediation",
+        },
+        secondary: {
+          label: "Copy Draft",
+          shortLabel: "Copy",
+          actionId: "copy_case_wiki_remediation_draft",
+          kind: "secondary",
+        },
+        sourceRefs: ["approval:approval-1", "session:session-123"],
+      },
+    ],
+  };
+
+  assert.equal(queueSnapshot.items[0]?.priority, "critical");
+  assert.equal(queueSnapshot.items[0]?.primary?.actionId, "open_case_wiki_remediation");
+  assert.equal(queueSnapshot.items[0]?.secondary?.actionId, "copy_case_wiki_remediation_draft");
 });
 
 test("runtime case wiki note contracts expose stable operator append shapes", () => {

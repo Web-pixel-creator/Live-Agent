@@ -21,7 +21,9 @@ import type {
   CaseWikiFocusPack,
   CaseWikiFocusPackItem,
   CaseWikiOperatorPreviewPack,
+  CaseWikiOperatorRemediationPreview,
   CaseWikiPreviewPack,
+  CaseWikiRemediationDraft,
   CaseWikiWorkspacePack,
   CaseWikiRoutingActionId,
   CaseWikiRoutingCTA,
@@ -1404,6 +1406,7 @@ function buildCaseWikiActionPack(params: {
   };
   handoffPack: CaseWikiHandoffPack;
   detailPack: CaseWikiDetailPack;
+  recommendedNextAction: CaseWikiNextAction | null;
 }): CaseWikiActionPack {
   const sharedFallbackRefs = params.evidencePack.sourceRefs;
   const buildRefsText = (prefix: "Proof" | "Question", title: string, refs: string[]): string | null =>
@@ -1421,6 +1424,139 @@ function buildCaseWikiActionPack(params: {
       body,
       handoff,
     ].filter((item): item is string => Boolean(item)).join("\n");
+  const buildRemediationDraft = (params: {
+    title: string;
+    focusLabel: string;
+    detailBody: string | null;
+    handoff: string | null;
+    sourceRefs: string[];
+    nextAction: CaseWikiNextAction | null;
+    ownerHint?: string | null;
+  }): CaseWikiRemediationDraft => {
+    const nextActionType = params.nextAction?.type ?? null;
+    const nextActionTitle =
+      toNonEmptyString(params.nextAction?.title ?? null) ??
+      toNonEmptyString(params.nextAction?.summary ?? null) ??
+      params.title;
+    const nextActionSummary = toNonEmptyString(params.nextAction?.summary ?? null);
+    const owner = toNonEmptyString(params.nextAction?.owner ?? params.ownerHint ?? null);
+    const dueBy = toNonEmptyString(params.nextAction?.dueBy ?? null);
+    const sourceRefs = [...new Set(params.sourceRefs)];
+    const refsLabel = buildCaseWikiHandoffSourceRefsLabel(sourceRefs);
+    const detailBody = toNonEmptyString(params.detailBody);
+    const handoff = toNonEmptyString(params.handoff);
+    const focusLabel = toNonEmptyString(params.focusLabel) ?? params.title;
+
+    if (nextActionType === "approval_request") {
+      return {
+        kind: "approval_brief",
+        actionType: nextActionType,
+        title: nextActionTitle,
+        targetLabel: "approval_queue",
+        owner: owner ?? "operator",
+        dueBy,
+        summary: `Prepare an approval brief for ${focusLabel} before opening the protected step.`,
+        body: [
+          `Approval brief: ${nextActionTitle}`,
+          `Focus: ${focusLabel}`,
+          detailBody ? `Blocking context: ${detailBody}` : null,
+          nextActionSummary ? `Requested decision path: ${nextActionSummary}` : null,
+          refsLabel ? `Source refs: ${refsLabel}` : null,
+        ].filter((item): item is string => Boolean(item)).join("\n"),
+        checklist: [
+          "Review the focused blocker or proof.",
+          "Open workflow control on the protected step.",
+          "Capture the approval decision and reason.",
+          "Refresh Case Wiki after the decision.",
+        ],
+        sourceRefs,
+      };
+    }
+
+    if (nextActionType === "document_request" || nextActionType === "live_followup") {
+      return {
+        kind: "customer_message",
+        actionType: nextActionType,
+        title: nextActionTitle,
+        targetLabel: "customer",
+        owner: owner ?? "operator",
+        dueBy,
+        summary: `Send a customer-ready follow-up for ${focusLabel} and request the next required update.`,
+        body: [
+          `Subject: ${nextActionTitle}`,
+          "",
+          "Hello,",
+          "",
+          "We are following up on your case.",
+          detailBody ? `Current blocker: ${detailBody}` : `Current blocker: ${focusLabel}.`,
+          nextActionSummary ? `Requested next step: ${nextActionSummary}` : null,
+          "Please reply with the requested update so we can continue.",
+          "",
+          "Regards,",
+          "Operations team",
+        ].filter((item): item is string => Boolean(item)).join("\n"),
+        checklist: [
+          "Verify the blocker is still current.",
+          "Attach the latest source refs before sending.",
+          "Send through the live or customer follow-up lane.",
+          "Log the response back into Case Wiki.",
+        ],
+        sourceRefs,
+      };
+    }
+
+    if (nextActionType === "workflow_resume") {
+      return {
+        kind: "workflow_resume",
+        actionType: nextActionType,
+        title: nextActionTitle,
+        targetLabel: owner ?? "operator",
+        owner: owner ?? "operator",
+        dueBy,
+        summary: `Resume workflow follow-through for ${focusLabel} with the compiled case context attached.`,
+        body: [
+          `Workflow resume brief: ${nextActionTitle}`,
+          `Focus: ${focusLabel}`,
+          detailBody ? `Current context: ${detailBody}` : null,
+          nextActionSummary ? `Next step: ${nextActionSummary}` : null,
+          handoff ? `Handoff: ${handoff}` : null,
+          refsLabel ? `Source refs: ${refsLabel}` : null,
+        ].filter((item): item is string => Boolean(item)).join("\n"),
+        checklist: [
+          "Confirm the blocker is cleared or actively owned.",
+          "Resume the queued workflow step in control plane.",
+          "Verify the next operator workspace after resume.",
+          "Refresh the compiled case snapshot.",
+        ],
+        sourceRefs,
+      };
+    }
+
+    return {
+      kind: "operator_brief",
+      actionType: nextActionType,
+      title: nextActionTitle,
+      targetLabel: owner ?? "operator",
+      owner: owner ?? "operator",
+      dueBy,
+      summary: `Hand off ${focusLabel} to the next operator lane with focused case evidence attached.`,
+      body: [
+        `Operator brief: ${nextActionTitle}`,
+        `Focus: ${focusLabel}`,
+        detailBody ? `Current context: ${detailBody}` : null,
+        nextActionSummary ? `Recommended next step: ${nextActionSummary}` : null,
+        handoff ? `Handoff: ${handoff}` : null,
+        refsLabel ? `Source refs: ${refsLabel}` : null,
+      ].filter((item): item is string => Boolean(item)).join("\n"),
+      checklist: [
+        "Review the focused proof or question.",
+        "Carry the handoff into the next operator action.",
+        "Keep the source refs attached to the case note or export.",
+        "Refresh Case Wiki after the action completes.",
+      ],
+      sourceRefs,
+    };
+  };
   const buildProofItem = (proof: CaseWikiProof): CaseWikiActionPackItem => {
     const handoffPackItem = params.handoffPack.proofs.find((item) => item.focusId === proof.id) ?? null;
     const detailPackItem = params.detailPack.proofs.find((item) => item.focusId === proof.id) ?? null;
@@ -1451,6 +1587,14 @@ function buildCaseWikiActionPack(params: {
       refs,
       refsText: buildRefsText("Proof", title, refs),
       focusSummary: toNonEmptyString(proof.statement),
+      remediationDraft: buildRemediationDraft({
+        title,
+        focusLabel: proof.statement,
+        detailBody: toNonEmptyString(detailPackItem?.body ?? null),
+        handoff: toNonEmptyString(handoffPackItem?.handoff ?? null),
+        sourceRefs: refs,
+        nextAction: isRecord(handoffPackItem?.nextAction) ? handoffPackItem.nextAction : params.recommendedNextAction,
+      }),
     };
   };
   const buildQuestionItem = (question: CaseWikiOpenQuestion): CaseWikiActionPackItem => {
@@ -1483,6 +1627,15 @@ function buildCaseWikiActionPack(params: {
       refs,
       refsText: buildRefsText("Question", title, refs),
       focusSummary: toNonEmptyString(question.question),
+      remediationDraft: buildRemediationDraft({
+        title,
+        focusLabel: question.question,
+        detailBody: toNonEmptyString(detailPackItem?.body ?? null) ?? toNonEmptyString(question.suggestedNextStep),
+        handoff: toNonEmptyString(handoffPackItem?.handoff ?? null),
+        sourceRefs: refs,
+        nextAction: isRecord(handoffPackItem?.nextAction) ? handoffPackItem.nextAction : params.recommendedNextAction,
+        ownerHint: toNonEmptyString(question.owner ?? null),
+      }),
     };
   };
   return {
@@ -1956,6 +2109,7 @@ function buildCaseWikiOperatorPreviewPack(params: {
   };
   handoffPack: CaseWikiHandoffPack;
   detailPack: CaseWikiDetailPack;
+  actionPack: CaseWikiActionPack;
   previewPack: CaseWikiPreviewPack;
   recommendedNextAction: CaseWikiNextAction | null;
   counts: {
@@ -1968,6 +2122,10 @@ function buildCaseWikiOperatorPreviewPack(params: {
   timeline: CaseWikiTimelineEntry[];
   auditLog: CaseWikiAuditEntry[];
 }): CaseWikiOperatorPreviewPack {
+  const remediationItem =
+    params.actionPack.questions.find((item) => item.remediationDraft !== null) ??
+    params.actionPack.proofs.find((item) => item.remediationDraft !== null) ??
+    null;
   const nextActionPreview = params.recommendedNextAction
     ? {
         type: params.recommendedNextAction.type,
@@ -2045,6 +2203,12 @@ function buildCaseWikiOperatorPreviewPack(params: {
         sourceRefs: Array.isArray(item.sourceRefs) ? item.sourceRefs : [],
       })),
     },
+    remediation: {
+      focusKind: remediationItem?.focusKind ?? null,
+      focusId: toNonEmptyString(remediationItem?.focusId ?? null),
+      focusLabel: toNonEmptyString(remediationItem?.focusLabel ?? null),
+      draft: remediationItem?.remediationDraft ?? null,
+    } satisfies CaseWikiOperatorRemediationPreview,
     timeline: {
       totalEntries: params.timeline.length,
       latestEntries: params.timeline.slice(0, 6).map((item) => ({
@@ -2222,6 +2386,7 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     evidencePack,
     handoffPack,
     detailPack,
+    recommendedNextAction,
   });
   const focusPack = buildCaseWikiFocusPack({
     evidencePack,
@@ -2282,6 +2447,7 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     highlights,
     handoffPack,
     detailPack,
+    actionPack,
     previewPack,
     recommendedNextAction,
     counts: {

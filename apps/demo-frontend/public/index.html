@@ -2402,8 +2402,8 @@
               <p id="operatorDemoSummaryQueue" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
             </div>
             <div class="operator-demo-summary-ledger">
-              <p class="operator-demo-summary-copy">Backlog pressure, queue depth, and runtime load.</p>
-              <p id="operatorDemoSummaryQueueNote" class="operator-demo-summary-placeholder-note">Awaiting signal. Refresh after the next live or UI run.</p>
+              <p class="operator-demo-summary-copy">Compiled case priorities, blocking approvals, and backend-owned next actions.</p>
+              <p id="operatorDemoSummaryQueueNote" class="operator-demo-summary-placeholder-note">Awaiting queue hydration. Refresh after the next live or UI case run.</p>
               <p id="operatorDemoSummaryQueueKpi" class="operator-demo-summary-kpi" aria-label="Fail 0, Neutral 0, Ok 0">
                 <span class="operator-demo-summary-kpi-token operator-demo-summary-kpi-fail">F 0</span>
                 <span class="operator-demo-summary-kpi-token operator-demo-summary-kpi-neutral">N 0</span>
@@ -3219,6 +3219,16 @@
                   </div>
                   <pre id="operatorCaseWikiFocusedRoutingSnapshot" class="operator-session-ops-control-output">No focused case wiki routing loaded yet.</pre>
                 </article>
+              <article class="operator-session-ops-control-output-card">
+                <div class="operator-session-ops-control-output-head">
+                  <h3>Case Wiki Focused Remediation</h3>
+                  <div class="operator-session-ops-control-output-actions">
+                    <button id="operatorCaseWikiFocusedRemediationCopyBtn" type="button" class="button-muted">Copy draft</button>
+                    <button id="operatorCaseWikiFocusedRemediationExportBtn" type="button" class="button-muted">Copy export block</button>
+                  </div>
+                </div>
+                <pre id="operatorCaseWikiFocusedRemediationSnapshot" class="operator-session-ops-control-output">No focused case wiki remediation draft loaded yet.</pre>
+              </article>
               <article class="operator-session-ops-control-output-card">
                 <div class="operator-session-ops-control-output-head">
                   <h3>Case Wiki Open Questions</h3>
@@ -4741,38 +4751,38 @@
             </p>
           </article>
 <article class="operator-health-card operator-health-card-condensed operator-health-card-empty" data-operator-critical data-operator-demo-essential>
-            <h3>Task Queue Pressure</h3>
+            <h3>Operator Queue</h3>
             <p id="operatorTaskQueueStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
             <p class="operator-health-row">
-              <strong>Total Active</strong>
+              <strong>Total Items</strong>
               <span id="operatorTaskQueueTotal">0</span>
             </p>
             <p class="operator-health-row">
-              <strong>Queued</strong>
+              <strong>Blocking</strong>
               <span id="operatorTaskQueueQueued">0</span>
             </p>
             <p class="operator-health-row">
-              <strong>Running</strong>
+              <strong>Critical</strong>
               <span id="operatorTaskQueueRunning">0</span>
             </p>
             <p class="operator-health-row">
-              <strong>Pending Approval</strong>
+              <strong>Approval Lane</strong>
               <span id="operatorTaskQueuePendingApproval">0</span>
             </p>
             <p class="operator-health-row">
-              <strong>Stale</strong>
+              <strong>Stale Snapshot</strong>
               <span id="operatorTaskQueueStale">0</span>
             </p>
             <p class="operator-health-row">
-              <strong>Max Age</strong>
+              <strong>Oldest Item Age</strong>
               <span id="operatorTaskQueueMaxAge">pending</span>
             </p>
             <p class="operator-health-row">
-              <strong>Oldest Task</strong>
+              <strong>Top Item</strong>
               <span id="operatorTaskQueueOldest">pending</span>
             </p>
             <p id="operatorTaskQueueHint" class="operator-health-hint operator-health-hint-neutral">
-              No active queue pressure yet. Run one scenario and refresh.
+              No compiled operator queue yet. Refresh summary after one case run.
             </p>
           </article>
 <article class="operator-health-card operator-health-card-condensed operator-health-card-empty" data-operator-critical data-operator-demo-essential>

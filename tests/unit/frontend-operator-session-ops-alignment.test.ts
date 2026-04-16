@@ -62,6 +62,9 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     'id="operatorCaseWikiFocusedRoutingCtaBtn"',
     'id="operatorCaseWikiFocusedRoutingCopyBtn"',
     'id="operatorCaseWikiFocusedRoutingExportBtn"',
+    'id="operatorCaseWikiFocusedRemediationSnapshot"',
+    'id="operatorCaseWikiFocusedRemediationCopyBtn"',
+    'id="operatorCaseWikiFocusedRemediationExportBtn"',
     'id="operatorCaseWikiQuestionsSnapshot"',
     'id="operatorCaseWikiComplianceSnapshot"',
     'id="operatorCaseWikiAuditSnapshot"',
@@ -96,6 +99,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "previewPack: isRecord(snapshot.previewPack) ? snapshot.previewPack : null,",
     "operatorPreviewPack: isRecord(snapshot?.operatorPreviewPack) ? snapshot.operatorPreviewPack : null,",
     "questions: isRecord(value.operatorPreviewPack.questions) ? value.operatorPreviewPack.questions : null,",
+    "remediation: isRecord(value.operatorPreviewPack.remediation) ? value.operatorPreviewPack.remediation : null,",
     "compliance: isRecord(value.operatorPreviewPack.compliance) ? value.operatorPreviewPack.compliance : null,",
     "audit: isRecord(value.operatorPreviewPack.audit) ? value.operatorPreviewPack.audit : null,",
     "timeline: isRecord(value.operatorPreviewPack.timeline) ? value.operatorPreviewPack.timeline : null,",
@@ -107,8 +111,11 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "function buildOperatorCaseWikiFocusedRoutingCTA(lane, route, nextAction, focusedItem)",
     "function buildOperatorCaseWikiFocusedHandoffPreviewBlock()",
     "function buildOperatorCaseWikiFocusedRoutingPreviewBlock()",
+    "function buildOperatorCaseWikiFocusedRemediationBlock(snapshot, evidencePack, focusedItem)",
+    "function buildOperatorCaseWikiRemediationPreview()",
     "async function copyOperatorCaseWikiFocusedHandoffBlock(mode = \"handoff\")",
     "async function copyOperatorCaseWikiFocusedRoutingBlock(mode = \"routing\")",
+    "async function copyOperatorCaseWikiFocusedRemediationBlock(mode = \"draft\")",
     "function runOperatorCaseWikiFocusedRoutingCTA()",
     "buildOperatorCaseWikiFocusSummary(focusedItem)",
     "function buildOperatorCaseWikiQuestionsPreview()",
@@ -116,6 +123,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "function buildOperatorCaseWikiAuditPreview()",
     "function buildOperatorCaseWikiTimelinePreview()",
     "operatorPreviewPack?.questions",
+    "operatorPreviewPack?.remediation",
     "operatorPreviewPack?.compliance",
     "operatorPreviewPack?.audit",
     "operatorPreviewPack?.timeline",
@@ -167,6 +175,9 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     'operatorCaseWikiFocusedRoutingCtaBtn: document.getElementById("operatorCaseWikiFocusedRoutingCtaBtn")',
     'operatorCaseWikiFocusedRoutingCopyBtn: document.getElementById("operatorCaseWikiFocusedRoutingCopyBtn")',
     'operatorCaseWikiFocusedRoutingExportBtn: document.getElementById("operatorCaseWikiFocusedRoutingExportBtn")',
+    'operatorCaseWikiFocusedRemediationSnapshot: document.getElementById("operatorCaseWikiFocusedRemediationSnapshot")',
+    'operatorCaseWikiFocusedRemediationCopyBtn: document.getElementById("operatorCaseWikiFocusedRemediationCopyBtn")',
+    'operatorCaseWikiFocusedRemediationExportBtn: document.getElementById("operatorCaseWikiFocusedRemediationExportBtn")',
     'operatorCaseWikiComplianceSnapshot: document.getElementById("operatorCaseWikiComplianceSnapshot")',
     'operatorCaseWikiAuditSnapshot: document.getElementById("operatorCaseWikiAuditSnapshot")',
     "buildSessionExportOperatorSessionReplay",
@@ -255,6 +266,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "handoffFocus:",
     "focusedHandoffBlock:",
     "focusedRoutingBlock:",
+    "focusedRemediationDraft:",
     "focusedRoutingCta:",
     "focusedRoutingCtaAction:",
   ];
@@ -290,10 +302,12 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.match(readmeSource, /Case Wiki Evidence/i);
   assert.match(readmeSource, /Case Wiki Focused Handoff/i);
   assert.match(readmeSource, /Case Wiki Focused Routing/i);
+  assert.match(readmeSource, /Case Wiki Focused Remediation/i);
   assert.match(readmeSource, /handoffPack/i);
   assert.match(readmeSource, /detailPack/i);
   assert.match(readmeSource, /routingPack/i);
   assert.match(readmeSource, /actionPack/i);
+  assert.match(readmeSource, /remediationDraft/i);
   assert.match(readmeSource, /focusPack/i);
   assert.match(readmeSource, /previewPack/i);
   assert.match(readmeSource, /workspacePack/i);
@@ -316,10 +330,12 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.match(operatorGuideSource, /Case Wiki Evidence/i);
   assert.match(operatorGuideSource, /Case Wiki Focused Handoff/i);
   assert.match(operatorGuideSource, /Case Wiki Focused Routing/i);
+  assert.match(operatorGuideSource, /Case Wiki Focused Remediation/i);
   assert.match(operatorGuideSource, /handoffPack/i);
   assert.match(operatorGuideSource, /detailPack/i);
   assert.match(operatorGuideSource, /routingPack/i);
   assert.match(operatorGuideSource, /actionPack/i);
+  assert.match(operatorGuideSource, /remediationDraft/i);
   assert.match(operatorGuideSource, /focusPack/i);
   assert.match(operatorGuideSource, /previewPack/i);
   assert.match(operatorGuideSource, /workspacePack/i);

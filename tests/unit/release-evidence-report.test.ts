@@ -1301,6 +1301,7 @@ test(
       };
       caseWikiCompliance: {
         status?: string;
+        summary?: string | null;
         observedSignatureStatus?: string | null;
         signatureMatch?: boolean | null;
         evidenceSigning?: {
@@ -1326,6 +1327,7 @@ test(
     assert.equal(report.caseWikiCompliance.evidenceSigning?.keyState, "loaded");
     assert.equal(report.caseWikiCompliance.observedSignatureStatus, "signed");
     assert.equal(report.caseWikiCompliance.signatureMatch, true);
+    assert.match(report.caseWikiCompliance.summary ?? "", /signing=signed/);
 
     const manifest = JSON.parse(readFileSync(outputManifestJsonPath, "utf8")) as {
       criticalEvidenceStatuses: { caseWikiEvidenceSignatureStatus?: string };
@@ -1336,6 +1338,9 @@ test(
         signedArtifacts?: number;
         unsignedArtifacts?: number;
       };
+      caseWikiCompliance: {
+        summary?: string | null;
+      };
     };
     assert.equal(manifest.criticalEvidenceStatuses.caseWikiEvidenceSignatureStatus, "pass");
     assert.equal(manifest.caseWikiEvidenceSignature.source, "hosted_direct_live_proof");
@@ -1343,15 +1348,18 @@ test(
     assert.equal(manifest.caseWikiEvidenceSignature.signatureStatus, "signed");
     assert.equal(manifest.caseWikiEvidenceSignature.signedArtifacts, 1);
     assert.equal(manifest.caseWikiEvidenceSignature.unsignedArtifacts, 0);
+    assert.match(manifest.caseWikiCompliance.summary ?? "", /signing=signed/);
 
     const reportMarkdown = readFileSync(outputMarkdownPath, "utf8");
     assert.match(reportMarkdown, /\| caseWikiEvidenceSignature \| pass \|/);
     assert.match(reportMarkdown, /- source: hosted_direct_live_proof/);
     assert.match(reportMarkdown, /- signatureStatus: signed/);
+    assert.match(reportMarkdown, /- summary: .*signing=signed/);
 
     const manifestMarkdown = readFileSync(outputManifestMarkdownPath, "utf8");
     assert.match(manifestMarkdown, /\| caseWikiEvidenceSignature \| pass \|/);
     assert.match(manifestMarkdown, /\| source \| hosted_direct_live_proof \|/);
     assert.match(manifestMarkdown, /\| signatureStatus \| signed \|/);
+    assert.match(manifestMarkdown, /\| summary \| .*signing=signed \|/);
   },
 );

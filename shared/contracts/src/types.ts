@@ -376,6 +376,7 @@ export type CaseWikiActionPackItem = {
   refs: string[];
   refsText: string | null;
   focusSummary: string | null;
+  remediationDraft: CaseWikiRemediationDraft | null;
 };
 
 export type CaseWikiActionPack = {
@@ -570,10 +571,40 @@ export type CaseWikiOperatorAuditPreview = {
   }>;
 };
 
+export const CASE_WIKI_REMEDIATION_KINDS = [
+  "customer_message",
+  "approval_brief",
+  "workflow_resume",
+  "operator_brief",
+] as const;
+
+export type CaseWikiRemediationKind = (typeof CASE_WIKI_REMEDIATION_KINDS)[number];
+
+export type CaseWikiRemediationDraft = {
+  kind: CaseWikiRemediationKind;
+  actionType: CaseWikiNextActionType | null;
+  title: string;
+  targetLabel: string | null;
+  owner: string | null;
+  dueBy: string | null;
+  summary: string;
+  body: string;
+  checklist: string[];
+  sourceRefs: string[];
+};
+
+export type CaseWikiOperatorRemediationPreview = {
+  focusKind: CaseWikiRoutingFocusKind | null;
+  focusId: string | null;
+  focusLabel: string | null;
+  draft: CaseWikiRemediationDraft | null;
+};
+
 export type CaseWikiOperatorPreviewPack = {
   overview: CaseWikiOperatorOverviewPreview;
   evidence: CaseWikiOperatorEvidencePreview;
   questions: CaseWikiOperatorQuestionsPreview;
+  remediation: CaseWikiOperatorRemediationPreview;
   timeline: CaseWikiOperatorTimelinePreview;
   audit: CaseWikiOperatorAuditPreview;
   compliance: CaseWikiComplianceSummary;
@@ -691,6 +722,120 @@ export type CaseWiki = {
   proofs: CaseWikiProof[];
   openQuestions: CaseWikiOpenQuestion[];
   recommendedNextAction: CaseWikiNextAction | null;
+};
+
+export const RUNTIME_OPERATOR_QUEUE_TONES = ["neutral", "ok", "watch", "fail", "stale"] as const;
+
+export type RuntimeOperatorQueueTone = (typeof RUNTIME_OPERATOR_QUEUE_TONES)[number];
+
+export const RUNTIME_OPERATOR_QUEUE_PRIORITIES = ["critical", "high", "medium"] as const;
+
+export type RuntimeOperatorQueuePriority = (typeof RUNTIME_OPERATOR_QUEUE_PRIORITIES)[number];
+
+export const RUNTIME_OPERATOR_QUEUE_ACTION_IDS = [
+  "refresh_summary",
+  "open_quick_start",
+  "open_playbook",
+  "open_workflow_control",
+  "open_case_wiki_remediation",
+  "copy_case_wiki_remediation_draft",
+  "run_runtime_guardrail_path",
+  "show_all_cards",
+  "full_ops_view",
+  "open_device_nodes",
+  "run_negotiation",
+  "run_story",
+  "run_ui_task",
+  "saved_view_incidents",
+  "saved_view_runtime",
+  "saved_view_approvals",
+  "saved_view_audit",
+  "jump_status_card",
+] as const;
+
+export type RuntimeOperatorQueueActionId = (typeof RUNTIME_OPERATOR_QUEUE_ACTION_IDS)[number];
+
+export type RuntimeOperatorQueueAction = {
+  label: string;
+  actionId: RuntimeOperatorQueueActionId;
+  kind?: "secondary";
+  shortLabel?: string | null;
+  targetStatusId?: string | null;
+};
+
+export type RuntimeOperatorQueueFocus = {
+  kind: CaseWikiRoutingFocusKind | null;
+  id: string | null;
+  label: string | null;
+  summary: string | null;
+};
+
+export type RuntimeOperatorQueueQuestionPreview = {
+  id: string | null;
+  priority: CaseWikiPriority | null;
+  blocking: boolean;
+  owner: string | null;
+  question: string | null;
+  suggestedNextStep: string | null;
+};
+
+export type RuntimeOperatorQueueRoutePreview = {
+  lane: CaseWikiRoutingLane | null;
+  owner: string | null;
+  priority: CaseWikiPriority | null;
+  status: string | null;
+  blocking: boolean;
+  approvalRequired: boolean;
+  dueBy: string | null;
+  summary: string | null;
+};
+
+export type RuntimeOperatorQueueNextActionPreview = {
+  type: CaseWikiNextActionType | null;
+  title: string | null;
+  owner: string | null;
+  summary: string | null;
+  dueBy: string | null;
+  blocking: boolean;
+};
+
+export type RuntimeOperatorQueueCompliancePreview = {
+  templateId: CaseWikiComplianceTemplate;
+  piiRedactionLevel: CaseWikiPiiRedactionLevel;
+  expectedSignatureStatus: EvidenceSignatureStatus;
+};
+
+export type RuntimeOperatorQueueItem = {
+  id: string;
+  key: string;
+  source: "case_wiki";
+  generatedAt: string;
+  caseId: string;
+  sessionId: string | null;
+  tone: RuntimeOperatorQueueTone;
+  priority: RuntimeOperatorQueuePriority;
+  blocking: boolean;
+  kicker: string;
+  title: string;
+  meta: string;
+  focus: RuntimeOperatorQueueFocus | null;
+  question: RuntimeOperatorQueueQuestionPreview | null;
+  route: RuntimeOperatorQueueRoutePreview | null;
+  remediation: CaseWikiOperatorRemediationPreview | null;
+  recommendedNextAction: RuntimeOperatorQueueNextActionPreview | null;
+  compliance: RuntimeOperatorQueueCompliancePreview;
+  primary: RuntimeOperatorQueueAction | null;
+  secondary: RuntimeOperatorQueueAction | null;
+  sourceRefs: string[];
+};
+
+export type RuntimeOperatorQueueSnapshot = {
+  schemaVersion: 1;
+  generatedAt: string;
+  tenantId: string;
+  totalItems: number;
+  blockingItems: number;
+  items: RuntimeOperatorQueueItem[];
 };
 
 export type RuntimeLiveSessionEventIngestRequest = {
