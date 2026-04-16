@@ -80,6 +80,8 @@ test("demo-e2e widens timeout budget for heavy UI planner lanes", () => {
 });
 
 test("demo-e2e warms websocket gateway before measuring roundtrip KPI", () => {
+  assert.match(source, /gateway\.websocket\.roundtrip[\s\S]*Uri "http:\/\/localhost:8081\/v1\/sessions"/);
+  assert.match(source, /gateway\.websocket\.roundtrip[\s\S]*\$gatewayRoundTripSessionId = \[string\]\(Get-FieldValue -Object \$gatewayRoundTripSessionResponse -Path @\("data", "sessionId"\)\)/);
   assert.match(source, /gateway\.websocket\.roundtrip[\s\S]*\$warmupRunId = \$runId \+ "-warmup"/);
   assert.match(source, /gateway\.websocket\.roundtrip[\s\S]*Invoke-NodeJsonCommand -Args @\([\s\S]*\$warmupRunId[\s\S]*\) \| Out-Null/);
   assert.match(source, /gateway\.websocket\.roundtrip[\s\S]*\$roundTripSampleCount = 3/);

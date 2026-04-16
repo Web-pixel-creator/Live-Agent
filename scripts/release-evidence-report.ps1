@@ -396,6 +396,81 @@ function New-CaseWikiEvidenceSignatureSnapshot {
   }
 }
 
+function New-CaseWikiComplianceSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return [ordered]@{
+      status               = "unavailable"
+      validated            = $false
+      observed             = $false
+      tenantId             = $null
+      templateId           = $null
+      requestedTemplateId  = $null
+      source               = $null
+      fallbackApplied      = $null
+      controls             = [ordered]@{
+        piiRedactionLevel   = $null
+        crossTenantAdminOnly = $null
+        approvalSlaEnforced = $null
+        auditTrailRequired  = $null
+      }
+      retention            = [ordered]@{
+        rawMediaDays  = 0
+        auditLogsDays = 0
+        eventsDays    = 0
+        sessionsDays  = 0
+      }
+      evidenceSigning      = [ordered]@{
+        enabled                 = $null
+        expectedSignatureStatus = $null
+        keyState                = $null
+        signerId                = $null
+        keyId                   = $null
+      }
+      observedSignatureStatus = $null
+      signatureMatch       = $null
+      summary              = $null
+    }
+  }
+
+  return [ordered]@{
+    status               = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
+    validated            = ($Value.validated -eq $true)
+    observed             = ($Value.observed -eq $true)
+    tenantId             = $(if ([string]::IsNullOrWhiteSpace([string]$Value.tenantId)) { $null } else { [string]$Value.tenantId })
+    templateId           = $(if ([string]::IsNullOrWhiteSpace([string]$Value.templateId)) { $null } else { [string]$Value.templateId })
+    requestedTemplateId  = $(if ([string]::IsNullOrWhiteSpace([string]$Value.requestedTemplateId)) { $null } else { [string]$Value.requestedTemplateId })
+    source               = $(if ([string]::IsNullOrWhiteSpace([string]$Value.source)) { $null } else { [string]$Value.source })
+    fallbackApplied      = $(if ($null -eq $Value.fallbackApplied) { $null } else { $Value.fallbackApplied -eq $true })
+    controls             = [ordered]@{
+      piiRedactionLevel   = $(if ($null -eq $Value.controls) { $null } else { Get-StatusValueOrDefault -Value $Value.controls.piiRedactionLevel -DefaultValue "" })
+      crossTenantAdminOnly = $(if ($null -eq $Value.controls -or $null -eq $Value.controls.crossTenantAdminOnly) { $null } else { $Value.controls.crossTenantAdminOnly -eq $true })
+      approvalSlaEnforced = $(if ($null -eq $Value.controls -or $null -eq $Value.controls.approvalSlaEnforced) { $null } else { $Value.controls.approvalSlaEnforced -eq $true })
+      auditTrailRequired  = $(if ($null -eq $Value.controls -or $null -eq $Value.controls.auditTrailRequired) { $null } else { $Value.controls.auditTrailRequired -eq $true })
+    }
+    retention            = [ordered]@{
+      rawMediaDays  = $(if ($null -eq $Value.retention) { 0 } else { Convert-ToNonNegativeIntOrDefault -Value $Value.retention.rawMediaDays -DefaultValue 0 })
+      auditLogsDays = $(if ($null -eq $Value.retention) { 0 } else { Convert-ToNonNegativeIntOrDefault -Value $Value.retention.auditLogsDays -DefaultValue 0 })
+      eventsDays    = $(if ($null -eq $Value.retention) { 0 } else { Convert-ToNonNegativeIntOrDefault -Value $Value.retention.eventsDays -DefaultValue 0 })
+      sessionsDays  = $(if ($null -eq $Value.retention) { 0 } else { Convert-ToNonNegativeIntOrDefault -Value $Value.retention.sessionsDays -DefaultValue 0 })
+    }
+    evidenceSigning      = [ordered]@{
+      enabled                 = $(if ($null -eq $Value.evidenceSigning -or $null -eq $Value.evidenceSigning.enabled) { $null } else { $Value.evidenceSigning.enabled -eq $true })
+      expectedSignatureStatus = $(if ($null -eq $Value.evidenceSigning) { $null } else { Get-StatusValueOrDefault -Value $Value.evidenceSigning.expectedSignatureStatus -DefaultValue "" })
+      keyState                = $(if ($null -eq $Value.evidenceSigning) { $null } else { Get-StatusValueOrDefault -Value $Value.evidenceSigning.keyState -DefaultValue "" })
+      signerId                = $(if ($null -eq $Value.evidenceSigning) { $null } else { Get-StatusValueOrDefault -Value $Value.evidenceSigning.signerId -DefaultValue "" })
+      keyId                   = $(if ($null -eq $Value.evidenceSigning) { $null } else { Get-StatusValueOrDefault -Value $Value.evidenceSigning.keyId -DefaultValue "" })
+    }
+    observedSignatureStatus = $(if ([string]::IsNullOrWhiteSpace([string]$Value.observedSignatureStatus)) { $null } else { [string]$Value.observedSignatureStatus })
+    signatureMatch       = $(if ($null -eq $Value.signatureMatch) { $null } else { $Value.signatureMatch -eq $true })
+    summary              = $(if ([string]::IsNullOrWhiteSpace([string]$Value.summary)) { $null } else { [string]$Value.summary })
+  }
+}
+
 function New-HostedCaseWikiEvidenceSignatureValue {
   param(
     [Parameter(Mandatory = $false)]
@@ -1026,6 +1101,7 @@ $report = [ordered]@{
     hostedDirectLiveProofStatus = "unavailable"
     providerUsageStatus       = "unavailable"
     caseWikiEvidenceSignatureStatus = "unavailable"
+    caseWikiComplianceStatus = "unavailable"
     caseWikiRoutingContextStatus = "unavailable"
     caseWikiGatewayHydrationStatus = "unavailable"
     caseWikiContextAdoptionStatus = "unavailable"
@@ -1122,6 +1198,38 @@ $report = [ordered]@{
     focusLabel        = $null
     nextAction        = $null
     sourceRefsCount   = 0
+  }
+  caseWikiCompliance = [ordered]@{
+    status               = "unavailable"
+    validated            = $false
+    observed             = $false
+    tenantId             = $null
+    templateId           = $null
+    requestedTemplateId  = $null
+    source               = $null
+    fallbackApplied      = $null
+    controls             = [ordered]@{
+      piiRedactionLevel   = $null
+      crossTenantAdminOnly = $null
+      approvalSlaEnforced = $null
+      auditTrailRequired  = $null
+    }
+    retention            = [ordered]@{
+      rawMediaDays  = 0
+      auditLogsDays = 0
+      eventsDays    = 0
+      sessionsDays  = 0
+    }
+    evidenceSigning      = [ordered]@{
+      enabled                 = $null
+      expectedSignatureStatus = $null
+      keyState                = $null
+      signerId                = $null
+      keyId                   = $null
+    }
+    observedSignatureStatus = $null
+    signatureMatch       = $null
+    summary              = $null
   }
   caseWikiRoutingContext = [ordered]@{
     status          = "unavailable"
@@ -1352,6 +1460,10 @@ if (Test-Path $resolvedBadgeDetailsPath) {
       $report.caseWikiEvidenceSignature = New-CaseWikiEvidenceSignatureSnapshot -Value $badgeDetails.evidence.caseWikiEvidenceSignature
       $report.statuses.caseWikiEvidenceSignatureStatus = Get-StatusValueOrDefault -Value $report.caseWikiEvidenceSignature.status -DefaultValue "unavailable"
     }
+    if ($null -ne $badgeDetails.evidence.caseWikiCompliance) {
+      $report.caseWikiCompliance = New-CaseWikiComplianceSnapshot -Value $badgeDetails.evidence.caseWikiCompliance
+      $report.statuses.caseWikiComplianceStatus = Get-StatusValueOrDefault -Value $report.caseWikiCompliance.status -DefaultValue "unavailable"
+    }
     if ($null -ne $badgeDetails.evidence.caseWikiRoutingContext) {
       $report.caseWikiRoutingContext = New-CaseWikiRoutingContextSnapshot -Value $badgeDetails.evidence.caseWikiRoutingContext
       $report.statuses.caseWikiRoutingContextStatus = Get-StatusValueOrDefault -Value $report.caseWikiRoutingContext.status -DefaultValue "unavailable"
@@ -1398,6 +1510,29 @@ $report.caseWikiEvidenceSignature = Resolve-CaseWikiEvidenceSignatureSnapshot `
   -HostedDirectLiveProofSnapshot $report.hostedDirectLiveProof `
   -HostedSnapshot $hostedCaseWikiEvidenceSignatureSnapshot
 $report.statuses.caseWikiEvidenceSignatureStatus = Get-StatusValueOrDefault -Value $report.caseWikiEvidenceSignature.status -DefaultValue "unavailable"
+if ($report.caseWikiCompliance.observed -eq $true) {
+  $hostedComplianceExpectedSignatureStatus = Get-StatusValueOrDefault -Value $report.hostedDirectLiveProof.caseWikiExpectedSignatureStatus -DefaultValue ""
+  $hostedComplianceKeyState = Get-StatusValueOrDefault -Value $report.hostedDirectLiveProof.runtimeEvidenceKeyState -DefaultValue ""
+  if (
+    $report.hostedDirectLiveProof.status -eq "pass" -and
+    $report.hostedDirectLiveProof.freshnessStatus -eq "pass" -and
+    $hostedComplianceExpectedSignatureStatus -in @("signed", "unsigned")
+  ) {
+    $report.caseWikiCompliance.evidenceSigning.expectedSignatureStatus = $hostedComplianceExpectedSignatureStatus
+    if (-not [string]::IsNullOrWhiteSpace($hostedComplianceKeyState)) {
+      $report.caseWikiCompliance.evidenceSigning.keyState = $hostedComplianceKeyState
+    }
+    $report.caseWikiCompliance.evidenceSigning.enabled = ($hostedComplianceExpectedSignatureStatus -eq "signed")
+    $report.caseWikiCompliance.observedSignatureStatus = $report.caseWikiEvidenceSignature.signatureStatus
+    $report.caseWikiCompliance.signatureMatch =
+      (-not [string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.signatureStatus)) -and
+      ($report.caseWikiEvidenceSignature.signatureStatus -eq $report.caseWikiCompliance.evidenceSigning.expectedSignatureStatus)
+    if ($report.caseWikiCompliance.validated -eq $true) {
+      $report.caseWikiCompliance.status = $(if ($report.caseWikiCompliance.signatureMatch -eq $true) { "pass" } else { "fail" })
+      $report.statuses.caseWikiComplianceStatus = $report.caseWikiCompliance.status
+    }
+  }
+}
 
 $json = $report | ConvertTo-Json -Depth 10
 Write-Utf8NoBomFile -Path $resolvedOutputJsonPath -Content $json
@@ -1407,6 +1542,7 @@ $runtimeProofDirectLiveStatus = Get-AggregateEvidenceStatus -Statuses @(
 )
 $runtimeProofCaseWikiStatus = Get-AggregateEvidenceStatus -Statuses @(
   $report.statuses.caseWikiEvidenceSignatureStatus,
+  $report.statuses.caseWikiComplianceStatus,
   $report.statuses.caseWikiRoutingContextStatus,
   $report.statuses.caseWikiGatewayHydrationStatus,
   $report.statuses.caseWikiContextAdoptionStatus
@@ -1440,12 +1576,16 @@ if ($runtimeProofCaseWikiStatus -ne "pass") {
   $runtimeProofBlockers += [ordered]@{
     lane   = "case_wiki"
     status = $runtimeProofCaseWikiStatus
-    reason = $(if (-not [string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.blocker)) {
+    reason = $(if ($report.caseWikiCompliance.observed -eq $true -and $report.caseWikiCompliance.signatureMatch -eq $false) {
+        "compiled memory compliance/signing proof is inconsistent; expected_signature_status=" + [string]$report.caseWikiCompliance.evidenceSigning.expectedSignatureStatus + "; observed_signature_status=" + [string]$report.caseWikiCompliance.observedSignatureStatus
+      } elseif (-not [string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.blocker)) {
         "compiled memory routing proof is incomplete; blocker=" + [string]$report.caseWikiRoutingContext.blocker
+      } elseif ($report.caseWikiCompliance.observed -eq $true) {
+        "compiled memory compliance proof is incomplete; template=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.templateId)) { "n/a" } else { [string]$report.caseWikiCompliance.templateId }) + "; source=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.source)) { "n/a" } else { [string]$report.caseWikiCompliance.source })
       } elseif (-not [string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.signatureStatus)) {
         "compiled memory proof is incomplete; signature_status=" + [string]$report.caseWikiEvidenceSignature.signatureStatus
       } else {
-        "compiled memory routing or signing proof is missing"
+        "compiled memory compliance, routing, or signing proof is missing"
       })
   }
 }
@@ -1512,6 +1652,14 @@ $runtimeProof = [ordered]@{
       signatureKind        = $report.caseWikiEvidenceSignature.signatureStatus
       signedArtifacts      = $report.caseWikiEvidenceSignature.signedArtifacts
       totalArtifacts       = $report.caseWikiEvidenceSignature.totalArtifacts
+      complianceStatus     = $report.caseWikiCompliance.status
+      templateId           = $report.caseWikiCompliance.templateId
+      complianceSource     = $report.caseWikiCompliance.source
+      piiRedactionLevel    = $report.caseWikiCompliance.controls.piiRedactionLevel
+      rawMediaDays         = $report.caseWikiCompliance.retention.rawMediaDays
+      expectedSignatureStatus = $report.caseWikiCompliance.evidenceSigning.expectedSignatureStatus
+      observedSignatureStatus = $report.caseWikiCompliance.observedSignatureStatus
+      signatureMatch       = $report.caseWikiCompliance.signatureMatch
       routingStatus        = $report.caseWikiRoutingContext.status
       contextSource        = $report.caseWikiRoutingContext.contextSource
       focusId              = $report.caseWikiRoutingContext.focusId
@@ -1520,7 +1668,7 @@ $runtimeProof = [ordered]@{
       gatewayHydrationStatus = $report.caseWikiGatewayHydration.status
       contextAdoptionStatus = $report.caseWikiContextAdoption.status
       caseWikiRate         = $report.caseWikiContextAdoption.caseWikiRate
-      summary              = ("signature=" + $report.caseWikiEvidenceSignature.status + "; context_source=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.contextSource)) { "n/a" } else { [string]$report.caseWikiRoutingContext.contextSource }) + "; blocker=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.blocker)) { "n/a" } else { [string]$report.caseWikiRoutingContext.blocker }) + "; next_action=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.nextAction)) { "n/a" } else { [string]$report.caseWikiRoutingContext.nextAction }) + "; case_wiki_rate=" + $(if ($null -eq $report.caseWikiContextAdoption.caseWikiRate) { "n/a" } else { [string]$report.caseWikiContextAdoption.caseWikiRate }))
+      summary              = ("signature=" + $report.caseWikiEvidenceSignature.status + "; compliance=" + $report.caseWikiCompliance.status + "; template=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.templateId)) { "n/a" } else { [string]$report.caseWikiCompliance.templateId }) + "; context_source=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.contextSource)) { "n/a" } else { [string]$report.caseWikiRoutingContext.contextSource }) + "; blocker=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.blocker)) { "n/a" } else { [string]$report.caseWikiRoutingContext.blocker }) + "; next_action=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.nextAction)) { "n/a" } else { [string]$report.caseWikiRoutingContext.nextAction }) + "; case_wiki_rate=" + $(if ($null -eq $report.caseWikiContextAdoption.caseWikiRate) { "n/a" } else { [string]$report.caseWikiContextAdoption.caseWikiRate }))
     }
     navigator = [ordered]@{
       status                    = $runtimeProofNavigatorStatus
@@ -1660,6 +1808,7 @@ $markdown = @(
   "| liveTransport | $($report.statuses.liveTransportStatus) |",
   "| hostedDirectLiveProof | $($report.statuses.hostedDirectLiveProofStatus) |",
   "| caseWikiEvidenceSignature | $($report.statuses.caseWikiEvidenceSignatureStatus) |",
+  "| caseWikiCompliance | $($report.statuses.caseWikiComplianceStatus) |",
   "| caseWikiRoutingContext | $($report.statuses.caseWikiRoutingContextStatus) |",
   "| caseWikiGatewayHydration | $($report.statuses.caseWikiGatewayHydrationStatus) |",
   "| caseWikiContextAdoption | $($report.statuses.caseWikiContextAdoptionStatus) |",
@@ -1759,6 +1908,33 @@ $markdown = @(
   "- nextAction: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.nextAction)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.nextAction })",
   "- sourceRefsCount: $($report.caseWikiEvidenceSignature.sourceRefsCount)",
   "- payloadHash: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.payloadHash)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.payloadHash })",
+  "",
+  "## Case Wiki Compliance Snapshot",
+  "",
+  "- status: $($report.caseWikiCompliance.status)",
+  "- validated: $($report.caseWikiCompliance.validated)",
+  "- observed: $($report.caseWikiCompliance.observed)",
+  "- tenantId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.tenantId)) { "n/a" } else { [string]$report.caseWikiCompliance.tenantId })",
+  "- templateId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.templateId)) { "n/a" } else { [string]$report.caseWikiCompliance.templateId })",
+  "- requestedTemplateId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.requestedTemplateId)) { "n/a" } else { [string]$report.caseWikiCompliance.requestedTemplateId })",
+  "- source: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.source)) { "n/a" } else { [string]$report.caseWikiCompliance.source })",
+  "- fallbackApplied: $(if ($null -eq $report.caseWikiCompliance.fallbackApplied) { "n/a" } else { [string]$report.caseWikiCompliance.fallbackApplied })",
+  "- piiRedactionLevel: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.controls.piiRedactionLevel)) { "n/a" } else { [string]$report.caseWikiCompliance.controls.piiRedactionLevel })",
+  "- crossTenantAdminOnly: $(if ($null -eq $report.caseWikiCompliance.controls.crossTenantAdminOnly) { "n/a" } else { [string]$report.caseWikiCompliance.controls.crossTenantAdminOnly })",
+  "- approvalSlaEnforced: $(if ($null -eq $report.caseWikiCompliance.controls.approvalSlaEnforced) { "n/a" } else { [string]$report.caseWikiCompliance.controls.approvalSlaEnforced })",
+  "- auditTrailRequired: $(if ($null -eq $report.caseWikiCompliance.controls.auditTrailRequired) { "n/a" } else { [string]$report.caseWikiCompliance.controls.auditTrailRequired })",
+  "- rawMediaDays: $($report.caseWikiCompliance.retention.rawMediaDays)",
+  "- auditLogsDays: $($report.caseWikiCompliance.retention.auditLogsDays)",
+  "- eventsDays: $($report.caseWikiCompliance.retention.eventsDays)",
+  "- sessionsDays: $($report.caseWikiCompliance.retention.sessionsDays)",
+  "- evidenceSigningEnabled: $(if ($null -eq $report.caseWikiCompliance.evidenceSigning.enabled) { "n/a" } else { [string]$report.caseWikiCompliance.evidenceSigning.enabled })",
+  "- expectedSignatureStatus: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.evidenceSigning.expectedSignatureStatus)) { "n/a" } else { [string]$report.caseWikiCompliance.evidenceSigning.expectedSignatureStatus })",
+  "- keyState: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.evidenceSigning.keyState)) { "n/a" } else { [string]$report.caseWikiCompliance.evidenceSigning.keyState })",
+  "- signerId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.evidenceSigning.signerId)) { "n/a" } else { [string]$report.caseWikiCompliance.evidenceSigning.signerId })",
+  "- keyId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.evidenceSigning.keyId)) { "n/a" } else { [string]$report.caseWikiCompliance.evidenceSigning.keyId })",
+  "- observedSignatureStatus: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.observedSignatureStatus)) { "n/a" } else { [string]$report.caseWikiCompliance.observedSignatureStatus })",
+  "- signatureMatch: $(if ($null -eq $report.caseWikiCompliance.signatureMatch) { "n/a" } else { [string]$report.caseWikiCompliance.signatureMatch })",
+  "- summary: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.summary)) { "n/a" } else { [string]$report.caseWikiCompliance.summary })",
   "",
   "## Case Wiki Routing Context Snapshot",
   "",
@@ -1980,6 +2156,32 @@ $manifest = [ordered]@{
     signerId          = $report.caseWikiEvidenceSignature.signerId
     signedAt          = $report.caseWikiEvidenceSignature.signedAt
   }
+  caseWikiCompliance = [ordered]@{
+    status               = $report.caseWikiCompliance.status
+    validated            = $report.caseWikiCompliance.validated
+    observed             = $report.caseWikiCompliance.observed
+    tenantId             = $report.caseWikiCompliance.tenantId
+    templateId           = $report.caseWikiCompliance.templateId
+    requestedTemplateId  = $report.caseWikiCompliance.requestedTemplateId
+    source               = $report.caseWikiCompliance.source
+    fallbackApplied      = $report.caseWikiCompliance.fallbackApplied
+    piiRedactionLevel    = $report.caseWikiCompliance.controls.piiRedactionLevel
+    crossTenantAdminOnly = $report.caseWikiCompliance.controls.crossTenantAdminOnly
+    approvalSlaEnforced  = $report.caseWikiCompliance.controls.approvalSlaEnforced
+    auditTrailRequired   = $report.caseWikiCompliance.controls.auditTrailRequired
+    rawMediaDays         = $report.caseWikiCompliance.retention.rawMediaDays
+    auditLogsDays        = $report.caseWikiCompliance.retention.auditLogsDays
+    eventsDays           = $report.caseWikiCompliance.retention.eventsDays
+    sessionsDays         = $report.caseWikiCompliance.retention.sessionsDays
+    evidenceSigningEnabled = $report.caseWikiCompliance.evidenceSigning.enabled
+    expectedSignatureStatus = $report.caseWikiCompliance.evidenceSigning.expectedSignatureStatus
+    keyState             = $report.caseWikiCompliance.evidenceSigning.keyState
+    signerId             = $report.caseWikiCompliance.evidenceSigning.signerId
+    keyId                = $report.caseWikiCompliance.evidenceSigning.keyId
+    observedSignatureStatus = $report.caseWikiCompliance.observedSignatureStatus
+    signatureMatch       = $report.caseWikiCompliance.signatureMatch
+    summary              = $report.caseWikiCompliance.summary
+  }
   caseWikiRoutingContext = [ordered]@{
     status          = $report.caseWikiRoutingContext.status
     validated       = $report.caseWikiRoutingContext.validated
@@ -2140,6 +2342,7 @@ $manifestMarkdown = @(
   "| liveTransport | $($report.statuses.liveTransportStatus) |",
   "| hostedDirectLiveProof | $($report.statuses.hostedDirectLiveProofStatus) |",
   "| caseWikiEvidenceSignature | $($report.statuses.caseWikiEvidenceSignatureStatus) |",
+  "| caseWikiCompliance | $($report.statuses.caseWikiComplianceStatus) |",
   "| caseWikiRoutingContext | $($report.statuses.caseWikiRoutingContextStatus) |",
   "| caseWikiGatewayHydration | $($report.statuses.caseWikiGatewayHydrationStatus) |",
   "| caseWikiContextAdoption | $($report.statuses.caseWikiContextAdoptionStatus) |",
@@ -2176,6 +2379,35 @@ $manifestMarkdown = @(
   "| signatureStatus | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiEvidenceSignature.signatureStatus)) { "n/a" } else { [string]$manifest.caseWikiEvidenceSignature.signatureStatus }) |",
   "| signerId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiEvidenceSignature.signerId)) { "n/a" } else { [string]$manifest.caseWikiEvidenceSignature.signerId }) |",
   "| signedAt | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiEvidenceSignature.signedAt)) { "n/a" } else { [string]$manifest.caseWikiEvidenceSignature.signedAt }) |",
+  "",
+  "## Case Wiki Compliance",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.caseWikiCompliance.status) |",
+  "| validated | $($manifest.caseWikiCompliance.validated) |",
+  "| observed | $($manifest.caseWikiCompliance.observed) |",
+  "| tenantId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiCompliance.tenantId)) { "n/a" } else { [string]$manifest.caseWikiCompliance.tenantId }) |",
+  "| templateId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiCompliance.templateId)) { "n/a" } else { [string]$manifest.caseWikiCompliance.templateId }) |",
+  "| requestedTemplateId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiCompliance.requestedTemplateId)) { "n/a" } else { [string]$manifest.caseWikiCompliance.requestedTemplateId }) |",
+  "| source | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiCompliance.source)) { "n/a" } else { [string]$manifest.caseWikiCompliance.source }) |",
+  "| fallbackApplied | $(if ($null -eq $manifest.caseWikiCompliance.fallbackApplied) { "n/a" } else { [string]$manifest.caseWikiCompliance.fallbackApplied }) |",
+  "| piiRedactionLevel | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiCompliance.piiRedactionLevel)) { "n/a" } else { [string]$manifest.caseWikiCompliance.piiRedactionLevel }) |",
+  "| crossTenantAdminOnly | $(if ($null -eq $manifest.caseWikiCompliance.crossTenantAdminOnly) { "n/a" } else { [string]$manifest.caseWikiCompliance.crossTenantAdminOnly }) |",
+  "| approvalSlaEnforced | $(if ($null -eq $manifest.caseWikiCompliance.approvalSlaEnforced) { "n/a" } else { [string]$manifest.caseWikiCompliance.approvalSlaEnforced }) |",
+  "| auditTrailRequired | $(if ($null -eq $manifest.caseWikiCompliance.auditTrailRequired) { "n/a" } else { [string]$manifest.caseWikiCompliance.auditTrailRequired }) |",
+  "| rawMediaDays | $($manifest.caseWikiCompliance.rawMediaDays) |",
+  "| auditLogsDays | $($manifest.caseWikiCompliance.auditLogsDays) |",
+  "| eventsDays | $($manifest.caseWikiCompliance.eventsDays) |",
+  "| sessionsDays | $($manifest.caseWikiCompliance.sessionsDays) |",
+  "| evidenceSigningEnabled | $(if ($null -eq $manifest.caseWikiCompliance.evidenceSigningEnabled) { "n/a" } else { [string]$manifest.caseWikiCompliance.evidenceSigningEnabled }) |",
+  "| expectedSignatureStatus | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiCompliance.expectedSignatureStatus)) { "n/a" } else { [string]$manifest.caseWikiCompliance.expectedSignatureStatus }) |",
+  "| keyState | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiCompliance.keyState)) { "n/a" } else { [string]$manifest.caseWikiCompliance.keyState }) |",
+  "| signerId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiCompliance.signerId)) { "n/a" } else { [string]$manifest.caseWikiCompliance.signerId }) |",
+  "| keyId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiCompliance.keyId)) { "n/a" } else { [string]$manifest.caseWikiCompliance.keyId }) |",
+  "| observedSignatureStatus | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiCompliance.observedSignatureStatus)) { "n/a" } else { [string]$manifest.caseWikiCompliance.observedSignatureStatus }) |",
+  "| signatureMatch | $(if ($null -eq $manifest.caseWikiCompliance.signatureMatch) { "n/a" } else { [string]$manifest.caseWikiCompliance.signatureMatch }) |",
+  "| summary | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiCompliance.summary)) { "n/a" } else { [string]$manifest.caseWikiCompliance.summary }) |",
   "",
   "## Hosted Direct-Live Proof",
   "",

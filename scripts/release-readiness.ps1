@@ -2443,6 +2443,10 @@ if (Test-Path $ReleaseEvidenceReportPath) {
   if ($null -eq $caseWikiEvidenceSignature) {
     Fail ("release evidence report missing caseWikiEvidenceSignature block: " + $ReleaseEvidenceReportPath)
   }
+  $caseWikiCompliance = Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiCompliance"
+  if ($null -eq $caseWikiCompliance) {
+    Fail ("release evidence report missing caseWikiCompliance block: " + $ReleaseEvidenceReportPath)
+  }
 
   $caseWikiRoutingContext = Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext"
   if ($null -eq $caseWikiRoutingContext) {
@@ -2553,6 +2557,104 @@ if (Test-Path $ReleaseEvidenceReportPath) {
           "release evidence caseWikiEvidenceSignature expected unsignedArtifacts=totalArtifacts and signedArtifacts=0 when runtime evidence signing is not configured"
         )
       }
+    }
+  }
+
+  $caseWikiComplianceStatus = [string](Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "status")
+  $caseWikiComplianceValidated = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "validated")
+  $caseWikiComplianceObserved = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "observed")
+  $caseWikiComplianceTemplateId = [string](Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "templateId")
+  $caseWikiComplianceRequestedTemplateId = [string](Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "requestedTemplateId")
+  $caseWikiComplianceSource = [string](Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "source")
+  $caseWikiComplianceFallbackApplied = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "fallbackApplied")
+  $caseWikiCompliancePiiRedactionLevel = [string](Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "controls") -Name "piiRedactionLevel")
+  $caseWikiComplianceCrossTenantAdminOnly = To-BoolOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "controls") -Name "crossTenantAdminOnly")
+  $caseWikiComplianceApprovalSlaEnforced = To-BoolOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "controls") -Name "approvalSlaEnforced")
+  $caseWikiComplianceAuditTrailRequired = To-BoolOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "controls") -Name "auditTrailRequired")
+  $caseWikiComplianceRawMediaDays = To-NumberOrNaN (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "retention") -Name "rawMediaDays")
+  $caseWikiComplianceAuditLogsDays = To-NumberOrNaN (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "retention") -Name "auditLogsDays")
+  $caseWikiComplianceEventsDays = To-NumberOrNaN (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "retention") -Name "eventsDays")
+  $caseWikiComplianceSessionsDays = To-NumberOrNaN (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "retention") -Name "sessionsDays")
+  $caseWikiComplianceEvidenceSigningEnabled = To-BoolOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "evidenceSigning") -Name "enabled")
+  $caseWikiComplianceExpectedSignatureStatus = [string](Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "evidenceSigning") -Name "expectedSignatureStatus")
+  $caseWikiComplianceKeyState = [string](Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "evidenceSigning") -Name "keyState")
+  $caseWikiComplianceSignerId = [string](Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "evidenceSigning") -Name "signerId")
+  $caseWikiComplianceObservedSignatureStatus = [string](Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "observedSignatureStatus")
+  $caseWikiComplianceSignatureMatch = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "signatureMatch")
+  $caseWikiComplianceSummary = [string](Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "summary")
+  $caseWikiComplianceObservedAny =
+    ($caseWikiComplianceObserved -eq $true) -or
+    ($caseWikiComplianceStatus -ne "unavailable") -or
+    (-not [string]::IsNullOrWhiteSpace($caseWikiComplianceTemplateId)) -or
+    (-not [string]::IsNullOrWhiteSpace($caseWikiComplianceSource)) -or
+    (-not [double]::IsNaN($caseWikiComplianceRawMediaDays)) -or
+    (-not [string]::IsNullOrWhiteSpace($caseWikiComplianceExpectedSignatureStatus))
+
+  if ($caseWikiComplianceObservedAny) {
+    if ($caseWikiComplianceStatus -ne "pass" -or $caseWikiComplianceValidated -ne $true) {
+      Fail (
+        "release evidence caseWikiCompliance expected status=pass and validated=true, actual status=" +
+        $caseWikiComplianceStatus +
+        ", validated=" +
+        (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "validated")
+      )
+    }
+    if ($caseWikiComplianceTemplateId -ne [string]$summary.kpis.governancePolicySummaryTemplateId) {
+      Fail ("release evidence caseWikiCompliance.templateId expected " + [string]$summary.kpis.governancePolicySummaryTemplateId + ", actual " + $caseWikiComplianceTemplateId)
+    }
+    if ($caseWikiComplianceRequestedTemplateId -ne [string]$summary.kpis.governancePolicyComplianceTemplate) {
+      Fail ("release evidence caseWikiCompliance.requestedTemplateId expected " + [string]$summary.kpis.governancePolicyComplianceTemplate + ", actual " + $caseWikiComplianceRequestedTemplateId)
+    }
+    if ($caseWikiComplianceSource -ne [string]$summary.kpis.governancePolicySummarySource) {
+      Fail ("release evidence caseWikiCompliance.source expected " + [string]$summary.kpis.governancePolicySummarySource + ", actual " + $caseWikiComplianceSource)
+    }
+    if ($caseWikiComplianceFallbackApplied -ne $false) {
+      Fail ("release evidence caseWikiCompliance.fallbackApplied expected false, actual " + $caseWikiComplianceFallbackApplied)
+    }
+    if ($caseWikiCompliancePiiRedactionLevel -ne "high") {
+      Fail ("release evidence caseWikiCompliance.controls.piiRedactionLevel expected high, actual " + $caseWikiCompliancePiiRedactionLevel)
+    }
+    if ($caseWikiComplianceCrossTenantAdminOnly -ne $true) {
+      Fail ("release evidence caseWikiCompliance.controls.crossTenantAdminOnly expected true, actual " + $caseWikiComplianceCrossTenantAdminOnly)
+    }
+    if ($caseWikiComplianceApprovalSlaEnforced -ne $true) {
+      Fail ("release evidence caseWikiCompliance.controls.approvalSlaEnforced expected true, actual " + $caseWikiComplianceApprovalSlaEnforced)
+    }
+    if ($caseWikiComplianceAuditTrailRequired -ne $true) {
+      Fail ("release evidence caseWikiCompliance.controls.auditTrailRequired expected true, actual " + $caseWikiComplianceAuditTrailRequired)
+    }
+    if ([double]::IsNaN($caseWikiComplianceRawMediaDays) -or $caseWikiComplianceRawMediaDays -ne (To-NumberOrNaN $summary.kpis.governancePolicyRetentionRawMediaDays)) {
+      Fail ("release evidence caseWikiCompliance.retention.rawMediaDays expected " + [string]$summary.kpis.governancePolicyRetentionRawMediaDays + ", actual " + $caseWikiComplianceRawMediaDays)
+    }
+    if ([double]::IsNaN($caseWikiComplianceAuditLogsDays) -or $caseWikiComplianceAuditLogsDays -ne (To-NumberOrNaN $summary.kpis.governancePolicyRetentionAuditLogsDays)) {
+      Fail ("release evidence caseWikiCompliance.retention.auditLogsDays expected " + [string]$summary.kpis.governancePolicyRetentionAuditLogsDays + ", actual " + $caseWikiComplianceAuditLogsDays)
+    }
+    if ([double]::IsNaN($caseWikiComplianceEventsDays) -or $caseWikiComplianceEventsDays -ne (To-NumberOrNaN $summary.kpis.governancePolicyRetentionEventsDays)) {
+      Fail ("release evidence caseWikiCompliance.retention.eventsDays expected " + [string]$summary.kpis.governancePolicyRetentionEventsDays + ", actual " + $caseWikiComplianceEventsDays)
+    }
+    if ([double]::IsNaN($caseWikiComplianceSessionsDays) -or $caseWikiComplianceSessionsDays -ne (To-NumberOrNaN $summary.kpis.governancePolicyRetentionSessionsDays)) {
+      Fail ("release evidence caseWikiCompliance.retention.sessionsDays expected " + [string]$summary.kpis.governancePolicyRetentionSessionsDays + ", actual " + $caseWikiComplianceSessionsDays)
+    }
+    if ($caseWikiComplianceExpectedSignatureStatus -notin @("signed", "unsigned")) {
+      Fail ("release evidence caseWikiCompliance.evidenceSigning.expectedSignatureStatus expected signed|unsigned, actual " + $caseWikiComplianceExpectedSignatureStatus)
+    }
+    if ($caseWikiComplianceExpectedSignatureStatus -ne $caseWikiEvidenceSignatureStatus) {
+      Fail ("release evidence caseWikiCompliance expectedSignatureStatus must match caseWikiEvidenceSignature.signatureStatus; expected " + $caseWikiComplianceExpectedSignatureStatus + ", actual " + $caseWikiEvidenceSignatureStatus)
+    }
+    if ($caseWikiComplianceObservedSignatureStatus -ne $caseWikiEvidenceSignatureStatus) {
+      Fail ("release evidence caseWikiCompliance observedSignatureStatus must match caseWikiEvidenceSignature.signatureStatus; observed " + $caseWikiComplianceObservedSignatureStatus + ", signature_status=" + $caseWikiEvidenceSignatureStatus)
+    }
+    if ($caseWikiComplianceSignatureMatch -ne $true) {
+      Fail ("release evidence caseWikiCompliance.signatureMatch expected true, actual " + $caseWikiComplianceSignatureMatch)
+    }
+    if ($caseWikiComplianceKeyState -notin @("missing", "loaded", "invalid")) {
+      Fail ("release evidence caseWikiCompliance.evidenceSigning.keyState expected missing|loaded|invalid, actual " + $caseWikiComplianceKeyState)
+    }
+    if ([string]::IsNullOrWhiteSpace($caseWikiComplianceSignerId)) {
+      Fail "release evidence caseWikiCompliance.evidenceSigning.signerId is required"
+    }
+    if ([string]::IsNullOrWhiteSpace($caseWikiComplianceSummary)) {
+      Fail "release evidence caseWikiCompliance.summary is required"
     }
   }
 
@@ -3111,6 +3213,31 @@ if (Test-Path $ReleaseEvidenceReportPath) {
       ", total=" + $caseWikiEvidenceTotalArtifacts +
       ", signed=" + $caseWikiEvidenceSignedArtifacts +
       ", unsigned=" + $caseWikiEvidenceUnsignedArtifacts
+    )
+  }
+  $caseWikiCompliance = Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiCompliance"
+  if ($null -ne $caseWikiCompliance) {
+    $caseWikiComplianceStatus = [string](Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "status")
+    $caseWikiComplianceValidated = Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "validated"
+    $caseWikiComplianceTemplateId = [string](Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "templateId")
+    $caseWikiComplianceSource = [string](Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "source")
+    $caseWikiComplianceObservedSignatureStatus = [string](Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "observedSignatureStatus")
+    $caseWikiComplianceSignatureMatch = Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "signatureMatch"
+    $caseWikiComplianceSummary = [string](Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "summary")
+    $caseWikiCompliancePiiRedactionLevel = [string](Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "controls") -Name "piiRedactionLevel")
+    $caseWikiComplianceRawMediaDays = [string](Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "retention") -Name "rawMediaDays")
+    $caseWikiComplianceExpectedSignatureStatus = [string](Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "evidenceSigning") -Name "expectedSignatureStatus")
+    Write-Host (
+      "case_wiki.compliance: validated=" + $caseWikiComplianceValidated +
+      ", status=" + $caseWikiComplianceStatus +
+      ", template_id=" + $caseWikiComplianceTemplateId +
+      ", source=" + $caseWikiComplianceSource +
+      ", pii=" + $caseWikiCompliancePiiRedactionLevel +
+      ", raw_media_days=" + $caseWikiComplianceRawMediaDays +
+      ", expected_signature_status=" + $caseWikiComplianceExpectedSignatureStatus +
+      ", observed_signature_status=" + $caseWikiComplianceObservedSignatureStatus +
+      ", signature_match=" + $caseWikiComplianceSignatureMatch +
+      ", summary=" + $caseWikiComplianceSummary
     )
   }
   $caseWikiRoutingContext = Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext"

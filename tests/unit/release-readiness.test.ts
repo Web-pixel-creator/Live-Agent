@@ -130,6 +130,10 @@ function createPassingSummary(
     governancePolicySummarySource: string;
     governancePolicyOverridesTotal: number | string;
     governancePolicyComplianceTemplate: string;
+    governancePolicyRetentionRawMediaDays: number | string;
+    governancePolicyRetentionAuditLogsDays: number | string;
+    governancePolicyRetentionEventsDays: number | string;
+    governancePolicyRetentionSessionsDays: number | string;
     skillsRegistryLifecycleValidated: boolean | string;
     skillsRegistryIndexHasSkill: boolean | string;
     skillsRegistryRegistryHasSkill: boolean | string;
@@ -608,6 +612,18 @@ function createPassingSummary(
       governancePolicyComplianceTemplate: hasOverride("governancePolicyComplianceTemplate")
         ? overrides.governancePolicyComplianceTemplate
         : "strict",
+      governancePolicyRetentionRawMediaDays: hasOverride("governancePolicyRetentionRawMediaDays")
+        ? overrides.governancePolicyRetentionRawMediaDays
+        : 2,
+      governancePolicyRetentionAuditLogsDays: hasOverride("governancePolicyRetentionAuditLogsDays")
+        ? overrides.governancePolicyRetentionAuditLogsDays
+        : 540,
+      governancePolicyRetentionEventsDays: hasOverride("governancePolicyRetentionEventsDays")
+        ? overrides.governancePolicyRetentionEventsDays
+        : 400,
+      governancePolicyRetentionSessionsDays: hasOverride("governancePolicyRetentionSessionsDays")
+        ? overrides.governancePolicyRetentionSessionsDays
+        : 45,
       skillsRegistryLifecycleValidated: hasOverride("skillsRegistryLifecycleValidated")
         ? overrides.skillsRegistryLifecycleValidated
         : true,
@@ -869,6 +885,12 @@ function createCaseWikiEvidenceSignatureBadgeDetails(
   }> = {},
 ): Record<string, unknown> {
   const hasOverride = (key: string): boolean => Object.prototype.hasOwnProperty.call(overrides, key);
+  const expectedSignatureStatus = hasOverride("signatureStatus") ? overrides.signatureStatus : "unsigned";
+  const evidenceSigningEnabled = expectedSignatureStatus === "signed";
+  const evidenceSigningKeyState = expectedSignatureStatus === "signed" ? "loaded" : "missing";
+  const evidenceSigningKeyId = expectedSignatureStatus === "signed" ? "local-release-key" : null;
+  const complianceSummary =
+    "template=strict | tenant_override | pii=high | rawMedia=2d | audit=required | signing=" + expectedSignatureStatus;
   return {
     generatedAt: "2026-02-26T00:00:00.000Z",
     ok: true,
@@ -899,6 +921,38 @@ function createCaseWikiEvidenceSignatureBadgeDetails(
         focusLabel: "Passport scan is missing",
         nextAction: "Ask the customer to upload the passport scan.",
         sourceRefsCount: 2,
+      },
+      caseWikiCompliance: {
+        status: "pass",
+        validated: true,
+        observed: true,
+        tenantId: "governance-demo-tenant",
+        templateId: "strict",
+        requestedTemplateId: "strict",
+        source: "tenant_override",
+        fallbackApplied: false,
+        controls: {
+          piiRedactionLevel: "high",
+          crossTenantAdminOnly: true,
+          approvalSlaEnforced: true,
+          auditTrailRequired: true,
+        },
+        retention: {
+          rawMediaDays: 2,
+          auditLogsDays: 540,
+          eventsDays: 400,
+          sessionsDays: 45,
+        },
+        evidenceSigning: {
+          enabled: evidenceSigningEnabled,
+          expectedSignatureStatus,
+          keyState: evidenceSigningKeyState,
+          signerId: "api-backend",
+          keyId: evidenceSigningKeyId,
+        },
+        observedSignatureStatus: expectedSignatureStatus,
+        signatureMatch: true,
+        summary: complianceSummary,
       },
       caseWikiRoutingContext: {
         status: "pass",

@@ -18,6 +18,10 @@ test("demo-e2e governance lifecycle filters null entries before Get-FieldValue a
     "$null -ne $_ -and",
     '[string](Get-FieldValue -Object $_ -Path @("action")) -eq "update_governance_policy"',
     '[string](Get-FieldValue -Object $_ -Path @("tenantId")) -eq $governanceTenantId',
+    'Uri "http://localhost:8081/v1/sessions"',
+    '$governanceCaseWikiSessionId = [string](Get-FieldValue -Object $governanceSessionCreateResponse -Path @("data", "sessionId"))',
+    '$governanceCaseWikiSessionTenantId = [string](Get-FieldValue -Object $governanceSessionCreateResponse -Path @("data", "tenantId"))',
+    '$governanceCaseWikiUri = "http://localhost:8081/v1/runtime/case-wiki?sessionId=$([System.Uri]::EscapeDataString([string]$governanceCaseWikiSessionId))',
   ];
 
   for (const token of requiredTokens) {

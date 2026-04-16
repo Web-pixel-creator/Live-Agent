@@ -33,6 +33,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /liveTransportStatus/);
   assert.match(source, /hostedDirectLiveProofStatus/);
   assert.match(source, /caseWikiEvidenceSignatureStatus/);
+  assert.match(source, /caseWikiComplianceStatus/);
   assert.match(source, /caseWikiRoutingContextStatus/);
   assert.match(source, /browserWorkerRecoveryStatus/);
   assert.match(source, /navigatorVisaFlowsStatus/);
@@ -42,6 +43,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /liveTransport = \[ordered\]@/);
   assert.match(source, /hostedDirectLiveProof = \[ordered\]@/);
   assert.match(source, /caseWikiEvidenceSignature = \[ordered\]@/);
+  assert.match(source, /caseWikiCompliance = \[ordered\]@/);
   assert.match(source, /caseWikiRoutingContext = \[ordered\]@/);
   assert.match(source, /navigatorVisaFlows = \[ordered\]@/);
   assert.match(source, /providerUsage = \[ordered\]@/);
@@ -57,6 +59,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /New-HostedDirectLiveProofFreshnessSnapshot/);
   assert.match(source, /New-HostedDirectLiveProofSnapshot/);
   assert.match(source, /New-CaseWikiEvidenceSignatureSnapshot/);
+  assert.match(source, /New-CaseWikiComplianceSnapshot/);
   assert.match(source, /New-HostedCaseWikiEvidenceSignatureValue/);
   assert.match(source, /Resolve-CaseWikiEvidenceSignatureSnapshot/);
   assert.match(source, /New-CaseWikiRoutingContextSnapshot/);
@@ -124,6 +127,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /\$report\.statuses\.liveTransportStatus = Get-StatusValueOrDefault/);
   assert.match(source, /\$report\.statuses\.hostedDirectLiveProofStatus = Get-StatusValueOrDefault/);
   assert.match(source, /\$report\.statuses\.caseWikiEvidenceSignatureStatus = Get-StatusValueOrDefault/);
+  assert.match(source, /\$report\.statuses\.caseWikiComplianceStatus = Get-StatusValueOrDefault/);
   assert.match(source, /\$report\.statuses\.navigatorVisaFlowsStatus = Get-StatusValueOrDefault/);
   assert.match(source, /hosted_direct_live_proof/);
   assert.match(source, /badge_details/);

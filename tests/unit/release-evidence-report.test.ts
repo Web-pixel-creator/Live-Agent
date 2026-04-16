@@ -28,6 +28,46 @@ function writeJson(path: string, value: unknown) {
   writeFileSync(path, JSON.stringify(value, null, 2), "utf8");
 }
 
+function createPassingCaseWikiComplianceEvidence(
+  signatureStatus: "signed" | "unsigned" = "signed",
+): Record<string, unknown> {
+  const enabled = signatureStatus === "signed";
+  const keyState = signatureStatus === "signed" ? "loaded" : "missing";
+  const keyId = signatureStatus === "signed" ? "local-dev-key" : null;
+  return {
+    status: "pass",
+    validated: true,
+    observed: true,
+    tenantId: "governance-demo-tenant",
+    templateId: "strict",
+    requestedTemplateId: "strict",
+    source: "tenant_override",
+    fallbackApplied: false,
+    controls: {
+      piiRedactionLevel: "high",
+      crossTenantAdminOnly: true,
+      approvalSlaEnforced: true,
+      auditTrailRequired: true,
+    },
+    retention: {
+      rawMediaDays: 2,
+      auditLogsDays: 540,
+      eventsDays: 400,
+      sessionsDays: 45,
+    },
+    evidenceSigning: {
+      enabled,
+      expectedSignatureStatus: signatureStatus,
+      keyState,
+      signerId: "api-backend",
+      keyId,
+    },
+    observedSignatureStatus: signatureStatus,
+    signatureMatch: true,
+    summary: `template=strict | tenant_override | pii=high | rawMedia=2d | audit=required | signing=${signatureStatus}`,
+  };
+}
+
 test(
   "release evidence report surfaces hosted direct-live proof in report and manifest",
   { skip: skipIfNoPowerShell },
@@ -86,6 +126,7 @@ test(
           nextAction: "Request passport scan",
           sourceRefsCount: 1,
         },
+        caseWikiCompliance: createPassingCaseWikiComplianceEvidence("signed"),
         caseWikiRoutingContext: {
           status: "pass",
           validated: true,
@@ -885,6 +926,7 @@ test(
           nextAction: "Review the latest case evidence",
           sourceRefsCount: 0,
         },
+        caseWikiCompliance: createPassingCaseWikiComplianceEvidence("signed"),
       },
     });
 
@@ -1052,6 +1094,7 @@ test(
           nextAction: "Resolve pending approval",
           sourceRefsCount: 0,
         },
+        caseWikiCompliance: createPassingCaseWikiComplianceEvidence("unsigned"),
       },
     });
 
@@ -1164,6 +1207,7 @@ test(
           nextAction: "Resolve pending approval",
           sourceRefsCount: 0,
         },
+        caseWikiCompliance: createPassingCaseWikiComplianceEvidence("unsigned"),
       },
     });
 
@@ -1255,6 +1299,15 @@ test(
         caseId?: string | null;
         sessionId?: string | null;
       };
+      caseWikiCompliance: {
+        status?: string;
+        observedSignatureStatus?: string | null;
+        signatureMatch?: boolean | null;
+        evidenceSigning?: {
+          expectedSignatureStatus?: string | null;
+          keyState?: string | null;
+        };
+      };
     };
     assert.equal(report.statuses.caseWikiEvidenceSignatureStatus, "pass");
     assert.equal(report.caseWikiEvidenceSignature.source, "hosted_direct_live_proof");
@@ -1268,6 +1321,11 @@ test(
     assert.equal(report.caseWikiEvidenceSignature.payloadHash, "sha256:hosted-signed-payload");
     assert.equal(report.caseWikiEvidenceSignature.caseId, "deploy-direct-live-proof-case-123");
     assert.equal(report.caseWikiEvidenceSignature.sessionId, "deploy-direct-live-proof-session-123");
+    assert.equal(report.caseWikiCompliance.status, "pass");
+    assert.equal(report.caseWikiCompliance.evidenceSigning?.expectedSignatureStatus, "signed");
+    assert.equal(report.caseWikiCompliance.evidenceSigning?.keyState, "loaded");
+    assert.equal(report.caseWikiCompliance.observedSignatureStatus, "signed");
+    assert.equal(report.caseWikiCompliance.signatureMatch, true);
 
     const manifest = JSON.parse(readFileSync(outputManifestJsonPath, "utf8")) as {
       criticalEvidenceStatuses: { caseWikiEvidenceSignatureStatus?: string };

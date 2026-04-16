@@ -3631,6 +3631,17 @@ try {
     -InitialBackoffMs $ScenarioRetryBackoffMs `
     -RetryTransientFailures `
     -Action {
+    $gatewayRoundTripSessionResponse = Invoke-JsonRequest `
+      -Method POST `
+      -Uri "http://localhost:8081/v1/sessions" `
+      -Body @{
+        userId = $script:DemoUserId
+        mode = "multi"
+      } `
+      -TimeoutSec $RequestTimeoutSec
+    $gatewayRoundTripSessionId = [string](Get-FieldValue -Object $gatewayRoundTripSessionResponse -Path @("data", "sessionId"))
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($gatewayRoundTripSessionId)) -Message "Gateway websocket roundtrip sessionId is missing."
+
     $runId = "demo-gateway-ws-" + [Guid]::NewGuid().Guid
     $timeoutMs = [Math]::Max(4000, $RequestTimeoutSec * 1000)
     $warmupRunId = $runId + "-warmup"
@@ -3639,7 +3650,7 @@ try {
       "--url",
       "ws://localhost:8080/realtime",
       "--sessionId",
-      $sessionId,
+      $gatewayRoundTripSessionId,
       "--runId",
       $warmupRunId,
       "--userId",
@@ -3656,7 +3667,7 @@ try {
         "--url",
         "ws://localhost:8080/realtime",
         "--sessionId",
-        $sessionId,
+        $gatewayRoundTripSessionId,
         "--runId",
         $sampleRunId,
         "--userId",
@@ -3681,6 +3692,7 @@ try {
     Assert-Condition -Condition ($sessionStateCount -ge 3) -Message "Expected at least 3 session.state transitions."
 
     return [ordered]@{
+      sessionId = $gatewayRoundTripSessionId
       runId = [string](Get-FieldValue -Object $result -Path @("runId"))
       userId = [string](Get-FieldValue -Object $result -Path @("userId"))
       responseStatus = $responseStatus
@@ -5419,12 +5431,70 @@ try {
     $policyEffectiveResponse = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/governance/policy" -Headers $viewerHeaders -TimeoutSec $RequestTimeoutSec
     $effectiveTemplate = [string](Get-FieldValue -Object $policyEffectiveResponse -Path @("data", "policy", "complianceTemplate"))
     $effectiveRawMediaDays = [int](Get-FieldValue -Object $policyEffectiveResponse -Path @("data", "policy", "retentionPolicy", "rawMediaDays"))
+    $effectiveAuditLogsDays = [int](Get-FieldValue -Object $policyEffectiveResponse -Path @("data", "policy", "retentionPolicy", "auditLogsDays"))
     $effectiveSessionsDays = [int](Get-FieldValue -Object $policyEffectiveResponse -Path @("data", "policy", "retentionPolicy", "sessionsDays"))
     $effectiveEventsDays = [int](Get-FieldValue -Object $policyEffectiveResponse -Path @("data", "policy", "retentionPolicy", "eventsDays"))
     Assert-Condition -Condition ($effectiveTemplate -eq "strict") -Message "Effective governance policy template should be strict."
     Assert-Condition -Condition ($effectiveRawMediaDays -eq 2) -Message "Effective governance rawMediaDays should be 2."
+    Assert-Condition -Condition ($effectiveAuditLogsDays -eq 540) -Message "Effective governance auditLogsDays should stay at strict default 540."
     Assert-Condition -Condition ($effectiveSessionsDays -eq 45) -Message "Effective governance sessionsDays should be 45."
     Assert-Condition -Condition ($effectiveEventsDays -eq 400) -Message "Effective governance eventsDays should be 400."
+
+    $governanceSessionCreateResponse = Invoke-JsonRequest `
+      -Method POST `
+      -Uri "http://localhost:8081/v1/sessions" `
+      -Headers $viewerHeaders `
+      -Body @{
+        userId = "governance-case-wiki"
+        mode = "multi"
+      } `
+      -TimeoutSec $RequestTimeoutSec
+    $governanceCaseWikiSessionId = [string](Get-FieldValue -Object $governanceSessionCreateResponse -Path @("data", "sessionId"))
+    $governanceCaseWikiSessionTenantId = [string](Get-FieldValue -Object $governanceSessionCreateResponse -Path @("data", "tenantId"))
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($governanceCaseWikiSessionId)) -Message "Governance-scoped sessionId is missing for case wiki compliance validation."
+    Assert-Condition -Condition ($governanceCaseWikiSessionTenantId -eq $governanceTenantId) -Message "Governance-scoped case wiki session should inherit tenant scope."
+
+    $governanceCaseWikiUri = "http://localhost:8081/v1/runtime/case-wiki?sessionId=$([System.Uri]::EscapeDataString([string]$governanceCaseWikiSessionId))&sessionLimit=20&eventLimit=120&runLimit=120&approvalLimit=120&recentEventLimit=200"
+    $governanceCaseWikiResponse = Invoke-JsonRequest -Method GET -Uri $governanceCaseWikiUri -Headers $viewerHeaders -TimeoutSec $RequestTimeoutSec
+    $governanceCaseWikiData = Get-FieldValue -Object $governanceCaseWikiResponse -Path @("data")
+    Assert-Condition -Condition ($null -ne $governanceCaseWikiData) -Message "Governance-scoped runtime case wiki payload is missing."
+    $governanceCaseWikiCompliance = Get-FieldValue -Object $governanceCaseWikiData -Path @("compliance")
+    Assert-Condition -Condition ($null -ne $governanceCaseWikiCompliance) -Message "Governance-scoped runtime case wiki should include compliance."
+    $caseWikiComplianceTemplateId = [string](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("templateId"))
+    $caseWikiComplianceRequestedTemplateId = [string](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("requestedTemplateId"))
+    $caseWikiComplianceSource = [string](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("source"))
+    $caseWikiComplianceFallbackApplied = [bool](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("fallbackApplied"))
+    $caseWikiCompliancePiiRedactionLevel = [string](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("controls", "piiRedactionLevel"))
+    $caseWikiComplianceCrossTenantAdminOnly = [bool](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("controls", "crossTenantAdminOnly"))
+    $caseWikiComplianceApprovalSlaEnforced = [bool](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("controls", "approvalSlaEnforced"))
+    $caseWikiComplianceAuditTrailRequired = [bool](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("controls", "auditTrailRequired"))
+    $caseWikiComplianceRawMediaDays = [int](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("retention", "rawMediaDays"))
+    $caseWikiComplianceAuditLogsDays = [int](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("retention", "auditLogsDays"))
+    $caseWikiComplianceEventsDays = [int](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("retention", "eventsDays"))
+    $caseWikiComplianceSessionsDays = [int](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("retention", "sessionsDays"))
+    $caseWikiComplianceEvidenceSigningEnabled = [bool](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("evidenceSigning", "enabled"))
+    $caseWikiComplianceExpectedSignatureStatus = [string](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("evidenceSigning", "expectedSignatureStatus"))
+    $caseWikiComplianceKeyState = [string](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("evidenceSigning", "keyState"))
+    $caseWikiComplianceSignerId = [string](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("evidenceSigning", "signerId"))
+    $caseWikiComplianceKeyIdRaw = Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("evidenceSigning", "keyId")
+    $caseWikiComplianceKeyId = if ([string]::IsNullOrWhiteSpace([string]$caseWikiComplianceKeyIdRaw)) { $null } else { [string]$caseWikiComplianceKeyIdRaw }
+    $caseWikiComplianceSummary = [string](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("summary"))
+    Assert-Condition -Condition ($caseWikiComplianceTemplateId -eq "strict") -Message "Governance-scoped case wiki compliance.templateId should be strict."
+    Assert-Condition -Condition ($caseWikiComplianceRequestedTemplateId -eq "strict") -Message "Governance-scoped case wiki compliance.requestedTemplateId should be strict."
+    Assert-Condition -Condition ($caseWikiComplianceSource -eq "tenant_override") -Message "Governance-scoped case wiki compliance.source should be tenant_override."
+    Assert-Condition -Condition (-not $caseWikiComplianceFallbackApplied) -Message "Governance-scoped case wiki compliance should not report fallbackApplied."
+    Assert-Condition -Condition ($caseWikiCompliancePiiRedactionLevel -eq "high") -Message "Governance-scoped case wiki compliance piiRedactionLevel should be high."
+    Assert-Condition -Condition ($caseWikiComplianceCrossTenantAdminOnly -eq $true) -Message "Governance-scoped case wiki compliance should enforce crossTenantAdminOnly."
+    Assert-Condition -Condition ($caseWikiComplianceApprovalSlaEnforced -eq $true) -Message "Governance-scoped case wiki compliance should enforce approval SLA."
+    Assert-Condition -Condition ($caseWikiComplianceAuditTrailRequired -eq $true) -Message "Governance-scoped case wiki compliance should require audit trail."
+    Assert-Condition -Condition ($caseWikiComplianceRawMediaDays -eq 2) -Message "Governance-scoped case wiki compliance rawMediaDays should be 2."
+    Assert-Condition -Condition ($caseWikiComplianceAuditLogsDays -eq 540) -Message "Governance-scoped case wiki compliance auditLogsDays should stay at strict default 540."
+    Assert-Condition -Condition ($caseWikiComplianceEventsDays -eq 400) -Message "Governance-scoped case wiki compliance eventsDays should be 400."
+    Assert-Condition -Condition ($caseWikiComplianceSessionsDays -eq 45) -Message "Governance-scoped case wiki compliance sessionsDays should be 45."
+    Assert-Condition -Condition (@("signed", "unsigned") -contains $caseWikiComplianceExpectedSignatureStatus) -Message "Governance-scoped case wiki compliance expectedSignatureStatus is invalid."
+    Assert-Condition -Condition (@("missing", "loaded", "invalid") -contains $caseWikiComplianceKeyState) -Message "Governance-scoped case wiki compliance keyState is invalid."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($caseWikiComplianceSignerId)) -Message "Governance-scoped case wiki compliance signerId is missing."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($caseWikiComplianceSummary)) -Message "Governance-scoped case wiki compliance summary is missing."
 
     $governanceSummaryResponse = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/governance/audit/summary?tenantId=$([System.Uri]::EscapeDataString($governanceTenantId))&operatorActionsLimit=200&approvalsLimit=100&sessionsLimit=100&bindingsLimit=100" -Headers $adminHeaders -TimeoutSec $RequestTimeoutSec
     $summaryTemplateId = [string](Get-FieldValue -Object $governanceSummaryResponse -Path @("data", "compliance", "templateId"))
@@ -5516,8 +5586,27 @@ try {
       policyVersion = $policyVersion
       effectiveTemplate = $effectiveTemplate
       effectiveRawMediaDays = $effectiveRawMediaDays
+      effectiveAuditLogsDays = $effectiveAuditLogsDays
       effectiveSessionsDays = $effectiveSessionsDays
       effectiveEventsDays = $effectiveEventsDays
+      caseWikiComplianceTemplateId = $caseWikiComplianceTemplateId
+      caseWikiComplianceRequestedTemplateId = $caseWikiComplianceRequestedTemplateId
+      caseWikiComplianceSource = $caseWikiComplianceSource
+      caseWikiComplianceFallbackApplied = $caseWikiComplianceFallbackApplied
+      caseWikiCompliancePiiRedactionLevel = $caseWikiCompliancePiiRedactionLevel
+      caseWikiComplianceCrossTenantAdminOnly = $caseWikiComplianceCrossTenantAdminOnly
+      caseWikiComplianceApprovalSlaEnforced = $caseWikiComplianceApprovalSlaEnforced
+      caseWikiComplianceAuditTrailRequired = $caseWikiComplianceAuditTrailRequired
+      caseWikiComplianceRawMediaDays = $caseWikiComplianceRawMediaDays
+      caseWikiComplianceAuditLogsDays = $caseWikiComplianceAuditLogsDays
+      caseWikiComplianceEventsDays = $caseWikiComplianceEventsDays
+      caseWikiComplianceSessionsDays = $caseWikiComplianceSessionsDays
+      caseWikiComplianceEvidenceSigningEnabled = $caseWikiComplianceEvidenceSigningEnabled
+      caseWikiComplianceExpectedSignatureStatus = $caseWikiComplianceExpectedSignatureStatus
+      caseWikiComplianceKeyState = $caseWikiComplianceKeyState
+      caseWikiComplianceSignerId = $caseWikiComplianceSignerId
+      caseWikiComplianceKeyId = $caseWikiComplianceKeyId
+      caseWikiComplianceSummary = $caseWikiComplianceSummary
       versionConflictCode = $versionConflictCode
       idempotencyConflictCode = $idempotencyConflictCode
       tenantScopeForbiddenCode = $tenantScopeForbiddenCode
@@ -7133,6 +7222,7 @@ $summary = [ordered]@{
     governancePolicyVersion = if ($null -ne $governancePolicyData) { $governancePolicyData.policyVersion } else { $null }
     governancePolicyComplianceTemplate = if ($null -ne $governancePolicyData) { $governancePolicyData.effectiveTemplate } else { $null }
     governancePolicyRetentionRawMediaDays = if ($null -ne $governancePolicyData) { $governancePolicyData.effectiveRawMediaDays } else { $null }
+    governancePolicyRetentionAuditLogsDays = if ($null -ne $governancePolicyData) { $governancePolicyData.effectiveAuditLogsDays } else { $null }
     governancePolicyRetentionSessionsDays = if ($null -ne $governancePolicyData) { $governancePolicyData.effectiveSessionsDays } else { $null }
     governancePolicyRetentionEventsDays = if ($null -ne $governancePolicyData) { $governancePolicyData.effectiveEventsDays } else { $null }
     governancePolicyVersionConflictCode = if ($null -ne $governancePolicyData) { $governancePolicyData.versionConflictCode } else { $null }
@@ -7155,6 +7245,43 @@ $summary = [ordered]@{
       [string]$governancePolicyData.summarySource -eq "tenant_override" -and
       [bool]$governancePolicyData.summaryGovernanceActionSeen -eq $true -and
       [bool]$governancePolicyData.adminOverrideTenantSeen -eq $true
+    ) { $true } else { $false }
+    caseWikiComplianceTemplateId = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceTemplateId } else { $null }
+    caseWikiComplianceRequestedTemplateId = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceRequestedTemplateId } else { $null }
+    caseWikiComplianceSource = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceSource } else { $null }
+    caseWikiComplianceFallbackApplied = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceFallbackApplied } else { $null }
+    caseWikiCompliancePiiRedactionLevel = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiCompliancePiiRedactionLevel } else { $null }
+    caseWikiComplianceCrossTenantAdminOnly = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceCrossTenantAdminOnly } else { $null }
+    caseWikiComplianceApprovalSlaEnforced = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceApprovalSlaEnforced } else { $null }
+    caseWikiComplianceAuditTrailRequired = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceAuditTrailRequired } else { $null }
+    caseWikiComplianceRawMediaDays = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceRawMediaDays } else { $null }
+    caseWikiComplianceAuditLogsDays = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceAuditLogsDays } else { $null }
+    caseWikiComplianceEventsDays = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceEventsDays } else { $null }
+    caseWikiComplianceSessionsDays = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceSessionsDays } else { $null }
+    caseWikiComplianceEvidenceSigningEnabled = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceEvidenceSigningEnabled } else { $null }
+    caseWikiComplianceExpectedSignatureStatus = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceExpectedSignatureStatus } else { $null }
+    caseWikiComplianceKeyState = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceKeyState } else { $null }
+    caseWikiComplianceSignerId = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceSignerId } else { $null }
+    caseWikiComplianceKeyId = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceKeyId } else { $null }
+    caseWikiComplianceSummary = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceSummary } else { $null }
+    caseWikiComplianceValidated = if (
+      $null -ne $governancePolicyData -and
+      [string]$governancePolicyData.caseWikiComplianceTemplateId -eq "strict" -and
+      [string]$governancePolicyData.caseWikiComplianceRequestedTemplateId -eq "strict" -and
+      [string]$governancePolicyData.caseWikiComplianceSource -eq "tenant_override" -and
+      [bool]$governancePolicyData.caseWikiComplianceFallbackApplied -eq $false -and
+      [string]$governancePolicyData.caseWikiCompliancePiiRedactionLevel -eq "high" -and
+      [bool]$governancePolicyData.caseWikiComplianceCrossTenantAdminOnly -eq $true -and
+      [bool]$governancePolicyData.caseWikiComplianceApprovalSlaEnforced -eq $true -and
+      [bool]$governancePolicyData.caseWikiComplianceAuditTrailRequired -eq $true -and
+      [int]$governancePolicyData.caseWikiComplianceRawMediaDays -eq 2 -and
+      [int]$governancePolicyData.caseWikiComplianceAuditLogsDays -eq 540 -and
+      [int]$governancePolicyData.caseWikiComplianceEventsDays -eq 400 -and
+      [int]$governancePolicyData.caseWikiComplianceSessionsDays -eq 45 -and
+      @("signed", "unsigned") -contains [string]$governancePolicyData.caseWikiComplianceExpectedSignatureStatus -and
+      @("missing", "loaded", "invalid") -contains [string]$governancePolicyData.caseWikiComplianceKeyState -and
+      -not [string]::IsNullOrWhiteSpace([string]$governancePolicyData.caseWikiComplianceSignerId) -and
+      -not [string]::IsNullOrWhiteSpace([string]$governancePolicyData.caseWikiComplianceSummary)
     ) { $true } else { $false }
     skillsRegistryTenantId = if ($null -ne $skillsRegistryData) { $skillsRegistryData.tenantId } else { $null }
     skillsRegistrySkillId = if ($null -ne $skillsRegistryData) { $skillsRegistryData.skillId } else { $null }

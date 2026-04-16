@@ -44,10 +44,21 @@ test("api backend exposes tenant governance routes with compliance/retention/aud
   }
 });
 
+test("governance policy mutations reset retention base to the newly selected template defaults", () => {
+  const sourcePath = resolve(process.cwd(), "apps", "api-backend", "src", "index.ts");
+  const source = readFileSync(sourcePath, "utf8");
+
+  assert.match(source, /const nextRetentionPolicyBase =/);
+  assert.match(source, /requestedTemplateRaw !== current\.profile\.id/);
+  assert.match(source, /complianceTemplateProfiles\[nextTemplate\]\.retentionPolicy/);
+  assert.match(source, /applyRetentionPolicyPatch\(\s*nextRetentionPolicyBase,/);
+});
+
 test("readme documents governance detail and update-history routes", () => {
   const readmePath = resolve(process.cwd(), "README.md");
   const readme = readFileSync(readmePath, "utf8");
 
   assert.match(readme, /GET \/v1\/governance\/policy\/\{tenantId\}/);
   assert.match(readme, /GET \/v1\/governance\/policy\/\{tenantId\}\/updates/);
+  assert.match(readme, /inherit the new template defaults before the explicit patch is applied/i);
 });

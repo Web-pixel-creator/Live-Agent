@@ -901,6 +901,106 @@ function buildCaseWikiEvidenceSignature(summary) {
   };
 }
 
+function buildCaseWikiComplianceEvidence(summary, kpis) {
+  const caseWiki = isObject(summary.caseWiki) ? summary.caseWiki : {};
+  const evidenceSignature = isObject(caseWiki.evidenceSignature) ? caseWiki.evidenceSignature : {};
+  const observedSignatureStatus = toOptionalString(evidenceSignature.status);
+  const tenantId = toOptionalString(kpis.governancePolicyTenantId);
+  const validated = toBoolean(kpis.caseWikiComplianceValidated) === true;
+  const templateId = toOptionalString(kpis.caseWikiComplianceTemplateId);
+  const requestedTemplateId = toOptionalString(kpis.caseWikiComplianceRequestedTemplateId);
+  const source = toOptionalString(kpis.caseWikiComplianceSource);
+  const fallbackApplied = toBoolean(kpis.caseWikiComplianceFallbackApplied);
+  const piiRedactionLevel = toOptionalString(kpis.caseWikiCompliancePiiRedactionLevel);
+  const crossTenantAdminOnly = toBoolean(kpis.caseWikiComplianceCrossTenantAdminOnly);
+  const approvalSlaEnforced = toBoolean(kpis.caseWikiComplianceApprovalSlaEnforced);
+  const auditTrailRequired = toBoolean(kpis.caseWikiComplianceAuditTrailRequired);
+  const rawMediaDays = Math.max(0, Math.trunc(toNumber(kpis.caseWikiComplianceRawMediaDays) ?? 0));
+  const auditLogsDays = Math.max(0, Math.trunc(toNumber(kpis.caseWikiComplianceAuditLogsDays) ?? 0));
+  const eventsDays = Math.max(0, Math.trunc(toNumber(kpis.caseWikiComplianceEventsDays) ?? 0));
+  const sessionsDays = Math.max(0, Math.trunc(toNumber(kpis.caseWikiComplianceSessionsDays) ?? 0));
+  const evidenceSigningEnabled = toBoolean(kpis.caseWikiComplianceEvidenceSigningEnabled);
+  const expectedSignatureStatus = toOptionalString(kpis.caseWikiComplianceExpectedSignatureStatus);
+  const keyState = toOptionalString(kpis.caseWikiComplianceKeyState);
+  const signerId = toOptionalString(kpis.caseWikiComplianceSignerId);
+  const keyId = toOptionalString(kpis.caseWikiComplianceKeyId);
+  const summaryText = toOptionalString(kpis.caseWikiComplianceSummary);
+  const observed =
+    tenantId !== null ||
+    templateId !== null ||
+    requestedTemplateId !== null ||
+    source !== null ||
+    piiRedactionLevel !== null ||
+    expectedSignatureStatus !== null ||
+    keyState !== null ||
+    signerId !== null ||
+    summaryText !== null;
+  const signatureMatch =
+    expectedSignatureStatus !== null && observedSignatureStatus !== null
+      ? expectedSignatureStatus === observedSignatureStatus
+      : false;
+  const status =
+    validated &&
+    tenantId !== null &&
+    templateId === "strict" &&
+    requestedTemplateId === "strict" &&
+    source === "tenant_override" &&
+    fallbackApplied === false &&
+    piiRedactionLevel === "high" &&
+    crossTenantAdminOnly === true &&
+    approvalSlaEnforced === true &&
+    auditTrailRequired === true &&
+    rawMediaDays === 2 &&
+    auditLogsDays === 540 &&
+    eventsDays === 400 &&
+    sessionsDays === 45 &&
+    typeof evidenceSigningEnabled === "boolean" &&
+    expectedSignatureStatus !== null &&
+    ["signed", "unsigned"].includes(expectedSignatureStatus) &&
+    keyState !== null &&
+    ["missing", "loaded", "invalid"].includes(keyState) &&
+    signerId !== null &&
+    summaryText !== null &&
+    signatureMatch
+      ? "pass"
+      : observed
+        ? "fail"
+        : "unavailable";
+
+  return {
+    status,
+    validated,
+    observed,
+    tenantId,
+    templateId,
+    requestedTemplateId,
+    source,
+    fallbackApplied,
+    controls: {
+      piiRedactionLevel,
+      crossTenantAdminOnly,
+      approvalSlaEnforced,
+      auditTrailRequired,
+    },
+    retention: {
+      rawMediaDays,
+      auditLogsDays,
+      eventsDays,
+      sessionsDays,
+    },
+    evidenceSigning: {
+      enabled: evidenceSigningEnabled,
+      expectedSignatureStatus,
+      keyState,
+      signerId,
+      keyId,
+    },
+    observedSignatureStatus,
+    signatureMatch,
+    summary: summaryText,
+  };
+}
+
 function buildCaseWikiRoutingContextEvidence(kpis) {
   const validated = toBoolean(kpis.caseWikiRoutingContextValidated) === true;
   const contextSource = toOptionalString(kpis.caseWikiRoutingContextSource);
@@ -1571,6 +1671,7 @@ async function main() {
   const runtimeGuardrailsSignalPathsEvidence = buildRuntimeGuardrailsSignalPathsEvidence(kpis);
   const liveTransport = buildLiveTransport(summary, kpis);
   const caseWikiEvidenceSignature = buildCaseWikiEvidenceSignature(summary);
+  const caseWikiCompliance = buildCaseWikiComplianceEvidence(summary, kpis);
   const caseWikiRoutingContext = buildCaseWikiRoutingContextEvidence(kpis);
   const caseWikiGatewayHydration = buildCaseWikiGatewayHydrationEvidence(kpis);
   const caseWikiContextAdoption = buildCaseWikiContextAdoptionEvidence(kpis);
@@ -1624,6 +1725,7 @@ async function main() {
       agentUsage: agentUsageEvidence,
       runtimeGuardrailsSignalPaths: runtimeGuardrailsSignalPathsEvidence,
       caseWikiEvidenceSignature,
+      caseWikiCompliance,
       caseWikiRoutingContext,
       caseWikiGatewayHydration,
       caseWikiContextAdoption,

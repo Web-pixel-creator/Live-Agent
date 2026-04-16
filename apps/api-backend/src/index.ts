@@ -4069,8 +4069,14 @@ export const server = createServer(async (req, res) => {
         });
         return;
       }
+      const nextRetentionPolicyBase =
+        requestedTemplateRaw &&
+        isComplianceTemplateId(requestedTemplateRaw) &&
+        requestedTemplateRaw !== current.profile.id
+          ? complianceTemplateProfiles[nextTemplate].retentionPolicy
+          : current.profile.retentionPolicy;
       const nextRetentionPolicy = applyRetentionPolicyPatch(
-        current.profile.retentionPolicy,
+        nextRetentionPolicyBase,
         retentionPatchResult.patch,
       );
       const idempotencyKey =
