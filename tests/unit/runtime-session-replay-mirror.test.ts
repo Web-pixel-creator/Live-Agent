@@ -154,6 +154,10 @@ test("runtime session replay mirror aggregates selected session replay, approval
       verifySteps: 2,
       traceSteps: 3,
       screenshotRefs: 1,
+      metadata: {
+        routingContextSource: "case_wiki",
+        routingContextIngressSource: "preserved_input_case_wiki",
+      },
     },
     {
       eventId: "event-b-1",
@@ -292,12 +296,21 @@ test("runtime session replay mirror aggregates selected session replay, approval
   });
   assert.equal(snapshot.selectedSession.replay.latestVerifiedSummary, "Intake review passed.");
   assert.equal(snapshot.selectedSession.replay.latestVerifiedRunId, "run-a-1");
+  assert.equal(snapshot.selectedSession.replay.latestContextSource, "case_wiki");
+  assert.equal(snapshot.selectedSession.replay.latestContextIngressSource, "preserved_input_case_wiki");
+  assert.equal(snapshot.selectedSession.replay.latestVerifiedContextSource, "case_wiki");
+  assert.equal(
+    snapshot.selectedSession.replay.latestVerifiedContextIngressSource,
+    "preserved_input_case_wiki",
+  );
   assert.deepEqual(snapshot.selectedSession.replay.latestProofPointer, {
     runId: "run-a-1",
     summary: "Intake review passed.",
     verifiedAt: "2026-04-01T10:00:00.000Z",
     route: "live-agent",
     intent: "translation",
+    contextSource: "case_wiki",
+    ingressSource: "preserved_input_case_wiki",
     workflowStage: "review",
   });
   assert.deepEqual(snapshot.selectedSession.replay.recoveryPathHint, {
@@ -319,6 +332,100 @@ test("runtime session replay mirror aggregates selected session replay, approval
   assert.ok(
     snapshot.sessions.some((item) => item.sessionId === "session-b" && item.replayState === "awaiting_approval"),
   );
+});
+
+test("runtime session replay mirror keeps latest and verified case wiki ingress provenance distinct", () => {
+  const sessions: SessionListItem[] = [
+    {
+      sessionId: "session-a",
+      tenantId: "tenant-a",
+      mode: "live",
+      status: "active",
+      version: 2,
+      lastMutationId: "mutation-a",
+      updatedAt: "2026-04-01T10:01:00.000Z",
+    },
+  ];
+
+  const runs: RunListItem[] = [
+    {
+      runId: "run-a-2",
+      sessionId: "session-a",
+      status: "completed",
+      route: "live-agent",
+      updatedAt: "2026-04-01T10:01:00.000Z",
+    },
+  ];
+
+  const selectedEvents: EventListItem[] = [
+    {
+      eventId: "event-a-2",
+      sessionId: "session-a",
+      runId: "run-a-2",
+      type: "orchestrator.response",
+      source: "live-agent",
+      createdAt: "2026-04-01T10:01:00.000Z",
+      route: "live-agent",
+      status: "completed",
+      intent: "missing_document_follow_up",
+      verificationState: "partially_verified",
+      payload: {
+        output: {
+          routing: {
+            contextSource: "case_wiki",
+            contextIngressSource: "gateway_hydrated_case_wiki",
+          },
+        },
+      },
+    },
+    {
+      eventId: "event-a-1",
+      sessionId: "session-a",
+      runId: "run-a-1",
+      type: "orchestrator.response",
+      source: "live-agent",
+      createdAt: "2026-04-01T10:00:00.000Z",
+      route: "live-agent",
+      status: "completed",
+      intent: "translation",
+      verificationState: "verified",
+      verificationSummary: "Initial intake review passed.",
+      metadata: {
+        routingContextSource: "case_wiki",
+        routingContextIngressSource: "preserved_input_case_wiki",
+      },
+    },
+  ];
+
+  const snapshot = buildRuntimeSessionReplayMirrorSnapshot({
+    sessions,
+    runs,
+    approvals: [],
+    recentEvents: selectedEvents,
+    selectedEvents,
+    selectedSessionId: "session-a",
+    workflowSummary: buildWorkflowSummary({
+      workflowSessionId: "session-a",
+    }),
+  });
+
+  assert.equal(snapshot.selectedSession.replay.latestContextSource, "case_wiki");
+  assert.equal(snapshot.selectedSession.replay.latestContextIngressSource, "gateway_hydrated_case_wiki");
+  assert.equal(snapshot.selectedSession.replay.latestVerifiedContextSource, "case_wiki");
+  assert.equal(
+    snapshot.selectedSession.replay.latestVerifiedContextIngressSource,
+    "preserved_input_case_wiki",
+  );
+  assert.deepEqual(snapshot.selectedSession.replay.latestProofPointer, {
+    runId: "run-a-1",
+    summary: "Initial intake review passed.",
+    verifiedAt: "2026-04-01T10:00:00.000Z",
+    route: "live-agent",
+    intent: "translation",
+    contextSource: "case_wiki",
+    ingressSource: "preserved_input_case_wiki",
+    workflowStage: "review",
+  });
 });
 
 test("runtime session replay mirror can attach a signed evidence envelope", () => {

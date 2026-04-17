@@ -164,6 +164,8 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "function normalizeOperatorReplayWorkflowFollowUp(value)",
     "function normalizeOperatorReplayCurrentHandoffState(value)",
     "function normalizeOperatorReplayLatestProofPointer(value)",
+    "contextSource: toOptionalText(value.contextSource)",
+    "ingressSource: toOptionalText(value.ingressSource)",
     "function buildOperatorDiscoverySnapshot(personas, recipes)",
     "async function refreshOperatorSessionReplay(options = {})",
     "async function refreshOperatorCaseWiki(options = {})",
@@ -240,10 +242,18 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "nextAction=",
     "nextTarget=",
     "nextWorkspace=",
+    "turnContext=",
+    "turnIngress=",
+    "proofContext=",
+    "proofIngress=",
     "liveTransport=",
     "liveTransportSource=",
     "liveProvider=",
     "liveBootstrap=",
+    "latestContextSource",
+    "latestContextIngressSource",
+    "latestVerifiedContextSource",
+    "latestVerifiedContextIngressSource",
     "firstStep=",
     "firstStepState=",
     "firstStepMode=",
@@ -348,6 +358,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.match(readmeSource, /followuptree|followup tree/i);
   assert.match(readmeSource, /compatibility block|compatibility metadata/i);
   assert.match(readmeSource, /flat `refreshEscalation\.\.\.` fields remain a transitional legacy projection/i);
+  assert.match(readmeSource, /contextingresssource|ingress provenance|preserved_input_case_wiki|gateway_hydrated_case_wiki/i);
   assertStructuredReplayRefreshContract(readmeSource);
   assert.ok(readmeSource.includes("`GET /v1/skills/personas`"), "README missing persona discovery API note");
   assert.ok(operatorGuideSource.includes("`Operator Session Ops`"), "operator guide missing session-ops panel note");
@@ -375,6 +386,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.match(operatorGuideSource, /structured refresh state/i);
   assert.match(operatorGuideSource, /followuptree|followup tree/i);
   assert.match(operatorGuideSource, /compatibility block|compatibility metadata/i);
+  assert.match(operatorGuideSource, /contextingresssource|ingress provenance|preserved_input_case_wiki|gateway_hydrated_case_wiki/i);
   assert.ok(operatorGuideSource.includes("`operatorPurpose`"), "operator guide missing operator purpose note");
   assert.ok(operatorGuideSource.includes("`GET /v1/runtime/session-replay`"), "operator guide missing session replay note");
   assert.match(operatorGuideSource, /flat `refreshEscalation\.\.\.` fields remain a transitional legacy projection/i);

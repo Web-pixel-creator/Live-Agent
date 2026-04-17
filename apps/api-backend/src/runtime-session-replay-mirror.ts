@@ -720,6 +720,10 @@ export type RuntimeSessionReplayCompactEntry = {
   replayState: RuntimeSessionReplayState;
 };
 
+type RuntimeSessionReplayCaseWikiIngressSource =
+  | "preserved_input_case_wiki"
+  | "gateway_hydrated_case_wiki";
+
 export type RuntimeSessionReplaySnapshot = {
   generatedAt: string;
   source: "repo_owned_runtime_session_replay";
@@ -876,6 +880,8 @@ export type RuntimeSessionReplaySnapshot = {
         verifiedAt: string | null;
         route: string | null;
         intent: string | null;
+        contextSource: string | null;
+        ingressSource: RuntimeSessionReplayCaseWikiIngressSource | null;
         workflowStage: string | null;
       } | null;
       recoveryPathHint: {
@@ -921,6 +927,10 @@ export type RuntimeSessionReplaySnapshot = {
       latestVerifiedAt: string | null;
       latestVerifiedRoute: string | null;
       latestVerifiedIntent: string | null;
+      latestContextSource: string | null;
+      latestContextIngressSource: RuntimeSessionReplayCaseWikiIngressSource | null;
+      latestVerifiedContextSource: string | null;
+      latestVerifiedContextIngressSource: RuntimeSessionReplayCaseWikiIngressSource | null;
       bySource: Record<string, number>;
       byType: Record<string, number>;
       byRoute: Record<string, number>;
@@ -951,6 +961,10 @@ type SessionEventInsight = {
   latestVerifiedAt: string | null;
   latestVerifiedRoute: string | null;
   latestVerifiedIntent: string | null;
+  latestContextSource: string | null;
+  latestContextIngressSource: RuntimeSessionReplayCaseWikiIngressSource | null;
+  latestVerifiedContextSource: string | null;
+  latestVerifiedContextIngressSource: RuntimeSessionReplayCaseWikiIngressSource | null;
   bySource: Record<string, number>;
   byType: Record<string, number>;
   byRoute: Record<string, number>;
@@ -959,6 +973,10 @@ type SessionEventInsight = {
 type RuntimeSessionReplayLiveTransport = NonNullable<
   RuntimeSessionReplaySnapshot["selectedSession"]["replay"]["liveTransport"]
 >;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
 function toNonEmptyString(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -1007,6 +1025,51 @@ function sortEventsDesc(items: EventListItem[]): EventListItem[] {
 
 function maxTimestampMs(values: Array<string | null | undefined>): number {
   return values.reduce((max, value) => Math.max(max, toEpochMs(value)), 0);
+}
+
+function normalizeCaseWikiIngressSource(
+  value: unknown,
+): RuntimeSessionReplayCaseWikiIngressSource | null {
+  const normalized = toNonEmptyString(value);
+  return normalized === "preserved_input_case_wiki" || normalized === "gateway_hydrated_case_wiki"
+    ? normalized
+    : null;
+}
+
+function extractEventRoutingRecord(event: EventListItem): Record<string, unknown> | null {
+  const payload = isRecord(event.payload) ? event.payload : null;
+  const output = isRecord(payload?.output) ? payload.output : null;
+  return isRecord(output?.routing) ? output.routing : null;
+}
+
+function extractEventCaseWikiIngressSource(
+  event: EventListItem,
+): RuntimeSessionReplayCaseWikiIngressSource | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const caseWikiIngress = isRecord(metadata?.caseWikiIngress) ? metadata.caseWikiIngress : null;
+  return normalizeCaseWikiIngressSource(caseWikiIngress?.source);
+}
+
+function extractEventRoutingContextSource(event: EventListItem): string | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const routing = extractEventRoutingRecord(event);
+  return (
+    toNonEmptyString(metadata?.routingContextSource) ??
+    toNonEmptyString(routing?.contextSource) ??
+    (extractEventCaseWikiIngressSource(event) ? "case_wiki" : null)
+  );
+}
+
+function extractEventRoutingContextIngressSource(
+  event: EventListItem,
+): RuntimeSessionReplayCaseWikiIngressSource | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const routing = extractEventRoutingRecord(event);
+  return (
+    normalizeCaseWikiIngressSource(metadata?.routingContextIngressSource) ??
+    normalizeCaseWikiIngressSource(routing?.contextIngressSource) ??
+    extractEventCaseWikiIngressSource(event)
+  );
 }
 
 function buildSessionEventInsight(events: EventListItem[]): SessionEventInsight {
@@ -1081,6 +1144,14 @@ function buildSessionEventInsight(events: EventListItem[]): SessionEventInsight 
     latestVerifiedAt: latestVerifiedEvent ? latestVerifiedEvent.createdAt : null,
     latestVerifiedRoute: latestVerifiedEvent ? toNonEmptyString(latestVerifiedEvent.route) : null,
     latestVerifiedIntent: latestVerifiedEvent ? toNonEmptyString(latestVerifiedEvent.intent) : null,
+    latestContextSource: latestEvent ? extractEventRoutingContextSource(latestEvent) : null,
+    latestContextIngressSource: latestEvent ? extractEventRoutingContextIngressSource(latestEvent) : null,
+    latestVerifiedContextSource: latestVerifiedEvent
+      ? extractEventRoutingContextSource(latestVerifiedEvent)
+      : null,
+    latestVerifiedContextIngressSource: latestVerifiedEvent
+      ? extractEventRoutingContextIngressSource(latestVerifiedEvent)
+      : null,
     bySource,
     byType,
     byRoute,
@@ -1186,6 +1257,8 @@ function buildLatestProofPointer(params: {
     verifiedAt: params.eventInsight.latestVerifiedAt,
     route: params.eventInsight.latestVerifiedRoute,
     intent: params.eventInsight.latestVerifiedIntent,
+    contextSource: params.eventInsight.latestVerifiedContextSource,
+    ingressSource: params.eventInsight.latestVerifiedContextIngressSource,
     workflowStage: params.workflowSummary?.workflowCurrentStage ?? null,
   };
 }
@@ -5787,6 +5860,10 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
         latestVerifiedAt: selectedEventInsight.latestVerifiedAt,
         latestVerifiedRoute: selectedEventInsight.latestVerifiedRoute,
         latestVerifiedIntent: selectedEventInsight.latestVerifiedIntent,
+        latestContextSource: selectedEventInsight.latestContextSource,
+        latestContextIngressSource: selectedEventInsight.latestContextIngressSource,
+        latestVerifiedContextSource: selectedEventInsight.latestVerifiedContextSource,
+        latestVerifiedContextIngressSource: selectedEventInsight.latestVerifiedContextIngressSource,
         bySource: selectedEventInsight.bySource,
         byType: selectedEventInsight.byType,
         byRoute: selectedEventInsight.byRoute,
