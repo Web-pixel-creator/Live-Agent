@@ -718,6 +718,41 @@ test("runtime operator queue escalates compliance enforcement blockers even with
         },
       ],
     },
+    remediation: {
+      totalActions: 2,
+      primaryAction: {
+        id: "redact:artifact:raw:passport-scan",
+        kind: "redact_artifact",
+        title: "Redact raw runtime artifact before export",
+        summary: "artifact:raw:passport-scan blocks export and handoff until a redacted artifact replaces the raw evidence ref.",
+        blockingRef: "artifact:raw:passport-scan",
+        requiredPosture: "redacted",
+        affects: ["export", "handoff", "queue"],
+        operatorActionLabel: "Prepare redacted replacement",
+      },
+      actions: [
+        {
+          id: "redact:artifact:raw:passport-scan",
+          kind: "redact_artifact",
+          title: "Redact raw runtime artifact before export",
+          summary: "artifact:raw:passport-scan blocks export and handoff until a redacted artifact replaces the raw evidence ref.",
+          blockingRef: "artifact:raw:passport-scan",
+          requiredPosture: "redacted",
+          affects: ["export", "handoff", "queue"],
+          operatorActionLabel: "Prepare redacted replacement",
+        },
+        {
+          id: "redact:file:C:/tmp/passport-scan.png",
+          kind: "redact_artifact",
+          title: "Redact raw evidence ref before export",
+          summary: "file:C:/tmp/passport-scan.png blocks export and handoff until a redacted artifact replaces the raw evidence ref.",
+          blockingRef: "file:C:/tmp/passport-scan.png",
+          requiredPosture: "redacted",
+          affects: ["export", "handoff", "queue"],
+          operatorActionLabel: "Prepare redacted replacement",
+        },
+      ],
+    },
     summary: "status=fail | snapshot=raw_ref_review | redaction=blocked | signing=unsigned | export=blocked | rawRefs=2",
   };
   wiki.compliance.summary =
@@ -736,5 +771,8 @@ test("runtime operator queue escalates compliance enforcement blockers even with
     "artifact:raw:passport-scan",
     "file:C:/tmp/passport-scan.png",
   ]);
+  assert.equal(item?.compliance.remediation?.totalActions, 2);
+  assert.equal(item?.compliance.remediation?.primaryAction?.kind, "redact_artifact");
+  assert.equal(item?.compliance.remediation?.primaryAction?.blockingRef, "artifact:raw:passport-scan");
   assert.match(item?.meta ?? "", /Compliance: status=fail/i);
 });

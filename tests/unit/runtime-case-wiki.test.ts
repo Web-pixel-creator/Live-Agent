@@ -250,6 +250,7 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
   assert.equal(wiki?.compliance.enforcement.exportReady, true);
   assert.equal(wiki?.compliance.enforcement.artifactPosture?.totalArtifacts ?? 0, 0);
   assert.equal(wiki?.compliance.enforcement.artifactPosture?.rawArtifacts ?? 0, 0);
+  assert.equal(wiki?.compliance.enforcement.remediation?.totalActions ?? 0, 0);
   assert.match(wiki?.compliance.summary ?? "", /template=strict/i);
   assert.equal(wiki?.overview.title, "Case case-42 for Canada");
   assert.equal(wiki?.overview.status, "waiting_on_customer");
@@ -539,9 +540,18 @@ test("runtime case wiki compliance enforcement fails when high-redaction case re
     "artifact:raw:passport-scan",
     "file:C:/tmp/passport-scan.png",
   ]);
+  assert.equal(wiki?.compliance.enforcement.remediation?.totalActions, 2);
+  assert.equal(wiki?.compliance.enforcement.remediation?.primaryAction?.kind, "redact_artifact");
+  assert.equal(wiki?.compliance.enforcement.remediation?.primaryAction?.blockingRef, "artifact:raw:passport-scan");
+  assert.equal(wiki?.compliance.enforcement.remediation?.primaryAction?.requiredPosture, "redacted");
+  assert.equal(
+    wiki?.compliance.enforcement.remediation?.primaryAction?.operatorActionLabel,
+    "Prepare redacted replacement",
+  );
   assert.equal(wiki?.operatorPreviewPack.compliance.enforcement.status, "fail");
   assert.equal(wiki?.operatorPreviewPack.compliance.enforcement.exportReady, false);
   assert.match(wiki?.compliance.summary ?? "", /enforcement=fail/i);
+  assert.match(wiki?.compliance.enforcement.summary ?? "", /remediation=2/i);
   assert.equal(
     wiki?.evidencePack.questions.some((item) => item.sourceRefs.includes("artifact:raw:passport-scan")),
     true,
@@ -616,6 +626,13 @@ test("runtime case wiki compliance enforcement scans nested event artifact postu
   assert.deepEqual(wiki?.compliance.enforcement.blockingReasons, ["raw_like_source_refs_detected"]);
   assert.equal(wiki?.compliance.enforcement.artifactPosture?.rawArtifacts, 1);
   assert.deepEqual(wiki?.compliance.enforcement.artifactPosture?.blockingRefs, ["artifact:raw:passport-scan"]);
+  assert.equal(wiki?.compliance.enforcement.remediation?.totalActions, 1);
+  assert.equal(wiki?.compliance.enforcement.remediation?.primaryAction?.kind, "redact_artifact");
+  assert.match(wiki?.compliance.enforcement.remediation?.primaryAction?.title ?? "", /replay artifact/i);
+  assert.equal(
+    wiki?.compliance.enforcement.remediation?.primaryAction?.operatorActionLabel,
+    "Prepare redacted replacement",
+  );
   assert.equal(
     wiki?.compliance.enforcement.artifactPosture?.items.some(
       (item) => item.ref === "artifact:raw:passport-scan" && item.source === "replay_artifact" && item.blocking === true,

@@ -5,6 +5,8 @@ import type {
   CaseWiki,
   CaseWikiComplianceArtifactEntry,
   CaseWikiComplianceArtifactSummary,
+  CaseWikiComplianceRemediationAction,
+  CaseWikiComplianceRemediationSummary,
   CaseWikiComplianceSummary,
   CaseWikiCostSummary,
   CaseWikiDetailBadge,
@@ -441,6 +443,74 @@ function buildCaseWikiArtifactPostureSummary(params: {
     blockingArtifacts: allItems.filter((item) => item.blocking).length,
     blockingRefs: allItems.filter((item) => item.blocking).map((item) => item.ref).slice(0, 6),
     items: ordered,
+  };
+}
+
+function formatCaseWikiArtifactRemediationTarget(source: CaseWikiComplianceArtifactEntry["source"]): string {
+  switch (source) {
+    case "screenshot_ref":
+      return "raw screenshot";
+    case "replay_artifact":
+      return "raw replay artifact";
+    case "artifact_ref":
+      return "raw runtime artifact";
+    case "source_ref":
+      return "raw evidence ref";
+    default:
+      return "raw case evidence";
+  }
+}
+
+function buildCaseWikiArtifactRemediationAction(
+  item: CaseWikiComplianceArtifactEntry,
+): CaseWikiComplianceRemediationAction {
+  const target = formatCaseWikiArtifactRemediationTarget(item.source);
+  return {
+    id: `redact:${item.ref}`,
+    kind: "redact_artifact",
+    title: `Redact ${target} before export`,
+    summary: `${item.ref} blocks export and handoff until a redacted artifact replaces the raw evidence ref.`,
+    blockingRef: item.ref,
+    requiredPosture: "redacted",
+    affects: ["export", "handoff", "queue"],
+    operatorActionLabel: "Prepare redacted replacement",
+  };
+}
+
+function buildCaseWikiComplianceRemediationSummary(params: {
+  artifactPosture: CaseWikiComplianceArtifactSummary;
+  redactionSatisfied: boolean;
+  signingRequired: boolean;
+  signatureSatisfied: boolean;
+}): CaseWikiComplianceRemediationSummary {
+  const actions: CaseWikiComplianceRemediationAction[] = [];
+
+  if (!params.redactionSatisfied) {
+    const rawItems = params.artifactPosture.items.filter(
+      (item) => item.blocking === true && item.posture === "raw",
+    );
+    for (const item of rawItems) {
+      actions.push(buildCaseWikiArtifactRemediationAction(item));
+    }
+  }
+
+  if (params.signingRequired && !params.signatureSatisfied) {
+    actions.push({
+      id: "sign:case_wiki:evidence_signature",
+      kind: "attach_case_wiki_signature",
+      title: "Attach Case Wiki evidence signature",
+      summary: "Case Wiki export and handoff remain blocked until repo-owned evidence signing passes for this case snapshot.",
+      blockingRef: "case_wiki:evidence_signature",
+      requiredPosture: "signed_case_wiki",
+      affects: ["export", "handoff", "queue"],
+      operatorActionLabel: "Complete evidence signing",
+    });
+  }
+
+  return {
+    totalActions: actions.length,
+    primaryAction: actions[0] ?? null,
+    actions,
   };
 }
 
@@ -2334,6 +2404,12 @@ function buildCaseWikiComplianceEnforcement(params: {
         : "pass";
   const snapshotMode = artifactPosture.rawArtifacts > 0 ? "raw_ref_review" : "compiled_operator_safe";
   const exportReady = blockingReasons.length === 0;
+  const remediation = buildCaseWikiComplianceRemediationSummary({
+    artifactPosture,
+    redactionSatisfied,
+    signingRequired,
+    signatureSatisfied,
+  });
 
   return {
     status,
@@ -2348,6 +2424,7 @@ function buildCaseWikiComplianceEnforcement(params: {
     exportReady,
     blockingReasons,
     artifactPosture,
+    remediation,
     summary: [
       `status=${status}`,
       `snapshot=${snapshotMode}`,
@@ -2358,6 +2435,7 @@ function buildCaseWikiComplianceEnforcement(params: {
       `artifacts=${artifactPosture.totalArtifacts}`,
       `redacted=${artifactPosture.redactedArtifacts}`,
       `signed=${artifactPosture.signedArtifacts}`,
+      `remediation=${remediation.totalActions}`,
     ].join(" | "),
   };
 }

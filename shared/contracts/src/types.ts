@@ -344,6 +344,40 @@ export type CaseWikiComplianceArtifactSummary = {
   items: CaseWikiComplianceArtifactEntry[];
 };
 
+export const CASE_WIKI_COMPLIANCE_REMEDIATION_ACTION_KINDS = [
+  "redact_artifact",
+  "attach_case_wiki_signature",
+] as const;
+
+export type CaseWikiComplianceRemediationActionKind =
+  (typeof CASE_WIKI_COMPLIANCE_REMEDIATION_ACTION_KINDS)[number];
+
+export const CASE_WIKI_COMPLIANCE_REMEDIATION_SURFACES = ["export", "handoff", "queue"] as const;
+
+export type CaseWikiComplianceRemediationSurface =
+  (typeof CASE_WIKI_COMPLIANCE_REMEDIATION_SURFACES)[number];
+
+export type CaseWikiComplianceRemediationRequiredPosture =
+  | CaseWikiComplianceArtifactPosture
+  | "signed_case_wiki";
+
+export type CaseWikiComplianceRemediationAction = {
+  id: string;
+  kind: CaseWikiComplianceRemediationActionKind;
+  title: string;
+  summary: string;
+  blockingRef: string | null;
+  requiredPosture: CaseWikiComplianceRemediationRequiredPosture;
+  affects: CaseWikiComplianceRemediationSurface[];
+  operatorActionLabel: string;
+};
+
+export type CaseWikiComplianceRemediationSummary = {
+  totalActions: number;
+  primaryAction: CaseWikiComplianceRemediationAction | null;
+  actions: CaseWikiComplianceRemediationAction[];
+};
+
 export type CaseWikiComplianceEnforcement = {
   status: CaseWikiComplianceEnforcementStatus;
   snapshotMode: CaseWikiComplianceSnapshotMode;
@@ -357,6 +391,7 @@ export type CaseWikiComplianceEnforcement = {
   exportReady: boolean;
   blockingReasons: string[];
   artifactPosture?: CaseWikiComplianceArtifactSummary;
+  remediation?: CaseWikiComplianceRemediationSummary;
   summary: string;
 };
 
@@ -853,6 +888,7 @@ export type RuntimeOperatorQueueCompliancePreview = {
   exportReady: boolean;
   blockingReasons: string[];
   artifactPosture?: CaseWikiComplianceArtifactSummary | null;
+  remediation?: CaseWikiComplianceRemediationSummary | null;
 };
 
 export type RuntimeOperatorQueueItem = {

@@ -124,8 +124,13 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     "Case Wiki export is blocked until evidence signing passes.",
     "Case Wiki export is ready.",
     "artifactPosture",
+    "remediation",
+    "primaryAction",
+    "operatorActionLabel",
     "blockingRefs",
     "Blocking refs:",
+    "buildComplianceRemediationNextStepText",
+    "Next step:",
     "no audio",
     "No exports yet",
     "EXPORT_HISTORY_LIMIT",
@@ -210,8 +215,13 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     readmeSource.includes("`compliance.enforcement.exportReady=false`"),
     "README missing compliance export gate enforcement note",
   );
+  assert.ok(readmeSource.includes("`compliance.enforcement.remediation.primaryAction`"), "README missing compliance remediation primary action note");
   assert.ok(
     operatorGuideSource.includes("`compliance.enforcement.exportReady=false`"),
     "operator guide missing compliance export gate enforcement note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("`compliance.enforcement.remediation.primaryAction`"),
+    "operator guide missing compliance remediation primary action note",
   );
 });

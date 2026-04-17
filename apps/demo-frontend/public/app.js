@@ -11688,28 +11688,8 @@ function normalizeOperatorQueueCompliancePreview(value) {
       .map((reason) => toOptionalText(reason))
       .filter(Boolean)
     : [];
-  const artifactPosture = isRecord(value.artifactPosture)
-    ? {
-        totalArtifacts: Number.isFinite(Number(value.artifactPosture.totalArtifacts))
-          ? Math.max(0, Math.floor(Number(value.artifactPosture.totalArtifacts)))
-          : 0,
-        rawArtifacts: Number.isFinite(Number(value.artifactPosture.rawArtifacts))
-          ? Math.max(0, Math.floor(Number(value.artifactPosture.rawArtifacts)))
-          : 0,
-        redactedArtifacts: Number.isFinite(Number(value.artifactPosture.redactedArtifacts))
-          ? Math.max(0, Math.floor(Number(value.artifactPosture.redactedArtifacts)))
-          : 0,
-        signedArtifacts: Number.isFinite(Number(value.artifactPosture.signedArtifacts))
-          ? Math.max(0, Math.floor(Number(value.artifactPosture.signedArtifacts)))
-          : 0,
-        blockingArtifacts: Number.isFinite(Number(value.artifactPosture.blockingArtifacts))
-          ? Math.max(0, Math.floor(Number(value.artifactPosture.blockingArtifacts)))
-          : 0,
-        blockingRefs: Array.isArray(value.artifactPosture.blockingRefs)
-          ? value.artifactPosture.blockingRefs.map((item) => toOptionalText(item)).filter(Boolean)
-          : [],
-      }
-    : null;
+  const artifactPosture = normalizeComplianceArtifactPosture(value.artifactPosture);
+  const remediation = normalizeComplianceRemediationSummary(value.remediation);
   return {
     templateId: toOptionalText(value.templateId) ?? null,
     piiRedactionLevel: toOptionalText(value.piiRedactionLevel) ?? null,
@@ -11718,6 +11698,71 @@ function normalizeOperatorQueueCompliancePreview(value) {
     exportReady: value.exportReady === true,
     blockingReasons,
     artifactPosture,
+    remediation,
+  };
+}
+
+function normalizeComplianceArtifactPosture(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  return {
+    totalArtifacts: Number.isFinite(Number(value.totalArtifacts))
+      ? Math.max(0, Math.floor(Number(value.totalArtifacts)))
+      : 0,
+    rawArtifacts: Number.isFinite(Number(value.rawArtifacts))
+      ? Math.max(0, Math.floor(Number(value.rawArtifacts)))
+      : 0,
+    redactedArtifacts: Number.isFinite(Number(value.redactedArtifacts))
+      ? Math.max(0, Math.floor(Number(value.redactedArtifacts)))
+      : 0,
+    signedArtifacts: Number.isFinite(Number(value.signedArtifacts))
+      ? Math.max(0, Math.floor(Number(value.signedArtifacts)))
+      : 0,
+    blockingArtifacts: Number.isFinite(Number(value.blockingArtifacts))
+      ? Math.max(0, Math.floor(Number(value.blockingArtifacts)))
+      : 0,
+    blockingRefs: Array.isArray(value.blockingRefs)
+      ? value.blockingRefs.map((item) => toOptionalText(item)).filter(Boolean)
+      : [],
+  };
+}
+
+function normalizeComplianceRemediationAction(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  return {
+    id: toOptionalText(value.id) ?? null,
+    kind: toOptionalText(value.kind) ?? null,
+    title: toOptionalText(value.title) ?? null,
+    summary: toOptionalText(value.summary) ?? null,
+    blockingRef: toOptionalText(value.blockingRef) ?? null,
+    requiredPosture: toOptionalText(value.requiredPosture) ?? null,
+    affects: Array.isArray(value.affects)
+      ? value.affects.map((item) => toOptionalText(item)).filter(Boolean)
+      : [],
+    operatorActionLabel: toOptionalText(value.operatorActionLabel) ?? null,
+  };
+}
+
+function normalizeComplianceRemediationSummary(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const actions = Array.isArray(value.actions)
+    ? value.actions.map((item) => normalizeComplianceRemediationAction(item)).filter(Boolean)
+    : [];
+  const primaryAction =
+    normalizeComplianceRemediationAction(value.primaryAction) ??
+    actions[0] ??
+    null;
+  return {
+    totalActions: Number.isFinite(Number(value.totalActions))
+      ? Math.max(0, Math.floor(Number(value.totalActions)))
+      : actions.length,
+    primaryAction,
+    actions,
   };
 }
 
@@ -11735,25 +11780,46 @@ function buildComplianceArtifactDetailText(artifactPosture, maxRefs = 1) {
   return shown.join(", ");
 }
 
+function buildComplianceRemediationNextStepText(remediation) {
+  const primaryAction = remediation?.primaryAction;
+  if (!primaryAction || typeof primaryAction !== "object") {
+    return "";
+  }
+  const actionLabel = toOptionalText(primaryAction.operatorActionLabel) ?? toOptionalText(primaryAction.title);
+  const blockingRef = toOptionalText(primaryAction.blockingRef);
+  if (actionLabel && blockingRef) {
+    return `Next step: ${actionLabel} for ${blockingRef}.`;
+  }
+  if (actionLabel) {
+    return `Next step: ${actionLabel}.`;
+  }
+  return toOptionalText(primaryAction.summary) ?? "";
+}
+
 function resolveOperatorQueueComplianceReasonText(compliance) {
   const normalized = normalizeOperatorQueueCompliancePreview(compliance);
   if (!normalized || (normalized.exportReady === true && normalized.enforcementStatus === "pass")) {
     return "";
   }
   const blockingArtifactDetail = buildComplianceArtifactDetailText(normalized.artifactPosture);
+  const nextStepText = buildComplianceRemediationNextStepText(normalized.remediation);
   if (normalized.blockingReasons.includes("raw_like_source_refs_detected")) {
-    return blockingArtifactDetail
+    const baseReason = blockingArtifactDetail
       ? `Raw evidence refs must be redacted before export: ${blockingArtifactDetail}.`
       : "Raw evidence refs must be redacted before export.";
+    return nextStepText ? `${baseReason} ${nextStepText}` : baseReason;
   }
   if (normalized.blockingReasons.includes("case_wiki_signature_missing")) {
-    return "Case Wiki evidence signing must pass before export.";
+    const baseReason = "Case Wiki evidence signing must pass before export.";
+    return nextStepText ? `${baseReason} ${nextStepText}` : baseReason;
   }
   if (normalized.exportReady === false) {
-    return "Compiled case export is blocked until compliance enforcement passes.";
+    const baseReason = "Compiled case export is blocked until compliance enforcement passes.";
+    return nextStepText ? `${baseReason} ${nextStepText}` : baseReason;
   }
   if (normalized.enforcementStatus === "fail") {
-    return "Compliance enforcement requires operator review before export.";
+    const baseReason = "Compliance enforcement requires operator review before export.";
+    return nextStepText ? `${baseReason} ${nextStepText}` : baseReason;
   }
   return "";
 }
@@ -11763,6 +11829,10 @@ function resolveOperatorQueueComplianceTitle(item, compliance) {
   const fallbackTitle = toOptionalText(item?.title) ?? "Resolve compliance blocker before export";
   if (!normalized) {
     return fallbackTitle;
+  }
+  const remediationTitle = toOptionalText(normalized.remediation?.primaryAction?.title);
+  if (remediationTitle) {
+    return remediationTitle;
   }
   if (normalized.blockingReasons.includes("raw_like_source_refs_detected")) {
     return "Redact raw case evidence before export";
@@ -34693,33 +34763,14 @@ function resolveOperatorCaseWikiComplianceExportGate(snapshot) {
   const blockingReasons = Array.isArray(enforcement?.blockingReasons)
     ? enforcement.blockingReasons.map((item) => toOptionalText(item)).filter(Boolean)
     : [];
-  const artifactPosture = isRecord(enforcement?.artifactPosture)
-    ? {
-        totalArtifacts: Number.isFinite(Number(enforcement.artifactPosture.totalArtifacts))
-          ? Math.max(0, Math.floor(Number(enforcement.artifactPosture.totalArtifacts)))
-          : 0,
-        rawArtifacts: Number.isFinite(Number(enforcement.artifactPosture.rawArtifacts))
-          ? Math.max(0, Math.floor(Number(enforcement.artifactPosture.rawArtifacts)))
-          : 0,
-        redactedArtifacts: Number.isFinite(Number(enforcement.artifactPosture.redactedArtifacts))
-          ? Math.max(0, Math.floor(Number(enforcement.artifactPosture.redactedArtifacts)))
-          : 0,
-        signedArtifacts: Number.isFinite(Number(enforcement.artifactPosture.signedArtifacts))
-          ? Math.max(0, Math.floor(Number(enforcement.artifactPosture.signedArtifacts)))
-          : 0,
-        blockingArtifacts: Number.isFinite(Number(enforcement.artifactPosture.blockingArtifacts))
-          ? Math.max(0, Math.floor(Number(enforcement.artifactPosture.blockingArtifacts)))
-          : 0,
-        blockingRefs: Array.isArray(enforcement.artifactPosture.blockingRefs)
-          ? enforcement.artifactPosture.blockingRefs.map((item) => toOptionalText(item)).filter(Boolean)
-          : [],
-      }
-    : null;
+  const artifactPosture = normalizeComplianceArtifactPosture(enforcement?.artifactPosture);
+  const remediation = normalizeComplianceRemediationSummary(enforcement?.remediation);
   const rawRefCount = Number.isFinite(Number(enforcement?.rawRefCount))
     ? Math.max(0, Math.floor(Number(enforcement.rawRefCount)))
     : 0;
   const blocked = enforcement?.exportReady === false || blockingReasons.length > 0;
   const blockingArtifactDetail = buildComplianceArtifactDetailText(artifactPosture, 2);
+  const nextStepText = buildComplianceRemediationNextStepText(remediation);
   let reasonCode = blockingReasons[0] ?? null;
   let reasonText = null;
   if (blockingReasons.includes("raw_like_source_refs_detected")) {
@@ -34735,15 +34786,23 @@ function resolveOperatorCaseWikiComplianceExportGate(snapshot) {
     reasonCode = reasonCode ?? "compliance_enforcement_blocked";
     reasonText = "Case Wiki export is blocked until compliance enforcement passes.";
   }
+  const fullReasonText =
+    blocked && nextStepText && reasonText
+      ? `${reasonText} ${nextStepText}`
+      : reasonText;
   return {
     blocked,
     enforcement,
     blockingReasons,
     artifactPosture,
+    remediation,
     reasonCode,
     rawRefCount,
-    reasonText,
-    titleText: blocked ? reasonText ?? "Case Wiki export is blocked until compliance enforcement passes." : "Case Wiki export is ready.",
+    reasonText: fullReasonText,
+    nextStepText,
+    titleText: blocked
+      ? fullReasonText ?? "Case Wiki export is blocked until compliance enforcement passes."
+      : "Case Wiki export is ready.",
   };
 }
 
