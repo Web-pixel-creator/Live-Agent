@@ -248,6 +248,8 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
   assert.equal(wiki?.compliance.enforcement.redactionSatisfied, true);
   assert.equal(wiki?.compliance.enforcement.signatureSatisfied, true);
   assert.equal(wiki?.compliance.enforcement.exportReady, true);
+  assert.equal(wiki?.compliance.enforcement.artifactPosture?.totalArtifacts ?? 0, 0);
+  assert.equal(wiki?.compliance.enforcement.artifactPosture?.rawArtifacts ?? 0, 0);
   assert.match(wiki?.compliance.summary ?? "", /template=strict/i);
   assert.equal(wiki?.overview.title, "Case case-42 for Canada");
   assert.equal(wiki?.overview.status, "waiting_on_customer");
@@ -445,6 +447,9 @@ test("runtime case wiki can attach a signed evidence envelope", () => {
   assert.equal(wiki?.compliance.enforcement.status, "pass");
   assert.equal(wiki?.compliance.enforcement.observedSignatureStatus, "signed");
   assert.equal(wiki?.compliance.enforcement.signatureSatisfied, true);
+  assert.equal(wiki?.compliance.enforcement.artifactPosture?.signedArtifacts, 1);
+  assert.deepEqual(wiki?.compliance.enforcement.artifactPosture?.blockingRefs ?? [], []);
+  assert.equal(wiki?.compliance.enforcement.artifactPosture?.items[0]?.ref, "case_wiki:evidence_signature");
   assert.equal(wiki?.operatorPreviewPack.compliance.evidenceSigning.keyState, "loaded");
   assert.equal(
     verifyEvidencePayloadSignature({
@@ -529,11 +534,92 @@ test("runtime case wiki compliance enforcement fails when high-redaction case re
   assert.equal(wiki?.compliance.enforcement.exportReady, false);
   assert.equal(wiki?.compliance.enforcement.rawRefCount, 2);
   assert.deepEqual(wiki?.compliance.enforcement.blockingReasons, ["raw_like_source_refs_detected"]);
+  assert.equal(wiki?.compliance.enforcement.artifactPosture?.rawArtifacts, 2);
+  assert.deepEqual(wiki?.compliance.enforcement.artifactPosture?.blockingRefs, [
+    "artifact:raw:passport-scan",
+    "file:C:/tmp/passport-scan.png",
+  ]);
   assert.equal(wiki?.operatorPreviewPack.compliance.enforcement.status, "fail");
   assert.equal(wiki?.operatorPreviewPack.compliance.enforcement.exportReady, false);
   assert.match(wiki?.compliance.summary ?? "", /enforcement=fail/i);
   assert.equal(
     wiki?.evidencePack.questions.some((item) => item.sourceRefs.includes("artifact:raw:passport-scan")),
+    true,
+  );
+});
+
+test("runtime case wiki compliance enforcement scans nested event artifact posture beyond compiled source refs", () => {
+  const wiki = buildRuntimeCaseWiki({
+    sessions: [
+      {
+        sessionId: "session-artifact-posture-1",
+        tenantId: "tenant-a",
+        mode: "ui",
+        status: "active",
+        version: 1,
+        lastMutationId: "mutation-artifact-posture-1",
+        updatedAt: "2026-04-10T11:00:00.000Z",
+      },
+    ],
+    runs: [],
+    approvals: [],
+    recentEvents: [
+      {
+        eventId: "event-artifact-posture-1",
+        sessionId: "session-artifact-posture-1",
+        runId: "run-artifact-posture-1",
+        type: "orchestrator.response",
+        source: "ui-navigator-agent",
+        createdAt: "2026-04-10T11:01:00.000Z",
+        route: "ui-navigator-agent",
+        status: "completed",
+        intent: "ui_task",
+        payload: {
+          output: {
+            execution: {
+              replayBundle: {
+                resultArtifactRefs: [
+                  "artifact:raw:passport-scan",
+                ],
+              },
+            },
+          },
+        },
+      },
+    ],
+    selectedEvents: [],
+    compliance: {
+      templateId: "strict",
+      requestedTemplateId: "strict",
+      fallbackApplied: false,
+      source: "tenant_override",
+      controls: {
+        piiRedactionLevel: "high",
+        crossTenantAdminOnly: true,
+        approvalSlaEnforced: true,
+        auditTrailRequired: true,
+      },
+      retention: {
+        rawMediaDays: 2,
+        auditLogsDays: 540,
+        eventsDays: 540,
+        sessionsDays: 120,
+      },
+    },
+    now: new Date("2026-04-10T11:05:00.000Z"),
+  });
+
+  assert.ok(wiki);
+  assert.equal(wiki?.compliance.enforcement.status, "fail");
+  assert.equal(wiki?.compliance.enforcement.exportReady, false);
+  assert.equal(wiki?.compliance.enforcement.rawRefCount, 1);
+  assert.deepEqual(wiki?.compliance.enforcement.blockingReasons, ["raw_like_source_refs_detected"]);
+  assert.equal(wiki?.compliance.enforcement.artifactPosture?.rawArtifacts, 1);
+  assert.deepEqual(wiki?.compliance.enforcement.artifactPosture?.blockingRefs, ["artifact:raw:passport-scan"]);
+  assert.equal(
+    wiki?.compliance.enforcement.artifactPosture?.items.some(
+      (item) => item.ref === "artifact:raw:passport-scan" && item.source === "replay_artifact" && item.blocking === true,
+    ),
     true,
   );
 });

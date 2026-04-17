@@ -315,6 +315,7 @@ export function buildRuntimeOperatorQueueItem(caseWiki: CaseWiki): RuntimeOperat
       enforcementStatus: caseWiki.compliance.enforcement.status,
       exportReady: caseWiki.compliance.enforcement.exportReady,
       blockingReasons: caseWiki.compliance.enforcement.blockingReasons,
+      artifactPosture: caseWiki.compliance.enforcement.artifactPosture ?? null,
     },
     primary: draft
       ? {

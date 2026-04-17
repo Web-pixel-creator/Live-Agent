@@ -324,6 +324,26 @@ export const CASE_WIKI_COMPLIANCE_SNAPSHOT_MODES = ["compiled_operator_safe", "r
 
 export type CaseWikiComplianceSnapshotMode = (typeof CASE_WIKI_COMPLIANCE_SNAPSHOT_MODES)[number];
 
+export type CaseWikiComplianceArtifactPosture = "raw" | "redacted" | "signed";
+
+export type CaseWikiComplianceArtifactEntry = {
+  ref: string;
+  posture: CaseWikiComplianceArtifactPosture;
+  source: "source_ref" | "artifact_ref" | "screenshot_ref" | "replay_artifact" | "case_wiki_signature";
+  blocking: boolean;
+  summary: string;
+};
+
+export type CaseWikiComplianceArtifactSummary = {
+  totalArtifacts: number;
+  rawArtifacts: number;
+  redactedArtifacts: number;
+  signedArtifacts: number;
+  blockingArtifacts: number;
+  blockingRefs: string[];
+  items: CaseWikiComplianceArtifactEntry[];
+};
+
 export type CaseWikiComplianceEnforcement = {
   status: CaseWikiComplianceEnforcementStatus;
   snapshotMode: CaseWikiComplianceSnapshotMode;
@@ -336,6 +356,7 @@ export type CaseWikiComplianceEnforcement = {
   signatureSatisfied: boolean;
   exportReady: boolean;
   blockingReasons: string[];
+  artifactPosture?: CaseWikiComplianceArtifactSummary;
   summary: string;
 };
 
@@ -831,6 +852,7 @@ export type RuntimeOperatorQueueCompliancePreview = {
   enforcementStatus: CaseWikiComplianceEnforcementStatus;
   exportReady: boolean;
   blockingReasons: string[];
+  artifactPosture?: CaseWikiComplianceArtifactSummary | null;
 };
 
 export type RuntimeOperatorQueueItem = {

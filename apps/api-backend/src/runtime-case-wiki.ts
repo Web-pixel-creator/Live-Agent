@@ -3,6 +3,8 @@ import type {
   CaseWikiActionPackItem,
   CaseWikiAuditEntry,
   CaseWiki,
+  CaseWikiComplianceArtifactEntry,
+  CaseWikiComplianceArtifactSummary,
   CaseWikiComplianceSummary,
   CaseWikiCostSummary,
   CaseWikiDetailBadge,
@@ -132,6 +134,11 @@ type RuntimeCaseWikiTimelineSeed = {
   sourceRefs?: string[];
 };
 
+type RuntimeCaseWikiArtifactRefSeed = {
+  ref: string;
+  source: CaseWikiComplianceArtifactEntry["source"];
+};
+
 function toNonEmptyString(value: unknown): string | null {
   if (typeof value !== "string") {
     return null;
@@ -207,6 +214,234 @@ function isRawLikeSourceRef(value: string): boolean {
   }
   const prefix = normalized.split(":", 1)[0] ?? normalized;
   return ["file", "screenshot", "video", "audio", "blob", "raw", "raw_media"].includes(prefix);
+}
+
+function isRedactedArtifactRef(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized.startsWith("artifact:redacted:") ||
+    normalized.startsWith("artifact:sanitized:") ||
+    /(^|[:/_-])(redacted|sanitized)([:/_.-]|$)/.test(normalized)
+  );
+}
+
+function isSignedArtifactRef(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  return normalized.startsWith("artifact:signed:");
+}
+
+function pushArtifactRefSeed(
+  target: RuntimeCaseWikiArtifactRefSeed[],
+  seen: Set<string>,
+  value: unknown,
+  source: RuntimeCaseWikiArtifactRefSeed["source"],
+  options: { allowAnyRef?: boolean } = {},
+): void {
+  const normalized = toNonEmptyString(value);
+  if (!normalized) {
+    return;
+  }
+  if (source === "source_ref" && !options.allowAnyRef && !isRawLikeSourceRef(normalized) && !isRedactedArtifactRef(normalized) && !isSignedArtifactRef(normalized)) {
+    return;
+  }
+  const dedupeKey = `${source}:${normalized}`;
+  if (seen.has(dedupeKey)) {
+    return;
+  }
+  seen.add(dedupeKey);
+  target.push({
+    ref: normalized,
+    source,
+  });
+}
+
+function collectArtifactRefSeedsFromValue(
+  value: unknown,
+  target: RuntimeCaseWikiArtifactRefSeed[],
+  seen: Set<string>,
+  depth = 0,
+): void {
+  if (depth > 6 || value === null || value === undefined) {
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectArtifactRefSeedsFromValue(item, target, seen, depth + 1);
+    }
+    return;
+  }
+  if (!isRecord(value)) {
+    return;
+  }
+
+  for (const [key, entry] of Object.entries(value)) {
+    if (key === "sourceRefs") {
+      if (Array.isArray(entry)) {
+        for (const item of entry) {
+          pushArtifactRefSeed(target, seen, item, "source_ref");
+        }
+      } else {
+        pushArtifactRefSeed(target, seen, entry, "source_ref");
+      }
+      continue;
+    }
+
+    if (key === "artifactRefs" || key === "evidenceRefs") {
+      if (Array.isArray(entry)) {
+        for (const item of entry) {
+          pushArtifactRefSeed(target, seen, item, "artifact_ref", { allowAnyRef: true });
+        }
+      } else {
+        pushArtifactRefSeed(target, seen, entry, "artifact_ref", { allowAnyRef: true });
+      }
+      continue;
+    }
+
+    if (
+      key === "screenshotRefs" ||
+      key === "actualScreenshotRefs" ||
+      key === "traceArtifactRefs" ||
+      key === "checkpointArtifactRefs" ||
+      key === "resultArtifactRefs" ||
+      key === "diff"
+    ) {
+      const seedSource =
+        key === "traceArtifactRefs" || key === "checkpointArtifactRefs" || key === "resultArtifactRefs"
+          ? "replay_artifact"
+          : key === "diff"
+            ? "artifact_ref"
+            : "screenshot_ref";
+      if (Array.isArray(entry)) {
+        for (const item of entry) {
+          pushArtifactRefSeed(target, seen, item, seedSource, { allowAnyRef: true });
+        }
+      } else {
+        pushArtifactRefSeed(target, seen, entry, seedSource, { allowAnyRef: true });
+      }
+      continue;
+    }
+
+    if (key === "baseline" || key === "baselineScreenshotRef") {
+      pushArtifactRefSeed(target, seen, entry, "screenshot_ref", { allowAnyRef: true });
+      continue;
+    }
+
+    if (key === "latestCheckpointRef" || key === "latestResultRef" || key === "latestScreenshotRef") {
+      pushArtifactRefSeed(target, seen, entry, "replay_artifact", { allowAnyRef: true });
+      continue;
+    }
+
+    collectArtifactRefSeedsFromValue(entry, target, seen, depth + 1);
+  }
+}
+
+function buildCaseWikiArtifactRefSeeds(params: {
+  sourceRefs: string[];
+  selectedEvents: EventListItem[];
+  expectedSignatureStatus: "signed" | "unsigned";
+}): RuntimeCaseWikiArtifactRefSeed[] {
+  const seeds: RuntimeCaseWikiArtifactRefSeed[] = [];
+  const seen = new Set<string>();
+
+  for (const sourceRef of params.sourceRefs) {
+    pushArtifactRefSeed(seeds, seen, sourceRef, "source_ref");
+  }
+
+  for (const event of params.selectedEvents) {
+    collectArtifactRefSeedsFromValue(event.payload, seeds, seen);
+    collectArtifactRefSeedsFromValue(event.metadata, seeds, seen);
+  }
+
+  if (params.expectedSignatureStatus === "signed") {
+    pushArtifactRefSeed(seeds, seen, "case_wiki:evidence_signature", "case_wiki_signature", { allowAnyRef: true });
+  }
+
+  return seeds;
+}
+
+function buildCaseWikiArtifactPostureSummary(params: {
+  sourceRefs: string[];
+  selectedEvents: EventListItem[];
+  expectedSignatureStatus: "signed" | "unsigned";
+}): CaseWikiComplianceArtifactSummary {
+  const seeds = buildCaseWikiArtifactRefSeeds(params);
+  const items: CaseWikiComplianceArtifactEntry[] = [];
+  const dedupe = new Map<string, CaseWikiComplianceArtifactEntry>();
+
+  for (const seed of seeds) {
+    let posture: CaseWikiComplianceArtifactEntry["posture"] | null = null;
+    let blocking = false;
+    let summary: string | null = null;
+
+    if (seed.source === "case_wiki_signature") {
+      posture = "signed";
+      summary = "Repo-owned Case Wiki evidence signature is available for export.";
+    } else if (isSignedArtifactRef(seed.ref)) {
+      posture = "signed";
+      summary = "Signed runtime artifact is available for export.";
+    } else if (isRedactedArtifactRef(seed.ref)) {
+      posture = "redacted";
+      summary = "Redacted runtime artifact is available for operator-safe export.";
+    } else if (
+      isRawLikeSourceRef(seed.ref) ||
+      seed.source === "artifact_ref" ||
+      seed.source === "screenshot_ref" ||
+      seed.source === "replay_artifact"
+    ) {
+      posture = "raw";
+      blocking = true;
+      summary = "Raw runtime artifact must be redacted before export.";
+    }
+
+    if (!posture || !summary) {
+      continue;
+    }
+
+    const existing = dedupe.get(seed.ref);
+    if (existing) {
+      if (!existing.blocking && blocking) {
+        existing.blocking = true;
+        existing.posture = posture;
+        existing.source = seed.source;
+        existing.summary = summary;
+      }
+      continue;
+    }
+
+    dedupe.set(seed.ref, {
+      ref: seed.ref,
+      posture,
+      source: seed.source,
+      blocking,
+      summary,
+    });
+  }
+
+  const allItems = [...dedupe.values()].sort((left, right) => {
+    const postureRank = new Map<CaseWikiComplianceArtifactEntry["posture"], number>([
+      ["raw", 0],
+      ["redacted", 1],
+      ["signed", 2],
+    ]);
+    const leftRank = postureRank.get(left.posture) ?? 99;
+    const rightRank = postureRank.get(right.posture) ?? 99;
+    if (leftRank !== rightRank) {
+      return leftRank - rightRank;
+    }
+    return left.ref.localeCompare(right.ref);
+  });
+  const ordered = allItems
+    .slice(0, 12);
+
+  return {
+    totalArtifacts: allItems.length,
+    rawArtifacts: allItems.filter((item) => item.posture === "raw").length,
+    redactedArtifacts: allItems.filter((item) => item.posture === "redacted").length,
+    signedArtifacts: allItems.filter((item) => item.posture === "signed").length,
+    blockingArtifacts: allItems.filter((item) => item.blocking).length,
+    blockingRefs: allItems.filter((item) => item.blocking).map((item) => item.ref).slice(0, 6),
+    items: ordered,
+  };
 }
 
 function deriveWorkflowSummary(
@@ -2069,10 +2304,16 @@ function buildCaseWikiComplianceEnforcement(params: {
   piiRedactionLevel: "standard" | "high";
   expectedSignatureStatus: "signed" | "unsigned";
   sourceRefs: string[];
+  selectedEvents: EventListItem[];
 }): CaseWikiComplianceSummary["enforcement"] {
-  const rawRefs = buildSourceRefs(params.sourceRefs.filter((item) => isRawLikeSourceRef(item))).slice(0, 6);
+  const artifactPosture = buildCaseWikiArtifactPostureSummary({
+    sourceRefs: params.sourceRefs,
+    selectedEvents: params.selectedEvents,
+    expectedSignatureStatus: params.expectedSignatureStatus,
+  });
+  const rawRefs = artifactPosture.blockingRefs.slice(0, 6);
   const redactionRequired = params.piiRedactionLevel === "high";
-  const redactionSatisfied = !redactionRequired || rawRefs.length === 0;
+  const redactionSatisfied = !redactionRequired || artifactPosture.rawArtifacts === 0;
   const signingRequired = params.expectedSignatureStatus === "signed";
   const observedSignatureStatus = params.expectedSignatureStatus;
   const signatureSatisfied = !signingRequired || observedSignatureStatus === "signed";
@@ -2088,16 +2329,16 @@ function buildCaseWikiComplianceEnforcement(params: {
   const status =
     blockingReasons.length > 0
       ? "fail"
-      : rawRefs.length > 0
+      : artifactPosture.rawArtifacts > 0
         ? "warn"
         : "pass";
-  const snapshotMode = rawRefs.length > 0 ? "raw_ref_review" : "compiled_operator_safe";
+  const snapshotMode = artifactPosture.rawArtifacts > 0 ? "raw_ref_review" : "compiled_operator_safe";
   const exportReady = blockingReasons.length === 0;
 
   return {
     status,
     snapshotMode,
-    rawRefCount: rawRefs.length,
+    rawRefCount: artifactPosture.rawArtifacts,
     rawRefsPreview: rawRefs,
     redactionRequired,
     redactionSatisfied,
@@ -2106,13 +2347,17 @@ function buildCaseWikiComplianceEnforcement(params: {
     signatureSatisfied,
     exportReady,
     blockingReasons,
+    artifactPosture,
     summary: [
       `status=${status}`,
       `snapshot=${snapshotMode}`,
       `redaction=${redactionSatisfied ? "ok" : "blocked"}`,
       `signing=${signatureSatisfied ? observedSignatureStatus : "blocked"}`,
       `export=${exportReady ? "ready" : "blocked"}`,
-      `rawRefs=${rawRefs.length}`,
+      `rawRefs=${artifactPosture.rawArtifacts}`,
+      `artifacts=${artifactPosture.totalArtifacts}`,
+      `redacted=${artifactPosture.redactedArtifacts}`,
+      `signed=${artifactPosture.signedArtifacts}`,
     ].join(" | "),
   };
 }
@@ -2124,6 +2369,7 @@ function buildCaseWikiComplianceSummary(
     | undefined,
   evidenceSigner: RuntimeEvidenceSignerConfig | null | undefined,
   sourceRefs: string[],
+  selectedEvents: EventListItem[],
 ): CaseWikiComplianceSummary {
   const posture = buildRuntimeEvidenceSigningPosture(evidenceSigner);
   const templateId = compliance?.templateId ?? "baseline";
@@ -2145,6 +2391,7 @@ function buildCaseWikiComplianceSummary(
     piiRedactionLevel: controls.piiRedactionLevel,
     expectedSignatureStatus: posture.expectedSignatureStatus,
     sourceRefs,
+    selectedEvents,
   });
 
   return {
@@ -2470,7 +2717,12 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     ...auditLog.flatMap((item) => item.sourceRefs ?? []),
     ...(recommendedNextAction?.sourceRefs ?? []),
   ]);
-  const compliance = buildCaseWikiComplianceSummary(params.compliance, params.evidenceSigner, complianceSourceRefs);
+  const compliance = buildCaseWikiComplianceSummary(
+    params.compliance,
+    params.evidenceSigner,
+    complianceSourceRefs,
+    context.selectedEvents,
+  );
   const handoffPack = buildCaseWikiHandoffPack({
     evidencePack,
     recommendedNextAction,

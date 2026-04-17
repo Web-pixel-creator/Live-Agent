@@ -11688,6 +11688,28 @@ function normalizeOperatorQueueCompliancePreview(value) {
       .map((reason) => toOptionalText(reason))
       .filter(Boolean)
     : [];
+  const artifactPosture = isRecord(value.artifactPosture)
+    ? {
+        totalArtifacts: Number.isFinite(Number(value.artifactPosture.totalArtifacts))
+          ? Math.max(0, Math.floor(Number(value.artifactPosture.totalArtifacts)))
+          : 0,
+        rawArtifacts: Number.isFinite(Number(value.artifactPosture.rawArtifacts))
+          ? Math.max(0, Math.floor(Number(value.artifactPosture.rawArtifacts)))
+          : 0,
+        redactedArtifacts: Number.isFinite(Number(value.artifactPosture.redactedArtifacts))
+          ? Math.max(0, Math.floor(Number(value.artifactPosture.redactedArtifacts)))
+          : 0,
+        signedArtifacts: Number.isFinite(Number(value.artifactPosture.signedArtifacts))
+          ? Math.max(0, Math.floor(Number(value.artifactPosture.signedArtifacts)))
+          : 0,
+        blockingArtifacts: Number.isFinite(Number(value.artifactPosture.blockingArtifacts))
+          ? Math.max(0, Math.floor(Number(value.artifactPosture.blockingArtifacts)))
+          : 0,
+        blockingRefs: Array.isArray(value.artifactPosture.blockingRefs)
+          ? value.artifactPosture.blockingRefs.map((item) => toOptionalText(item)).filter(Boolean)
+          : [],
+      }
+    : null;
   return {
     templateId: toOptionalText(value.templateId) ?? null,
     piiRedactionLevel: toOptionalText(value.piiRedactionLevel) ?? null,
@@ -11695,7 +11717,22 @@ function normalizeOperatorQueueCompliancePreview(value) {
     enforcementStatus: toOptionalText(value.enforcementStatus) ?? "warn",
     exportReady: value.exportReady === true,
     blockingReasons,
+    artifactPosture,
   };
+}
+
+function buildComplianceArtifactDetailText(artifactPosture, maxRefs = 1) {
+  if (!artifactPosture || typeof artifactPosture !== "object") {
+    return "";
+  }
+  const blockingRefs = Array.isArray(artifactPosture.blockingRefs)
+    ? artifactPosture.blockingRefs.map((item) => toOptionalText(item)).filter(Boolean)
+    : [];
+  if (blockingRefs.length === 0) {
+    return "";
+  }
+  const shown = blockingRefs.slice(0, Math.max(1, maxRefs));
+  return shown.join(", ");
 }
 
 function resolveOperatorQueueComplianceReasonText(compliance) {
@@ -11703,8 +11740,11 @@ function resolveOperatorQueueComplianceReasonText(compliance) {
   if (!normalized || (normalized.exportReady === true && normalized.enforcementStatus === "pass")) {
     return "";
   }
+  const blockingArtifactDetail = buildComplianceArtifactDetailText(normalized.artifactPosture);
   if (normalized.blockingReasons.includes("raw_like_source_refs_detected")) {
-    return "Raw evidence refs must be redacted before export.";
+    return blockingArtifactDetail
+      ? `Raw evidence refs must be redacted before export: ${blockingArtifactDetail}.`
+      : "Raw evidence refs must be redacted before export.";
   }
   if (normalized.blockingReasons.includes("case_wiki_signature_missing")) {
     return "Case Wiki evidence signing must pass before export.";
@@ -34653,18 +34693,41 @@ function resolveOperatorCaseWikiComplianceExportGate(snapshot) {
   const blockingReasons = Array.isArray(enforcement?.blockingReasons)
     ? enforcement.blockingReasons.map((item) => toOptionalText(item)).filter(Boolean)
     : [];
+  const artifactPosture = isRecord(enforcement?.artifactPosture)
+    ? {
+        totalArtifacts: Number.isFinite(Number(enforcement.artifactPosture.totalArtifacts))
+          ? Math.max(0, Math.floor(Number(enforcement.artifactPosture.totalArtifacts)))
+          : 0,
+        rawArtifacts: Number.isFinite(Number(enforcement.artifactPosture.rawArtifacts))
+          ? Math.max(0, Math.floor(Number(enforcement.artifactPosture.rawArtifacts)))
+          : 0,
+        redactedArtifacts: Number.isFinite(Number(enforcement.artifactPosture.redactedArtifacts))
+          ? Math.max(0, Math.floor(Number(enforcement.artifactPosture.redactedArtifacts)))
+          : 0,
+        signedArtifacts: Number.isFinite(Number(enforcement.artifactPosture.signedArtifacts))
+          ? Math.max(0, Math.floor(Number(enforcement.artifactPosture.signedArtifacts)))
+          : 0,
+        blockingArtifacts: Number.isFinite(Number(enforcement.artifactPosture.blockingArtifacts))
+          ? Math.max(0, Math.floor(Number(enforcement.artifactPosture.blockingArtifacts)))
+          : 0,
+        blockingRefs: Array.isArray(enforcement.artifactPosture.blockingRefs)
+          ? enforcement.artifactPosture.blockingRefs.map((item) => toOptionalText(item)).filter(Boolean)
+          : [],
+      }
+    : null;
   const rawRefCount = Number.isFinite(Number(enforcement?.rawRefCount))
     ? Math.max(0, Math.floor(Number(enforcement.rawRefCount)))
     : 0;
   const blocked = enforcement?.exportReady === false || blockingReasons.length > 0;
+  const blockingArtifactDetail = buildComplianceArtifactDetailText(artifactPosture, 2);
   let reasonCode = blockingReasons[0] ?? null;
   let reasonText = null;
   if (blockingReasons.includes("raw_like_source_refs_detected")) {
     reasonCode = "raw_like_source_refs_detected";
     reasonText =
       rawRefCount > 0
-        ? `Case Wiki export is blocked until raw evidence refs are redacted (${rawRefCount} flagged).`
-        : "Case Wiki export is blocked until raw evidence refs are redacted.";
+        ? `Case Wiki export is blocked until raw evidence refs are redacted (${rawRefCount} flagged).${blockingArtifactDetail ? ` Blocking refs: ${blockingArtifactDetail}.` : ""}`
+        : `Case Wiki export is blocked until raw evidence refs are redacted.${blockingArtifactDetail ? ` Blocking refs: ${blockingArtifactDetail}.` : ""}`;
   } else if (blockingReasons.includes("case_wiki_signature_missing")) {
     reasonCode = "case_wiki_signature_missing";
     reasonText = "Case Wiki export is blocked until evidence signing passes.";
@@ -34676,6 +34739,7 @@ function resolveOperatorCaseWikiComplianceExportGate(snapshot) {
     blocked,
     enforcement,
     blockingReasons,
+    artifactPosture,
     reasonCode,
     rawRefCount,
     reasonText,

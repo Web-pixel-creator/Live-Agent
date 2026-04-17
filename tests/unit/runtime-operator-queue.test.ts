@@ -694,6 +694,30 @@ test("runtime operator queue escalates compliance enforcement blockers even with
     signatureSatisfied: true,
     exportReady: false,
     blockingReasons: ["raw_like_source_refs_detected"],
+    artifactPosture: {
+      totalArtifacts: 2,
+      rawArtifacts: 2,
+      redactedArtifacts: 0,
+      signedArtifacts: 0,
+      blockingArtifacts: 2,
+      blockingRefs: ["artifact:raw:passport-scan", "file:C:/tmp/passport-scan.png"],
+      items: [
+        {
+          ref: "artifact:raw:passport-scan",
+          posture: "raw",
+          source: "artifact_ref",
+          blocking: true,
+          summary: "Raw runtime artifact must be redacted before export.",
+        },
+        {
+          ref: "file:C:/tmp/passport-scan.png",
+          posture: "raw",
+          source: "source_ref",
+          blocking: true,
+          summary: "Raw runtime artifact must be redacted before export.",
+        },
+      ],
+    },
     summary: "status=fail | snapshot=raw_ref_review | redaction=blocked | signing=unsigned | export=blocked | rawRefs=2",
   };
   wiki.compliance.summary =
@@ -708,5 +732,9 @@ test("runtime operator queue escalates compliance enforcement blockers even with
   assert.equal(item?.compliance.enforcementStatus, "fail");
   assert.equal(item?.compliance.exportReady, false);
   assert.deepEqual(item?.compliance.blockingReasons, ["raw_like_source_refs_detected"]);
+  assert.deepEqual(item?.compliance.artifactPosture?.blockingRefs, [
+    "artifact:raw:passport-scan",
+    "file:C:/tmp/passport-scan.png",
+  ]);
   assert.match(item?.meta ?? "", /Compliance: status=fail/i);
 });
