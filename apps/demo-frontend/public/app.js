@@ -8267,6 +8267,11 @@ function renderCaseWorkspaceCaseWikiFocusRail(container, chips, emptyText) {
 function renderCaseWorkspaceCaseWikiSummary() {
   const isRu = state.languageMode === "ru";
   const caseWikiSummary = buildCaseWorkspaceCaseWikiSummary(isRu);
+  const caseWikiSnapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const caseWikiExportGate = resolveOperatorCaseWikiComplianceExportGate(caseWikiSnapshot);
+  const caseWikiExportBlocked = caseWikiExportGate.blocked === true;
+  const caseWikiExportBlockedTitle =
+    caseWikiExportGate.titleText ?? "Case Wiki export is blocked until compliance enforcement passes.";
   const caseWikiStatusLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiStatusLabel"]');
   const caseWikiSummaryLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiSummaryLabel"]');
   const caseWikiBlockerLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiBlockerLabel"]');
@@ -8428,38 +8433,46 @@ function renderCaseWorkspaceCaseWikiSummary() {
   const proofActionBundle = buildOperatorCaseWikiDetailActionBundle("proof", isRu);
   const questionActionBundle = buildOperatorCaseWikiDetailActionBundle("question", isRu);
   if (el.caseWorkspaceCaseWikiProofHandoffCopyBtn instanceof HTMLButtonElement) {
-    el.caseWorkspaceCaseWikiProofHandoffCopyBtn.disabled = !proofActionBundle?.handoffText;
+    el.caseWorkspaceCaseWikiProofHandoffCopyBtn.disabled = caseWikiExportBlocked || !proofActionBundle?.handoffText;
     el.caseWorkspaceCaseWikiProofHandoffCopyBtn.title =
-      proofActionBundle?.title ??
-      (isRu
-        ? "\u041d\u0435\u0442 focused proof handoff \u0434\u043b\u044f copy"
-        : "No focused proof handoff available to copy");
+      caseWikiExportBlocked
+        ? caseWikiExportBlockedTitle
+        : proofActionBundle?.title ??
+          (isRu
+            ? "\u041d\u0435\u0442 focused proof handoff \u0434\u043b\u044f copy"
+            : "No focused proof handoff available to copy");
   }
   if (el.caseWorkspaceCaseWikiProofRefsCopyBtn instanceof HTMLButtonElement) {
-    el.caseWorkspaceCaseWikiProofRefsCopyBtn.disabled = !proofActionBundle?.refsText;
+    el.caseWorkspaceCaseWikiProofRefsCopyBtn.disabled = caseWikiExportBlocked || !proofActionBundle?.refsText;
     el.caseWorkspaceCaseWikiProofRefsCopyBtn.title =
-      proofActionBundle?.refs?.length > 0
-        ? `${proofActionBundle.title} (${proofActionBundle.refs.length})`
-        : isRu
-          ? "\u041d\u0435\u0442 proof refs \u0434\u043b\u044f copy"
-          : "No proof refs available to copy";
+      caseWikiExportBlocked
+        ? caseWikiExportBlockedTitle
+        : proofActionBundle?.refs?.length > 0
+          ? `${proofActionBundle.title} (${proofActionBundle.refs.length})`
+          : isRu
+            ? "\u041d\u0435\u0442 proof refs \u0434\u043b\u044f copy"
+            : "No proof refs available to copy";
   }
   if (el.caseWorkspaceCaseWikiQuestionHandoffCopyBtn instanceof HTMLButtonElement) {
-    el.caseWorkspaceCaseWikiQuestionHandoffCopyBtn.disabled = !questionActionBundle?.handoffText;
+    el.caseWorkspaceCaseWikiQuestionHandoffCopyBtn.disabled = caseWikiExportBlocked || !questionActionBundle?.handoffText;
     el.caseWorkspaceCaseWikiQuestionHandoffCopyBtn.title =
-      questionActionBundle?.title ??
-      (isRu
-        ? "\u041d\u0435\u0442 focused question handoff \u0434\u043b\u044f copy"
-        : "No focused question handoff available to copy");
+      caseWikiExportBlocked
+        ? caseWikiExportBlockedTitle
+        : questionActionBundle?.title ??
+          (isRu
+            ? "\u041d\u0435\u0442 focused question handoff \u0434\u043b\u044f copy"
+            : "No focused question handoff available to copy");
   }
   if (el.caseWorkspaceCaseWikiQuestionRefsCopyBtn instanceof HTMLButtonElement) {
-    el.caseWorkspaceCaseWikiQuestionRefsCopyBtn.disabled = !questionActionBundle?.refsText;
+    el.caseWorkspaceCaseWikiQuestionRefsCopyBtn.disabled = caseWikiExportBlocked || !questionActionBundle?.refsText;
     el.caseWorkspaceCaseWikiQuestionRefsCopyBtn.title =
-      questionActionBundle?.refs?.length > 0
-        ? `${questionActionBundle.title} (${questionActionBundle.refs.length})`
-        : isRu
-          ? "\u041d\u0435\u0442 question refs \u0434\u043b\u044f copy"
-          : "No question refs available to copy";
+      caseWikiExportBlocked
+        ? caseWikiExportBlockedTitle
+        : questionActionBundle?.refs?.length > 0
+          ? `${questionActionBundle.title} (${questionActionBundle.refs.length})`
+          : isRu
+            ? "\u041d\u0435\u0442 question refs \u0434\u043b\u044f copy"
+            : "No question refs available to copy";
   }
   if (el.caseWorkspaceCaseWikiProofOpenOpsBtn instanceof HTMLButtonElement) {
     el.caseWorkspaceCaseWikiProofOpenOpsBtn.disabled = !proofActionBundle?.focusId;
@@ -21318,6 +21331,9 @@ function resolveExportStatusKind(statusText) {
   if (normalized.startsWith("audio export skipped")) {
     return "skipped";
   }
+  if (normalized.startsWith("case wiki export blocked") || normalized.startsWith("session export blocked")) {
+    return "blocked";
+  }
   if (normalized === "idle") {
     return "idle";
   }
@@ -21342,6 +21358,9 @@ function resolveExportMenuSummaryIcon(statusText) {
   if (kind === "skipped") {
     return "SKIP";
   }
+  if (kind === "blocked") {
+    return "BLOCK";
+  }
   return "DL";
 }
 
@@ -21358,6 +21377,9 @@ function resolveExportStatusStripLabel(statusText) {
   }
   if (kind === "skipped") {
     return t("export.status.skipped");
+  }
+  if (kind === "blocked") {
+    return "Export blocked";
   }
   if (kind === "idle") {
     return t("export.status.idle");
@@ -21480,6 +21502,8 @@ function setExportStatus(text) {
   const exportKind = resolveExportStatusKind(normalized);
   if (exportKind === "markdown" || exportKind === "json" || exportKind === "audio") {
     variant = "ok";
+  } else if (exportKind === "blocked") {
+    variant = "warn";
   }
   setStatusPill(el.exportStatus, stripLabel, variant);
   el.exportStatus.title = normalized;
@@ -26071,6 +26095,25 @@ function toIsoNow() {
 }
 
 function syncExportControlAvailability() {
+  const caseWikiSnapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const caseWikiExportGate = resolveOperatorCaseWikiComplianceExportGate(caseWikiSnapshot);
+  const exportBlocked = caseWikiExportGate.blocked === true;
+  const exportBlockedTitle =
+    caseWikiExportGate.titleText ?? "Case Wiki export is blocked until compliance enforcement passes.";
+  if (el.exportMarkdownBtn instanceof HTMLButtonElement) {
+    el.exportMarkdownBtn.disabled = exportBlocked;
+    el.exportMarkdownBtn.setAttribute("aria-disabled", exportBlocked ? "true" : "false");
+    el.exportMarkdownBtn.title = exportBlocked
+      ? exportBlockedTitle
+      : "Download the current session as markdown.";
+  }
+  if (el.exportJsonBtn instanceof HTMLButtonElement) {
+    el.exportJsonBtn.disabled = exportBlocked;
+    el.exportJsonBtn.setAttribute("aria-disabled", exportBlocked ? "true" : "false");
+    el.exportJsonBtn.title = exportBlocked
+      ? exportBlockedTitle
+      : "Download the current session as JSON.";
+  }
   const chunks = Array.isArray(state.assistantAudioChunks) ? state.assistantAudioChunks : [];
   const totalBytes = typeof state.assistantAudioBytesTotal === "number" && Number.isFinite(state.assistantAudioBytesTotal)
     ? Math.max(0, state.assistantAudioBytesTotal)
@@ -26757,6 +26800,17 @@ function closeExportMenu(options = {}) {
 }
 
 function exportSessionMarkdown() {
+  const caseWikiExportGate = resolveOperatorCaseWikiComplianceExportGate(
+    buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot),
+  );
+  if (caseWikiExportGate.blocked) {
+    denyOperatorCaseWikiComplianceExport("session_markdown_export_blocked", caseWikiExportGate, {
+      requestedAction: "session_markdown_export",
+      operationLabel: "Session markdown export",
+      exportStatus: "session export blocked",
+    });
+    return;
+  }
   const payload = buildSessionExportPayload();
   const markdown = toMarkdownExport(payload);
   const fileName = `${buildSessionExportBaseName()}.md`;
@@ -26766,6 +26820,17 @@ function exportSessionMarkdown() {
 }
 
 function exportSessionJson() {
+  const caseWikiExportGate = resolveOperatorCaseWikiComplianceExportGate(
+    buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot),
+  );
+  if (caseWikiExportGate.blocked) {
+    denyOperatorCaseWikiComplianceExport("session_json_export_blocked", caseWikiExportGate, {
+      requestedAction: "session_json_export",
+      operationLabel: "Session JSON export",
+      exportStatus: "session export blocked",
+    });
+    return;
+  }
   const payload = buildSessionExportPayload();
   const fileName = `${buildSessionExportBaseName()}.json`;
   triggerDownload(fileName, `${JSON.stringify(payload, null, 2)}\n`, "application/json;charset=utf-8");
@@ -33887,6 +33952,17 @@ function renderCaseWorkspaceCaseWikiDetailBadges(container, badges) {
 
 async function copyOperatorCaseWikiDetailAction(kind, action) {
   const isRu = state.languageMode === "ru";
+  const caseWikiExportGate = resolveOperatorCaseWikiComplianceExportGate(
+    buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot),
+  );
+  if (caseWikiExportGate.blocked) {
+    denyOperatorCaseWikiComplianceExport(`case_wiki_${kind}_${action}_copy_blocked`, caseWikiExportGate, {
+      requestedAction: `case_wiki_${kind}_${action}_copy`,
+      operationLabel: `Case Wiki ${kind} ${action} copy`,
+      exportStatus: "case wiki export blocked",
+    });
+    return;
+  }
   const bundle = buildOperatorCaseWikiDetailActionBundle(kind, isRu);
   const text = action === "refs" ? bundle?.refsText : bundle?.handoffText;
   if (!text) {
@@ -33944,6 +34020,15 @@ async function copyOperatorCaseWikiDetailAction(kind, action) {
 
 async function copyOperatorCaseWikiFocusedHandoffBlock(mode = "handoff") {
   const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const caseWikiExportGate = resolveOperatorCaseWikiComplianceExportGate(snapshot);
+  if (caseWikiExportGate.blocked) {
+    denyOperatorCaseWikiComplianceExport(`case_wiki_focused_handoff_${mode}_blocked`, caseWikiExportGate, {
+      requestedAction: `case_wiki_focused_handoff_${mode}`,
+      operationLabel: mode === "export" ? "Case Wiki focused handoff export" : "Case Wiki focused handoff copy",
+      exportStatus: "case wiki export blocked",
+    });
+    return;
+  }
   const evidencePack = resolveOperatorCaseWikiEvidencePack(snapshot);
   const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);
   const focusedBlock = buildOperatorCaseWikiFocusedHandoffBlock(snapshot, evidencePack, focusedItem);
@@ -33993,6 +34078,15 @@ async function copyOperatorCaseWikiFocusedHandoffBlock(mode = "handoff") {
 
 async function copyOperatorCaseWikiFocusedRoutingBlock(mode = "routing") {
   const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const caseWikiExportGate = resolveOperatorCaseWikiComplianceExportGate(snapshot);
+  if (mode === "export" && caseWikiExportGate.blocked) {
+    denyOperatorCaseWikiComplianceExport(`case_wiki_focused_routing_${mode}_blocked`, caseWikiExportGate, {
+      requestedAction: `case_wiki_focused_routing_${mode}`,
+      operationLabel: "Case Wiki focused routing export",
+      exportStatus: "case wiki export blocked",
+    });
+    return;
+  }
   const evidencePack = resolveOperatorCaseWikiEvidencePack(snapshot);
   const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);
   const routingBlock = buildOperatorCaseWikiFocusedRoutingBlock(snapshot, evidencePack, focusedItem);
@@ -34043,6 +34137,15 @@ async function copyOperatorCaseWikiFocusedRoutingBlock(mode = "routing") {
 
 async function copyOperatorCaseWikiFocusedRemediationBlock(mode = "draft") {
   const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const caseWikiExportGate = resolveOperatorCaseWikiComplianceExportGate(snapshot);
+  if (mode === "export" && caseWikiExportGate.blocked) {
+    denyOperatorCaseWikiComplianceExport(`case_wiki_focused_remediation_${mode}_blocked`, caseWikiExportGate, {
+      requestedAction: `case_wiki_focused_remediation_${mode}`,
+      operationLabel: "Case Wiki focused remediation export",
+      exportStatus: "case wiki export blocked",
+    });
+    return;
+  }
   const evidencePack = resolveOperatorCaseWikiEvidencePack(snapshot);
   const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);
   const remediationBlock = buildOperatorCaseWikiFocusedRemediationBlock(snapshot, evidencePack, focusedItem);
@@ -34544,6 +34647,70 @@ function buildOperatorCaseWikiCompliancePreview() {
   return "No case wiki compliance loaded yet.";
 }
 
+function resolveOperatorCaseWikiComplianceExportGate(snapshot) {
+  const compliance = isRecord(snapshot?.compliance) ? snapshot.compliance : null;
+  const enforcement = isRecord(compliance?.enforcement) ? compliance.enforcement : null;
+  const blockingReasons = Array.isArray(enforcement?.blockingReasons)
+    ? enforcement.blockingReasons.map((item) => toOptionalText(item)).filter(Boolean)
+    : [];
+  const rawRefCount = Number.isFinite(Number(enforcement?.rawRefCount))
+    ? Math.max(0, Math.floor(Number(enforcement.rawRefCount)))
+    : 0;
+  const blocked = enforcement?.exportReady === false || blockingReasons.length > 0;
+  let reasonCode = blockingReasons[0] ?? null;
+  let reasonText = null;
+  if (blockingReasons.includes("raw_like_source_refs_detected")) {
+    reasonCode = "raw_like_source_refs_detected";
+    reasonText =
+      rawRefCount > 0
+        ? `Case Wiki export is blocked until raw evidence refs are redacted (${rawRefCount} flagged).`
+        : "Case Wiki export is blocked until raw evidence refs are redacted.";
+  } else if (blockingReasons.includes("case_wiki_signature_missing")) {
+    reasonCode = "case_wiki_signature_missing";
+    reasonText = "Case Wiki export is blocked until evidence signing passes.";
+  } else if (blocked) {
+    reasonCode = reasonCode ?? "compliance_enforcement_blocked";
+    reasonText = "Case Wiki export is blocked until compliance enforcement passes.";
+  }
+  return {
+    blocked,
+    enforcement,
+    blockingReasons,
+    reasonCode,
+    rawRefCount,
+    reasonText,
+    titleText: blocked ? reasonText ?? "Case Wiki export is blocked until compliance enforcement passes." : "Case Wiki export is ready.",
+  };
+}
+
+function denyOperatorCaseWikiComplianceExport(action, gate, options = {}) {
+  const reasonText =
+    toOptionalText(options.reasonText) ??
+    toOptionalText(gate?.reasonText) ??
+    "Case Wiki export is blocked until compliance enforcement passes.";
+  const operationLabel = toOptionalText(options.operationLabel);
+  state.operatorSessionOpsLastResult = {
+    action,
+    requestedAction: toOptionalText(options.requestedAction) ?? action,
+    operationLabel,
+    reason: "compliance_export_blocked",
+    reasonCode: toOptionalText(gate?.reasonCode),
+    reasonText,
+    blockingReasons: Array.isArray(gate?.blockingReasons) ? gate.blockingReasons.slice(0, 6) : [],
+    blockedAt: toIsoNow(),
+  };
+  setOperatorSessionOpsControlStatus(toOptionalText(options.statusCode) ?? "case_wiki_export_blocked", "warn");
+  if (options.updateExportStatus !== false) {
+    setExportStatus(toOptionalText(options.exportStatus) ?? "case wiki export blocked");
+  }
+  renderOperatorSessionOpsPanel();
+  appendTranscript(
+    "error",
+    operationLabel ? `${operationLabel} blocked. ${reasonText}` : reasonText,
+    { exposeInLiveResult: false },
+  );
+}
+
 function buildOperatorCaseWikiAuditPreview() {
   const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
   if (!snapshot) {
@@ -34793,6 +34960,10 @@ function buildOperatorSessionOpsLastResultPreview() {
 function renderOperatorSessionOpsPanel() {
   const declaration = cloneOperatorPurposeDeclaration(state.operatorPurposeDeclaration);
   const caseWikiSnapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const caseWikiExportGate = resolveOperatorCaseWikiComplianceExportGate(caseWikiSnapshot);
+  const caseWikiExportBlocked = caseWikiExportGate.blocked === true;
+  const caseWikiExportBlockedTitle =
+    caseWikiExportGate.titleText ?? "Case Wiki export is blocked until compliance enforcement passes.";
   const caseWikiEvidencePack = resolveOperatorCaseWikiEvidencePack(caseWikiSnapshot);
   const caseWikiFocusedItem = resolveOperatorCaseWikiFocusedItem(caseWikiEvidencePack);
   const focusedHandoffBlock = buildOperatorCaseWikiFocusedHandoffBlock(
@@ -34891,14 +35062,19 @@ function renderOperatorSessionOpsPanel() {
     el.operatorCaseWikiSaveBtn.disabled = !canAppendOperatorCaseWikiNote();
   }
   if (el.operatorCaseWikiFocusedHandoffCopyBtn instanceof HTMLButtonElement) {
-    el.operatorCaseWikiFocusedHandoffCopyBtn.disabled = !toOptionalText(focusedHandoffBlock?.handoff);
+    el.operatorCaseWikiFocusedHandoffCopyBtn.disabled =
+      caseWikiExportBlocked || !toOptionalText(focusedHandoffBlock?.handoff);
     el.operatorCaseWikiFocusedHandoffCopyBtn.title =
-      focusedHandoffBlock?.focus?.label ?? "Select a Case Wiki proof/question focus first";
+      caseWikiExportBlocked
+        ? caseWikiExportBlockedTitle
+        : focusedHandoffBlock?.focus?.label ?? "Select a Case Wiki proof/question focus first";
   }
   if (el.operatorCaseWikiFocusedHandoffExportBtn instanceof HTMLButtonElement) {
-    el.operatorCaseWikiFocusedHandoffExportBtn.disabled = !focusedHandoffBlock;
+    el.operatorCaseWikiFocusedHandoffExportBtn.disabled = caseWikiExportBlocked || !focusedHandoffBlock;
     el.operatorCaseWikiFocusedHandoffExportBtn.title =
-      focusedHandoffBlock?.focus?.label ?? "Select a Case Wiki proof/question focus first";
+      caseWikiExportBlocked
+        ? caseWikiExportBlockedTitle
+        : focusedHandoffBlock?.focus?.label ?? "Select a Case Wiki proof/question focus first";
   }
   if (el.operatorCaseWikiFocusedRoutingCopyBtn instanceof HTMLButtonElement) {
     el.operatorCaseWikiFocusedRoutingCopyBtn.disabled = !toOptionalText(focusedRoutingBlock?.route?.summary);
@@ -34906,9 +35082,11 @@ function renderOperatorSessionOpsPanel() {
       focusedRoutingBlock?.focus?.label ?? "Select a Case Wiki proof/question focus first";
   }
   if (el.operatorCaseWikiFocusedRoutingExportBtn instanceof HTMLButtonElement) {
-    el.operatorCaseWikiFocusedRoutingExportBtn.disabled = !focusedRoutingBlock;
+    el.operatorCaseWikiFocusedRoutingExportBtn.disabled = caseWikiExportBlocked || !focusedRoutingBlock;
     el.operatorCaseWikiFocusedRoutingExportBtn.title =
-      focusedRoutingBlock?.focus?.label ?? "Select a Case Wiki proof/question focus first";
+      caseWikiExportBlocked
+        ? caseWikiExportBlockedTitle
+        : focusedRoutingBlock?.focus?.label ?? "Select a Case Wiki proof/question focus first";
   }
   if (el.operatorCaseWikiFocusedRemediationCopyBtn instanceof HTMLButtonElement) {
     el.operatorCaseWikiFocusedRemediationCopyBtn.disabled = !toOptionalText(focusedRemediationBlock?.draft?.body);
@@ -34916,10 +35094,13 @@ function renderOperatorSessionOpsPanel() {
       focusedRemediationBlock?.focus?.label ?? "Select a Case Wiki proof/question focus first";
   }
   if (el.operatorCaseWikiFocusedRemediationExportBtn instanceof HTMLButtonElement) {
-    el.operatorCaseWikiFocusedRemediationExportBtn.disabled = !focusedRemediationBlock;
+    el.operatorCaseWikiFocusedRemediationExportBtn.disabled = caseWikiExportBlocked || !focusedRemediationBlock;
     el.operatorCaseWikiFocusedRemediationExportBtn.title =
-      focusedRemediationBlock?.focus?.label ?? "Select a Case Wiki proof/question focus first";
+      caseWikiExportBlocked
+        ? caseWikiExportBlockedTitle
+        : focusedRemediationBlock?.focus?.label ?? "Select a Case Wiki proof/question focus first";
   }
+  syncExportControlAvailability();
   renderCaseWorkspaceCaseWikiSummary();
   renderOperatorSessionBoundaryWidget(state.operatorSessionReplaySnapshot);
 }
