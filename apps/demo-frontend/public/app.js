@@ -38183,6 +38183,21 @@ function registerLiveDebugHooks() {
   };
 }
 
+function resolveCaseWikiSnapshotFromInput(input) {
+  const base = isRecord(input) ? input : null;
+  if (!base) {
+    return null;
+  }
+  for (const key of ["caseWiki", "caseWikiSnapshot", "runtimeCaseWiki", "compiledCaseWiki"]) {
+    const candidate = isRecord(base[key]) ? base[key] : null;
+    if (candidate) {
+      return candidate;
+    }
+  }
+  const context = isRecord(base.context) ? base.context : null;
+  return context && isRecord(context.caseWiki) ? context.caseWiki : null;
+}
+
 function resolveCaseWikiSnapshotForInput() {
   const snapshot = isRecord(state.operatorCaseWikiSnapshot) ? state.operatorCaseWikiSnapshot : null;
   if (!snapshot) {
@@ -38198,7 +38213,13 @@ function resolveCaseWikiSnapshotForInput() {
 
 function buildOrchestratorInput(input) {
   const base = isRecord(input) ? input : {};
-  if (isRecord(base.caseWiki)) {
+  const existingCaseWikiSnapshot = resolveCaseWikiSnapshotFromInput(base);
+  const existingSessionId = toOptionalText(existingCaseWikiSnapshot?.sessionId);
+  const currentSessionId = toOptionalText(state.sessionId);
+  if (
+    existingCaseWikiSnapshot &&
+    (!existingSessionId || !currentSessionId || existingSessionId === currentSessionId)
+  ) {
     return base;
   }
   const caseWikiSnapshot = resolveCaseWikiSnapshotForInput();

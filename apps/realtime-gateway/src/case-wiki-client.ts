@@ -33,7 +33,17 @@ function getRequestInput(request: OrchestratorRequest): Record<string, unknown> 
 
 function getExistingCaseWikiSnapshot(request: OrchestratorRequest): Record<string, unknown> | null {
   const input = getRequestInput(request);
-  return input ? toRecord(input.caseWiki) : null;
+  if (!input) {
+    return null;
+  }
+  for (const key of ["caseWiki", "caseWikiSnapshot", "runtimeCaseWiki", "compiledCaseWiki"]) {
+    const candidate = toRecord(input[key]);
+    if (candidate) {
+      return candidate;
+    }
+  }
+  const context = toRecord(input.context);
+  return context ? toRecord(context.caseWiki) : null;
 }
 
 function getRequestTenantId(request: OrchestratorRequest): string | null {

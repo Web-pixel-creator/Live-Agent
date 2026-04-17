@@ -174,3 +174,97 @@ test("createCaseWikiRequestAttacher does not overwrite an existing matching snap
   assert.equal(fetchCount, 0);
   assert.equal(updated, request);
 });
+
+test("requestHasCaseWikiSnapshot accepts supported alias forms for the current session", () => {
+  const request = createRequest({
+    context: {
+      caseWiki: {
+        sessionId: "session-123",
+        focusPack: {
+          summary: "compiled",
+        },
+      },
+    },
+  });
+
+  assert.equal(requestHasCaseWikiSnapshot(request), true);
+});
+
+test("createCaseWikiRequestAttacher preserves matching alias snapshots without refetching", async () => {
+  let fetchCount = 0;
+  const attacher = createCaseWikiRequestAttacher(
+    {
+      apiBackendBaseUrl: "http://localhost:8081",
+    },
+    {
+      fetchImpl: async () => {
+        fetchCount += 1;
+        return new Response(JSON.stringify({ data: { sessionId: "session-123" } }), { status: 200 });
+      },
+    },
+  );
+
+  const request = createRequest({
+    caseWikiSnapshot: {
+      sessionId: "session-123",
+      focusPack: {
+        summary: "alias",
+      },
+    },
+  });
+
+  const updated = await attacher(request);
+  assert.equal(fetchCount, 0);
+  assert.equal(updated, request);
+});
+
+test("createCaseWikiRequestAttacher replaces stale alias snapshots with the current-session case wiki", async () => {
+  let fetchCount = 0;
+  const attacher = createCaseWikiRequestAttacher(
+    {
+      apiBackendBaseUrl: "http://localhost:8081",
+    },
+    {
+      fetchImpl: async () => {
+        fetchCount += 1;
+        return new Response(
+          JSON.stringify({
+            data: {
+              sessionId: "session-123",
+              focusPack: {
+                summary: "fresh",
+              },
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      },
+    },
+  );
+
+  const request = createRequest({
+    compiledCaseWiki: {
+      sessionId: "session-stale",
+      focusPack: {
+        summary: "stale",
+      },
+    },
+  });
+
+  const updated = await attacher(request);
+  const updatedInput = updated.payload as { input: Record<string, unknown> };
+
+  assert.equal(fetchCount, 1);
+  assert.deepEqual(updatedInput.input.caseWiki, {
+    sessionId: "session-123",
+    focusPack: {
+      summary: "fresh",
+    },
+  });
+  assert.deepEqual(updatedInput.input.compiledCaseWiki, {
+    sessionId: "session-stale",
+    focusPack: {
+      summary: "stale",
+    },
+  });
+});
