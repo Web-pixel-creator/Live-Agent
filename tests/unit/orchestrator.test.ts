@@ -793,6 +793,7 @@ test("assistive router feeds Case Wiki routing context into classifier prompts",
     assert.equal(routing.mode, "assistive_override");
     assert.equal(routing.routedIntent, "negotiation");
     assert.equal(routing.contextSource, "case_wiki");
+    assert.equal(routing.contextIngressSource, "preserved_input_case_wiki");
     assert.equal(routing.contextFocusId, "question:passport-scan");
     assert.equal(routing.contextBlocker, "Do we have the passport scan?");
     assert.equal(routing.contextNextAction, "Request passport scan");

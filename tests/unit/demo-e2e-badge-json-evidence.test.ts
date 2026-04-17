@@ -131,6 +131,7 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
         assistiveRouterProviderMetadataValidated: true,
         caseWikiRoutingContextValidated: true,
         caseWikiRoutingContextSource: "case_wiki",
+        caseWikiRoutingContextIngressSource: "preserved_input_case_wiki",
         caseWikiRoutingContextFocusId: "question:passport-scan",
         caseWikiRoutingContextBlocker: "Do we have the passport scan?",
         caseWikiRoutingContextNextAction: "Request passport scan",
@@ -146,6 +147,7 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
         caseWikiGatewayHydrationNoteSourceRefSeen: true,
         caseWikiGatewayHydrationQuestionSuggestedNextStep: "Request passport scan",
         caseWikiGatewayHydrationContextSource: "case_wiki",
+        caseWikiGatewayHydrationIngressSource: "gateway_hydrated_case_wiki",
         caseWikiGatewayHydrationFocusId: "question:operator-note:event-case-wiki-note-042",
         caseWikiGatewayHydrationBlocker: "Passport scan is still missing from the case.",
         caseWikiGatewayHydrationNextAction: "Request passport scan",
@@ -575,6 +577,7 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.equal(caseWikiRoutingContext.validated, true);
   assert.equal(caseWikiRoutingContext.observed, true);
   assert.equal(caseWikiRoutingContext.contextSource, "case_wiki");
+  assert.equal(caseWikiRoutingContext.ingressSource, "preserved_input_case_wiki");
   assert.equal(caseWikiRoutingContext.focusId, "question:passport-scan");
   assert.equal(caseWikiRoutingContext.blocker, "Do we have the passport scan?");
   assert.equal(caseWikiRoutingContext.nextAction, "Request passport scan");
@@ -592,6 +595,7 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.equal(caseWikiGatewayHydration.noteSourceRefSeen, true);
   assert.equal(caseWikiGatewayHydration.questionSuggestedNextStep, "Request passport scan");
   assert.equal(caseWikiGatewayHydration.contextSource, "case_wiki");
+  assert.equal(caseWikiGatewayHydration.ingressSource, "gateway_hydrated_case_wiki");
   assert.equal(caseWikiGatewayHydration.focusId, "question:operator-note:event-case-wiki-note-042");
   assert.equal(caseWikiGatewayHydration.blocker, "Passport scan is still missing from the case.");
   assert.equal(caseWikiGatewayHydration.nextAction, "Request passport scan");

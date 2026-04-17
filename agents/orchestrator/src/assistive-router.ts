@@ -12,6 +12,7 @@ type AssistiveRouterMode =
   | "assistive_fallback";
 
 type AssistiveRoutingContextSource = "input_only" | "case_wiki";
+type CaseWikiIngressSource = "preserved_input_case_wiki" | "gateway_hydrated_case_wiki";
 
 export type AssistiveRoutingDecision = {
   requestedIntent: OrchestratorIntent;
@@ -29,6 +30,7 @@ export type AssistiveRoutingDecision = {
   promptCaching: AssistiveRouterRuntimeConfig["promptCaching"];
   watchlistEnabled: boolean;
   contextSource: AssistiveRoutingContextSource;
+  contextIngressSource: CaseWikiIngressSource | null;
   contextFocusId: string | null;
   contextBlocker: string | null;
   contextNextAction: string | null;
@@ -75,6 +77,16 @@ function toNonEmptyString(value: unknown): string | null {
   }
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : null;
+}
+
+function toCaseWikiIngressSource(value: unknown): CaseWikiIngressSource | null {
+  const normalized = toNonEmptyString(value);
+  if (!normalized) {
+    return null;
+  }
+  return normalized === "preserved_input_case_wiki" || normalized === "gateway_hydrated_case_wiki"
+    ? normalized
+    : null;
 }
 
 function clipText(value: string | null, maxLength: number): string | null {
@@ -280,6 +292,16 @@ function extractCaseWikiRecord(input: unknown): Record<string, unknown> | null {
   return context && isRecord(context.caseWiki) ? context.caseWiki : null;
 }
 
+function extractCaseWikiIngressSource(request: OrchestratorRequest): CaseWikiIngressSource | null {
+  const metadata = isRecord(request.metadata) ? request.metadata : null;
+  const caseWikiIngress = metadata && isRecord(metadata.caseWikiIngress) ? metadata.caseWikiIngress : null;
+  const source = toCaseWikiIngressSource(caseWikiIngress?.source);
+  if (source) {
+    return source;
+  }
+  return extractCaseWikiRecord(request.payload.input) ? "preserved_input_case_wiki" : null;
+}
+
 function findCaseWikiRoutingItem(
   caseWiki: Record<string, unknown>,
   focusKind: string | null,
@@ -397,6 +419,8 @@ function baseDecision(
   routingContext?: CaseWikiAssistiveRoutingContext | null,
 ): AssistiveRoutingDecision {
   const routedIntent = params.routedIntent ?? request.payload.intent;
+  const contextIngressSource =
+    routingContext?.source === "case_wiki" ? extractCaseWikiIngressSource(request) : null;
   return {
     requestedIntent: request.payload.intent,
     routedIntent,
@@ -413,6 +437,7 @@ function baseDecision(
     promptCaching: config.promptCaching,
     watchlistEnabled: config.watchlistEnabled,
     contextSource: routingContext?.source ?? "input_only",
+    contextIngressSource,
     contextFocusId: routingContext?.focusId ?? null,
     contextBlocker: routingContext?.blockingQuestion ?? null,
     contextNextAction: routingContext?.nextAction ?? null,

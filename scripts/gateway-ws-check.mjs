@@ -293,6 +293,10 @@ function finish() {
       responseRouting && typeof responseRouting.contextSource === "string"
         ? responseRouting.contextSource
         : null,
+    routingContextIngressSource:
+      responseRouting && typeof responseRouting.contextIngressSource === "string"
+        ? responseRouting.contextIngressSource
+        : null,
     routingFocusId:
       responseRouting && typeof responseRouting.contextFocusId === "string"
         ? responseRouting.contextFocusId

@@ -1004,6 +1004,7 @@ function buildCaseWikiComplianceEvidence(summary, kpis) {
 function buildCaseWikiRoutingContextEvidence(kpis) {
   const validated = toBoolean(kpis.caseWikiRoutingContextValidated) === true;
   const contextSource = toOptionalString(kpis.caseWikiRoutingContextSource);
+  const ingressSource = toOptionalString(kpis.caseWikiRoutingContextIngressSource);
   const focusId = toOptionalString(kpis.caseWikiRoutingContextFocusId);
   const blocker = toOptionalString(kpis.caseWikiRoutingContextBlocker);
   const nextAction = toOptionalString(kpis.caseWikiRoutingContextNextAction);
@@ -1013,6 +1014,7 @@ function buildCaseWikiRoutingContextEvidence(kpis) {
   const routedIntent = toOptionalString(kpis.caseWikiRoutingContextRoutedIntent);
   const observed =
     contextSource !== null ||
+    ingressSource !== null ||
     focusId !== null ||
     blocker !== null ||
     nextAction !== null ||
@@ -1023,9 +1025,13 @@ function buildCaseWikiRoutingContextEvidence(kpis) {
   const modeValid =
     mode !== null &&
     ["deterministic", "assistive_override", "assistive_match", "assistive_fallback"].includes(mode);
+  const ingressValid =
+    ingressSource !== null &&
+    ["preserved_input_case_wiki", "gateway_hydrated_case_wiki"].includes(ingressSource);
   const status =
     validated &&
     contextSource === "case_wiki" &&
+    ingressValid &&
     focusId !== null &&
     blocker !== null &&
     nextAction !== null &&
@@ -1043,6 +1049,7 @@ function buildCaseWikiRoutingContextEvidence(kpis) {
     validated,
     observed,
     contextSource,
+    ingressSource,
     focusId,
     blocker,
     nextAction,
@@ -1062,6 +1069,7 @@ function buildCaseWikiGatewayHydrationEvidence(kpis) {
   const noteSourceRefSeen = toBoolean(kpis.caseWikiGatewayHydrationNoteSourceRefSeen);
   const questionSuggestedNextStep = toOptionalString(kpis.caseWikiGatewayHydrationQuestionSuggestedNextStep);
   const contextSource = toOptionalString(kpis.caseWikiGatewayHydrationContextSource);
+  const ingressSource = toOptionalString(kpis.caseWikiGatewayHydrationIngressSource);
   const focusId = toOptionalString(kpis.caseWikiGatewayHydrationFocusId);
   const blocker = toOptionalString(kpis.caseWikiGatewayHydrationBlocker);
   const nextAction = toOptionalString(kpis.caseWikiGatewayHydrationNextAction);
@@ -1075,6 +1083,7 @@ function buildCaseWikiGatewayHydrationEvidence(kpis) {
     questionId !== null ||
     questionSuggestedNextStep !== null ||
     contextSource !== null ||
+    ingressSource !== null ||
     focusId !== null ||
     blocker !== null ||
     nextAction !== null ||
@@ -1094,6 +1103,7 @@ function buildCaseWikiGatewayHydrationEvidence(kpis) {
     questionId !== null &&
     questionSuggestedNextStep !== null &&
     contextSource === "case_wiki" &&
+    ingressSource === "gateway_hydrated_case_wiki" &&
     focusId !== null &&
     blocker !== null &&
     nextAction !== null &&
@@ -1117,6 +1127,7 @@ function buildCaseWikiGatewayHydrationEvidence(kpis) {
     noteSourceRefSeen,
     questionSuggestedNextStep,
     contextSource,
+    ingressSource,
     focusId,
     blocker,
     nextAction,

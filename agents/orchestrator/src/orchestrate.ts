@@ -60,6 +60,7 @@ type RoutingEventMetadata = Pick<
   | "routedIntent"
   | "mode"
   | "contextSource"
+  | "contextIngressSource"
   | "contextFocusId"
   | "contextBlocker"
   | "contextNextAction"
@@ -74,6 +75,7 @@ function buildRoutingEventMetadata(routing?: RoutingEventMetadata | null): Recor
     routingRoutedIntent: routing.routedIntent,
     routingMode: routing.mode,
     routingContextSource: routing.contextSource,
+    routingContextIngressSource: routing.contextIngressSource,
     routingContextFocusId: routing.contextFocusId,
     routingContextBlocker: routing.contextBlocker,
     routingContextNextAction: routing.contextNextAction,
@@ -150,6 +152,18 @@ function toNonEmptyString(value: unknown): string | null {
 function toFiniteNumber(value: unknown): number | null {
   const parsed = typeof value === "number" ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function extractRequestCaseWikiIngressSource(
+  request: OrchestratorRequest,
+): AssistiveRoutingDecision["contextIngressSource"] {
+  const metadata = isRecord(request.metadata) ? request.metadata : null;
+  const caseWikiIngress = metadata && isRecord(metadata.caseWikiIngress) ? metadata.caseWikiIngress : null;
+  const source = toNonEmptyString(caseWikiIngress?.source);
+  if (source === "preserved_input_case_wiki" || source === "gateway_hydrated_case_wiki") {
+    return source;
+  }
+  return extractRequestCaseWiki(request.payload.input) ? "preserved_input_case_wiki" : null;
 }
 
 function sanitizeIdempotencyToken(value: string): string {
@@ -679,12 +693,13 @@ function withRoutingMetadata(
           selectionReason: routing.selectionReason,
           budgetPolicy: routing.budgetPolicy,
           promptCaching: routing.promptCaching,
-          watchlistEnabled: routing.watchlistEnabled,
-          contextSource: routing.contextSource,
-          contextFocusId: routing.contextFocusId,
-          contextBlocker: routing.contextBlocker,
-          contextNextAction: routing.contextNextAction,
-        },
+        watchlistEnabled: routing.watchlistEnabled,
+        contextSource: routing.contextSource,
+        contextIngressSource: routing.contextIngressSource,
+        contextFocusId: routing.contextFocusId,
+        contextBlocker: routing.contextBlocker,
+        contextNextAction: routing.contextNextAction,
+      },
         ...(budgetGuard ? { runtimeBudgetGuard: budgetGuard } : {}),
       },
     },
@@ -894,6 +909,7 @@ function buildBudgetGuardRoutingDecision(
     promptCaching: config.promptCaching,
     watchlistEnabled: config.watchlistEnabled,
     contextSource: hasCaseWikiContext ? "case_wiki" : "input_only",
+    contextIngressSource: hasCaseWikiContext ? extractRequestCaseWikiIngressSource(request) : null,
     contextFocusId: null,
     contextBlocker: null,
     contextNextAction: null,

@@ -3277,6 +3277,7 @@ try {
     $routingPromptCaching = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "promptCaching"))
     $routingWatchlistEnabled = Get-FieldValue -Object $response -Path @("payload", "output", "routing", "watchlistEnabled")
     $routingContextSource = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "contextSource"))
+    $routingContextIngressSource = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "contextIngressSource"))
     $routingConfidenceRaw = Get-FieldValue -Object $response -Path @("payload", "output", "routing", "confidence")
     $routingConfidence = $null
     if ($null -ne $routingConfidenceRaw -and -not [string]::IsNullOrWhiteSpace([string]$routingConfidenceRaw)) {
@@ -3317,6 +3318,7 @@ try {
       routingPromptCaching = $routingPromptCaching
       routingWatchlistEnabled = [bool]$routingWatchlistEnabled
       routingContextSource = $routingContextSource
+      routingContextIngressSource = $routingContextIngressSource
       routingConfidence = $routingConfidence
       timeoutSec = $delegationRequestTimeoutSec
       inputApproxTokens = $inputApproxTokens
@@ -3395,6 +3397,7 @@ try {
     $requestedIntent = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "requestedIntent"))
     $routedIntent = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "routedIntent"))
     $contextSource = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "contextSource"))
+    $contextIngressSource = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "contextIngressSource"))
     $contextFocusId = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "contextFocusId"))
     $contextBlocker = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "contextBlocker"))
     $contextNextAction = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "contextNextAction"))
@@ -3406,6 +3409,7 @@ try {
     Assert-Condition -Condition ($contextFocusId -eq "question:passport-scan") -Message "Case Wiki routing focus id mismatch."
     Assert-Condition -Condition ($contextBlocker -eq "Do we have the passport scan?") -Message "Case Wiki routing blocker mismatch."
     Assert-Condition -Condition ($contextNextAction -eq "Request passport scan") -Message "Case Wiki routing next action mismatch."
+    Assert-Condition -Condition ($contextIngressSource -eq "preserved_input_case_wiki") -Message "Case Wiki routing ingress source should prove preserved input case wiki context."
     Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($routingMode)) -Message "Case Wiki routing mode should be present."
     Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($routedIntent)) -Message "Case Wiki routed intent should be present."
 
@@ -3415,6 +3419,7 @@ try {
       routedIntent = $routedIntent
       mode = $routingMode
       contextSource = $contextSource
+      ingressSource = $contextIngressSource
       focusId = $contextFocusId
       blocker = $contextBlocker
       nextAction = $contextNextAction
@@ -3587,6 +3592,7 @@ try {
     $hydrationResponseStatus = [string](Get-FieldValue -Object $hydrationResult -Path @("responseStatus"))
     $hydrationResponseRoute = [string](Get-FieldValue -Object $hydrationResult -Path @("responseRoute"))
     $hydrationContextSource = [string](Get-FieldValue -Object $hydrationResult -Path @("routingContextSource"))
+    $hydrationContextIngressSource = [string](Get-FieldValue -Object $hydrationResult -Path @("routingContextIngressSource"))
     $hydrationRoutingFocusId = [string](Get-FieldValue -Object $hydrationResult -Path @("routingFocusId"))
     $hydrationRoutingBlocker = [string](Get-FieldValue -Object $hydrationResult -Path @("routingBlocker"))
     $hydrationRoutingNextAction = [string](Get-FieldValue -Object $hydrationResult -Path @("routingNextAction"))
@@ -3597,6 +3603,7 @@ try {
     Assert-Condition -Condition ($hydrationResponseStatus -eq "completed") -Message "Gateway Case Wiki hydration websocket response did not complete."
     Assert-Condition -Condition ($hydrationResponseRoute -eq "live-agent") -Message "Gateway Case Wiki hydration websocket response should stay on live-agent."
     Assert-Condition -Condition ($hydrationContextSource -eq "case_wiki") -Message "Gateway Case Wiki hydration websocket contextSource should be case_wiki."
+    Assert-Condition -Condition ($hydrationContextIngressSource -eq "gateway_hydrated_case_wiki") -Message "Gateway Case Wiki hydration websocket ingress source should be gateway_hydrated_case_wiki."
     Assert-Condition -Condition ($hydrationRoutingFocusId -eq $hydrationFocusId) -Message "Gateway Case Wiki hydration websocket focusId did not match the compiled Case Wiki snapshot."
     Assert-Condition -Condition ($hydrationRoutingBlocker -eq $hydrationBlocker) -Message "Gateway Case Wiki hydration websocket blocker did not match the compiled Case Wiki snapshot."
     Assert-Condition -Condition ($hydrationRoutingNextAction -eq $hydrationNextAction) -Message "Gateway Case Wiki hydration websocket nextAction did not match the compiled Case Wiki snapshot."
@@ -3614,6 +3621,7 @@ try {
       snapshotValidated = $hydrationSnapshotValidated
       responseRoute = $hydrationResponseRoute
       contextSource = $hydrationContextSource
+      ingressSource = $hydrationContextIngressSource
       focusId = $hydrationRoutingFocusId
       blocker = $hydrationRoutingBlocker
       nextAction = $hydrationRoutingNextAction
@@ -6182,18 +6190,21 @@ if ($null -ne $delegationData -and -not [string]::IsNullOrWhiteSpace([string]$de
   $caseWikiContextAdoptionObservations += [ordered]@{
     scenario = "multi_agent.delegation"
     contextSource = [string]$delegationData.routingContextSource
+    ingressSource = [string]$delegationData.routingContextIngressSource
   }
 }
 if ($null -ne $caseWikiRoutingContextData -and -not [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextData.contextSource)) {
   $caseWikiContextAdoptionObservations += [ordered]@{
     scenario = "orchestrator.case_wiki_routing_context"
     contextSource = [string]$caseWikiRoutingContextData.contextSource
+    ingressSource = [string]$caseWikiRoutingContextData.ingressSource
   }
 }
 if ($null -ne $gatewayCaseWikiHydrationData -and -not [string]::IsNullOrWhiteSpace([string]$gatewayCaseWikiHydrationData.contextSource)) {
   $caseWikiContextAdoptionObservations += [ordered]@{
     scenario = "gateway.websocket.case_wiki_hydration"
     contextSource = [string]$gatewayCaseWikiHydrationData.contextSource
+    ingressSource = [string]$gatewayCaseWikiHydrationData.ingressSource
   }
 }
 $caseWikiContextAdoptionObservedCount = @($caseWikiContextAdoptionObservations).Count
@@ -6779,6 +6790,7 @@ $summary = [ordered]@{
     assistiveRouterWatchlistEnabled = if ($null -ne $delegationData) { $delegationData.routingWatchlistEnabled } else { $null }
     assistiveRouterConfidence = if ($null -ne $delegationData) { $delegationData.routingConfidence } else { $null }
     caseWikiRoutingContextSource = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.contextSource } else { $null }
+    caseWikiRoutingContextIngressSource = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.ingressSource } else { $null }
     caseWikiRoutingContextFocusId = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.focusId } else { $null }
     caseWikiRoutingContextBlocker = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.blocker } else { $null }
     caseWikiRoutingContextNextAction = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.nextAction } else { $null }
@@ -6794,6 +6806,7 @@ $summary = [ordered]@{
     caseWikiGatewayHydrationNoteSourceRefSeen = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.noteSourceRefSeen } else { $null }
     caseWikiGatewayHydrationQuestionSuggestedNextStep = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.questionSuggestedNextStep } else { $null }
     caseWikiGatewayHydrationContextSource = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.contextSource } else { $null }
+    caseWikiGatewayHydrationIngressSource = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.ingressSource } else { $null }
     caseWikiGatewayHydrationFocusId = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.focusId } else { $null }
     caseWikiGatewayHydrationBlocker = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.blocker } else { $null }
     caseWikiGatewayHydrationNextAction = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.nextAction } else { $null }

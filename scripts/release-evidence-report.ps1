@@ -610,6 +610,7 @@ function New-CaseWikiRoutingContextSnapshot {
       validated       = $false
       observed        = $false
       contextSource   = $null
+      ingressSource   = $null
       focusId         = $null
       blocker         = $null
       nextAction      = $null
@@ -625,6 +626,7 @@ function New-CaseWikiRoutingContextSnapshot {
     validated       = ($Value.validated -eq $true)
     observed        = ($Value.observed -eq $true)
     contextSource   = $(if ([string]::IsNullOrWhiteSpace([string]$Value.contextSource)) { $null } else { [string]$Value.contextSource })
+    ingressSource   = $(if ([string]::IsNullOrWhiteSpace([string]$Value.ingressSource)) { $null } else { [string]$Value.ingressSource })
     focusId         = $(if ([string]::IsNullOrWhiteSpace([string]$Value.focusId)) { $null } else { [string]$Value.focusId })
     blocker         = $(if ([string]::IsNullOrWhiteSpace([string]$Value.blocker)) { $null } else { [string]$Value.blocker })
     nextAction      = $(if ([string]::IsNullOrWhiteSpace([string]$Value.nextAction)) { $null } else { [string]$Value.nextAction })
@@ -653,6 +655,7 @@ function New-CaseWikiGatewayHydrationSnapshot {
       noteSourceRefSeen         = $null
       questionSuggestedNextStep = $null
       contextSource             = $null
+      ingressSource             = $null
       focusId                   = $null
       blocker                   = $null
       nextAction                = $null
@@ -674,6 +677,7 @@ function New-CaseWikiGatewayHydrationSnapshot {
     noteSourceRefSeen         = $(if ($null -eq $Value.noteSourceRefSeen) { $null } else { $Value.noteSourceRefSeen -eq $true })
     questionSuggestedNextStep = $(if ([string]::IsNullOrWhiteSpace([string]$Value.questionSuggestedNextStep)) { $null } else { [string]$Value.questionSuggestedNextStep })
     contextSource             = $(if ([string]::IsNullOrWhiteSpace([string]$Value.contextSource)) { $null } else { [string]$Value.contextSource })
+    ingressSource             = $(if ([string]::IsNullOrWhiteSpace([string]$Value.ingressSource)) { $null } else { [string]$Value.ingressSource })
     focusId                   = $(if ([string]::IsNullOrWhiteSpace([string]$Value.focusId)) { $null } else { [string]$Value.focusId })
     blocker                   = $(if ([string]::IsNullOrWhiteSpace([string]$Value.blocker)) { $null } else { [string]$Value.blocker })
     nextAction                = $(if ([string]::IsNullOrWhiteSpace([string]$Value.nextAction)) { $null } else { [string]$Value.nextAction })
@@ -1273,6 +1277,7 @@ $report = [ordered]@{
     validated       = $false
     observed        = $false
     contextSource   = $null
+    ingressSource   = $null
     focusId         = $null
     blocker         = $null
     nextAction      = $null
@@ -1292,6 +1297,7 @@ $report = [ordered]@{
     noteSourceRefSeen         = $null
     questionSuggestedNextStep = $null
     contextSource             = $null
+    ingressSource             = $null
     focusId                   = $null
     blocker                   = $null
     nextAction                = $null
@@ -1714,13 +1720,15 @@ $runtimeProof = [ordered]@{
       signatureMatch       = $report.caseWikiCompliance.signatureMatch
       routingStatus        = $report.caseWikiRoutingContext.status
       contextSource        = $report.caseWikiRoutingContext.contextSource
+      routingIngressSource = $report.caseWikiRoutingContext.ingressSource
       focusId              = $report.caseWikiRoutingContext.focusId
       blocker              = $report.caseWikiRoutingContext.blocker
       nextAction           = $report.caseWikiRoutingContext.nextAction
       gatewayHydrationStatus = $report.caseWikiGatewayHydration.status
+      gatewayHydrationIngressSource = $report.caseWikiGatewayHydration.ingressSource
       contextAdoptionStatus = $report.caseWikiContextAdoption.status
       caseWikiRate         = $report.caseWikiContextAdoption.caseWikiRate
-      summary              = ("signature=" + $report.caseWikiEvidenceSignature.status + "; compliance=" + $report.caseWikiCompliance.status + "; template=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.templateId)) { "n/a" } else { [string]$report.caseWikiCompliance.templateId }) + "; context_source=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.contextSource)) { "n/a" } else { [string]$report.caseWikiRoutingContext.contextSource }) + "; blocker=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.blocker)) { "n/a" } else { [string]$report.caseWikiRoutingContext.blocker }) + "; next_action=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.nextAction)) { "n/a" } else { [string]$report.caseWikiRoutingContext.nextAction }) + "; case_wiki_rate=" + $(if ($null -eq $report.caseWikiContextAdoption.caseWikiRate) { "n/a" } else { [string]$report.caseWikiContextAdoption.caseWikiRate }))
+      summary              = ("signature=" + $report.caseWikiEvidenceSignature.status + "; compliance=" + $report.caseWikiCompliance.status + "; template=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.templateId)) { "n/a" } else { [string]$report.caseWikiCompliance.templateId }) + "; context_source=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.contextSource)) { "n/a" } else { [string]$report.caseWikiRoutingContext.contextSource }) + "; routing_ingress=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.ingressSource)) { "n/a" } else { [string]$report.caseWikiRoutingContext.ingressSource }) + "; gateway_ingress=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.ingressSource)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.ingressSource }) + "; blocker=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.blocker)) { "n/a" } else { [string]$report.caseWikiRoutingContext.blocker }) + "; next_action=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.nextAction)) { "n/a" } else { [string]$report.caseWikiRoutingContext.nextAction }) + "; case_wiki_rate=" + $(if ($null -eq $report.caseWikiContextAdoption.caseWikiRate) { "n/a" } else { [string]$report.caseWikiContextAdoption.caseWikiRate }))
     }
     navigator = [ordered]@{
       status                    = $runtimeProofNavigatorStatus
@@ -1782,17 +1790,19 @@ $runtimeProofMarkdown = @(
   "",
   "## Case Wiki Proof",
   "",
-  "- status: $($runtimeProof.lanes.caseWiki.status)",
-  "- signatureStatus: $($runtimeProof.lanes.caseWiki.signatureStatus)",
-  "- signatureSource: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.signatureSource)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.signatureSource })",
-  "- signatureKind: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.signatureKind)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.signatureKind })",
+"- status: $($runtimeProof.lanes.caseWiki.status)",
+"- signatureStatus: $($runtimeProof.lanes.caseWiki.signatureStatus)",
+"- signatureSource: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.signatureSource)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.signatureSource })",
+"- signatureKind: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.signatureKind)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.signatureKind })",
   "- signedArtifacts: $($runtimeProof.lanes.caseWiki.signedArtifacts)",
   "- totalArtifacts: $($runtimeProof.lanes.caseWiki.totalArtifacts)",
-  "- routingStatus: $($runtimeProof.lanes.caseWiki.routingStatus)",
-  "- gatewayHydrationStatus: $($runtimeProof.lanes.caseWiki.gatewayHydrationStatus)",
-  "- contextAdoptionStatus: $($runtimeProof.lanes.caseWiki.contextAdoptionStatus)",
-  "- contextSource: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.contextSource)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.contextSource })",
-  "- focusId: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.focusId)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.focusId })",
+"- routingStatus: $($runtimeProof.lanes.caseWiki.routingStatus)",
+"- gatewayHydrationStatus: $($runtimeProof.lanes.caseWiki.gatewayHydrationStatus)",
+"- contextAdoptionStatus: $($runtimeProof.lanes.caseWiki.contextAdoptionStatus)",
+"- contextSource: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.contextSource)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.contextSource })",
+"- routingIngressSource: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.routingIngressSource)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.routingIngressSource })",
+"- gatewayHydrationIngressSource: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.gatewayHydrationIngressSource)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.gatewayHydrationIngressSource })",
+"- focusId: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.focusId)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.focusId })",
   "- blocker: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.blocker)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.blocker })",
   "- nextAction: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.nextAction)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.nextAction })",
   "- caseWikiRate: $(if ($null -eq $runtimeProof.lanes.caseWiki.caseWikiRate) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.caseWikiRate })",
@@ -1994,6 +2004,7 @@ $markdown = @(
   "- validated: $($report.caseWikiRoutingContext.validated)",
   "- observed: $($report.caseWikiRoutingContext.observed)",
   "- contextSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.contextSource)) { "n/a" } else { [string]$report.caseWikiRoutingContext.contextSource })",
+  "- ingressSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.ingressSource)) { "n/a" } else { [string]$report.caseWikiRoutingContext.ingressSource })",
   "- focusId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.focusId)) { "n/a" } else { [string]$report.caseWikiRoutingContext.focusId })",
   "- blocker: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.blocker)) { "n/a" } else { [string]$report.caseWikiRoutingContext.blocker })",
   "- nextAction: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.nextAction)) { "n/a" } else { [string]$report.caseWikiRoutingContext.nextAction })",
@@ -2012,9 +2023,10 @@ $markdown = @(
   "- questionId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.questionId)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.questionId })",
   "- questionMatched: $(if ($null -eq $report.caseWikiGatewayHydration.questionMatched) { "n/a" } else { [string]$report.caseWikiGatewayHydration.questionMatched })",
   "- noteSourceRefSeen: $(if ($null -eq $report.caseWikiGatewayHydration.noteSourceRefSeen) { "n/a" } else { [string]$report.caseWikiGatewayHydration.noteSourceRefSeen })",
-  "- questionSuggestedNextStep: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.questionSuggestedNextStep)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.questionSuggestedNextStep })",
-  "- contextSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.contextSource)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.contextSource })",
-  "- focusId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.focusId)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.focusId })",
+"- questionSuggestedNextStep: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.questionSuggestedNextStep)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.questionSuggestedNextStep })",
+"- contextSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.contextSource)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.contextSource })",
+"- ingressSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.ingressSource)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.ingressSource })",
+"- focusId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.focusId)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.focusId })",
   "- blocker: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.blocker)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.blocker })",
   "- nextAction: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.nextAction)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.nextAction })",
   "- route: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.route)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.route })",
@@ -2239,6 +2251,7 @@ $manifest = [ordered]@{
     validated       = $report.caseWikiRoutingContext.validated
     observed        = $report.caseWikiRoutingContext.observed
     contextSource   = $report.caseWikiRoutingContext.contextSource
+    ingressSource   = $report.caseWikiRoutingContext.ingressSource
     focusId         = $report.caseWikiRoutingContext.focusId
     blocker         = $report.caseWikiRoutingContext.blocker
     nextAction      = $report.caseWikiRoutingContext.nextAction
@@ -2258,6 +2271,7 @@ $manifest = [ordered]@{
     noteSourceRefSeen         = $report.caseWikiGatewayHydration.noteSourceRefSeen
     questionSuggestedNextStep = $report.caseWikiGatewayHydration.questionSuggestedNextStep
     contextSource             = $report.caseWikiGatewayHydration.contextSource
+    ingressSource             = $report.caseWikiGatewayHydration.ingressSource
     focusId                   = $report.caseWikiGatewayHydration.focusId
     blocker                   = $report.caseWikiGatewayHydration.blocker
     nextAction                = $report.caseWikiGatewayHydration.nextAction
@@ -2489,11 +2503,12 @@ $manifestMarkdown = @(
   "",
   "| Field | Value |",
   "|---|---|",
-  "| status | $($manifest.caseWikiRoutingContext.status) |",
-  "| validated | $($manifest.caseWikiRoutingContext.validated) |",
-  "| observed | $($manifest.caseWikiRoutingContext.observed) |",
-  "| contextSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.contextSource)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.contextSource }) |",
-  "| focusId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.focusId)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.focusId }) |",
+"| status | $($manifest.caseWikiRoutingContext.status) |",
+"| validated | $($manifest.caseWikiRoutingContext.validated) |",
+"| observed | $($manifest.caseWikiRoutingContext.observed) |",
+"| contextSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.contextSource)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.contextSource }) |",
+"| ingressSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.ingressSource)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.ingressSource }) |",
+"| focusId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.focusId)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.focusId }) |",
   "| blocker | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.blocker)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.blocker }) |",
   "| nextAction | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.nextAction)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.nextAction }) |",
   "| route | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.route)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.route }) |",
@@ -2513,9 +2528,10 @@ $manifestMarkdown = @(
   "| questionId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.questionId)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.questionId }) |",
   "| questionMatched | $(if ($null -eq $manifest.caseWikiGatewayHydration.questionMatched) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.questionMatched }) |",
   "| noteSourceRefSeen | $(if ($null -eq $manifest.caseWikiGatewayHydration.noteSourceRefSeen) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.noteSourceRefSeen }) |",
-  "| questionSuggestedNextStep | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.questionSuggestedNextStep)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.questionSuggestedNextStep }) |",
-  "| contextSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.contextSource)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.contextSource }) |",
-  "| focusId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.focusId)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.focusId }) |",
+"| questionSuggestedNextStep | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.questionSuggestedNextStep)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.questionSuggestedNextStep }) |",
+"| contextSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.contextSource)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.contextSource }) |",
+"| ingressSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.ingressSource)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.ingressSource }) |",
+"| focusId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.focusId)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.focusId }) |",
   "| blocker | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.blocker)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.blocker }) |",
   "| nextAction | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.nextAction)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.nextAction }) |",
   "| route | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.route)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.route }) |",

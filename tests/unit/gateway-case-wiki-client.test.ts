@@ -145,6 +145,7 @@ test("createCaseWikiRequestAttacher injects fetched case wiki and reuses cache w
       summary: "compiled",
     },
   });
+  assert.equal((first.metadata as Record<string, unknown>)?.caseWikiIngress?.source, "gateway_hydrated_case_wiki");
 });
 
 test("createCaseWikiRequestAttacher does not overwrite an existing matching snapshot", async () => {
@@ -172,7 +173,13 @@ test("createCaseWikiRequestAttacher does not overwrite an existing matching snap
 
   const updated = await attacher(request);
   assert.equal(fetchCount, 0);
-  assert.equal(updated, request);
+  assert.equal((updated.metadata as Record<string, unknown>)?.caseWikiIngress?.source, "preserved_input_case_wiki");
+  assert.deepEqual((updated.payload as { input: Record<string, unknown> }).input.caseWiki, {
+    sessionId: "session-123",
+    focusPack: {
+      summary: "existing",
+    },
+  });
 });
 
 test("requestHasCaseWikiSnapshot accepts supported alias forms for the current session", () => {
@@ -215,7 +222,13 @@ test("createCaseWikiRequestAttacher preserves matching alias snapshots without r
 
   const updated = await attacher(request);
   assert.equal(fetchCount, 0);
-  assert.equal(updated, request);
+  assert.equal((updated.metadata as Record<string, unknown>)?.caseWikiIngress?.source, "preserved_input_case_wiki");
+  assert.deepEqual((updated.payload as { input: Record<string, unknown> }).input.caseWikiSnapshot, {
+    sessionId: "session-123",
+    focusPack: {
+      summary: "alias",
+    },
+  });
 });
 
 test("createCaseWikiRequestAttacher replaces stale alias snapshots with the current-session case wiki", async () => {
@@ -261,6 +274,7 @@ test("createCaseWikiRequestAttacher replaces stale alias snapshots with the curr
       summary: "fresh",
     },
   });
+  assert.equal((updated.metadata as Record<string, unknown>)?.caseWikiIngress?.source, "gateway_hydrated_case_wiki");
   assert.deepEqual(updatedInput.input.compiledCaseWiki, {
     sessionId: "session-stale",
     focusPack: {

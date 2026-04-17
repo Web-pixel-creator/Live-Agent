@@ -132,6 +132,7 @@ test(
           validated: true,
           observed: true,
           contextSource: "case_wiki",
+          ingressSource: "preserved_input_case_wiki",
           focusId: "question:passport-scan",
           blocker: "Need passport scan",
           nextAction: "Request passport scan",
@@ -151,6 +152,7 @@ test(
           noteSourceRefSeen: true,
           questionSuggestedNextStep: "Request passport scan",
           contextSource: "case_wiki",
+          ingressSource: "gateway_hydrated_case_wiki",
           focusId: "question:operator-note:event-case-wiki-note-123",
           blocker: "Need passport scan",
           nextAction: "Request passport scan",
@@ -306,6 +308,7 @@ test(
     const report = JSON.parse(readFileSync(outputJsonPath, "utf8")) as {
       statuses: {
         hostedDirectLiveProofStatus?: string;
+        caseWikiRoutingContextStatus?: string;
         caseWikiGatewayHydrationStatus?: string;
         caseWikiContextAdoptionStatus?: string;
         uiRefHealingStatus?: string;
@@ -337,6 +340,20 @@ test(
         validated?: boolean;
         signatureStatus?: string | null;
       };
+      caseWikiRoutingContext: {
+        status?: string;
+        validated?: boolean;
+        observed?: boolean;
+        contextSource?: string | null;
+        ingressSource?: string | null;
+        focusId?: string | null;
+        blocker?: string | null;
+        nextAction?: string | null;
+        route?: string | null;
+        mode?: string | null;
+        requestedIntent?: string | null;
+        routedIntent?: string | null;
+      };
       caseWikiGatewayHydration: {
         status?: string;
         validated?: boolean;
@@ -348,6 +365,7 @@ test(
         noteSourceRefSeen?: boolean | null;
         questionSuggestedNextStep?: string | null;
         contextSource?: string | null;
+        ingressSource?: string | null;
         focusId?: string | null;
         blocker?: string | null;
         nextAction?: string | null;
@@ -420,6 +438,7 @@ test(
       };
     };
     assert.equal(report.statuses.hostedDirectLiveProofStatus, "pass");
+    assert.equal(report.statuses.caseWikiRoutingContextStatus, "pass");
     assert.equal(report.statuses.caseWikiGatewayHydrationStatus, "pass");
     assert.equal(report.statuses.caseWikiContextAdoptionStatus, "pass");
     assert.equal(report.statuses.uiRefHealingStatus, "pass");
@@ -446,6 +465,18 @@ test(
     assert.equal(report.caseWikiEvidenceSignature.status, "pass");
     assert.equal(report.caseWikiEvidenceSignature.validated, true);
     assert.equal(report.caseWikiEvidenceSignature.signatureStatus, "signed");
+    assert.equal(report.caseWikiRoutingContext.status, "pass");
+    assert.equal(report.caseWikiRoutingContext.validated, true);
+    assert.equal(report.caseWikiRoutingContext.observed, true);
+    assert.equal(report.caseWikiRoutingContext.contextSource, "case_wiki");
+    assert.equal(report.caseWikiRoutingContext.ingressSource, "preserved_input_case_wiki");
+    assert.equal(report.caseWikiRoutingContext.focusId, "question:passport-scan");
+    assert.equal(report.caseWikiRoutingContext.blocker, "Need passport scan");
+    assert.equal(report.caseWikiRoutingContext.nextAction, "Request passport scan");
+    assert.equal(report.caseWikiRoutingContext.route, "live-agent");
+    assert.equal(report.caseWikiRoutingContext.mode, "deterministic");
+    assert.equal(report.caseWikiRoutingContext.requestedIntent, "conversation");
+    assert.equal(report.caseWikiRoutingContext.routedIntent, "conversation");
     assert.equal(report.caseWikiGatewayHydration.status, "pass");
     assert.equal(report.caseWikiGatewayHydration.validated, true);
     assert.equal(report.caseWikiGatewayHydration.observed, true);
@@ -456,6 +487,7 @@ test(
     assert.equal(report.caseWikiGatewayHydration.noteSourceRefSeen, true);
     assert.equal(report.caseWikiGatewayHydration.questionSuggestedNextStep, "Request passport scan");
     assert.equal(report.caseWikiGatewayHydration.contextSource, "case_wiki");
+    assert.equal(report.caseWikiGatewayHydration.ingressSource, "gateway_hydrated_case_wiki");
     assert.equal(report.caseWikiGatewayHydration.focusId, "question:operator-note:event-case-wiki-note-123");
     assert.equal(report.caseWikiGatewayHydration.blocker, "Need passport scan");
     assert.equal(report.caseWikiGatewayHydration.nextAction, "Request passport scan");
@@ -524,6 +556,7 @@ test(
     const manifest = JSON.parse(readFileSync(outputManifestJsonPath, "utf8")) as {
       criticalEvidenceStatuses: {
         hostedDirectLiveProofStatus?: string;
+        caseWikiRoutingContextStatus?: string;
         caseWikiGatewayHydrationStatus?: string;
         caseWikiContextAdoptionStatus?: string;
         uiRefHealingStatus?: string;
@@ -553,6 +586,20 @@ test(
         status?: string;
         signatureStatus?: string | null;
       };
+      caseWikiRoutingContext: {
+        status?: string;
+        validated?: boolean;
+        observed?: boolean;
+        contextSource?: string | null;
+        ingressSource?: string | null;
+        focusId?: string | null;
+        blocker?: string | null;
+        nextAction?: string | null;
+        route?: string | null;
+        mode?: string | null;
+        requestedIntent?: string | null;
+        routedIntent?: string | null;
+      };
       caseWikiGatewayHydration: {
         status?: string;
         validated?: boolean;
@@ -564,6 +611,7 @@ test(
         noteSourceRefSeen?: boolean | null;
         questionSuggestedNextStep?: string | null;
         contextSource?: string | null;
+        ingressSource?: string | null;
         focusId?: string | null;
         blocker?: string | null;
         nextAction?: string | null;
@@ -647,6 +695,7 @@ test(
       };
     };
     assert.equal(manifest.criticalEvidenceStatuses.hostedDirectLiveProofStatus, "pass");
+    assert.equal(manifest.criticalEvidenceStatuses.caseWikiRoutingContextStatus, "pass");
     assert.equal(manifest.criticalEvidenceStatuses.caseWikiGatewayHydrationStatus, "pass");
     assert.equal(manifest.criticalEvidenceStatuses.caseWikiContextAdoptionStatus, "pass");
     assert.equal(manifest.criticalEvidenceStatuses.uiRefHealingStatus, "pass");
@@ -671,6 +720,18 @@ test(
     assert.equal(manifest.caseWikiEvidenceSignature.source, "hosted_direct_live_proof");
     assert.equal(manifest.caseWikiEvidenceSignature.status, "pass");
     assert.equal(manifest.caseWikiEvidenceSignature.signatureStatus, "signed");
+    assert.equal(manifest.caseWikiRoutingContext.status, "pass");
+    assert.equal(manifest.caseWikiRoutingContext.validated, true);
+    assert.equal(manifest.caseWikiRoutingContext.observed, true);
+    assert.equal(manifest.caseWikiRoutingContext.contextSource, "case_wiki");
+    assert.equal(manifest.caseWikiRoutingContext.ingressSource, "preserved_input_case_wiki");
+    assert.equal(manifest.caseWikiRoutingContext.focusId, "question:passport-scan");
+    assert.equal(manifest.caseWikiRoutingContext.blocker, "Need passport scan");
+    assert.equal(manifest.caseWikiRoutingContext.nextAction, "Request passport scan");
+    assert.equal(manifest.caseWikiRoutingContext.route, "live-agent");
+    assert.equal(manifest.caseWikiRoutingContext.mode, "deterministic");
+    assert.equal(manifest.caseWikiRoutingContext.requestedIntent, "conversation");
+    assert.equal(manifest.caseWikiRoutingContext.routedIntent, "conversation");
     assert.equal(manifest.caseWikiGatewayHydration.status, "pass");
     assert.equal(manifest.caseWikiGatewayHydration.validated, true);
     assert.equal(manifest.caseWikiGatewayHydration.observed, true);
@@ -681,6 +742,7 @@ test(
     assert.equal(manifest.caseWikiGatewayHydration.noteSourceRefSeen, true);
     assert.equal(manifest.caseWikiGatewayHydration.questionSuggestedNextStep, "Request passport scan");
     assert.equal(manifest.caseWikiGatewayHydration.contextSource, "case_wiki");
+    assert.equal(manifest.caseWikiGatewayHydration.ingressSource, "gateway_hydrated_case_wiki");
     assert.equal(manifest.caseWikiGatewayHydration.focusId, "question:operator-note:event-case-wiki-note-123");
     assert.equal(manifest.caseWikiGatewayHydration.blocker, "Need passport scan");
     assert.equal(manifest.caseWikiGatewayHydration.nextAction, "Request passport scan");
@@ -792,6 +854,8 @@ test(
         caseWiki?: {
           status?: string;
           contextSource?: string | null;
+          routingIngressSource?: string | null;
+          gatewayHydrationIngressSource?: string | null;
           blocker?: string | null;
           nextAction?: string | null;
           caseWikiRate?: number | null;
@@ -823,6 +887,8 @@ test(
     assert.equal(runtimeProof.lanes?.directLive?.fallbackEventCount, 0);
     assert.equal(runtimeProof.lanes?.caseWiki?.status, "pass");
     assert.equal(runtimeProof.lanes?.caseWiki?.contextSource, "case_wiki");
+    assert.equal(runtimeProof.lanes?.caseWiki?.routingIngressSource, "preserved_input_case_wiki");
+    assert.equal(runtimeProof.lanes?.caseWiki?.gatewayHydrationIngressSource, "gateway_hydrated_case_wiki");
     assert.equal(runtimeProof.lanes?.caseWiki?.blocker, "Need passport scan");
     assert.equal(runtimeProof.lanes?.caseWiki?.nextAction, "Request passport scan");
     assert.equal(runtimeProof.lanes?.caseWiki?.caseWikiRate, 0.952381);
@@ -842,8 +908,11 @@ test(
     assert.match(reportMarkdown, /- firstOutputMs: 410/);
     assert.match(reportMarkdown, /- runtimeEvidenceExpectedSignatureStatus: signed/);
     assert.match(reportMarkdown, /- caseWikiExpectedSignatureSource: runtime_diagnostics/);
+    assert.match(reportMarkdown, /## Case Wiki Routing Context Snapshot/);
+    assert.match(reportMarkdown, /- ingressSource: preserved_input_case_wiki/);
     assert.match(reportMarkdown, /## Case Wiki Gateway Hydration Snapshot/);
     assert.match(reportMarkdown, /- sessionId: session-hydration-123/);
+    assert.match(reportMarkdown, /- ingressSource: gateway_hydrated_case_wiki/);
     assert.match(reportMarkdown, /## Case Wiki Context Adoption Snapshot/);
     assert.match(reportMarkdown, /- observedCount: 21/);
     assert.match(reportMarkdown, /## UI Ref Healing Snapshot/);
@@ -865,6 +934,8 @@ test(
     assert.match(runtimeProofMarkdown, /- firstAudioMs: 640/);
     assert.match(runtimeProofMarkdown, /## Case Wiki Proof/);
     assert.match(runtimeProofMarkdown, /- contextSource: case_wiki/);
+    assert.match(runtimeProofMarkdown, /- routingIngressSource: preserved_input_case_wiki/);
+    assert.match(runtimeProofMarkdown, /- gatewayHydrationIngressSource: gateway_hydrated_case_wiki/);
     assert.match(runtimeProofMarkdown, /## Navigator Proof/);
     assert.match(runtimeProofMarkdown, /- totalFlows: 3/);
     assert.match(runtimeProofMarkdown, /## Blockers/);
@@ -877,8 +948,11 @@ test(
     assert.match(manifestMarkdown, /\| firstOutputMs \| 410 \|/);
     assert.match(manifestMarkdown, /\| runtimeEvidenceExpectedSignatureStatus \| signed \|/);
     assert.match(manifestMarkdown, /\| caseWikiExpectedSignatureSource \| runtime_diagnostics \|/);
+    assert.match(manifestMarkdown, /## Case Wiki Routing Context/);
+    assert.match(manifestMarkdown, /\| ingressSource \| preserved_input_case_wiki \|/);
     assert.match(manifestMarkdown, /## Case Wiki Gateway Hydration/);
     assert.match(manifestMarkdown, /\| sessionId \| session-hydration-123 \|/);
+    assert.match(manifestMarkdown, /\| ingressSource \| gateway_hydrated_case_wiki \|/);
     assert.match(manifestMarkdown, /## Case Wiki Context Adoption/);
     assert.match(manifestMarkdown, /\| observedCount \| 21 \|/);
     assert.match(manifestMarkdown, /## UI Ref Healing/);

@@ -2,13 +2,20 @@ import type { OrchestratorRequest } from "@mla/contracts";
 import type { GatewayConfig } from "./config.js";
 
 export const gatewayCaseWikiCacheTtlMs = 15_000;
+const CASE_WIKI_INGRESS_SOURCES = ["preserved_input_case_wiki", "gateway_hydrated_case_wiki"] as const;
 
 type FetchLike = typeof fetch;
+type CaseWikiIngressSource = (typeof CASE_WIKI_INGRESS_SOURCES)[number];
 
 type CaseWikiCacheEntry = {
   expiresAtMs: number;
   value: Record<string, unknown> | null;
   pending?: Promise<Record<string, unknown> | null>;
+};
+
+type ExistingCaseWikiSnapshotEntry = {
+  snapshot: Record<string, unknown>;
+  sourceKey: string;
 };
 
 function toRecord(value: unknown): Record<string, unknown> | null {
@@ -31,7 +38,9 @@ function getRequestInput(request: OrchestratorRequest): Record<string, unknown> 
   return payload ? toRecord(payload.input) : null;
 }
 
-function getExistingCaseWikiSnapshot(request: OrchestratorRequest): Record<string, unknown> | null {
+function getExistingCaseWikiSnapshotEntry(
+  request: OrchestratorRequest,
+): ExistingCaseWikiSnapshotEntry | null {
   const input = getRequestInput(request);
   if (!input) {
     return null;
@@ -39,11 +48,38 @@ function getExistingCaseWikiSnapshot(request: OrchestratorRequest): Record<strin
   for (const key of ["caseWiki", "caseWikiSnapshot", "runtimeCaseWiki", "compiledCaseWiki"]) {
     const candidate = toRecord(input[key]);
     if (candidate) {
-      return candidate;
+      return {
+        snapshot: candidate,
+        sourceKey: key,
+      };
     }
   }
   const context = toRecord(input.context);
-  return context ? toRecord(context.caseWiki) : null;
+  const contextCaseWiki = context ? toRecord(context.caseWiki) : null;
+  return contextCaseWiki
+    ? {
+        snapshot: contextCaseWiki,
+        sourceKey: "context.caseWiki",
+      }
+    : null;
+}
+
+function withCaseWikiIngressMetadata(
+  request: OrchestratorRequest,
+  source: CaseWikiIngressSource,
+): OrchestratorRequest {
+  const metadata = toRecord(request.metadata) ?? {};
+  const caseWikiIngress = toRecord(metadata.caseWikiIngress) ?? {};
+  return {
+    ...request,
+    metadata: {
+      ...metadata,
+      caseWikiIngress: {
+        ...caseWikiIngress,
+        source,
+      },
+    },
+  };
 }
 
 function getRequestTenantId(request: OrchestratorRequest): string | null {
@@ -62,12 +98,12 @@ function buildCaseWikiCacheKey(sessionId: string, tenantId: string | null): stri
 }
 
 export function requestHasCaseWikiSnapshot(request: OrchestratorRequest): boolean {
-  const existing = getExistingCaseWikiSnapshot(request);
-  if (!existing) {
+  const existingEntry = getExistingCaseWikiSnapshotEntry(request);
+  if (!existingEntry) {
     return false;
   }
   const requestSessionId = toNonEmptyString(request.sessionId);
-  const caseWikiSessionId = toNonEmptyString(existing.sessionId);
+  const caseWikiSessionId = toNonEmptyString(existingEntry.snapshot.sessionId);
   if (!requestSessionId || !caseWikiSessionId) {
     return true;
   }
@@ -184,8 +220,11 @@ export function createCaseWikiRequestAttacher(
   }
 
   return async (request: OrchestratorRequest): Promise<OrchestratorRequest> => {
-    if (request.type !== "orchestrator.request" || requestHasCaseWikiSnapshot(request)) {
+    if (request.type !== "orchestrator.request") {
       return request;
+    }
+    if (requestHasCaseWikiSnapshot(request)) {
+      return withCaseWikiIngressMetadata(request, "preserved_input_case_wiki");
     }
     const sessionId = toNonEmptyString(request.sessionId);
     if (!sessionId) {
@@ -194,7 +233,12 @@ export function createCaseWikiRequestAttacher(
 
     try {
       const caseWiki = await getCachedCaseWikiSnapshot(sessionId, getRequestTenantId(request));
-      return caseWiki ? attachCaseWikiSnapshotToRequest(request, caseWiki) : request;
+      return caseWiki
+        ? withCaseWikiIngressMetadata(
+            attachCaseWikiSnapshotToRequest(request, caseWiki),
+            "gateway_hydrated_case_wiki",
+          )
+        : request;
     } catch {
       return request;
     }
