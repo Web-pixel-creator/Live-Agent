@@ -95,6 +95,40 @@ Keep internal-only or secondary in messaging:
 4. multimodal depth for its own sake,
 5. "multi-agent platform" language.
 
+## Definition of Proof
+
+The wedge is only validated when it improves at least one of these with real
+usage evidence:
+
+1. more leads moved to booked consultation,
+2. fewer operator minutes per intake,
+3. higher missing-document recovery rate,
+4. faster clean CRM or human handoff.
+
+Technical breadth without movement in those outcomes is not wedge proof.
+
+## Kill Criteria
+
+Do not move work into the current quarter critical path if:
+
+1. it does not improve qualification, booking, document chase, or handoff,
+2. it does not help the immigration ICP directly,
+3. it does not reduce operator work,
+4. a simpler version would solve the same buyer problem.
+
+If those conditions fail, defer the work even if it is technically attractive.
+
+## Do Not Build Now
+
+Avoid these as current-quarter priorities:
+
+1. a generic multimodal agent platform pitch,
+2. new vertical product lines,
+3. autonomous legal reasoning features,
+4. broad browser automation for arbitrary sites,
+5. self-improvement or model-portfolio work without workflow payoff,
+6. voice/video richness as the headline product story.
+
 ## 90-Day Execution
 
 ### Days 1-14

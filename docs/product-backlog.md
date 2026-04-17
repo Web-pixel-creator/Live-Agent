@@ -26,6 +26,10 @@ Rules:
    - docs update if behavior changes,
    - clear acceptance criteria.
 4. If a task adds surface area without improving a target metric, defer it.
+5. Every active item should state:
+   - primary ICP,
+   - workflow lane,
+   - expected operator time saved or manual work removed.
 
 ## Current Product Wedge
 
@@ -42,11 +46,42 @@ The first commercial playbooks should stay centered on:
 CRM update preparation and human handoff stay in scope as the two closing
 actions for those playbooks, not as separate top-level product lines.
 
+## Current Critical Path
+
+The active roadmap should map to four workflow lanes only:
+
+1. qualification,
+2. booking,
+3. document chase,
+4. CRM prep / handoff.
+
+If a task does not strengthen one of those lanes, it is not current-roadmap
+work even if it is interesting or technically valid.
+
+## Frozen / Not On Critical Path
+
+Do not pull these into the current cycle unless they directly unblock the
+commercial wedge:
+
+1. new vertical launches outside immigration-heavy intake,
+2. broad provider-portfolio expansion,
+3. safe self-improvement or model portfolio work,
+4. general research-assistant productization,
+5. generic browser-agent positioning,
+6. storyteller or simulation work as a primary market surface,
+7. voice/video richness as a top-level buying narrative.
+
 ## Current Execution Plan
 
 This section refines the order of execution for the current product cycle. It
 does not replace `P0`/`P1`; it determines what should be built first inside
 those queues.
+
+Current rule:
+
+Phases that improve the four workflow lanes stay active. Phases that expand
+breadth without improving those lanes stay deferred even if they remain in the
+repo plan.
 
 Status snapshot on 2026-04-10:
 
@@ -168,12 +203,11 @@ Definition of done:
 The next commit train should prove the existing architecture instead of adding
 new speculative breadth.
 
-1. `proof: enable hosted direct live smoke`
-   - Confirm Railway/env readiness for `LIVE_DIRECT_MODE_ENABLED=true`,
-     `LIVE_EPHEMERAL_TOKENS_ENABLED=true`, and `LIVE_DIRECT_MODE_DEFAULT`.
-   - Run `verify:deploy:direct-live-proof` against the hosted frontend/backend.
-   - Persist direct-live active mode, fallback reason, and latency evidence in
-     release artifacts.
+1. `docs: codify immigration wedge execution discipline`
+   - Keep repo breadth separate from market promise.
+   - Add an explicit freeze list and a current critical path.
+   - Prune active backlog language to qualification, booking, document chase,
+     and CRM handoff.
 2. `feat: route agent decisions through case wiki`
    - Feed compiled Case Wiki overview, blockers, proofs, and next action into
      the live/orchestrator prompt path before raw transcript fallback.
@@ -186,11 +220,11 @@ new speculative breadth.
    - Require persistent session metadata, stable refs, verification state, and
      replay bundle output in each run.
    - Track success rate and stale-ref recovery explicitly.
-4. `docs: publish runtime proof report`
-   - Summarize direct-live, Case Wiki, and UI Navigator evidence in one operator
-     report.
+4. `proof: publish workflow KPI report`
+   - Summarize qualification, booking, document chase, and CRM/handoff evidence
+     in one operator-friendly report.
    - Keep provider portfolio and self-improvement as deferred lanes until the
-     proof train is green.
+     wedge proof train is green.
 
 ## P0 - Must Ship
 
@@ -665,17 +699,15 @@ Tasks:
 
 Take the next sequence literally unless blocked:
 
-1. `P0.1` Product Narrative Refactor
-2. `P0.7` Vertical Playbooks
-3. `P0.2` Persistent Browser Runtime
-4. `P0.3` Stable UI Ref System
-5. `P0.4` Post-Action Verification
-6. `P0.5` Replay Bundle
-7. `P0.6` Role Graph
-8. `P0.8` Promptfoo Eval Plane
-9. `P0.9` Red-Team Bundle
-10. `P1.1` Storyteller To Simulation Lab
-11. `P1.2` Operator Stage Awareness
+1. qualification workflow slices
+2. booking workflow slices
+3. document-chase workflow slices
+4. CRM prep and handoff slices
+5. persistent browser runtime improvements required by those slices
+6. stable refs, verification, and replay improvements required by those slices
+7. promptfoo and red-team coverage for those slices
+8. operator stage-awareness and queue discipline
+9. simulation work only when it improves those slices
 
 ## Sprint Heuristic
 

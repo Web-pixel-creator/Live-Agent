@@ -92,6 +92,32 @@ The market promise should stay narrow:
 If a feature does not improve one of those three playbooks or the two closing
 actions, it should not be on the critical path for the next product cycle.
 
+## Execution Boundaries
+
+Allowed now:
+
+1. qualification,
+2. booking,
+3. missing-document follow-up,
+4. CRM prep,
+5. human handoff,
+6. narrow operator-safe admin actions that directly support those workflows.
+
+Frozen now:
+
+1. new vertical expansion before immigration proof,
+2. provider-portfolio work that does not improve the current wedge,
+3. self-improvement loops outside controlled Simulation Lab work,
+4. general research-assistant positioning,
+5. broad browser-agent claims beyond repeatable admin flows.
+
+Prohibited now:
+
+1. legal advice as product output,
+2. final eligibility determination,
+3. autonomous filing without human review,
+4. positioning the system as a replacement for a licensed professional.
+
 ## What Stays In Focus
 
 Keep these five modules as the product center:
@@ -229,6 +255,18 @@ must stay narrow.
 5. `Storyteller`, broad multimodal demos, and general research stay in the repo
    as enabling infrastructure or challenge coverage, not as the first startup
    SKU.
+
+## Quarter Decision Rules
+
+For the current quarter:
+
+1. no new top-level product line without immigration wedge proof,
+2. no new vertical-specific workflow outside immigration-heavy intake,
+3. no platform feature belongs on the critical path unless it improves
+   qualification, booking, document chase, or CRM handoff,
+4. when a choice is unclear, prefer the path that removes operator work over the
+   path that adds technical breadth,
+5. repo breadth is allowed; market breadth is not.
 
 ## External Patterns To Adopt
 

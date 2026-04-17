@@ -24,6 +24,28 @@ Commercial rule:
 - keep `Simulation Lab`, broad storyteller demos, and general multimodal depth as
   internal or secondary support surfaces, not the main startup SKU
 
+Current commercial focus:
+
+- `lead qualification`
+- `consultation booking`
+- `missing-document follow-up`
+- `CRM prep and human handoff`
+
+What we are not building now:
+
+- a general AI platform for every workflow
+- new verticals before immigration wedge proof
+- autonomous legal advice or final eligibility decisions
+- broad browser automation beyond narrow operator-safe admin actions
+- voice/video richness as the main reason to buy
+
+Priority decision filter:
+
+- does this improve qualification, booking, document chase, or CRM handoff?
+- does this help the primary ICP right now?
+- does this reduce manual operator work?
+- if not, it should not be on the current critical path
+
 ![PR Quality Gate](https://github.com/Web-pixel-creator/Live-Agent/actions/workflows/pr-quality.yml/badge.svg)
 ![Demo E2E](https://github.com/Web-pixel-creator/Live-Agent/actions/workflows/demo-e2e.yml/badge.svg)
 ![Release Strict Final Gate](https://github.com/Web-pixel-creator/Live-Agent/actions/workflows/release-strict-final.yml/badge.svg)
