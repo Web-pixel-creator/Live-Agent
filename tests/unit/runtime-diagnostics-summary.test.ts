@@ -173,6 +173,28 @@ test("runtime diagnostics summary stays healthy when all guardrails are nominal"
         },
       },
     ],
+    events: [
+      {
+        eventId: "event-case-wiki-routing",
+        sessionId: "session-workflow-healthy",
+        runId: "run-workflow-healthy",
+        type: "workflow.stage",
+        source: "orchestrator",
+        createdAt: "2026-03-06T00:00:02.000Z",
+        route: "live-agent",
+        intent: "conversation",
+        metadata: {
+          routingContextSource: "case_wiki",
+          routingContextIngressSource: "gateway_hydrated_case_wiki",
+          routingContextFocusId: "question:passport-scan",
+          routingContextBlocker: "Passport scan is still missing from the case.",
+          routingContextNextAction: "Request passport scan",
+          routingMode: "deterministic",
+          routingRequestedIntent: "conversation",
+          routingRoutedIntent: "conversation",
+        },
+      },
+    ],
     skillsCatalog: baseCatalog,
     skillsRuntimeSummary: baseRuntimeSummary,
   });
@@ -202,6 +224,19 @@ test("runtime diagnostics summary stays healthy when all guardrails are nominal"
   assert.equal(summary.orchestrator.workflowCurrentStage, "planning");
   assert.equal(summary.orchestrator.workflowActiveRole, "planner");
   assert.equal(summary.orchestrator.workflowRoute, "live-agent");
+  assert.deepEqual(summary.orchestrator.latestCaseWikiRoutingContext, {
+    observed: true,
+    updatedAt: "2026-03-06T00:00:02.000Z",
+    contextSource: "case_wiki",
+    ingressSource: "gateway_hydrated_case_wiki",
+    focusId: "question:passport-scan",
+    blocker: "Passport scan is still missing from the case.",
+    nextAction: "Request passport scan",
+    route: "live-agent",
+    mode: "deterministic",
+    requestedIntent: "conversation",
+    routedIntent: "conversation",
+  });
   assert.deepEqual(summary.orchestrator.assistiveRouterAllowIntents, ["conversation", "translation"]);
   assert.equal(summary.apiBackend.evidenceSigning.enabled, false);
   assert.equal(summary.apiBackend.evidenceSigning.keyState, "missing");

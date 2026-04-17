@@ -36,6 +36,10 @@ type RuntimeSloMetric = {
   latestSeenAt: string | null;
 };
 
+type RuntimeDiagnosticsCaseWikiIngressSource =
+  | "preserved_input_case_wiki"
+  | "gateway_hydrated_case_wiki";
+
 const DEFAULT_RUNTIME_DIAGNOSTICS_SLO_THRESHOLDS: RuntimeDiagnosticsSloThresholds = {
   liveFirstAudioP95Ms: 2500,
   navigatorStepP95Ms: 25000,
@@ -140,6 +144,122 @@ function latestSeenAtForEvents(
       .filter((item): item is string => item !== null)
       .sort((left, right) => Date.parse(right) - Date.parse(left))[0] ?? null
   );
+}
+
+function normalizeCaseWikiIngressSource(
+  value: unknown,
+): RuntimeDiagnosticsCaseWikiIngressSource | null {
+  const normalized = toNonEmptyString(value);
+  return normalized === "preserved_input_case_wiki" || normalized === "gateway_hydrated_case_wiki"
+    ? normalized
+    : null;
+}
+
+function extractEventRoutingRecord(event: EventListItem): Record<string, unknown> | null {
+  const payload = isRecord(event.payload) ? event.payload : null;
+  const output = isRecord(payload?.output) ? payload.output : null;
+  return isRecord(output?.routing) ? output.routing : null;
+}
+
+function extractEventCaseWikiIngressSource(
+  event: EventListItem,
+): RuntimeDiagnosticsCaseWikiIngressSource | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const caseWikiIngress = isRecord(metadata?.caseWikiIngress) ? metadata.caseWikiIngress : null;
+  return normalizeCaseWikiIngressSource(caseWikiIngress?.source);
+}
+
+function extractEventRoutingContextSource(event: EventListItem): string | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const routing = extractEventRoutingRecord(event);
+  return (
+    toNonEmptyString(metadata?.routingContextSource) ??
+    toNonEmptyString(routing?.contextSource) ??
+    (extractEventCaseWikiIngressSource(event) ? "case_wiki" : null)
+  );
+}
+
+function extractEventRoutingContextIngressSource(
+  event: EventListItem,
+): RuntimeDiagnosticsCaseWikiIngressSource | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const routing = extractEventRoutingRecord(event);
+  return (
+    normalizeCaseWikiIngressSource(metadata?.routingContextIngressSource) ??
+    normalizeCaseWikiIngressSource(routing?.contextIngressSource) ??
+    extractEventCaseWikiIngressSource(event)
+  );
+}
+
+function extractEventRoutingContextFocusId(event: EventListItem): string | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const routing = extractEventRoutingRecord(event);
+  return toNonEmptyString(metadata?.routingContextFocusId) ?? toNonEmptyString(routing?.contextFocusId);
+}
+
+function extractEventRoutingContextBlocker(event: EventListItem): string | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const routing = extractEventRoutingRecord(event);
+  return toNonEmptyString(metadata?.routingContextBlocker) ?? toNonEmptyString(routing?.contextBlocker);
+}
+
+function extractEventRoutingContextNextAction(event: EventListItem): string | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const routing = extractEventRoutingRecord(event);
+  return toNonEmptyString(metadata?.routingContextNextAction) ?? toNonEmptyString(routing?.contextNextAction);
+}
+
+function extractEventRoutingMode(event: EventListItem): string | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const routing = extractEventRoutingRecord(event);
+  return toNonEmptyString(metadata?.routingMode) ?? toNonEmptyString(routing?.mode);
+}
+
+function extractEventRoutingRequestedIntent(event: EventListItem): string | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const routing = extractEventRoutingRecord(event);
+  return (
+    toNonEmptyString(metadata?.routingRequestedIntent) ??
+    toNonEmptyString(routing?.requestedIntent) ??
+    toNonEmptyString(event.intent)
+  );
+}
+
+function extractEventRoutingRoutedIntent(event: EventListItem): string | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const routing = extractEventRoutingRecord(event);
+  return toNonEmptyString(metadata?.routingRoutedIntent) ?? toNonEmptyString(routing?.routedIntent);
+}
+
+function buildLatestCaseWikiRoutingContext(events: readonly EventListItem[]): Record<string, unknown> {
+  const latestCaseWikiEvent =
+    [...events]
+      .filter((event) => {
+        const contextSource = extractEventRoutingContextSource(event);
+        return contextSource === "case_wiki" || extractEventRoutingContextIngressSource(event) !== null;
+      })
+      .sort(
+        (left, right) =>
+          (Date.parse(toNonEmptyString(right.createdAt) ?? "") || 0) -
+          (Date.parse(toNonEmptyString(left.createdAt) ?? "") || 0),
+      )[0] ?? null;
+
+  return {
+    observed: latestCaseWikiEvent !== null,
+    updatedAt: latestCaseWikiEvent ? toNonEmptyString(latestCaseWikiEvent.createdAt) : null,
+    contextSource: latestCaseWikiEvent ? extractEventRoutingContextSource(latestCaseWikiEvent) : null,
+    ingressSource: latestCaseWikiEvent ? extractEventRoutingContextIngressSource(latestCaseWikiEvent) : null,
+    focusId: latestCaseWikiEvent ? extractEventRoutingContextFocusId(latestCaseWikiEvent) : null,
+    blocker: latestCaseWikiEvent ? extractEventRoutingContextBlocker(latestCaseWikiEvent) : null,
+    nextAction: latestCaseWikiEvent ? extractEventRoutingContextNextAction(latestCaseWikiEvent) : null,
+    route:
+      latestCaseWikiEvent
+        ? toNonEmptyString(latestCaseWikiEvent.route) ?? toNonEmptyString(extractEventRoutingRecord(latestCaseWikiEvent)?.route)
+        : null,
+    mode: latestCaseWikiEvent ? extractEventRoutingMode(latestCaseWikiEvent) : null,
+    requestedIntent: latestCaseWikiEvent ? extractEventRoutingRequestedIntent(latestCaseWikiEvent) : null,
+    routedIntent: latestCaseWikiEvent ? extractEventRoutingRoutedIntent(latestCaseWikiEvent) : null,
+  };
 }
 
 function normalizeServiceMetrics(service: Record<string, unknown> | null): Record<string, unknown> | null {
@@ -331,6 +451,7 @@ export function buildRuntimeDiagnosticsSummary(params: {
   const skillsRuntimeSummary = params.skillsRuntimeSummary ?? null;
   const operatorTraceSummary = params.operatorTraceSummary ?? null;
   const signals: RuntimeSignal[] = [];
+  const latestCaseWikiRoutingContext = buildLatestCaseWikiRoutingContext(params.events ?? []);
   const slo = buildRuntimeSloSummary({
     services,
     events: params.events ?? [],
@@ -763,6 +884,7 @@ export function buildRuntimeDiagnosticsSummary(params: {
         orchestratorAssistiveRouter ? toNonEmptyString(orchestratorAssistiveRouter.promptCaching) : null,
       assistiveRouterWatchlistEnabled:
         orchestratorAssistiveRouter ? toBoolean(orchestratorAssistiveRouter.watchlistEnabled) : null,
+      latestCaseWikiRoutingContext,
     },
     uiExecutor: {
       forceSimulation: uiExecutor ? toBoolean(uiExecutor.forceSimulation) : null,

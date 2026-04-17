@@ -29394,6 +29394,29 @@ function buildOperatorReplayContextProvenanceText(contextSource, ingressSource, 
   return context ?? `via ${ingress}`;
 }
 
+function buildOperatorCaseWikiRoutingContextHint(routingContext, prefix = "Latest Case Wiki ingress") {
+  const context = routingContext && typeof routingContext === "object" ? routingContext : null;
+  if (!context || context.observed !== true) {
+    return null;
+  }
+  const provenance = buildOperatorReplayContextProvenanceText(
+    toOptionalText(context.contextSource),
+    toOptionalText(context.ingressSource),
+    "case_wiki",
+  );
+  const route = toOptionalText(context.route);
+  const nextAction = toOptionalText(context.nextAction);
+  const blocker = toOptionalText(context.blocker);
+  const parts = [`${prefix}: ${provenance}${route ? ` on ${route}` : ""}.`];
+  if (nextAction) {
+    parts.push(`Next action: ${nextAction}.`);
+  }
+  if (blocker) {
+    parts.push(`Blocker: ${blocker}.`);
+  }
+  return parts.join(" ");
+}
+
 function resetOperatorBrowserWorkersWidget(reason = "no_data") {
   setText(el.operatorBrowserWorkersQueued, "0");
   setText(el.operatorBrowserWorkersRunning, "0");
@@ -30861,6 +30884,10 @@ function renderOperatorWorkflowRuntimeWidget(runtimeDiagnostics) {
       : null;
   const workflowStageLabel = workflowCurrentStage ? workflowCurrentStage.replaceAll("_", " ") : null;
   const workflowRoleLabel = workflowActiveRole ? workflowActiveRole.replaceAll("_", " ") : null;
+  const latestCaseWikiRoutingContext = isRecord(orchestratorRuntime.latestCaseWikiRoutingContext)
+    ? orchestratorRuntime.latestCaseWikiRoutingContext
+    : null;
+  const latestCaseWikiRoutingHint = buildOperatorCaseWikiRoutingContextHint(latestCaseWikiRoutingContext);
 
   setText(el.operatorWorkflowRuntimeSource, formatOperatorWorkflowRuntimeSourceLine(sourceKind, sourcePath, loadedAt));
   setText(
@@ -30932,6 +30959,10 @@ function renderOperatorWorkflowRuntimeWidget(runtimeDiagnostics) {
     statusVariant = "neutral";
     hintVariant = "warn";
     hint = "Workflow path reported a recent load error. Confirm the source and refresh runtime before demo.";
+  }
+
+  if (latestCaseWikiRoutingHint) {
+    hint = `${hint} ${latestCaseWikiRoutingHint}`;
   }
 
   setStatusPill(el.operatorWorkflowRuntimeStatus, statusText, statusVariant);
@@ -36100,6 +36131,13 @@ function renderOperatorRuntimeGuardrailsWidget(runtimeDiagnostics) {
   const warnSignals = activeSignals.filter((item) => item.severity === "warn");
   const infoSignals = activeSignals.filter((item) => item.severity === "info");
   const topSignal = criticalSignals[0] ?? warnSignals[0] ?? infoSignals[0] ?? activeSignals[0] ?? null;
+  const orchestratorRuntime =
+    runtimeDiagnostics.orchestrator && typeof runtimeDiagnostics.orchestrator === "object"
+      ? runtimeDiagnostics.orchestrator
+      : null;
+  const latestCaseWikiRoutingHint = buildOperatorCaseWikiRoutingContextHint(
+    isRecord(orchestratorRuntime?.latestCaseWikiRoutingContext) ? orchestratorRuntime.latestCaseWikiRoutingContext : null,
+  );
 
   const coverage =
     runtimeDiagnostics.servicesCoverage && typeof runtimeDiagnostics.servicesCoverage === "object"
@@ -36256,6 +36294,10 @@ function renderOperatorRuntimeGuardrailsWidget(runtimeDiagnostics) {
     hintVariant = "warn";
     hint =
       "Runtime guardrails are degraded or warning-bearing. Review active signals, sandbox posture, and skills/runtime warnings; keep only intentional drill states active.";
+  }
+
+  if (latestCaseWikiRoutingHint) {
+    hint = `${hint} ${latestCaseWikiRoutingHint}`;
   }
 
   setStatusPill(el.operatorRuntimeGuardrailsStatus, statusText, statusVariant);
@@ -40825,6 +40867,13 @@ function renderOperatorSummary(summary) {
           .filter((item) => typeof item === "string" && item.trim().length > 0)
           .map((item) => item.trim())
       : [];
+    const latestCaseWikiRoutingContext = isRecord(orchestratorRuntime.latestCaseWikiRoutingContext)
+      ? orchestratorRuntime.latestCaseWikiRoutingContext
+      : null;
+    const latestCaseWikiRoutingSummary = buildOperatorCaseWikiRoutingContextHint(
+      latestCaseWikiRoutingContext,
+      "Latest Case Wiki ingress",
+    );
     appendEntry(
       el.operatorSummary,
       assistiveEnabled && !assistiveApiKeyConfigured ? "error" : "system",
@@ -40837,6 +40886,14 @@ function renderOperatorSummary(summary) {
       "workflow_runtime.control_plane",
       `reason=${workflowOverrideReason} updated_at=${workflowOverrideUpdatedAt} last_attempt_at=${workflowLastAttemptAt} loaded_at=${workflowLoadedAt} source_path=${workflowSourcePath}`,
     );
+    if (latestCaseWikiRoutingSummary) {
+      appendEntry(
+        el.operatorSummary,
+        "system",
+        "workflow_runtime.case_wiki",
+        latestCaseWikiRoutingSummary,
+      );
+    }
   }
   renderOperatorWorkflowRuntimeWidget(runtimeDiagnostics);
 

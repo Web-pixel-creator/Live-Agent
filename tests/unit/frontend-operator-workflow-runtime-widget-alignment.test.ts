@@ -35,8 +35,10 @@ test("operator workflow runtime widget is wired in frontend HTML and runtime", (
     "setOperatorWorkflowRuntimeHint",
     "resetOperatorWorkflowRuntimeWidget",
     "renderOperatorWorkflowRuntimeWidget",
+    "buildOperatorCaseWikiRoutingContextHint",
     "const runtimeDiagnostics = summary.runtimeDiagnostics",
     '"workflow_runtime"',
+    '"workflow_runtime.case_wiki"',
     "renderOperatorWorkflowRuntimeWidget(runtimeDiagnostics);",
     "resetOperatorWorkflowRuntimeWidget(failedRefreshReason);",
     "assistiveRouterProvider",
@@ -46,6 +48,8 @@ test("operator workflow runtime widget is wired in frontend HTML and runtime", (
     "workflowExecutionStatus",
     "workflowCurrentStage",
     "workflowActiveRole",
+    "latestCaseWikiRoutingContext",
+    "Latest Case Wiki ingress",
     "awaiting_${workflowCurrentStage}",
     "Workflow is waiting on",
     "Workflow is running",
@@ -57,4 +61,6 @@ test("operator workflow runtime widget is wired in frontend HTML and runtime", (
 
   assert.ok(readmeSource.includes("Workflow Runtime"), "README missing workflow runtime operator card note");
   assert.ok(operatorGuideSource.includes("Workflow Runtime"), "operator guide missing workflow runtime operator card note");
+  assert.match(readmeSource, /case wiki.*ingress provenance|gateway_hydrated_case_wiki|preserved_input_case_wiki/i);
+  assert.match(operatorGuideSource, /case wiki.*ingress provenance|gateway_hydrated_case_wiki|preserved_input_case_wiki/i);
 });

@@ -28,6 +28,9 @@ test("api backend exposes runtime diagnostics endpoint and operator summary lane
     "workflowCurrentStage",
     "workflowActiveRole",
     "workflowTaskId",
+    "latestCaseWikiRoutingContext",
+    "routingContextIngressSource",
+    "routingContextNextAction",
     "operator_stage_awaiting_approval",
     "operator_stage_verification_failed",
     "operator_stage_browser_run_incomplete",
@@ -51,6 +54,7 @@ test("readme documents runtime diagnostics endpoint and operator summary coverag
   assert.match(readme, /GET \/v1\/runtime\/diagnostics/);
   assert.match(readme, /runtimeDiagnostics/);
   assert.match(readme, /workflow stage/i);
+  assert.match(readme, /case wiki.*ingress provenance|gateway_hydrated_case_wiki|preserved_input_case_wiki/i);
   assert.match(readme, /latency SLO/i);
   assert.match(readme, /evidence signing/i);
 });
