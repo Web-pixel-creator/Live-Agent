@@ -31,13 +31,16 @@ Rules:
 
 The product to build first is:
 
-`AI Action Desk for multilingual service teams`
+`AI Action Desk for immigration teams`
 
 The first commercial playbooks should stay centered on:
 
 1. lead qualification,
 2. appointment or consultation booking,
-3. document and form collection.
+3. missing-document follow-up.
+
+CRM update preparation and human handoff stay in scope as the two closing
+actions for those playbooks, not as separate top-level product lines.
 
 ## Current Execution Plan
 

@@ -7,6 +7,7 @@ priorities, or rollout order become unclear.
 Companion execution backlog:
 
 - `docs/product-backlog.md`
+- `docs/startup-wedge-90-day-plan.md`
 
 ## Source of Truth
 
@@ -29,8 +30,9 @@ Build and sell one clear product:
 
 `AI Action Desk`
 
-An agent that can talk to users, translate, understand requests, safely act in
-web systems, ask for approval when risk is present, and leave auditable proof of
+An operator-safe intake and workflow runner for immigration-heavy service
+teams. It can talk to users, translate, understand requests, safely act in web
+systems, ask for approval when risk is present, and leave auditable proof of
 what happened.
 
 This repo should not drift toward "general AI platform for everything". The
@@ -39,17 +41,17 @@ product wedge is:
 1. live multilingual interaction,
 2. browser and workflow execution,
 3. approvals and auditability,
-4. vertical playbooks for service teams.
+4. vertical playbooks for immigration teams.
 
 ## Target Customer
 
-Primary wedge:
+Primary ICP right now:
 
-1. cross-border service businesses,
-2. travel and concierge sales,
-3. relocation and visa agencies,
-4. medical tourism and clinic intake,
-5. admissions and education consultancies.
+1. small and mid-sized immigration firms,
+2. visa agencies,
+3. relocation teams with immigration-heavy intake,
+4. operator teams with 3-30 people handling high lead volume and repeated
+   follow-up.
 
 Why this wedge:
 
@@ -58,6 +60,9 @@ Why this wedge:
 3. expensive lost leads,
 4. legacy browser-based systems,
 5. high value in faster response and safer task execution.
+
+Adjacent markets such as admissions, medical tourism, or broader cross-border
+service teams are later expansion paths, not the current product center.
 
 ## Product Shape
 
@@ -70,6 +75,22 @@ The product should be explained as one system:
 
 `Creative Storyteller` should remain in the product, but it should evolve into a
 `Simulation Lab` role instead of being treated as the primary commercial wedge.
+
+## Commercial Wedge Now
+
+The market promise should stay narrow:
+
+1. `AI Intake Desk for immigration teams`
+2. three primary playbooks:
+   - lead qualification,
+   - consultation booking,
+   - missing-document follow-up,
+3. two closing actions:
+   - CRM update preparation,
+   - human escalation / handoff.
+
+If a feature does not improve one of those three playbooks or the two closing
+actions, it should not be on the critical path for the next product cycle.
 
 ## What Stays In Focus
 
@@ -95,7 +116,11 @@ Keep these five modules as the product center:
    - compliance-friendly evidence.
 
 4. `Vertical Playbooks`
-   - productized workflows for specific industries and roles.
+   - immigration lead qualification,
+   - consultation booking,
+   - missing-document follow-up,
+   - CRM update preparation,
+   - escalation handoff.
 
 5. `Simulation Lab`
    - synthetic customer scenarios,
@@ -158,7 +183,52 @@ These areas stay in the repo but should not be the main commercial message:
 
 1. storyteller as a standalone creative toy,
 2. grounded research as a standalone main product,
-3. generic "multi-agent platform for all industries".
+3. generic "multi-agent platform for all industries",
+4. broad expansion into medical tourism, admissions, or unrelated service
+   verticals before immigration wedge proof,
+5. voice/video/demo richness as the primary reason to buy.
+
+## Regulatory Boundary
+
+The product must stay on the operations side of the legal boundary.
+
+Allowed:
+
+1. intake,
+2. triage,
+3. consultation scheduling,
+4. missing-document collection,
+5. CRM and operator handoff prep,
+6. safe admin browser actions behind approval.
+
+Not allowed as the product promise:
+
+1. legal advice,
+2. final eligibility verdicts,
+3. autonomous filing without human review,
+4. positioning the system as a replacement for a licensed professional.
+
+The safest framing is:
+
+`operator-safe AI intake and workflow runner`
+
+not:
+
+`autonomous legal agent`
+
+## Repo Lanes vs Market Promise
+
+The repo can stay broader than the commercial message, but the market promise
+must stay narrow.
+
+1. `Live Agent` is customer-facing and revenue-adjacent.
+2. `UI Navigator` is a wedge differentiator when scoped to repeatable admin
+   actions.
+3. `Approval and Audit` is the trust layer and part of the product moat.
+4. `Simulation Lab` is internal training, rehearsal, and evaluation support.
+5. `Storyteller`, broad multimodal demos, and general research stay in the repo
+   as enabling infrastructure or challenge coverage, not as the first startup
+   SKU.
 
 ## External Patterns To Adopt
 

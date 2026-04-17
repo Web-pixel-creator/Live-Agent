@@ -2,7 +2,8 @@
 
 ## What It Is
 
-`AI Action Desk` is an operator-safe AI assistant for visa and relocation agencies.
+`AI Action Desk` is an operator-safe AI assistant for immigration, visa, and
+relocation intake teams.
 
 It helps teams:
 
@@ -16,10 +17,10 @@ It helps teams:
 
 This product is designed for:
 
-1. visa agencies,
-2. relocation agencies,
-3. cross-border admissions teams,
-4. service businesses that handle multilingual client intake and document-heavy workflows.
+1. immigration firms,
+2. visa agencies,
+3. relocation agencies with immigration-heavy intake,
+4. service teams that handle multilingual client intake and document-heavy workflows.
 
 ## The Problem
 
@@ -76,6 +77,17 @@ The product is designed to stay operator-safe:
 2. result summaries are visible in the same workspace,
 3. runs are deterministic in demo mode,
 4. human handoff is explicit, not hidden.
+
+## What It Does Not Do
+
+This product is designed to support operations, not replace licensed judgment.
+
+It should not be sold as:
+
+1. legal advice,
+2. a final eligibility engine,
+3. autonomous filing without human review,
+4. a replacement for a licensed professional.
 
 ## What A Pilot Could Cover
 

@@ -1,12 +1,15 @@
 # AI Action Desk
 
-Production-oriented AI Action Desk for visa and relocation agencies.
+Production-oriented AI Action Desk for immigration, visa, and relocation
+intake teams.
 
 Primary product wedge:
 
-- qualify inbound leads for visa and relocation services
+- qualify inbound leads for immigration-heavy services
 - book consultations or appointments
 - collect documents and form data safely
+- follow up on missing documents and form data safely
+- prepare CRM updates and human handoff actions
 - execute safe UI actions with approvals and replay evidence
 
 Supporting product surfaces:
@@ -14,6 +17,12 @@ Supporting product surfaces:
 - `Live Agent` for realtime conversation, translation, negotiation, and grounded research
 - `Simulation Lab` for scenario rehearsal, story timelines, and multimodal training flows
 - `UI Navigator` for safe browser actions with approvals and replay evidence
+
+Commercial rule:
+
+- sell one product: `AI Action Desk for immigration teams`
+- keep `Simulation Lab`, broad storyteller demos, and general multimodal depth as
+  internal or secondary support surfaces, not the main startup SKU
 
 ![PR Quality Gate](https://github.com/Web-pixel-creator/Live-Agent/actions/workflows/pr-quality.yml/badge.svg)
 ![Demo E2E](https://github.com/Web-pixel-creator/Live-Agent/actions/workflows/demo-e2e.yml/badge.svg)
@@ -58,6 +67,7 @@ Supporting product surfaces:
 - Architecture: `docs/architecture.md`
 - Product Master Plan: `docs/product-master-plan.md`
 - Product Backlog: `docs/product-backlog.md`
+- Startup Wedge 90 Days: `docs/startup-wedge-90-day-plan.md`
 - Visa Sales Demo Package: `docs/visa-sales-demo-package.md`
 - Visa Operator Walkthrough: `docs/visa-operator-walkthrough.md`
 - Visa Client One-Pager: `docs/visa-client-one-pager.md`
