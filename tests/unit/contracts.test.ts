@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  CASE_WIKI_COMPLIANCE_ENFORCEMENT_STATUSES,
+  CASE_WIKI_COMPLIANCE_SNAPSHOT_MODES,
   CASE_WIKI_ENTITY_KINDS,
   CASE_WIKI_NEXT_ACTION_TYPES,
   CASE_WIKI_PRIORITIES,
@@ -238,6 +240,8 @@ test("case wiki contracts expose stable structured memory shapes", () => {
     "run_ui_task",
     "refresh_summary",
   ]);
+  assert.deepEqual(CASE_WIKI_COMPLIANCE_ENFORCEMENT_STATUSES, ["pass", "warn", "fail"]);
+  assert.deepEqual(CASE_WIKI_COMPLIANCE_SNAPSHOT_MODES, ["compiled_operator_safe", "raw_ref_review"]);
 
   const evidenceSignature: EvidenceSignature = {
     schemaVersion: 1,
@@ -357,7 +361,21 @@ test("case wiki contracts expose stable structured memory shapes", () => {
         signerId: "api-backend",
         keyId: null,
       },
-      summary: "template=strict | tenant_override | pii=high | rawMedia=3d | audit=required | signing=unsigned",
+      enforcement: {
+        status: "pass",
+        snapshotMode: "compiled_operator_safe",
+        rawRefCount: 0,
+        rawRefsPreview: [],
+        redactionRequired: true,
+        redactionSatisfied: true,
+        signingRequired: false,
+        observedSignatureStatus: "unsigned",
+        signatureSatisfied: true,
+        exportReady: true,
+        blockingReasons: [],
+        summary: "status=pass | snapshot=compiled_operator_safe | redaction=ok | signing=unsigned | export=ready | rawRefs=0",
+      },
+      summary: "template=strict | tenant_override | pii=high | rawMedia=3d | audit=required | signing=unsigned | enforcement=pass",
     },
     evidenceSignature,
     handoffPack: {
@@ -980,7 +998,21 @@ test("case wiki contracts expose stable structured memory shapes", () => {
           signerId: "api-backend",
           keyId: null,
         },
-        summary: "template=strict | tenant_override | pii=high | rawMedia=3d | audit=required | signing=unsigned",
+        enforcement: {
+          status: "pass",
+          snapshotMode: "compiled_operator_safe",
+          rawRefCount: 0,
+          rawRefsPreview: [],
+          redactionRequired: true,
+          redactionSatisfied: true,
+          signingRequired: false,
+          observedSignatureStatus: "unsigned",
+          signatureSatisfied: true,
+          exportReady: true,
+          blockingReasons: [],
+          summary: "status=pass | snapshot=compiled_operator_safe | redaction=ok | signing=unsigned | export=ready | rawRefs=0",
+        },
+        summary: "template=strict | tenant_override | pii=high | rawMedia=3d | audit=required | signing=unsigned | enforcement=pass",
       },
     },
     entities: [
@@ -1077,6 +1109,8 @@ test("case wiki contracts expose stable structured memory shapes", () => {
   assert.equal(wiki.evidencePack.sourceRefs.includes("proof:proof-1"), true);
   assert.equal(wiki.compliance.templateId, "strict");
   assert.equal(wiki.compliance.controls.piiRedactionLevel, "high");
+  assert.equal(wiki.compliance.enforcement.status, "pass");
+  assert.equal(wiki.compliance.enforcement.exportReady, true);
   assert.equal(wiki.evidenceSignature?.status, "unsigned");
   assert.equal(wiki.evidenceSignature?.algorithm, "ed25519-sha256");
   assert.equal(wiki.evidenceSignature?.canonicalization, "json-stable-v1");
@@ -1115,6 +1149,7 @@ test("case wiki contracts expose stable structured memory shapes", () => {
   assert.equal(wiki.operatorPreviewPack.audit.latestEntries[0]?.source, "operator_note");
   assert.equal(wiki.operatorPreviewPack.compliance.templateId, "strict");
   assert.equal(wiki.operatorPreviewPack.compliance.evidenceSigning.expectedSignatureStatus, "unsigned");
+  assert.equal(wiki.operatorPreviewPack.compliance.enforcement.status, "pass");
   assert.equal(wiki.entities[0]?.kind, "person");
   assert.equal(wiki.auditLog[0]?.source, "operator_note");
   assert.equal(wiki.auditLog[1]?.field, "workflow.currentStage");
@@ -1219,6 +1254,9 @@ test("runtime operator queue contracts expose stable queue constants and typed s
           templateId: "strict",
           piiRedactionLevel: "high",
           expectedSignatureStatus: "unsigned",
+          enforcementStatus: "pass",
+          exportReady: true,
+          blockingReasons: [],
         },
         primary: {
           label: "Open Remediation",

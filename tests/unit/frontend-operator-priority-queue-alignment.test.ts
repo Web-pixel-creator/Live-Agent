@@ -38,6 +38,9 @@ test("operator console keeps a priority queue surface for next actions", () => {
     "function buildOperatorPriorityQueueEntriesFromSnapshot() {",
     "function buildOperatorCaseWikiPriorityQueueEntry() {",
     "function buildOperatorQueueSnapshot(snapshot) {",
+    "function normalizeOperatorQueueCompliancePreview(value) {",
+    "function resolveOperatorQueueComplianceReasonText(compliance) {",
+    "function resolveOperatorQueueComplianceTitle(item, compliance) {",
     "const OPERATOR_QUEUE_SNAPSHOT_STALE_THRESHOLD_MS = 15 * 60 * 1000;",
     "function buildOperatorQueueSummaryFromSnapshot(snapshot) {",
     "async function refreshOperatorQueue(options = {}) {",
@@ -51,6 +54,14 @@ test("operator console keeps a priority queue surface for next actions", () => {
     "const repoOwnedQueueEntries = buildOperatorPriorityQueueEntriesFromSnapshot();",
     'actionId: "open_case_wiki_remediation"',
     'actionId: "copy_case_wiki_remediation_draft"',
+    'kicker: complianceBlocked ? "Compliance blocker" : toOptionalText(item.kicker) ?? "Queue item",',
+    'return "Raw evidence refs must be redacted before export.";',
+    'return "Case Wiki evidence signing must pass before export.";',
+    'return "Clear export blocker";',
+    'return "Clear export blocker first.";',
+    "let complianceBlockedCount = 0;",
+    "topItemComplianceReason: resolveOperatorQueueComplianceReasonText(topItemCompliance),",
+    ' ? "Compiled queue export is blocked by compliance enforcement. Clear the first queue item before handoff or export."',
     'actionId: "saved_view_approvals"',
     'actionId: "saved_view_runtime"',
     'actionId: "saved_view_incidents"',
@@ -88,6 +99,8 @@ test("operator console keeps a priority queue surface for next actions", () => {
   assert.ok(readmeSource.includes("highlighted workspace"), "README missing workspace-first active queue helper note");
   assert.ok(readmeSource.includes("Open Remediation"), "README missing case wiki queue remediation note");
   assert.ok(readmeSource.includes("Copy Draft"), "README missing case wiki queue draft note");
+  assert.ok(readmeSource.includes("Compliance blocker"), "README missing compliance blocker queue note");
+  assert.ok(readmeSource.includes("Clear export blocker"), "README missing export blocker queue note");
   assert.ok(
     operatorGuideSource.includes("`Triage Summary` now behaves like an `Active Queue`"),
     "operator guide missing operator priority-queue note",
@@ -98,4 +111,6 @@ test("operator console keeps a priority queue surface for next actions", () => {
   );
   assert.ok(operatorGuideSource.includes("Open Remediation"), "operator guide missing case wiki remediation note");
   assert.ok(operatorGuideSource.includes("Copy Draft"), "operator guide missing case wiki draft note");
+  assert.ok(operatorGuideSource.includes("Compliance blocker"), "operator guide missing compliance blocker queue note");
+  assert.ok(operatorGuideSource.includes("Clear export blocker"), "operator guide missing export blocker queue note");
 });

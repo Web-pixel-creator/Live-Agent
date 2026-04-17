@@ -43,8 +43,9 @@ function resolveCaseWikiPriorityScore(priority: CaseWikiPriority | null | undefi
 function resolveQueuePriority(params: {
   blocking: boolean;
   approvalRequired: boolean;
+  complianceBlocked: boolean;
 }): RuntimeOperatorQueuePriority {
-  if (params.approvalRequired) {
+  if (params.approvalRequired || params.complianceBlocked) {
     return "critical";
   }
   if (params.blocking) {
@@ -153,6 +154,7 @@ function buildQueueMeta(params: {
   focusLabel: string | null;
   blockerText: string | null;
   nextStepText: string | null;
+  complianceText: string | null;
   targetText: string | null;
   ownerText: string | null;
   dueBy: string | null;
@@ -166,6 +168,9 @@ function buildQueueMeta(params: {
   }
   if (params.nextStepText && params.nextStepText !== params.blockerText) {
     parts.push(`Next: ${params.nextStepText}.`);
+  }
+  if (params.complianceText) {
+    parts.push(`Compliance: ${params.complianceText}.`);
   }
   if (params.targetText) {
     parts.push(`Target: ${params.targetText}.`);
@@ -186,8 +191,9 @@ export function buildRuntimeOperatorQueueItem(caseWiki: CaseWiki): RuntimeOperat
   const nextAction = caseWiki.recommendedNextAction ?? null;
   const blockingQuestion = resolveTopBlockingQuestion(caseWiki);
   const draft = remediation.draft ?? null;
+  const complianceBlocked = caseWiki.compliance.enforcement.exportReady !== true;
 
-  if (!draft && !route && !nextAction && !blockingQuestion) {
+  if (!draft && !route && !nextAction && !blockingQuestion && !complianceBlocked) {
     return null;
   }
 
@@ -215,7 +221,12 @@ export function buildRuntimeOperatorQueueItem(caseWiki: CaseWiki): RuntimeOperat
     null;
   const targetText = toNonEmptyString(draft?.targetLabel);
   const dueBy = toNonEmptyString(draft?.dueBy) ?? toNonEmptyString(nextAction?.dueBy) ?? toNonEmptyString(route?.dueBy);
-  const blocking = blockingQuestion?.blocking === true || route?.blocking === true || nextAction?.blocking === true;
+  const complianceText =
+    complianceBlocked
+      ? toNonEmptyString(caseWiki.compliance.enforcement.summary) ?? "Compiled compliance enforcement requires review"
+      : null;
+  const blocking =
+    complianceBlocked || blockingQuestion?.blocking === true || route?.blocking === true || nextAction?.blocking === true;
   const approvalRequired = route?.approvalRequired === true || nextAction?.type === "approval_request";
   const viewAction = resolveSavedViewAction({ route, nextAction });
 
@@ -230,9 +241,10 @@ export function buildRuntimeOperatorQueueItem(caseWiki: CaseWiki): RuntimeOperat
     priority: resolveQueuePriority({
       blocking,
       approvalRequired,
+      complianceBlocked,
     }),
     blocking,
-    kicker: approvalRequired ? "Approval lane" : blocking ? "Case blocker" : "Case next step",
+    kicker: approvalRequired ? "Approval lane" : complianceBlocked ? "Compliance blocker" : blocking ? "Case blocker" : "Case next step",
     title:
       toNonEmptyString(draft?.title) ??
       toNonEmptyString(nextAction?.title) ??
@@ -242,6 +254,7 @@ export function buildRuntimeOperatorQueueItem(caseWiki: CaseWiki): RuntimeOperat
       focusLabel,
       blockerText,
       nextStepText,
+      complianceText,
       targetText,
       ownerText,
       dueBy,
@@ -299,6 +312,9 @@ export function buildRuntimeOperatorQueueItem(caseWiki: CaseWiki): RuntimeOperat
       templateId: caseWiki.compliance.templateId,
       piiRedactionLevel: caseWiki.compliance.controls.piiRedactionLevel,
       expectedSignatureStatus: caseWiki.compliance.evidenceSigning.expectedSignatureStatus,
+      enforcementStatus: caseWiki.compliance.enforcement.status,
+      exportReady: caseWiki.compliance.enforcement.exportReady,
+      blockingReasons: caseWiki.compliance.enforcement.blockingReasons,
     },
     primary: draft
       ? {

@@ -242,6 +242,12 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
   assert.equal(wiki?.compliance.controls.piiRedactionLevel, "high");
   assert.equal(wiki?.compliance.retention.rawMediaDays, 3);
   assert.equal(wiki?.compliance.evidenceSigning.expectedSignatureStatus, "unsigned");
+  assert.equal(wiki?.compliance.enforcement.status, "pass");
+  assert.equal(wiki?.compliance.enforcement.snapshotMode, "compiled_operator_safe");
+  assert.equal(wiki?.compliance.enforcement.rawRefCount, 0);
+  assert.equal(wiki?.compliance.enforcement.redactionSatisfied, true);
+  assert.equal(wiki?.compliance.enforcement.signatureSatisfied, true);
+  assert.equal(wiki?.compliance.enforcement.exportReady, true);
   assert.match(wiki?.compliance.summary ?? "", /template=strict/i);
   assert.equal(wiki?.overview.title, "Case case-42 for Canada");
   assert.equal(wiki?.overview.status, "waiting_on_customer");
@@ -436,6 +442,9 @@ test("runtime case wiki can attach a signed evidence envelope", () => {
   assert.equal(wiki?.evidenceSignature?.signedAt, "2026-04-10T09:01:00.000Z");
   assert.equal(wiki?.compliance.templateId, "baseline");
   assert.equal(wiki?.compliance.evidenceSigning.expectedSignatureStatus, "signed");
+  assert.equal(wiki?.compliance.enforcement.status, "pass");
+  assert.equal(wiki?.compliance.enforcement.observedSignatureStatus, "signed");
+  assert.equal(wiki?.compliance.enforcement.signatureSatisfied, true);
   assert.equal(wiki?.operatorPreviewPack.compliance.evidenceSigning.keyState, "loaded");
   assert.equal(
     verifyEvidencePayloadSignature({
@@ -443,6 +452,88 @@ test("runtime case wiki can attach a signed evidence envelope", () => {
       evidenceSignature: wiki.evidenceSignature,
       publicKeyPem,
     }).ok,
+    true,
+  );
+});
+
+test("runtime case wiki compliance enforcement fails when high-redaction case refs raw artifacts", () => {
+  const wiki = buildRuntimeCaseWiki({
+    sessions: [
+      {
+        sessionId: "session-redaction-1",
+        tenantId: "tenant-a",
+        mode: "live",
+        status: "active",
+        version: 1,
+        lastMutationId: "mutation-redaction-1",
+        updatedAt: "2026-04-10T10:00:00.000Z",
+      },
+    ],
+    runs: [],
+    approvals: [],
+    recentEvents: [
+      {
+        eventId: "event-redaction-1",
+        sessionId: "session-redaction-1",
+        runId: "run-redaction-1",
+        type: "operator.note",
+        source: "operator",
+        createdAt: "2026-04-10T10:02:00.000Z",
+        route: "case-wiki",
+        status: "captured",
+        payload: {
+          kind: "case_wiki_note",
+          title: "Passport evidence added",
+          note: "Passport scan still needs a redacted export path.",
+          priority: "high",
+          blocking: true,
+          owner: "operator",
+          suggestedNextStep: "Replace raw passport artifact with a redacted export.",
+          sourceRefs: [
+            "artifact:raw:passport-scan",
+            "file:C:/tmp/passport-scan.png",
+          ],
+        },
+        metadata: {
+          kind: "case_wiki_note",
+        },
+      },
+    ],
+    selectedEvents: [],
+    compliance: {
+      templateId: "strict",
+      requestedTemplateId: "strict",
+      fallbackApplied: false,
+      source: "tenant_override",
+      controls: {
+        piiRedactionLevel: "high",
+        crossTenantAdminOnly: true,
+        approvalSlaEnforced: true,
+        auditTrailRequired: true,
+      },
+      retention: {
+        rawMediaDays: 2,
+        auditLogsDays: 540,
+        eventsDays: 540,
+        sessionsDays: 120,
+      },
+    },
+    now: new Date("2026-04-10T10:05:00.000Z"),
+  });
+
+  assert.ok(wiki);
+  assert.equal(wiki?.compliance.enforcement.status, "fail");
+  assert.equal(wiki?.compliance.enforcement.snapshotMode, "raw_ref_review");
+  assert.equal(wiki?.compliance.enforcement.redactionRequired, true);
+  assert.equal(wiki?.compliance.enforcement.redactionSatisfied, false);
+  assert.equal(wiki?.compliance.enforcement.exportReady, false);
+  assert.equal(wiki?.compliance.enforcement.rawRefCount, 2);
+  assert.deepEqual(wiki?.compliance.enforcement.blockingReasons, ["raw_like_source_refs_detected"]);
+  assert.equal(wiki?.operatorPreviewPack.compliance.enforcement.status, "fail");
+  assert.equal(wiki?.operatorPreviewPack.compliance.enforcement.exportReady, false);
+  assert.match(wiki?.compliance.summary ?? "", /enforcement=fail/i);
+  assert.equal(
+    wiki?.evidencePack.questions.some((item) => item.sourceRefs.includes("artifact:raw:passport-scan")),
     true,
   );
 });

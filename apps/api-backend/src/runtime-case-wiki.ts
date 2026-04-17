@@ -175,6 +175,40 @@ function buildSourceRef(prefix: string, value: string | null): string[] {
   return normalized ? [`${prefix}:${normalized}`] : [];
 }
 
+function buildSourceRefs(values: Array<string | null | undefined>): string[] {
+  return [...new Set(values.map((item) => toNonEmptyString(item)).filter((item): item is string => Boolean(item)))];
+}
+
+function extractAdditionalSourceRefs(value: unknown): string[] {
+  if (!isRecord(value)) {
+    return [];
+  }
+  const sourceRefs = Array.isArray(value.sourceRefs)
+    ? value.sourceRefs.map((item) => toNonEmptyString(item)).filter((item): item is string => Boolean(item))
+    : [];
+  const artifactRefs = Array.isArray(value.artifactRefs)
+    ? value.artifactRefs.map((item) => toNonEmptyString(item)).filter((item): item is string => Boolean(item))
+    : [];
+  return buildSourceRefs([...sourceRefs, ...artifactRefs]);
+}
+
+function buildEventSourceRefs(event: EventListItem): string[] {
+  return buildSourceRefs([
+    ...buildSourceRef("event", event.eventId),
+    ...extractAdditionalSourceRefs(event.payload),
+    ...extractAdditionalSourceRefs(event.metadata),
+  ]);
+}
+
+function isRawLikeSourceRef(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  if (normalized.startsWith("artifact:raw:")) {
+    return true;
+  }
+  const prefix = normalized.split(":", 1)[0] ?? normalized;
+  return ["file", "screenshot", "video", "audio", "blob", "raw", "raw_media"].includes(prefix);
+}
+
 function deriveWorkflowSummary(
   selectedSessionId: string,
   workflowSummary: RuntimeWorkflowControlPlaneSummary | null | undefined,
@@ -396,7 +430,7 @@ function buildEntities(context: RuntimeCaseWikiContext): CaseWikiEntity[] {
       role: "active_route",
       description: "Current runtime route contributing the latest case evidence.",
       confidence: 0.88,
-      sourceRefs: buildSourceRef("event", context.latestEvent?.eventId ?? null),
+      sourceRefs: context.latestEvent ? buildEventSourceRefs(context.latestEvent) : [],
     });
   }
 
@@ -440,7 +474,7 @@ function buildOperatorNoteTimelineEntries(context: RuntimeCaseWikiContext): Runt
       title,
       summary: note,
       status: priority ?? event.status ?? null,
-      sourceRefs: buildSourceRef("event", event.eventId),
+      sourceRefs: buildEventSourceRefs(event),
     };
   });
 }
@@ -583,7 +617,7 @@ function buildOperatorNoteAuditEntries(context: RuntimeCaseWikiContext): Runtime
       reason: toNonEmptyString(payload?.suggestedNextStep),
       oldValue: null,
       newValue: note,
-      sourceRefs: buildSourceRef("event", event.eventId),
+      sourceRefs: buildEventSourceRefs(event),
     };
   });
 }
@@ -644,7 +678,7 @@ function buildRuntimeAuditEntry(context: RuntimeCaseWikiContext): RuntimeCaseWik
       toNonEmptyString(latestEvent.verificationState) ??
       toNonEmptyString(latestEvent.status) ??
       toNonEmptyString(latestEvent.type),
-    sourceRefs: buildSourceRef("event", latestEvent.eventId),
+    sourceRefs: buildEventSourceRefs(latestEvent),
   };
 }
 
@@ -732,7 +766,7 @@ function buildTimeline(context: RuntimeCaseWikiContext): CaseWikiTimelineEntry[]
           toReadableToken(context.latestEvent.status ?? null)?.toLowerCase() ?? "an update"
         }.`,
       status: context.latestEvent.status ?? null,
-      sourceRefs: buildSourceRef("event", context.latestEvent.eventId),
+      sourceRefs: buildEventSourceRefs(context.latestEvent),
     });
   }
 
@@ -823,7 +857,7 @@ function buildProofs(context: RuntimeCaseWikiContext): CaseWikiProof[] {
       evidenceSummary:
         toNonEmptyString(context.latestEvent.verificationSummary) ?? "Runtime marked the latest event as verified.",
       contradictionNote: null,
-      sourceRefs: buildSourceRef("event", context.latestEvent.eventId),
+      sourceRefs: buildEventSourceRefs(context.latestEvent),
     });
   }
 
@@ -906,7 +940,7 @@ function buildOpenQuestions(context: RuntimeCaseWikiContext): CaseWikiOpenQuesti
       blocking: true,
       owner: toNonEmptyString(payload.owner) ?? "operator",
       suggestedNextStep: toNonEmptyString(payload.suggestedNextStep),
-      sourceRefs: buildSourceRef("event", event.eventId),
+      sourceRefs: buildEventSourceRefs(event),
     });
   }
 
@@ -2031,12 +2065,65 @@ function buildCaseWikiWorkspacePack(params: {
   };
 }
 
+function buildCaseWikiComplianceEnforcement(params: {
+  piiRedactionLevel: "standard" | "high";
+  expectedSignatureStatus: "signed" | "unsigned";
+  sourceRefs: string[];
+}): CaseWikiComplianceSummary["enforcement"] {
+  const rawRefs = buildSourceRefs(params.sourceRefs.filter((item) => isRawLikeSourceRef(item))).slice(0, 6);
+  const redactionRequired = params.piiRedactionLevel === "high";
+  const redactionSatisfied = !redactionRequired || rawRefs.length === 0;
+  const signingRequired = params.expectedSignatureStatus === "signed";
+  const observedSignatureStatus = params.expectedSignatureStatus;
+  const signatureSatisfied = !signingRequired || observedSignatureStatus === "signed";
+  const blockingReasons: string[] = [];
+
+  if (!redactionSatisfied) {
+    blockingReasons.push("raw_like_source_refs_detected");
+  }
+  if (!signatureSatisfied) {
+    blockingReasons.push("case_wiki_signature_missing");
+  }
+
+  const status =
+    blockingReasons.length > 0
+      ? "fail"
+      : rawRefs.length > 0
+        ? "warn"
+        : "pass";
+  const snapshotMode = rawRefs.length > 0 ? "raw_ref_review" : "compiled_operator_safe";
+  const exportReady = blockingReasons.length === 0;
+
+  return {
+    status,
+    snapshotMode,
+    rawRefCount: rawRefs.length,
+    rawRefsPreview: rawRefs,
+    redactionRequired,
+    redactionSatisfied,
+    signingRequired,
+    observedSignatureStatus,
+    signatureSatisfied,
+    exportReady,
+    blockingReasons,
+    summary: [
+      `status=${status}`,
+      `snapshot=${snapshotMode}`,
+      `redaction=${redactionSatisfied ? "ok" : "blocked"}`,
+      `signing=${signatureSatisfied ? observedSignatureStatus : "blocked"}`,
+      `export=${exportReady ? "ready" : "blocked"}`,
+      `rawRefs=${rawRefs.length}`,
+    ].join(" | "),
+  };
+}
+
 function buildCaseWikiComplianceSummary(
   compliance:
     | RuntimeCaseWikiBuilderParams["compliance"]
     | null
     | undefined,
   evidenceSigner: RuntimeEvidenceSignerConfig | null | undefined,
+  sourceRefs: string[],
 ): CaseWikiComplianceSummary {
   const posture = buildRuntimeEvidenceSigningPosture(evidenceSigner);
   const templateId = compliance?.templateId ?? "baseline";
@@ -2054,6 +2141,11 @@ function buildCaseWikiComplianceSummary(
     eventsDays: Math.max(1, Math.floor(Number(compliance?.retention.eventsDays ?? 365) || 365)),
     sessionsDays: Math.max(1, Math.floor(Number(compliance?.retention.sessionsDays ?? 90) || 90)),
   };
+  const enforcement = buildCaseWikiComplianceEnforcement({
+    piiRedactionLevel: controls.piiRedactionLevel,
+    expectedSignatureStatus: posture.expectedSignatureStatus,
+    sourceRefs,
+  });
 
   return {
     templateId,
@@ -2069,6 +2161,7 @@ function buildCaseWikiComplianceSummary(
       signerId: posture.signerId,
       keyId: posture.keyId,
     },
+    enforcement,
     summary: [
       `template=${templateId}`,
       requestedTemplateId !== templateId ? `requested=${requestedTemplateId}` : null,
@@ -2077,6 +2170,7 @@ function buildCaseWikiComplianceSummary(
       `rawMedia=${retention.rawMediaDays}d`,
       `audit=${controls.auditTrailRequired ? "required" : "optional"}`,
       `signing=${posture.expectedSignatureStatus}`,
+      `enforcement=${enforcement.status}`,
     ]
       .filter((item): item is string => Boolean(item))
       .join(" | "),
@@ -2362,7 +2456,6 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
   const entities = buildEntities(context);
   const timeline = buildTimeline(context);
   const auditLog = buildAuditLog(context);
-  const compliance = buildCaseWikiComplianceSummary(params.compliance, params.evidenceSigner);
   const proofs = buildProofs(context);
   const openQuestions = buildOpenQuestions(context);
   const recommendedNextAction = buildRecommendedNextAction(context, openQuestions);
@@ -2371,6 +2464,13 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     entities,
     openQuestions,
   });
+  const complianceSourceRefs = buildSourceRefs([
+    ...evidencePack.sourceRefs,
+    ...timeline.flatMap((item) => item.sourceRefs ?? []),
+    ...auditLog.flatMap((item) => item.sourceRefs ?? []),
+    ...(recommendedNextAction?.sourceRefs ?? []),
+  ]);
+  const compliance = buildCaseWikiComplianceSummary(params.compliance, params.evidenceSigner, complianceSourceRefs);
   const handoffPack = buildCaseWikiHandoffPack({
     evidencePack,
     recommendedNextAction,

@@ -315,6 +315,30 @@ export const CASE_WIKI_EVIDENCE_SIGNING_KEY_STATES = ["missing", "loaded", "inva
 
 export type CaseWikiEvidenceSigningKeyState = (typeof CASE_WIKI_EVIDENCE_SIGNING_KEY_STATES)[number];
 
+export const CASE_WIKI_COMPLIANCE_ENFORCEMENT_STATUSES = ["pass", "warn", "fail"] as const;
+
+export type CaseWikiComplianceEnforcementStatus =
+  (typeof CASE_WIKI_COMPLIANCE_ENFORCEMENT_STATUSES)[number];
+
+export const CASE_WIKI_COMPLIANCE_SNAPSHOT_MODES = ["compiled_operator_safe", "raw_ref_review"] as const;
+
+export type CaseWikiComplianceSnapshotMode = (typeof CASE_WIKI_COMPLIANCE_SNAPSHOT_MODES)[number];
+
+export type CaseWikiComplianceEnforcement = {
+  status: CaseWikiComplianceEnforcementStatus;
+  snapshotMode: CaseWikiComplianceSnapshotMode;
+  rawRefCount: number;
+  rawRefsPreview: string[];
+  redactionRequired: boolean;
+  redactionSatisfied: boolean;
+  signingRequired: boolean;
+  observedSignatureStatus: EvidenceSignatureStatus;
+  signatureSatisfied: boolean;
+  exportReady: boolean;
+  blockingReasons: string[];
+  summary: string;
+};
+
 export type CaseWikiComplianceSummary = {
   templateId: CaseWikiComplianceTemplate;
   requestedTemplateId: string;
@@ -339,6 +363,7 @@ export type CaseWikiComplianceSummary = {
     signerId: string;
     keyId: string | null;
   };
+  enforcement: CaseWikiComplianceEnforcement;
   summary: string;
 };
 
@@ -803,6 +828,9 @@ export type RuntimeOperatorQueueCompliancePreview = {
   templateId: CaseWikiComplianceTemplate;
   piiRedactionLevel: CaseWikiPiiRedactionLevel;
   expectedSignatureStatus: EvidenceSignatureStatus;
+  enforcementStatus: CaseWikiComplianceEnforcementStatus;
+  exportReady: boolean;
+  blockingReasons: string[];
 };
 
 export type RuntimeOperatorQueueItem = {

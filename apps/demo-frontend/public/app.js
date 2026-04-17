@@ -11407,10 +11407,14 @@ function resolveOperatorPriorityQueueCompactTitle(entry) {
 
   const key = typeof entry.key === "string" ? entry.key.trim().toLowerCase() : "";
   const tone = typeof entry.tone === "string" ? entry.tone.trim().toLowerCase() : "";
+  const kicker = typeof entry.kicker === "string" ? entry.kicker.trim().toLowerCase() : "";
   const fullTitle = typeof entry.title === "string" && entry.title.trim().length > 0
     ? entry.title.trim()
     : "Operator action";
 
+  if (kicker === "compliance blocker") {
+    return "Clear export blocker";
+  }
   if (key === "hydrate_board") {
     return "Hydrate board";
   }
@@ -11662,6 +11666,63 @@ function resolveOperatorCaseWikiPriorityQueueViewAction(route, nextAction) {
   return null;
 }
 
+function normalizeOperatorQueueCompliancePreview(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const blockingReasons = Array.isArray(value.blockingReasons)
+    ? value.blockingReasons
+      .map((reason) => toOptionalText(reason))
+      .filter(Boolean)
+    : [];
+  return {
+    templateId: toOptionalText(value.templateId) ?? null,
+    piiRedactionLevel: toOptionalText(value.piiRedactionLevel) ?? null,
+    expectedSignatureStatus: toOptionalText(value.expectedSignatureStatus) ?? null,
+    enforcementStatus: toOptionalText(value.enforcementStatus) ?? "warn",
+    exportReady: value.exportReady === true,
+    blockingReasons,
+  };
+}
+
+function resolveOperatorQueueComplianceReasonText(compliance) {
+  const normalized = normalizeOperatorQueueCompliancePreview(compliance);
+  if (!normalized || (normalized.exportReady === true && normalized.enforcementStatus === "pass")) {
+    return "";
+  }
+  if (normalized.blockingReasons.includes("raw_like_source_refs_detected")) {
+    return "Raw evidence refs must be redacted before export.";
+  }
+  if (normalized.blockingReasons.includes("case_wiki_signature_missing")) {
+    return "Case Wiki evidence signing must pass before export.";
+  }
+  if (normalized.exportReady === false) {
+    return "Compiled case export is blocked until compliance enforcement passes.";
+  }
+  if (normalized.enforcementStatus === "fail") {
+    return "Compliance enforcement requires operator review before export.";
+  }
+  return "";
+}
+
+function resolveOperatorQueueComplianceTitle(item, compliance) {
+  const normalized = normalizeOperatorQueueCompliancePreview(compliance);
+  const fallbackTitle = toOptionalText(item?.title) ?? "Resolve compliance blocker before export";
+  if (!normalized) {
+    return fallbackTitle;
+  }
+  if (normalized.blockingReasons.includes("raw_like_source_refs_detected")) {
+    return "Redact raw case evidence before export";
+  }
+  if (normalized.blockingReasons.includes("case_wiki_signature_missing")) {
+    return "Resolve case wiki signing before export";
+  }
+  if (normalized.exportReady === false || normalized.enforcementStatus === "fail") {
+    return "Resolve compliance blocker before export";
+  }
+  return fallbackTitle;
+}
+
 function buildOperatorPriorityQueueEntriesFromSnapshot() {
   const snapshot = isRecord(state.operatorQueueSnapshot) ? state.operatorQueueSnapshot : null;
   if (!snapshot) {
@@ -11674,12 +11735,18 @@ function buildOperatorPriorityQueueEntriesFromSnapshot() {
     if (!title || !primary) {
       return null;
     }
+    const compliance = normalizeOperatorQueueCompliancePreview(item.compliance);
+    const complianceBlocked = Boolean(
+      compliance && (compliance.enforcementStatus === "fail" || compliance.exportReady !== true),
+    );
+    const complianceMeta = resolveOperatorQueueComplianceReasonText(compliance);
+    const baseMeta = toOptionalText(item.meta) ?? "Review the highlighted action.";
     return {
       key: toOptionalText(item.key) ?? toOptionalText(item.id) ?? `operator_queue_${index + 1}`,
-      tone: normalizeOperatorPriorityQueueTone(item.tone),
-      kicker: toOptionalText(item.kicker) ?? "Queue item",
-      title,
-      meta: toOptionalText(item.meta) ?? "Review the highlighted action.",
+      tone: complianceBlocked ? "fail" : normalizeOperatorPriorityQueueTone(item.tone),
+      kicker: complianceBlocked ? "Compliance blocker" : toOptionalText(item.kicker) ?? "Queue item",
+      title: complianceBlocked ? resolveOperatorQueueComplianceTitle(item, compliance) : title,
+      meta: complianceMeta ? `${complianceMeta} ${baseMeta}` : baseMeta,
       primary,
       secondary: buildOperatorPriorityQueueActionConfig(item.secondary, "secondary"),
     };
@@ -11783,9 +11850,13 @@ function buildOperatorPriorityQueueCompactMeta(entry) {
 
   const key = typeof entry.key === "string" ? entry.key.trim().toLowerCase() : "";
   const tone = typeof entry.tone === "string" ? entry.tone.trim().toLowerCase() : "";
+  const kicker = typeof entry.kicker === "string" ? entry.kicker.trim().toLowerCase() : "";
   const primaryLabel = entry.primary && typeof entry.primary.label === "string" ? entry.primary.label.trim() : "";
   const normalizedPrimaryLabel = primaryLabel.toLowerCase();
 
+  if (kicker === "compliance blocker") {
+    return "Clear export blocker first.";
+  }
   if (key === "hydrate_board") {
     return "Refresh once, then follow the highlighted workspace.";
   }
@@ -36365,6 +36436,7 @@ function buildOperatorQueueSummaryFromSnapshot(snapshot) {
   const nowMs = Date.now();
   let criticalCount = 0;
   let approvalCount = 0;
+  let complianceBlockedCount = 0;
   let staleCount = 0;
   let oldestAgeMs = null;
 
@@ -36377,6 +36449,10 @@ function buildOperatorQueueSummaryFromSnapshot(snapshot) {
       || toOptionalText(item?.recommendedNextAction?.type) === "approval_request";
     if (approvalRequired) {
       approvalCount += 1;
+    }
+    const compliance = normalizeOperatorQueueCompliancePreview(item?.compliance);
+    if (compliance && (compliance.enforcementStatus === "fail" || compliance.exportReady !== true)) {
+      complianceBlockedCount += 1;
     }
     const generatedAtMs = parseIsoTimestampMs(toOptionalText(item.generatedAt));
     if (generatedAtMs === null) {
@@ -36394,24 +36470,28 @@ function buildOperatorQueueSummaryFromSnapshot(snapshot) {
   let status = "healthy";
   if (totalItems <= 0) {
     status = "idle";
-  } else if (criticalCount > 0 || approvalCount > 0) {
+  } else if (criticalCount > 0 || approvalCount > 0 || complianceBlockedCount > 0) {
     status = "critical";
   } else if (blockingItems > 0 || staleCount > 0) {
     status = "elevated";
   }
 
   const topItem = items[0] ?? null;
+  const topItemCompliance = normalizeOperatorQueueCompliancePreview(topItem?.compliance);
   return {
     totalItems,
     blockingItems,
     criticalCount,
     approvalCount,
+    complianceBlockedCount,
     staleCount,
     oldestAgeMs,
     status,
+    topItemKicker: toOptionalText(topItem?.kicker),
     topItemTitle: toOptionalText(topItem?.title),
     topItemMeta: toOptionalText(topItem?.meta),
     topItemPrimaryLabel: toOptionalText(topItem?.primary?.label),
+    topItemComplianceReason: resolveOperatorQueueComplianceReasonText(topItemCompliance),
   };
 }
 
@@ -36531,7 +36611,9 @@ function renderOperatorTaskQueueWidget(taskQueueSummary, operatorQueueSnapshot =
       statusVariant = "fail";
       statusText = "critical";
       hintVariant = "fail";
-      hint = "Approval-gated or critical compiled queue work is waiting. Start with the first queue item before scanning raw runtime backlog.";
+      hint = operatorQueueSummary.complianceBlockedCount > 0
+        ? "Compiled queue export is blocked by compliance enforcement. Clear the first queue item before handoff or export."
+        : "Approval-gated or critical compiled queue work is waiting. Start with the first queue item before scanning raw runtime backlog.";
     } else if (operatorQueueSummary.status === "elevated") {
       statusVariant = "neutral";
       statusText = "elevated";
@@ -36541,6 +36623,9 @@ function renderOperatorTaskQueueWidget(taskQueueSummary, operatorQueueSnapshot =
 
     if (operatorQueueSummary.topItemTitle) {
       hint = `${hint} Top item: ${operatorQueueSummary.topItemTitle}.`;
+    }
+    if (operatorQueueSummary.topItemComplianceReason) {
+      hint = `${hint} ${operatorQueueSummary.topItemComplianceReason}`;
     }
     if (operatorQueueSummary.staleCount > 0) {
       hint = `${hint} ${operatorQueueSummary.staleCount} item(s) are older than ${formatAgeMs(OPERATOR_QUEUE_SNAPSHOT_STALE_THRESHOLD_MS)}.`;

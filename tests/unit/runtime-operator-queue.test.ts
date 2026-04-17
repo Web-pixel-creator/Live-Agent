@@ -233,7 +233,21 @@ function createCaseWiki(scenario: QueueScenario): CaseWiki {
         signerId: "api-backend",
         keyId: null,
       },
-      summary: "template=strict | tenant_override | pii=high | rawMedia=2d | audit=required | signing=unsigned",
+      enforcement: {
+        status: "pass",
+        snapshotMode: "compiled_operator_safe",
+        rawRefCount: 0,
+        rawRefsPreview: [],
+        redactionRequired: true,
+        redactionSatisfied: true,
+        signingRequired: false,
+        observedSignatureStatus: "unsigned",
+        signatureSatisfied: true,
+        exportReady: true,
+        blockingReasons: [],
+        summary: "status=pass | snapshot=compiled_operator_safe | redaction=ok | signing=unsigned | export=ready | rawRefs=0",
+      },
+      summary: "template=strict | tenant_override | pii=high | rawMedia=2d | audit=required | signing=unsigned | enforcement=pass",
     },
     evidenceSignature: {
       schemaVersion: 1,
@@ -443,7 +457,21 @@ function createCaseWiki(scenario: QueueScenario): CaseWiki {
           signerId: "api-backend",
           keyId: null,
         },
-        summary: "template=strict | tenant_override | pii=high | rawMedia=2d | audit=required | signing=unsigned",
+        enforcement: {
+          status: "pass",
+          snapshotMode: "compiled_operator_safe",
+          rawRefCount: 0,
+          rawRefsPreview: [],
+          redactionRequired: true,
+          redactionSatisfied: true,
+          signingRequired: false,
+          observedSignatureStatus: "unsigned",
+          signatureSatisfied: true,
+          exportReady: true,
+          blockingReasons: [],
+          summary: "status=pass | snapshot=compiled_operator_safe | redaction=ok | signing=unsigned | export=ready | rawRefs=0",
+        },
+        summary: "template=strict | tenant_override | pii=high | rawMedia=2d | audit=required | signing=unsigned | enforcement=pass",
       },
     },
     entities: [
@@ -540,6 +568,8 @@ test("runtime operator queue item prefers remediation drafts over saved-view fal
   assert.equal(item?.tone, "fail");
   assert.equal(item?.primary?.actionId, "open_case_wiki_remediation");
   assert.equal(item?.secondary?.actionId, "copy_case_wiki_remediation_draft");
+  assert.equal(item?.compliance.enforcementStatus, "pass");
+  assert.equal(item?.compliance.exportReady, true);
   assert.match(item?.meta ?? "", /Focus: Passport scan is still missing/i);
 });
 
@@ -643,4 +673,40 @@ test("runtime operator queue item returns null when case wiki has no actionable 
   });
 
   assert.equal(buildRuntimeOperatorQueueItem(wiki), null);
+});
+
+test("runtime operator queue escalates compliance enforcement blockers even without other actions", () => {
+  const wiki = createCaseWiki({
+    caseId: "case-compliance",
+    sessionId: "session-compliance",
+    generatedAt: "2026-04-16T08:12:00.000Z",
+    title: "Compliance-only blocker",
+  });
+  wiki.compliance.enforcement = {
+    status: "fail",
+    snapshotMode: "raw_ref_review",
+    rawRefCount: 2,
+    rawRefsPreview: ["artifact:raw:passport-scan", "file:C:/tmp/passport-scan.png"],
+    redactionRequired: true,
+    redactionSatisfied: false,
+    signingRequired: false,
+    observedSignatureStatus: "unsigned",
+    signatureSatisfied: true,
+    exportReady: false,
+    blockingReasons: ["raw_like_source_refs_detected"],
+    summary: "status=fail | snapshot=raw_ref_review | redaction=blocked | signing=unsigned | export=blocked | rawRefs=2",
+  };
+  wiki.compliance.summary =
+    "template=strict | tenant_override | pii=high | rawMedia=2d | audit=required | signing=unsigned | enforcement=fail";
+
+  const item = buildRuntimeOperatorQueueItem(wiki);
+
+  assert.ok(item);
+  assert.equal(item?.priority, "critical");
+  assert.equal(item?.blocking, true);
+  assert.equal(item?.kicker, "Compliance blocker");
+  assert.equal(item?.compliance.enforcementStatus, "fail");
+  assert.equal(item?.compliance.exportReady, false);
+  assert.deepEqual(item?.compliance.blockingReasons, ["raw_like_source_refs_detected"]);
+  assert.match(item?.meta ?? "", /Compliance: status=fail/i);
 });

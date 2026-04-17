@@ -39,6 +39,9 @@ test("operator queue route, builder, inventory, and docs stay aligned", () => {
     'actionId: "saved_view_incidents"',
     'actionId: "open_case_wiki_remediation"',
     'actionId: "copy_case_wiki_remediation_draft"',
+    "complianceBlocked",
+    "enforcementStatus",
+    "Compliance blocker",
     'source: "case_wiki"',
   ]) {
     assert.ok(builderSource.includes(token), `operator queue builder missing token: ${token}`);
@@ -52,12 +55,14 @@ test("operator queue route, builder, inventory, and docs stay aligned", () => {
   assert.match(readme, /GET \/v1\/operator\/summary/);
   assert.match(readme, /repo-owned operator queue/i);
   assert.match(readme, /data\.operatorQueue/);
+  assert.match(readme, /compliance[- ]enforcement/i);
   assert.match(readme, /Active Queue/i);
   assert.match(readme, /Case Wiki/i);
   assert.match(operatorGuide, /GET \/v1\/operator\/queue/);
   assert.match(operatorGuide, /GET \/v1\/operator\/summary/);
   assert.match(operatorGuide, /repo-owned operator queue/i);
   assert.match(operatorGuide, /data\.operatorQueue/);
+  assert.match(operatorGuide, /compliance[- ]enforcement/i);
   assert.match(operatorGuide, /compiled Case Wiki/i);
   assert.match(operatorGuide, /Active Queue/i);
   assert.match(architecture, /\/v1\/operator\/queue/);
