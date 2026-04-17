@@ -29382,6 +29382,18 @@ function resetOperatorSessionBoundaryWidget(reason = "no_data") {
   setStatusPill(el.operatorSessionBoundaryStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
+function buildOperatorReplayContextProvenanceText(contextSource, ingressSource, fallback = null) {
+  const context = toOptionalText(contextSource);
+  const ingress = toOptionalText(ingressSource);
+  if (!context && !ingress) {
+    return fallback;
+  }
+  if (context && ingress) {
+    return `${context} via ${ingress}`;
+  }
+  return context ?? `via ${ingress}`;
+}
+
 function resetOperatorBrowserWorkersWidget(reason = "no_data") {
   setText(el.operatorBrowserWorkersQueued, "0");
   setText(el.operatorBrowserWorkersRunning, "0");
@@ -31118,6 +31130,14 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
     toOptionalText(replay?.latestVerifiedStage) ??
     toOptionalText(proof?.workflowStage) ??
     toOptionalText(proof?.route);
+  const latestProofContextProvenance = buildOperatorReplayContextProvenanceText(
+    toOptionalText(proof?.contextSource) ?? toOptionalText(replay?.latestVerifiedContextSource),
+    toOptionalText(proof?.ingressSource) ?? toOptionalText(replay?.latestVerifiedContextIngressSource),
+  );
+  const latestTurnContextProvenance = buildOperatorReplayContextProvenanceText(
+    toOptionalText(replay?.latestContextSource),
+    toOptionalText(replay?.latestContextIngressSource),
+  );
   const recoveryLabel =
     toOptionalText(recovery?.label) ??
     boundaryNextStep ??
@@ -31264,7 +31284,7 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   setText(
     el.operatorSessionBoundaryLatestProof,
     latestProofSummary
-      ? `${latestProofSummary}${latestProofStage ? ` | ${latestProofStage}` : ""}`
+      ? `${latestProofSummary}${latestProofStage ? ` | ${latestProofStage}` : ""}${latestProofContextProvenance ? ` | ${latestProofContextProvenance}` : ""}`
       : "No verified proof pointer yet.",
   );
   setText(
@@ -31315,8 +31335,17 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   }
 
   setStatusPill(el.operatorSessionBoundaryStatus, statusText, statusVariant);
+  const ingressHintParts = [];
+  if (latestProofContextProvenance) {
+    ingressHintParts.push(`Proof ingress: ${latestProofContextProvenance}.`);
+  }
+  if (latestTurnContextProvenance && latestTurnContextProvenance !== latestProofContextProvenance) {
+    ingressHintParts.push(`Turn ingress: ${latestTurnContextProvenance}.`);
+  }
   setOperatorSessionBoundaryHint(
-    recoveryDrill?.reason ?? recoveryHandoff?.reason ?? approvalGate?.reason ?? hint,
+    [recoveryDrill?.reason ?? recoveryHandoff?.reason ?? approvalGate?.reason ?? hint, ...ingressHintParts]
+      .filter((item) => typeof item === "string" && item.trim().length > 0)
+      .join(" "),
     hintVariant,
   );
 }
