@@ -145,7 +145,7 @@ $env:RAILWAY_ENVIRONMENT="production"
 npm run repo:publish -- -DeployRailway -SkipPages -SkipBadgeCheck
 ```
 This flow now surfaces local `artifacts/release-evidence/report.*`, `artifacts/release-evidence/runtime-proof-report.*`, and `artifacts/release-evidence/manifest.*` paths immediately after the pre-publish verification gate, then prints effective hosted `badge.json` / `badge-details.json` URLs after Railway deploy verification.
-It also emits `artifacts/deploy/repo-publish-summary.json` and `artifacts/deploy/railway-deploy-summary.json` so the publish/deploy provenance can be inspected without re-reading terminal output. When unified release evidence already carries `caseWikiRuntimeSurfaceIngress`, the same repo-publish summary now mirrors that compact runtime-surface tuple (`status`, `contextSource`, `ingressSource`, `focusId`, `blocker`, `nextAction`, `route`, `updatedAt`) into publish-facing automation output and step summary.
+It also emits `artifacts/deploy/repo-publish-summary.json` and `artifacts/deploy/railway-deploy-summary.json` so the publish/deploy provenance can be inspected without re-reading terminal output. When unified release evidence already carries `caseWikiRuntimeSurfaceIngress`, the same repo-publish summary now mirrors that compact runtime-surface tuple (`status`, `contextSource`, `ingressSource`, `focusId`, `blocker`, `nextAction`, `route`, `updatedAt`) into publish-facing automation output and step summary, and persists the same compact `caseWikiRuntimeSurfaceIngress` object as a top-level field in `repo-publish-summary.json`.
 If you need to refresh hosted Railway environment before demo, run:
 ```powershell
 $env:RAILWAY_PROJECT_ID="bbca2889-fd0d-48fe-bded-79802230e5a6"

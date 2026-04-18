@@ -732,6 +732,7 @@ $repoPublishSummary = [ordered]@{
     railwayNoWait = [bool]$RailwayNoWait
     railwayFrontendNoWait = [bool]$RailwayFrontendNoWait
   }
+  caseWikiRuntimeSurfaceIngress = if ($null -ne $releaseEvidenceSnapshot) { $releaseEvidenceSnapshot.caseWikiRuntimeSurfaceIngress } else { $null }
   releaseEvidenceSnapshot = $releaseEvidenceSnapshot
   artifacts = [ordered]@{
     self = "artifacts/deploy/repo-publish-summary.json"
