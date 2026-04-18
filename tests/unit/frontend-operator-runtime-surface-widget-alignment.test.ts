@@ -33,10 +33,13 @@ test("operator runtime surface widget is wired in frontend HTML and runtime", ()
     'operatorRuntimeSurfaceLoadedAt: null',
     'operatorRuntimeSurfaceStatus: document.getElementById("operatorRuntimeSurfaceStatus")',
     'operatorRuntimeSurfaceRefreshBtn: document.getElementById("operatorRuntimeSurfaceRefreshBtn")',
+    "buildOperatorCaseWikiRoutingContextHint",
     "setOperatorRuntimeSurfaceHint",
     "resetOperatorRuntimeSurfaceWidget",
     "buildOperatorRuntimeSurfaceSnapshot",
     "renderOperatorRuntimeSurfaceWidget",
+    "caseWikiIngress",
+    "Latest Case Wiki ingress",
     "refreshOperatorRuntimeSurface(options = {})",
     'fetch(`${state.apiBaseUrl}/v1/runtime/surface`, {',
     'fetch(`${state.apiBaseUrl}/v1/runtime/surface/readiness`, {',
@@ -51,7 +54,15 @@ test("operator runtime surface widget is wired in frontend HTML and runtime", ()
 
   assert.ok(readmeSource.includes("Runtime Surface"), "README missing Runtime Surface operator card note");
   assert.ok(
+    readmeSource.includes("Case Wiki ingress provenance"),
+    "README missing Runtime Surface Case Wiki ingress provenance note",
+  );
+  assert.ok(
     operatorGuideSource.includes("Runtime Surface"),
     "operator guide missing Runtime Surface operator card note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("Case Wiki ingress provenance"),
+    "operator guide missing Runtime Surface Case Wiki ingress provenance note",
   );
 });

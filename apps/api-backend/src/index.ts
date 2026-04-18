@@ -4790,16 +4790,21 @@ export const server = createServer(async (req, res) => {
 
     if (url.pathname === "/v1/runtime/surface/readiness" && req.method === "GET") {
       const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
-      const services = await getOperatorServiceSummary();
-      const deviceNodes = await listDeviceNodes({
-        limit: operatorDeviceNodeSummaryLimit,
-        includeOffline: true,
-      });
+      const eventLimit = parseBoundedInt(url.searchParams.get("eventLimit"), 120, 20, 500);
+      const [services, deviceNodes, recentEvents] = await Promise.all([
+        getOperatorServiceSummary(),
+        listDeviceNodes({
+          limit: operatorDeviceNodeSummaryLimit,
+          includeOffline: true,
+        }),
+        listRecentEvents(eventLimit),
+      ]);
       const runtimeSurfaceReadiness = await buildRuntimeSurfaceReadinessSnapshot({
         env: process.env,
         cwd: process.cwd(),
         services,
         deviceNodes,
+        events: recentEvents,
       });
       writeJson(res, 200, {
         data: runtimeSurfaceReadiness,

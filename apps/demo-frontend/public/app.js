@@ -30999,8 +30999,11 @@ function renderOperatorRuntimeSurfaceWidget(runtimeSurfaceSnapshot) {
   const playbooks = Array.isArray(inventory.playbooks) ? inventory.playbooks.filter((item) => isRecord(item)) : [];
   const evidenceEntries = Array.isArray(inventory.evidence) ? inventory.evidence.filter((item) => isRecord(item)) : [];
   const readinessSummary = isRecord(readiness.summary) ? readiness.summary : {};
+  const workflowSummary = isRecord(readinessSummary.workflow) ? readinessSummary.workflow : {};
   const skillsSummary = isRecord(readinessSummary.skills) ? readinessSummary.skills : {};
   const evidenceSummary = isRecord(readinessSummary.evidence) ? readinessSummary.evidence : {};
+  const caseWikiIngress = isRecord(workflowSummary.caseWikiIngress) ? workflowSummary.caseWikiIngress : null;
+  const caseWikiIngressHint = buildOperatorCaseWikiRoutingContextHint(caseWikiIngress);
   const degradedReasons = Array.isArray(readiness.degradedReasons)
     ? readiness.degradedReasons
         .map((item) => toOptionalText(item))
@@ -31075,6 +31078,9 @@ function renderOperatorRuntimeSurfaceWidget(runtimeSurfaceSnapshot) {
     hint = safeToRun
       ? "Runtime surface is ready. Inventory, playbooks, and evidence posture are in sync."
       : "Runtime surface is loaded, but a hold remains before safe execution.";
+  }
+  if (caseWikiIngressHint) {
+    hint = `${hint} ${caseWikiIngressHint}`;
   }
 
   setStatusPill(el.operatorRuntimeSurfaceStatus, statusText, statusVariant);

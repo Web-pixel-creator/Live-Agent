@@ -4,7 +4,7 @@ import {
   type SkillsCatalogSnapshot,
   type SkillsRuntimeSummary,
 } from "@mla/skills";
-import type { DeviceNodeRecord } from "./firestore.js";
+import type { DeviceNodeRecord, EventListItem } from "./firestore.js";
 import { buildRuntimeBootstrapDoctorSnapshot } from "./runtime-bootstrap-doctor.js";
 import { buildRuntimeDiagnosticsSummary } from "./runtime-diagnostics-summary.js";
 import { resolveRuntimeEvidenceSignerConfig } from "./runtime-evidence-signer.js";
@@ -94,6 +94,24 @@ function buildEvidenceSummary(diagnostics: Record<string, unknown>) {
   };
 }
 
+function buildWorkflowCaseWikiIngressSummary(
+  orchestrator: Record<string, unknown> | null,
+): Record<string, unknown> {
+  const routingContext = orchestrator && isRecord(orchestrator.latestCaseWikiRoutingContext)
+    ? orchestrator.latestCaseWikiRoutingContext
+    : null;
+  return {
+    observed: toBoolean(routingContext?.observed) === true,
+    updatedAt: toNonEmptyString(routingContext?.updatedAt),
+    contextSource: toNonEmptyString(routingContext?.contextSource),
+    ingressSource: toNonEmptyString(routingContext?.ingressSource),
+    focusId: toNonEmptyString(routingContext?.focusId),
+    blocker: toNonEmptyString(routingContext?.blocker),
+    nextAction: toNonEmptyString(routingContext?.nextAction),
+    route: toNonEmptyString(routingContext?.route),
+  };
+}
+
 function buildDegradedReasons(params: {
   bootstrap: Record<string, unknown>;
   diagnostics: Record<string, unknown>;
@@ -146,6 +164,7 @@ export async function buildRuntimeSurfaceReadinessSnapshot(params: {
   cwd?: string;
   services: Array<Record<string, unknown>>;
   deviceNodes: DeviceNodeRecord[];
+  events?: EventListItem[];
 }): Promise<Record<string, unknown>> {
   const env = params.env ?? process.env;
   const cwd = params.cwd ?? process.cwd();
@@ -168,6 +187,7 @@ export async function buildRuntimeSurfaceReadinessSnapshot(params: {
     services: params.services,
     skillsCatalog: catalog,
     skillsRuntimeSummary: runtimeCatalogs[0]?.runtimeSummary ?? null,
+    events: params.events ?? [],
     evidenceSigner: resolveRuntimeEvidenceSignerConfig(env),
   });
 
@@ -192,6 +212,7 @@ export async function buildRuntimeSurfaceReadinessSnapshot(params: {
     inventory,
   });
   const evidence = buildEvidenceSummary(diagnostics);
+  const orchestrator = isRecord(diagnostics.orchestrator) ? diagnostics.orchestrator : null;
 
   return {
     generatedAt: new Date().toISOString(),
@@ -250,16 +271,17 @@ export async function buildRuntimeSurfaceReadinessSnapshot(params: {
       },
       skills,
       evidence,
-      workflow: isRecord(diagnostics.orchestrator)
+      workflow: orchestrator
         ? {
-            sourcePath: toNonEmptyString(diagnostics.orchestrator.workflowSourcePath),
-            usingLastKnownGood: toBoolean(diagnostics.orchestrator.workflowUsingLastKnownGood),
-            currentStage: toNonEmptyString(diagnostics.orchestrator.workflowCurrentStage),
-            activeRole: toNonEmptyString(diagnostics.orchestrator.workflowActiveRole),
-            route: toNonEmptyString(diagnostics.orchestrator.workflowRoute),
+            sourcePath: toNonEmptyString(orchestrator.workflowSourcePath),
+            usingLastKnownGood: toBoolean(orchestrator.workflowUsingLastKnownGood),
+            currentStage: toNonEmptyString(orchestrator.workflowCurrentStage),
+            activeRole: toNonEmptyString(orchestrator.workflowActiveRole),
+            route: toNonEmptyString(orchestrator.workflowRoute),
             controlPlaneOverrideActive: toBoolean(
-              diagnostics.orchestrator.workflowControlPlaneOverrideActive,
+              orchestrator.workflowControlPlaneOverrideActive,
             ),
+            caseWikiIngress: buildWorkflowCaseWikiIngressSummary(orchestrator),
           }
         : {
             sourcePath: null,
@@ -268,6 +290,7 @@ export async function buildRuntimeSurfaceReadinessSnapshot(params: {
             activeRole: null,
             route: null,
             controlPlaneOverrideActive: null,
+            caseWikiIngress: buildWorkflowCaseWikiIngressSummary(null),
           },
       uiExecutor: isRecord(diagnostics.uiExecutor)
         ? {

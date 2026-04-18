@@ -48,8 +48,11 @@ test("api backend exposes runtime surface inventory and readiness routes", () =>
     'source: "repo_owned_runtime_surface_readiness"',
     "buildRuntimeBootstrapDoctorSnapshot",
     "buildRuntimeDiagnosticsSummary",
+    "events: params.events ?? []",
     "safeToRun:",
     "degradedReasons,",
+    "caseWikiIngress",
+    "latestCaseWikiRoutingContext",
     "inventorySummary:",
   ]) {
     assert.ok(readiness.includes(token), `runtime surface readiness helper missing token: ${token}`);
@@ -73,7 +76,10 @@ test("runtime surface docs stay aligned with inventory and readiness routes", ()
   assert.match(readme, /POST \/v1\/runtime\/case-wiki\/notes/);
   assert.match(readme, /Runtime surface inventory/i);
   assert.match(readme, /Runtime surface readiness/i);
+  assert.match(readme, /Case Wiki ingress provenance/i);
   assert.match(operatorGuide, /runtime surface inventory/i);
   assert.match(operatorGuide, /runtime surface readiness/i);
+  assert.match(operatorGuide, /Case Wiki ingress provenance/i);
   assert.match(architecture, /runtime surface/i);
+  assert.match(architecture, /Case Wiki ingress provenance/i);
 });

@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
-import { listDeviceNodes } from "../apps/api-backend/src/firestore.ts";
+import { listDeviceNodes, listRecentEvents } from "../apps/api-backend/src/firestore.ts";
 import { buildRuntimeSurfaceInventorySnapshot } from "../apps/api-backend/src/runtime-surface-inventory.ts";
 import { buildRuntimeSurfaceReadinessSnapshot } from "../apps/api-backend/src/runtime-surface-readiness.ts";
 
@@ -229,6 +229,11 @@ async function collectDeviceNodes(env) {
   });
 }
 
+async function collectRecentEvents(env) {
+  const limit = Math.max(20, Math.min(500, Number(env.RUNTIME_SURFACE_EVENT_LIMIT ?? 120) || 120));
+  return listRecentEvents(limit);
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const cwd = process.cwd();
@@ -238,6 +243,7 @@ async function main() {
 
   let services = [];
   let deviceNodes = [];
+  let recentEvents = [];
 
   if (!offline) {
     try {
@@ -258,6 +264,15 @@ async function main() {
       });
       deviceNodes = [];
     }
+    try {
+      recentEvents = await collectRecentEvents(process.env);
+    } catch (error) {
+      collectionWarnings.push({
+        source: "recent_events",
+        message: error instanceof Error ? error.message : String(error),
+      });
+      recentEvents = [];
+    }
   }
 
   const inventory = await buildRuntimeSurfaceInventorySnapshot({
@@ -269,6 +284,7 @@ async function main() {
     cwd,
     services,
     deviceNodes,
+    events: recentEvents,
   });
 
   const snapshot = {
