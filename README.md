@@ -1428,7 +1428,7 @@ Behavior:
   - If `-DemoFrontendPublicUrl` is omitted and `FRONTEND_PUBLIC_URL` is set, combined helper auto-uses `FRONTEND_PUBLIC_URL` as gateway `uiUrl` contract target.
 - Runs post-deploy public badge endpoint check (`badge:public:check` helper logic) after successful deploy.
 - Railway deploy helper prints effective public badge and badge-details URLs after successful verification so the verified hosted evidence endpoints are explicit in the deploy log.
-- Railway deploy helper also emits `artifacts/deploy/railway-deploy-summary.json` with deployment id, effective public URL, and root-descriptor/badge verification posture.
+- Railway deploy helper also emits `artifacts/deploy/railway-deploy-summary.json` with deployment id, effective public URL, root-descriptor/badge verification posture, and when unified release evidence already carries `caseWikiRuntimeSurfaceIngress`, the same compact runtime-surface tuple (`status`, `contextSource`, `ingressSource`, `focusId`, `blocker`, `nextAction`, `route`, `updatedAt`) is mirrored into a top-level `caseWikiRuntimeSurfaceIngress` field plus matching `GITHUB_OUTPUT` / `GITHUB_STEP_SUMMARY` keys for deploy-facing automation.
 - In `-- -NoWait` mode, post-deploy gateway root descriptor and badge endpoint checks are not executed (trigger-only flow).
 
 Fast contract-only dry gate for Railway deploy/repo-publish wiring:

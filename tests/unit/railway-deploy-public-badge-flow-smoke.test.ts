@@ -13,7 +13,7 @@ test("railway deploy no-wait mode skips post-deploy badge check flow", () => {
   assert.match(source, /artifacts\\deploy\\railway-deploy-summary\.json/);
   assert.match(
     source,
-    /if \(\$NoWait\)\s*\{[\s\S]*if \(-not \$SkipPublicBadgeCheck\)\s*\{[\s\S]*Skipping public badge endpoint check in no-wait mode\.[\s\S]*verification = \$railwayVerificationSummary[\s\S]*artifacts = \[ordered\]@\{[\s\S]*badgeDetailsJson = "artifacts\/demo-e2e\/badge-details\.json"[\s\S]*releaseEvidenceSnapshot = \$releaseEvidenceSnapshot[\s\S]*Summary artifact:[\s\S]*Publish-RailwayDeployOutputs -SummaryRelativePath "artifacts\/deploy\/railway-deploy-summary\.json" -Summary \$noWaitSummary[\s\S]*No-wait mode enabled\. Exiting after trigger\.[\s\S]*exit 0[\s\S]*\}/,
+    /if \(\$NoWait\)\s*\{[\s\S]*if \(-not \$SkipPublicBadgeCheck\)\s*\{[\s\S]*Skipping public badge endpoint check in no-wait mode\.[\s\S]*verification = \$railwayVerificationSummary[\s\S]*artifacts = \[ordered\]@\{[\s\S]*badgeDetailsJson = "artifacts\/demo-e2e\/badge-details\.json"[\s\S]*caseWikiRuntimeSurfaceIngress = if \(\$null -ne \$releaseEvidenceSnapshot\) \{ \$releaseEvidenceSnapshot\.caseWikiRuntimeSurfaceIngress \} else \{ \$null \}[\s\S]*releaseEvidenceSnapshot = \$releaseEvidenceSnapshot[\s\S]*Summary artifact:[\s\S]*Publish-RailwayDeployOutputs -SummaryRelativePath "artifacts\/deploy\/railway-deploy-summary\.json" -Summary \$noWaitSummary[\s\S]*No-wait mode enabled\. Exiting after trigger\.[\s\S]*exit 0[\s\S]*\}/,
   );
 
   assert.match(source, /if \(\$NoWait\)\s*\{[\s\S]*Skipping gateway root descriptor check in no-wait mode\./);
@@ -65,7 +65,7 @@ test("railway deploy success path runs badge check only when skip flag is disabl
   assert.match(source, /Effective public badge URL:/);
   assert.match(source, /Effective public badge details URL:/);
   assert.match(source, /Public badge details verification completed:/);
-  assert.match(source, /if \(\$state -eq "SUCCESS"\)\s*\{[\s\S]*verification = \$railwayVerificationSummary[\s\S]*artifacts = \[ordered\]@\{[\s\S]*badgeDetailsJson = "artifacts\/demo-e2e\/badge-details\.json"[\s\S]*releaseEvidenceSnapshot = \$releaseEvidenceSnapshot[\s\S]*Publish-RailwayDeployOutputs -SummaryRelativePath "artifacts\/deploy\/railway-deploy-summary\.json" -Summary \$deploySummary/);
+  assert.match(source, /if \(\$state -eq "SUCCESS"\)\s*\{[\s\S]*verification = \$railwayVerificationSummary[\s\S]*artifacts = \[ordered\]@\{[\s\S]*badgeDetailsJson = "artifacts\/demo-e2e\/badge-details\.json"[\s\S]*caseWikiRuntimeSurfaceIngress = if \(\$null -ne \$releaseEvidenceSnapshot\) \{ \$releaseEvidenceSnapshot\.caseWikiRuntimeSurfaceIngress \} else \{ \$null \}[\s\S]*releaseEvidenceSnapshot = \$releaseEvidenceSnapshot[\s\S]*Publish-RailwayDeployOutputs -SummaryRelativePath "artifacts\/deploy\/railway-deploy-summary\.json" -Summary \$deploySummary/);
   assert.match(source, /Summary artifact:/);
 });
 

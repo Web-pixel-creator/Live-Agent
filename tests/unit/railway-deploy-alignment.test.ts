@@ -27,6 +27,7 @@ test("railway deploy helper stays aligned across package, script, and docs", () 
   assert.match(scriptRaw, /function Read-JsonArtifactIfPresent\(/);
   assert.match(scriptRaw, /function Get-CompactRuntimeGuardrailsPrimaryPath\(/);
   assert.match(scriptRaw, /function Get-CompactProviderUsagePrimaryEntry\(/);
+  assert.match(scriptRaw, /function Get-CompactCaseWikiRuntimeSurfaceIngress\(/);
   assert.match(scriptRaw, /function Get-ReleaseEvidenceSnapshot\(\[bool\]\$ValidatedInThisRun\)/);
   assert.match(scriptRaw, /function Publish-RailwayDeployOutputs\(/);
   assert.match(scriptRaw, /RootDescriptorCheckMaxAttempts/);
@@ -47,6 +48,7 @@ test("railway deploy helper stays aligned across package, script, and docs", () 
   assert.match(scriptRaw, /releaseEvidenceReportJson = "artifacts\/release-evidence\/report\.json"/);
   assert.match(scriptRaw, /releaseEvidenceManifestJson = "artifacts\/release-evidence\/manifest\.json"/);
   assert.match(scriptRaw, /badgeDetailsJson = "artifacts\/demo-e2e\/badge-details\.json"/);
+  assert.match(scriptRaw, /caseWikiRuntimeSurfaceIngress = if \(\$null -ne \$releaseEvidenceSnapshot\) \{ \$releaseEvidenceSnapshot\.caseWikiRuntimeSurfaceIngress \} else \{ \$null \}/);
   assert.match(scriptRaw, /releaseEvidenceSnapshot = \$releaseEvidenceSnapshot/);
   assert.match(scriptRaw, /railway_deploy_verification_script/);
   assert.match(scriptRaw, /railway_deploy_verification_skipped/);
@@ -60,6 +62,15 @@ test("railway deploy helper stays aligned across package, script, and docs", () 
   assert.match(scriptRaw, /railway_deploy_release_evidence_missing_required/);
   assert.match(scriptRaw, /railway_deploy_release_evidence_badge_checks/);
   assert.match(scriptRaw, /railway_deploy_release_evidence_runtime_guardrails_summary_status/);
+  assert.match(scriptRaw, /railway_deploy_case_wiki_runtime_surface_ingress_status/);
+  assert.match(scriptRaw, /railway_deploy_case_wiki_runtime_surface_ingress_observed/);
+  assert.match(scriptRaw, /railway_deploy_case_wiki_runtime_surface_context_source/);
+  assert.match(scriptRaw, /railway_deploy_case_wiki_runtime_surface_ingress_source/);
+  assert.match(scriptRaw, /railway_deploy_case_wiki_runtime_surface_focus_id/);
+  assert.match(scriptRaw, /railway_deploy_case_wiki_runtime_surface_blocker/);
+  assert.match(scriptRaw, /railway_deploy_case_wiki_runtime_surface_next_action/);
+  assert.match(scriptRaw, /railway_deploy_case_wiki_runtime_surface_route/);
+  assert.match(scriptRaw, /railway_deploy_case_wiki_runtime_surface_updated_at/);
   assert.match(scriptRaw, /railway_deploy_release_evidence_report_path/);
   assert.match(scriptRaw, /railway_deploy_release_evidence_manifest_path/);
   assert.match(scriptRaw, /railway_deploy_badge_details_path/);
@@ -69,6 +80,9 @@ test("railway deploy helper stays aligned across package, script, and docs", () 
   assert.match(scriptRaw, /Railway deploy verification strict:/);
   assert.match(scriptRaw, /Railway deploy release-evidence validated:/);
   assert.match(scriptRaw, /Railway deploy release-evidence snapshot available:/);
+  assert.match(scriptRaw, /Railway deploy case-wiki runtime-surface ingress status:/);
+  assert.match(scriptRaw, /Railway deploy case-wiki runtime-surface context source:/);
+  assert.match(scriptRaw, /Railway deploy case-wiki runtime-surface ingress source:/);
   assert.match(scriptRaw, /Railway deploy release-evidence report artifact:/);
   assert.match(scriptRaw, /Railway deploy release-evidence manifest artifact:/);
   assert.match(scriptRaw, /Railway deploy badge-details artifact:/);

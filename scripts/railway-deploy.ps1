@@ -172,6 +172,46 @@ function Get-CompactProviderUsagePrimaryEntry([object]$Value) {
   }
 }
 
+function Get-CompactCaseWikiRuntimeSurfaceIngress([object]$Value, [string]$Status) {
+  if ($null -eq $Value) {
+    return $null
+  }
+
+  $statusValue = Convert-ToNullableString -Value $Status
+  $contextSource = Convert-ToNullableString -Value $Value.contextSource
+  $ingressSource = Convert-ToNullableString -Value $Value.ingressSource
+  $focusId = Convert-ToNullableString -Value $Value.focusId
+  $blocker = Convert-ToNullableString -Value $Value.blocker
+  $nextAction = Convert-ToNullableString -Value $Value.nextAction
+  $route = Convert-ToNullableString -Value $Value.route
+  $updatedAt = Convert-ToNullableString -Value $Value.updatedAt
+
+  if (
+    [string]::IsNullOrWhiteSpace($statusValue) -and
+    [string]::IsNullOrWhiteSpace($contextSource) -and
+    [string]::IsNullOrWhiteSpace($ingressSource) -and
+    [string]::IsNullOrWhiteSpace($focusId) -and
+    [string]::IsNullOrWhiteSpace($blocker) -and
+    [string]::IsNullOrWhiteSpace($nextAction) -and
+    [string]::IsNullOrWhiteSpace($route) -and
+    [string]::IsNullOrWhiteSpace($updatedAt)
+  ) {
+    return $null
+  }
+
+  return [ordered]@{
+    status = $statusValue
+    observed = ($Value.observed -eq $true)
+    contextSource = $contextSource
+    ingressSource = $ingressSource
+    focusId = $focusId
+    blocker = $blocker
+    nextAction = $nextAction
+    route = $route
+    updatedAt = $updatedAt
+  }
+}
+
 function Get-ReleaseEvidenceSnapshot([bool]$ValidatedInThisRun) {
   $report = Read-JsonArtifactIfPresent -RelativePath "artifacts/release-evidence/report.json" -Label "release evidence report"
   $manifest = Read-JsonArtifactIfPresent -RelativePath "artifacts/release-evidence/manifest.json" -Label "release evidence manifest"
@@ -256,6 +296,12 @@ function Get-ReleaseEvidenceSnapshot([bool]$ValidatedInThisRun) {
     else {
       $null
     }
+    caseWikiRuntimeSurfaceIngress = if ($null -ne $report -and $null -ne $report.caseWikiRuntimeSurfaceIngress) {
+      Get-CompactCaseWikiRuntimeSurfaceIngress -Value $report.caseWikiRuntimeSurfaceIngress -Status $(if ($null -ne $report.statuses) { [string]$report.statuses.caseWikiRuntimeSurfaceIngressStatus } else { [string]$report.caseWikiRuntimeSurfaceIngress.status })
+    }
+    else {
+      $null
+    }
     badgeDetails = if ($null -ne $badgeDetails) {
       [ordered]@{
         checks = Convert-ToNullableInt -Value $badgeDetails.checks
@@ -285,6 +331,16 @@ function Publish-RailwayDeployOutputs([string]$SummaryRelativePath, [object]$Sum
   $missingRequiredValue = if ($null -ne $releaseEvidenceSnapshot -and $null -ne $releaseEvidenceSnapshot.manifestInventory -and $null -ne $releaseEvidenceSnapshot.manifestInventory.missingRequired) { [string]$releaseEvidenceSnapshot.manifestInventory.missingRequired } else { "" }
   $badgeChecksValue = if ($null -ne $releaseEvidenceSnapshot -and $null -ne $releaseEvidenceSnapshot.badgeDetails -and $null -ne $releaseEvidenceSnapshot.badgeDetails.checks) { [string]$releaseEvidenceSnapshot.badgeDetails.checks } else { "" }
   $runtimeGuardrailsSummaryValue = if ($null -ne $releaseEvidenceSnapshot -and $null -ne $releaseEvidenceSnapshot.runtimeGuardrails) { [string](Convert-ToNullableString -Value $releaseEvidenceSnapshot.runtimeGuardrails.summaryStatus) } else { "" }
+  $caseWikiRuntimeSurfaceIngress = $Summary.caseWikiRuntimeSurfaceIngress
+  $caseWikiRuntimeSurfaceIngressStatus = if ($null -ne $caseWikiRuntimeSurfaceIngress) { [string](Convert-ToNullableString -Value $caseWikiRuntimeSurfaceIngress.status) } else { "" }
+  $caseWikiRuntimeSurfaceIngressObserved = if ($null -ne $caseWikiRuntimeSurfaceIngress -and $caseWikiRuntimeSurfaceIngress.observed -eq $true) { "true" } else { "false" }
+  $caseWikiRuntimeSurfaceContextSource = if ($null -ne $caseWikiRuntimeSurfaceIngress) { [string](Convert-ToNullableString -Value $caseWikiRuntimeSurfaceIngress.contextSource) } else { "" }
+  $caseWikiRuntimeSurfaceIngressSource = if ($null -ne $caseWikiRuntimeSurfaceIngress) { [string](Convert-ToNullableString -Value $caseWikiRuntimeSurfaceIngress.ingressSource) } else { "" }
+  $caseWikiRuntimeSurfaceFocusId = if ($null -ne $caseWikiRuntimeSurfaceIngress) { [string](Convert-ToNullableString -Value $caseWikiRuntimeSurfaceIngress.focusId) } else { "" }
+  $caseWikiRuntimeSurfaceBlocker = if ($null -ne $caseWikiRuntimeSurfaceIngress) { [string](Convert-ToNullableString -Value $caseWikiRuntimeSurfaceIngress.blocker) } else { "" }
+  $caseWikiRuntimeSurfaceNextAction = if ($null -ne $caseWikiRuntimeSurfaceIngress) { [string](Convert-ToNullableString -Value $caseWikiRuntimeSurfaceIngress.nextAction) } else { "" }
+  $caseWikiRuntimeSurfaceRoute = if ($null -ne $caseWikiRuntimeSurfaceIngress) { [string](Convert-ToNullableString -Value $caseWikiRuntimeSurfaceIngress.route) } else { "" }
+  $caseWikiRuntimeSurfaceUpdatedAt = if ($null -ne $caseWikiRuntimeSurfaceIngress) { [string](Convert-ToNullableString -Value $caseWikiRuntimeSurfaceIngress.updatedAt) } else { "" }
   $artifacts = $Summary.artifacts
   $releaseEvidenceReportPathValue = if ($null -ne $artifacts -and -not [string]::IsNullOrWhiteSpace([string]$artifacts.releaseEvidenceReportJson)) { [string]$artifacts.releaseEvidenceReportJson } else { "artifacts/release-evidence/report.json" }
   $releaseEvidenceManifestPathValue = if ($null -ne $artifacts -and -not [string]::IsNullOrWhiteSpace([string]$artifacts.releaseEvidenceManifestJson)) { [string]$artifacts.releaseEvidenceManifestJson } else { "artifacts/release-evidence/manifest.json" }
@@ -302,6 +358,15 @@ function Publish-RailwayDeployOutputs([string]$SummaryRelativePath, [object]$Sum
   Write-GitHubOutputValue -Name "railway_deploy_release_evidence_missing_required" -Value $missingRequiredValue
   Write-GitHubOutputValue -Name "railway_deploy_release_evidence_badge_checks" -Value $badgeChecksValue
   Write-GitHubOutputValue -Name "railway_deploy_release_evidence_runtime_guardrails_summary_status" -Value $runtimeGuardrailsSummaryValue
+  Write-GitHubOutputValue -Name "railway_deploy_case_wiki_runtime_surface_ingress_status" -Value $caseWikiRuntimeSurfaceIngressStatus
+  Write-GitHubOutputValue -Name "railway_deploy_case_wiki_runtime_surface_ingress_observed" -Value $caseWikiRuntimeSurfaceIngressObserved
+  Write-GitHubOutputValue -Name "railway_deploy_case_wiki_runtime_surface_context_source" -Value $caseWikiRuntimeSurfaceContextSource
+  Write-GitHubOutputValue -Name "railway_deploy_case_wiki_runtime_surface_ingress_source" -Value $caseWikiRuntimeSurfaceIngressSource
+  Write-GitHubOutputValue -Name "railway_deploy_case_wiki_runtime_surface_focus_id" -Value $caseWikiRuntimeSurfaceFocusId
+  Write-GitHubOutputValue -Name "railway_deploy_case_wiki_runtime_surface_blocker" -Value $caseWikiRuntimeSurfaceBlocker
+  Write-GitHubOutputValue -Name "railway_deploy_case_wiki_runtime_surface_next_action" -Value $caseWikiRuntimeSurfaceNextAction
+  Write-GitHubOutputValue -Name "railway_deploy_case_wiki_runtime_surface_route" -Value $caseWikiRuntimeSurfaceRoute
+  Write-GitHubOutputValue -Name "railway_deploy_case_wiki_runtime_surface_updated_at" -Value $caseWikiRuntimeSurfaceUpdatedAt
   Write-GitHubOutputValue -Name "railway_deploy_release_evidence_report_path" -Value $releaseEvidenceReportPathValue
   Write-GitHubOutputValue -Name "railway_deploy_release_evidence_manifest_path" -Value $releaseEvidenceManifestPathValue
   Write-GitHubOutputValue -Name "railway_deploy_badge_details_path" -Value $badgeDetailsPathValue
@@ -329,6 +394,30 @@ function Publish-RailwayDeployOutputs([string]$SummaryRelativePath, [object]$Sum
   }
   if (-not [string]::IsNullOrWhiteSpace($runtimeGuardrailsSummaryValue)) {
     Write-GitHubStepSummaryLine ("Railway deploy release-evidence runtime guardrails: " + $runtimeGuardrailsSummaryValue)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($caseWikiRuntimeSurfaceIngressStatus)) {
+    Write-GitHubStepSummaryLine ("Railway deploy case-wiki runtime-surface ingress status: " + $caseWikiRuntimeSurfaceIngressStatus)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($caseWikiRuntimeSurfaceContextSource)) {
+    Write-GitHubStepSummaryLine ("Railway deploy case-wiki runtime-surface context source: " + $caseWikiRuntimeSurfaceContextSource)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($caseWikiRuntimeSurfaceIngressSource)) {
+    Write-GitHubStepSummaryLine ("Railway deploy case-wiki runtime-surface ingress source: " + $caseWikiRuntimeSurfaceIngressSource)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($caseWikiRuntimeSurfaceFocusId)) {
+    Write-GitHubStepSummaryLine ("Railway deploy case-wiki runtime-surface focus id: " + $caseWikiRuntimeSurfaceFocusId)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($caseWikiRuntimeSurfaceBlocker)) {
+    Write-GitHubStepSummaryLine ("Railway deploy case-wiki runtime-surface blocker: " + $caseWikiRuntimeSurfaceBlocker)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($caseWikiRuntimeSurfaceNextAction)) {
+    Write-GitHubStepSummaryLine ("Railway deploy case-wiki runtime-surface next action: " + $caseWikiRuntimeSurfaceNextAction)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($caseWikiRuntimeSurfaceRoute)) {
+    Write-GitHubStepSummaryLine ("Railway deploy case-wiki runtime-surface route: " + $caseWikiRuntimeSurfaceRoute)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($caseWikiRuntimeSurfaceUpdatedAt)) {
+    Write-GitHubStepSummaryLine ("Railway deploy case-wiki runtime-surface updated at: " + $caseWikiRuntimeSurfaceUpdatedAt)
   }
   if ($releaseEvidenceValidatedValue -eq "true" -or $snapshotAvailableValue -eq "true") {
     Write-GitHubStepSummaryLine ("Railway deploy release-evidence report artifact: " + $releaseEvidenceReportPathValue)
@@ -1348,6 +1437,7 @@ try {
         releaseEvidenceManifestJson = "artifacts/release-evidence/manifest.json"
         badgeDetailsJson = "artifacts/demo-e2e/badge-details.json"
       }
+      caseWikiRuntimeSurfaceIngress = if ($null -ne $releaseEvidenceSnapshot) { $releaseEvidenceSnapshot.caseWikiRuntimeSurfaceIngress } else { $null }
       releaseEvidenceSnapshot = $releaseEvidenceSnapshot
     }
     $noWaitSummaryPath = Write-RailwayDeploySummary -Summary $noWaitSummary
@@ -1441,6 +1531,7 @@ try {
             releaseEvidenceManifestJson = "artifacts/release-evidence/manifest.json"
             badgeDetailsJson = "artifacts/demo-e2e/badge-details.json"
           }
+          caseWikiRuntimeSurfaceIngress = if ($null -ne $releaseEvidenceSnapshot) { $releaseEvidenceSnapshot.caseWikiRuntimeSurfaceIngress } else { $null }
           releaseEvidenceSnapshot = $releaseEvidenceSnapshot
         }
         $deploySummaryPath = Write-RailwayDeploySummary -Summary $deploySummary
