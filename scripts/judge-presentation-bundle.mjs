@@ -234,6 +234,47 @@ function sanitizeDeployProvenanceRows(rows) {
     .filter((row) => row.title.length > 0 && row.summary.length > 0);
 }
 
+function summarizeCaseWikiRuntimeSurfaceIngress(ingress) {
+  if (!ingress || typeof ingress !== "object") {
+    return null;
+  }
+
+  const status = toOptionalText(ingress.status);
+  const observed = ingress.observed === true ? "yes" : "no";
+  const contextSource = toOptionalText(ingress.contextSource);
+  const ingressSource = toOptionalText(ingress.ingressSource);
+  const focusId = toOptionalText(ingress.focusId);
+  const blocker = toOptionalText(ingress.blocker);
+  const nextAction = toOptionalText(ingress.nextAction);
+  const route = toOptionalText(ingress.route);
+  const updatedAt = toOptionalText(ingress.updatedAt);
+
+  if (
+    status === "unavailable" &&
+    contextSource === "unavailable" &&
+    ingressSource === "unavailable" &&
+    focusId === "unavailable" &&
+    blocker === "unavailable" &&
+    nextAction === "unavailable" &&
+    route === "unavailable" &&
+    updatedAt === "unavailable"
+  ) {
+    return null;
+  }
+
+  return [
+    `status ${status}`,
+    `observed ${observed}`,
+    `context ${contextSource}`,
+    `ingress ${ingressSource}`,
+    `focus ${focusId}`,
+    `blocker ${blocker}`,
+    `next action ${nextAction}`,
+    `route ${route}`,
+    `updated ${updatedAt}`,
+  ].join("; ");
+}
+
 function buildDeployProvenanceRows(deployProvenance) {
   const rows = [];
   const gcpCloudRun = deployProvenance.gcpCloudRun;
@@ -302,6 +343,14 @@ function buildDeployProvenanceRows(deployProvenance) {
         `frontend deploy ${repoPublish.railwayFrontendDeployEnabledLabel}`,
       ].join("; "),
     });
+
+    if (repoPublish.caseWikiRuntimeSurfaceIngressSummary) {
+      rows.push({
+        id: "repoPublishCaseWikiIngress",
+        title: "Repo publish case wiki ingress",
+        summary: repoPublish.caseWikiRuntimeSurfaceIngressSummary,
+      });
+    }
   }
 
   return rows;
@@ -372,6 +421,9 @@ function summarizeDeployProvenance(
       railwayFrontendDeployEnabled: repoPublishSteps?.railwayFrontendDeployEnabled === true ? "true" : "false",
       railwayDeployEnabledLabel: toEnabledLabel(repoPublishSteps?.railwayDeployEnabled),
       railwayFrontendDeployEnabledLabel: toEnabledLabel(repoPublishSteps?.railwayFrontendDeployEnabled),
+      caseWikiRuntimeSurfaceIngressSummary: summarizeCaseWikiRuntimeSurfaceIngress(
+        repoPublishSummary?.caseWikiRuntimeSurfaceIngress,
+      ),
     },
   };
 

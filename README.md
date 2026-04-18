@@ -720,7 +720,7 @@ Artifacts:
 - `artifacts/judge-visual-evidence/gallery.md`
 - `artifacts/judge-visual-evidence/presentation.md`
 - `artifacts/demo-e2e/epic-summary.json`
-- `presentation.md` now also surfaces optional deploy provenance from `artifacts/deploy/railway-deploy-summary.json` and `artifacts/deploy/repo-publish-summary.json` when those artifacts exist.
+- `presentation.md` now also surfaces optional deploy provenance from `artifacts/deploy/railway-deploy-summary.json` and `artifacts/deploy/repo-publish-summary.json` when those artifacts exist, including the compact top-level `caseWikiRuntimeSurfaceIngress` tuple from `repo-publish-summary.json` when publish provenance is available.
 
 5. Optional runtime integrations:
 - Firestore adapter (orchestrator): set `FIRESTORE_ENABLED=true` and `GOOGLE_CLOUD_PROJECT`.

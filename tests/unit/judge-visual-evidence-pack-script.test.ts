@@ -189,6 +189,17 @@ test("judge visual evidence pack strict mode passes when required captures and b
           railwayDeployEnabled: true,
           railwayFrontendDeployEnabled: false,
         },
+        caseWikiRuntimeSurfaceIngress: {
+          status: "pass",
+          observed: true,
+          contextSource: "case_wiki",
+          ingressSource: "gateway_hydrated_case_wiki",
+          focusId: "question:passport-scan",
+          blocker: "Need passport scan",
+          nextAction: "Request passport scan",
+          route: "live-agent",
+          updatedAt: "2026-04-18T10:05:00.000Z",
+        },
       },
       null,
       2,
@@ -237,7 +248,11 @@ test("judge visual evidence pack strict mode passes when required captures and b
   assert.equal(manifest.deployProvenance.repoPublish.verificationScript, "verify:release");
   assert.equal(manifest.deployProvenance.repoPublish.available, true);
   assert.equal(manifest.deployProvenance.repoPublish.releaseEvidenceValidated, true);
-  assert.equal(manifest.summary.deployProvenanceRows, 6);
+  assert.equal(
+    manifest.deployProvenance.repoPublish.caseWikiRuntimeSurfaceIngress?.contextSource,
+    "case_wiki",
+  );
+  assert.equal(manifest.summary.deployProvenanceRows, 7);
   assert.equal(manifest.submissionFollowUp.submissionRefreshStatus, "success");
   assert.equal(manifest.submissionFollowUp.submissionSafeSummaryGate.liveApiEnabled, true);
   assert.equal(manifest.submissionFollowUp.submissionSafeSummaryGate.translationProvider, "not_fallback");
@@ -250,6 +265,7 @@ test("judge visual evidence pack strict mode passes when required captures and b
     "Railway deploy: status success; deployment railway-deploy-123; public URL https://live-agent.example.test",
     "Public badge: badge https://live-agent.example.test/demo-e2e/badge.json; badge-details https://live-agent.example.test/demo-e2e/badge-details.json",
     "Repo publish: verification verify:release; release evidence validated; Railway deploy enabled; frontend deploy disabled",
+    "Repo publish case wiki ingress: status pass; observed yes; context case_wiki; ingress gateway_hydrated_case_wiki; focus question:passport-scan; blocker Need passport scan; next action Request passport scan; route live-agent; updated 2026-04-18T10:05:00.000Z",
     "## Submission Follow-Up",
     "Submission refresh: status success; blocker none",
     "Submission refresh state: `success`",
