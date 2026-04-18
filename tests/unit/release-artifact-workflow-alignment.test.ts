@@ -127,6 +127,15 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /repoPublishSummary\.artifacts\.releaseEvidenceReportJson/);
   assert.match(source, /repoPublishSummary\.artifacts\.releaseEvidenceManifestJson/);
   assert.match(source, /repoPublishSummary\.artifacts\.badgeDetailsJson/);
+  assert.match(source, /repoPublishSummary\.caseWikiRuntimeSurfaceIngress\.status/);
+  assert.match(source, /repoPublishSummary\.caseWikiRuntimeSurfaceIngress\.observed/);
+  assert.match(source, /repoPublishSummary\.caseWikiRuntimeSurfaceIngress\.contextSource/);
+  assert.match(source, /repoPublishSummary\.caseWikiRuntimeSurfaceIngress\.ingressSource/);
+  assert.match(source, /repoPublishSummary\.caseWikiRuntimeSurfaceIngress\.focusId/);
+  assert.match(source, /repoPublishSummary\.caseWikiRuntimeSurfaceIngress\.blocker/);
+  assert.match(source, /repoPublishSummary\.caseWikiRuntimeSurfaceIngress\.nextAction/);
+  assert.match(source, /repoPublishSummary\.caseWikiRuntimeSurfaceIngress\.route/);
+  assert.match(source, /repoPublishSummary\.caseWikiRuntimeSurfaceIngress\.updatedAt/);
   assert.match(source, /source-run\.json/);
   assert.match(source, /release-evidence\/report\.json/);
   assert.match(source, /release-evidence\/report\.md/);
@@ -221,6 +230,15 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /repo_publish_summary_artifact_release_evidence_report_json/);
   assert.match(source, /repo_publish_summary_artifact_release_evidence_manifest_json/);
   assert.match(source, /repo_publish_summary_artifact_badge_details_json/);
+  assert.match(source, /repo_publish_summary_case_wiki_runtime_surface_ingress_status/);
+  assert.match(source, /repo_publish_summary_case_wiki_runtime_surface_ingress_observed/);
+  assert.match(source, /repo_publish_summary_case_wiki_runtime_surface_ingress_context_source/);
+  assert.match(source, /repo_publish_summary_case_wiki_runtime_surface_ingress_ingress_source/);
+  assert.match(source, /repo_publish_summary_case_wiki_runtime_surface_ingress_focus_id/);
+  assert.match(source, /repo_publish_summary_case_wiki_runtime_surface_ingress_blocker/);
+  assert.match(source, /repo_publish_summary_case_wiki_runtime_surface_ingress_next_action/);
+  assert.match(source, /repo_publish_summary_case_wiki_runtime_surface_ingress_route/);
+  assert.match(source, /repo_publish_summary_case_wiki_runtime_surface_ingress_updated_at/);
   assert.match(source, /Turn-truncation status \(badge evidence\):/);
   assert.match(source, /Turn-delete status \(badge evidence\):/);
   assert.match(source, /Operator damage-control status \(badge evidence\):/);
@@ -305,6 +323,15 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /Repo publish summary artifact release-evidence report JSON:/);
   assert.match(source, /Repo publish summary artifact release-evidence manifest JSON:/);
   assert.match(source, /Repo publish summary artifact badge-details JSON:/);
+  assert.match(source, /Repo publish summary case-wiki runtime-surface ingress status:/);
+  assert.match(source, /Repo publish summary case-wiki runtime-surface ingress observed:/);
+  assert.match(source, /Repo publish summary case-wiki runtime-surface ingress context source:/);
+  assert.match(source, /Repo publish summary case-wiki runtime-surface ingress ingress source:/);
+  assert.match(source, /Repo publish summary case-wiki runtime-surface ingress focus id:/);
+  assert.match(source, /Repo publish summary case-wiki runtime-surface ingress blocker:/);
+  assert.match(source, /Repo publish summary case-wiki runtime-surface ingress next action:/);
+  assert.match(source, /Repo publish summary case-wiki runtime-surface ingress route:/);
+  assert.match(source, /Repo publish summary case-wiki runtime-surface ingress updated at:/);
   assert.match(source, /Release evidence report JSON:/);
   assert.match(source, /Release evidence report Markdown:/);
   assert.match(source, /GitHub API retry attempts/);
@@ -364,6 +391,7 @@ test("workflow docs include retry-control inputs", () => {
     assert.match(content, /artifacts\/release-evidence\/report\.md/);
     assert.match(content, /artifacts\/evals\/latest-run\.json/);
     assert.match(content, /caseWikiRuntimeSurfaceIngress/);
+    assert.match(content, /repoPublishSummaryCaseWikiRuntimeSurfaceIngress/);
   }
 });
 

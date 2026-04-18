@@ -756,6 +756,15 @@ jobs:
           $repoPublishSummaryArtifactReleaseEvidenceReportJson = $null
           $repoPublishSummaryArtifactReleaseEvidenceManifestJson = $null
           $repoPublishSummaryArtifactBadgeDetailsJson = $null
+          $repoPublishSummaryCaseWikiRuntimeSurfaceIngressStatus = "unavailable"
+          $repoPublishSummaryCaseWikiRuntimeSurfaceIngressObserved = $false
+          $repoPublishSummaryCaseWikiRuntimeSurfaceIngressContextSource = $null
+          $repoPublishSummaryCaseWikiRuntimeSurfaceIngressIngressSource = $null
+          $repoPublishSummaryCaseWikiRuntimeSurfaceIngressFocusId = $null
+          $repoPublishSummaryCaseWikiRuntimeSurfaceIngressBlocker = $null
+          $repoPublishSummaryCaseWikiRuntimeSurfaceIngressNextAction = $null
+          $repoPublishSummaryCaseWikiRuntimeSurfaceIngressRoute = $null
+          $repoPublishSummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = $null
           $badgeEvidenceOperatorTurnTruncationStatus = "unavailable"
           $badgeEvidenceOperatorTurnDeleteStatus = "unavailable"
           if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.source -and $null -ne $releaseEvidenceReport.source.badgeDetailsPresent) {
@@ -1020,6 +1029,33 @@ jobs:
                 $repoPublishSummaryArtifactBadgeDetailsJson = [string]$repoPublishSummary.artifacts.badgeDetailsJson
               }
             }
+            if ($null -ne $repoPublishSummary.caseWikiRuntimeSurfaceIngress) {
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.status)) {
+                $repoPublishSummaryCaseWikiRuntimeSurfaceIngressStatus = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.status
+              }
+              $repoPublishSummaryCaseWikiRuntimeSurfaceIngressObserved = ($repoPublishSummary.caseWikiRuntimeSurfaceIngress.observed -eq $true)
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.contextSource)) {
+                $repoPublishSummaryCaseWikiRuntimeSurfaceIngressContextSource = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.contextSource
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.ingressSource)) {
+                $repoPublishSummaryCaseWikiRuntimeSurfaceIngressIngressSource = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.ingressSource
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.focusId)) {
+                $repoPublishSummaryCaseWikiRuntimeSurfaceIngressFocusId = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.focusId
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.blocker)) {
+                $repoPublishSummaryCaseWikiRuntimeSurfaceIngressBlocker = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.blocker
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.nextAction)) {
+                $repoPublishSummaryCaseWikiRuntimeSurfaceIngressNextAction = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.nextAction
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.route)) {
+                $repoPublishSummaryCaseWikiRuntimeSurfaceIngressRoute = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.route
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.updatedAt)) {
+                $repoPublishSummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.updatedAt
+              }
+            }
           }
 
           $gateEvidenceSnapshot = [ordered]@{
@@ -1065,6 +1101,15 @@ jobs:
             repoPublishSummaryArtifactReleaseEvidenceReportJson = $repoPublishSummaryArtifactReleaseEvidenceReportJson
             repoPublishSummaryArtifactReleaseEvidenceManifestJson = $repoPublishSummaryArtifactReleaseEvidenceManifestJson
             repoPublishSummaryArtifactBadgeDetailsJson = $repoPublishSummaryArtifactBadgeDetailsJson
+            repoPublishSummaryCaseWikiRuntimeSurfaceIngressStatus = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressStatus
+            repoPublishSummaryCaseWikiRuntimeSurfaceIngressObserved = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressObserved
+            repoPublishSummaryCaseWikiRuntimeSurfaceIngressContextSource = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressContextSource
+            repoPublishSummaryCaseWikiRuntimeSurfaceIngressIngressSource = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressIngressSource
+            repoPublishSummaryCaseWikiRuntimeSurfaceIngressFocusId = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressFocusId
+            repoPublishSummaryCaseWikiRuntimeSurfaceIngressBlocker = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressBlocker
+            repoPublishSummaryCaseWikiRuntimeSurfaceIngressNextAction = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressNextAction
+            repoPublishSummaryCaseWikiRuntimeSurfaceIngressRoute = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressRoute
+            repoPublishSummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressUpdatedAt
             operatorTurnTruncationSummaryValidated = $operatorTurnTruncationSummaryValidated
             operatorTurnDeleteSummaryValidated = $operatorTurnDeleteSummaryValidated
             operatorDamageControlSummaryValidated = $operatorDamageControlSummaryValidated
@@ -1249,6 +1294,15 @@ jobs:
           ("repo_publish_summary_artifact_release_evidence_report_json=" + $(if ($null -ne $repoPublishSummaryArtifactReleaseEvidenceReportJson) { [string]$repoPublishSummaryArtifactReleaseEvidenceReportJson } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("repo_publish_summary_artifact_release_evidence_manifest_json=" + $(if ($null -ne $repoPublishSummaryArtifactReleaseEvidenceManifestJson) { [string]$repoPublishSummaryArtifactReleaseEvidenceManifestJson } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("repo_publish_summary_artifact_badge_details_json=" + $(if ($null -ne $repoPublishSummaryArtifactBadgeDetailsJson) { [string]$repoPublishSummaryArtifactBadgeDetailsJson } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_case_wiki_runtime_surface_ingress_status=" + [string]$repoPublishSummaryCaseWikiRuntimeSurfaceIngressStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_case_wiki_runtime_surface_ingress_observed=" + $(if ($repoPublishSummaryCaseWikiRuntimeSurfaceIngressObserved) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_case_wiki_runtime_surface_ingress_context_source=" + $(if ($null -ne $repoPublishSummaryCaseWikiRuntimeSurfaceIngressContextSource) { [string]$repoPublishSummaryCaseWikiRuntimeSurfaceIngressContextSource } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_case_wiki_runtime_surface_ingress_ingress_source=" + $(if ($null -ne $repoPublishSummaryCaseWikiRuntimeSurfaceIngressIngressSource) { [string]$repoPublishSummaryCaseWikiRuntimeSurfaceIngressIngressSource } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_case_wiki_runtime_surface_ingress_focus_id=" + $(if ($null -ne $repoPublishSummaryCaseWikiRuntimeSurfaceIngressFocusId) { [string]$repoPublishSummaryCaseWikiRuntimeSurfaceIngressFocusId } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_case_wiki_runtime_surface_ingress_blocker=" + $(if ($null -ne $repoPublishSummaryCaseWikiRuntimeSurfaceIngressBlocker) { [string]$repoPublishSummaryCaseWikiRuntimeSurfaceIngressBlocker } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_case_wiki_runtime_surface_ingress_next_action=" + $(if ($null -ne $repoPublishSummaryCaseWikiRuntimeSurfaceIngressNextAction) { [string]$repoPublishSummaryCaseWikiRuntimeSurfaceIngressNextAction } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_case_wiki_runtime_surface_ingress_route=" + $(if ($null -ne $repoPublishSummaryCaseWikiRuntimeSurfaceIngressRoute) { [string]$repoPublishSummaryCaseWikiRuntimeSurfaceIngressRoute } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_case_wiki_runtime_surface_ingress_updated_at=" + $(if ($null -ne $repoPublishSummaryCaseWikiRuntimeSurfaceIngressUpdatedAt) { [string]$repoPublishSummaryCaseWikiRuntimeSurfaceIngressUpdatedAt } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           Write-Host ("Source run manifest written: " + $manifestPath)
 
       - name: Run Artifact-Only Release Revalidation (With Perf Artifacts, Standard)
@@ -1381,6 +1435,15 @@ jobs:
           ("Repo publish summary artifact release-evidence report JSON: ${{ steps.write_manifest.outputs.repo_publish_summary_artifact_release_evidence_report_json }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Repo publish summary artifact release-evidence manifest JSON: ${{ steps.write_manifest.outputs.repo_publish_summary_artifact_release_evidence_manifest_json }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Repo publish summary artifact badge-details JSON: ${{ steps.write_manifest.outputs.repo_publish_summary_artifact_badge_details_json }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary case-wiki runtime-surface ingress status: ${{ steps.write_manifest.outputs.repo_publish_summary_case_wiki_runtime_surface_ingress_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary case-wiki runtime-surface ingress observed: ${{ steps.write_manifest.outputs.repo_publish_summary_case_wiki_runtime_surface_ingress_observed }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary case-wiki runtime-surface ingress context source: ${{ steps.write_manifest.outputs.repo_publish_summary_case_wiki_runtime_surface_ingress_context_source }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary case-wiki runtime-surface ingress ingress source: ${{ steps.write_manifest.outputs.repo_publish_summary_case_wiki_runtime_surface_ingress_ingress_source }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary case-wiki runtime-surface ingress focus id: ${{ steps.write_manifest.outputs.repo_publish_summary_case_wiki_runtime_surface_ingress_focus_id }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary case-wiki runtime-surface ingress blocker: ${{ steps.write_manifest.outputs.repo_publish_summary_case_wiki_runtime_surface_ingress_blocker }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary case-wiki runtime-surface ingress next action: ${{ steps.write_manifest.outputs.repo_publish_summary_case_wiki_runtime_surface_ingress_next_action }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary case-wiki runtime-surface ingress route: ${{ steps.write_manifest.outputs.repo_publish_summary_case_wiki_runtime_surface_ingress_route }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary case-wiki runtime-surface ingress updated at: ${{ steps.write_manifest.outputs.repo_publish_summary_case_wiki_runtime_surface_ingress_updated_at }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Release evidence report JSON: ${{ steps.release_evidence_report.outputs.report_json_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Release evidence report Markdown: ${{ steps.release_evidence_report.outputs.report_md_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Release evidence manifest JSON: ${{ steps.release_evidence_report.outputs.report_manifest_json_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
