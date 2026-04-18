@@ -105,6 +105,15 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /railwayDeploySummaryPublicBadgeSkipped/);
   assert.match(source, /railwayDeploySummary\.checks\.publicBadge\.badgeEndpoint/);
   assert.match(source, /railwayDeploySummary\.checks\.publicBadge\.badgeDetailsEndpoint/);
+  assert.match(source, /railwayDeploySummary\.caseWikiRuntimeSurfaceIngress\.status/);
+  assert.match(source, /railwayDeploySummary\.caseWikiRuntimeSurfaceIngress\.observed/);
+  assert.match(source, /railwayDeploySummary\.caseWikiRuntimeSurfaceIngress\.contextSource/);
+  assert.match(source, /railwayDeploySummary\.caseWikiRuntimeSurfaceIngress\.ingressSource/);
+  assert.match(source, /railwayDeploySummary\.caseWikiRuntimeSurfaceIngress\.focusId/);
+  assert.match(source, /railwayDeploySummary\.caseWikiRuntimeSurfaceIngress\.blocker/);
+  assert.match(source, /railwayDeploySummary\.caseWikiRuntimeSurfaceIngress\.nextAction/);
+  assert.match(source, /railwayDeploySummary\.caseWikiRuntimeSurfaceIngress\.route/);
+  assert.match(source, /railwayDeploySummary\.caseWikiRuntimeSurfaceIngress\.updatedAt/);
   assert.match(source, /repoPublishSummary\.branch/);
   assert.match(source, /repoPublishSummary\.remoteName/);
   assert.match(source, /repoPublishSummary\.verification\.script/);
@@ -207,6 +216,15 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /railway_deploy_summary_expected_ui_url/);
   assert.match(source, /railway_deploy_summary_public_badge_attempted/);
   assert.match(source, /railway_deploy_summary_public_badge_skipped/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_status/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_observed/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_context_source/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_ingress_source/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_focus_id/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_blocker/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_next_action/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_route/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_updated_at/);
   assert.match(source, /repo_publish_summary_present/);
   assert.match(source, /repo_publish_summary_branch/);
   assert.match(source, /repo_publish_summary_remote_name/);
@@ -392,6 +410,7 @@ test("workflow docs include retry-control inputs", () => {
     assert.match(content, /artifacts\/evals\/latest-run\.json/);
     assert.match(content, /caseWikiRuntimeSurfaceIngress/);
     assert.match(content, /repoPublishSummaryCaseWikiRuntimeSurfaceIngress/);
+    assert.match(content, /railwayDeploySummaryCaseWikiRuntimeSurfaceIngress/);
   }
 });
 

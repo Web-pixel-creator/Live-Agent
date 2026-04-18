@@ -1225,6 +1225,15 @@ function createPassingSourceRunManifest(
     railwayDeploySummaryRootDescriptorExpectedUiUrl: string;
     railwayDeploySummaryPublicBadgeAttempted: boolean | string;
     railwayDeploySummaryPublicBadgeSkipped: boolean | string;
+    railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus: string;
+    railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved: boolean | string;
+    railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource: string;
+    railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource: string;
+    railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId: string;
+    railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker: string;
+    railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction: string;
+    railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute: string;
+    railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt: string;
     repoPublishSummaryPresent: boolean | string;
     repoPublishSummaryBranch: string;
     repoPublishSummaryRemoteName: string;
@@ -1334,6 +1343,33 @@ function createPassingSourceRunManifest(
         railwayDeploySummaryPublicBadgeSkipped: hasOverride("railwayDeploySummaryPublicBadgeSkipped")
           ? overrides.railwayDeploySummaryPublicBadgeSkipped
           : false,
+        railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus: hasOverride("railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus")
+          ? overrides.railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus
+          : "pass",
+        railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved: hasOverride("railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved")
+          ? overrides.railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved
+          : true,
+        railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource: hasOverride("railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource")
+          ? overrides.railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource
+          : "case_wiki",
+        railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource: hasOverride("railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource")
+          ? overrides.railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource
+          : "gateway_hydrated_case_wiki",
+        railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId: hasOverride("railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId")
+          ? overrides.railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId
+          : "focus-railway-case-wiki-ingress",
+        railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker: hasOverride("railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker")
+          ? overrides.railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker
+          : "clear_export_blocker",
+        railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction: hasOverride("railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction")
+          ? overrides.railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction
+          : "Prepare signed replacement",
+        railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute: hasOverride("railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute")
+          ? overrides.railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute
+          : "live_agent.operator_handoff",
+        railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt: hasOverride("railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt")
+          ? overrides.railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt
+          : "2026-02-23T00:00:00.000Z",
         repoPublishSummaryPresent: hasOverride("repoPublishSummaryPresent")
           ? overrides.repoPublishSummaryPresent
           : true,
@@ -3360,6 +3396,15 @@ test(
     assert.match(output, /railway_deploy_summary_expected_ui_url=https:\/\/demo\.live-agent\.example\.test/i);
     assert.match(output, /railway_deploy_summary_public_badge_attempted=true/i);
     assert.match(output, /railway_deploy_summary_public_badge_skipped=false/i);
+    assert.match(output, /railway_deploy_summary_case_wiki_runtime_surface_ingress_status=pass/i);
+    assert.match(output, /railway_deploy_summary_case_wiki_runtime_surface_ingress_observed=true/i);
+    assert.match(output, /railway_deploy_summary_case_wiki_runtime_surface_ingress_context_source=case_wiki/i);
+    assert.match(output, /railway_deploy_summary_case_wiki_runtime_surface_ingress_ingress_source=gateway_hydrated_case_wiki/i);
+    assert.match(output, /railway_deploy_summary_case_wiki_runtime_surface_ingress_focus_id=focus-railway-case-wiki-ingress/i);
+    assert.match(output, /railway_deploy_summary_case_wiki_runtime_surface_ingress_blocker=clear_export_blocker/i);
+    assert.match(output, /railway_deploy_summary_case_wiki_runtime_surface_ingress_next_action=Prepare signed replacement/i);
+    assert.match(output, /railway_deploy_summary_case_wiki_runtime_surface_ingress_route=live_agent\.operator_handoff/i);
+    assert.match(output, /railway_deploy_summary_case_wiki_runtime_surface_ingress_updated_at=2026-02-23T00:00:00.000Z/i);
     assert.match(output, /repo_publish_summary_present=true/i);
     assert.match(output, /repo_publish_summary_branch=main/i);
     assert.match(output, /repo_publish_summary_remote_name=origin/i);
@@ -3403,6 +3448,15 @@ test(
       "railwayDeploySummaryRootDescriptorExpectedUiUrl",
       "railwayDeploySummaryPublicBadgeAttempted",
       "railwayDeploySummaryPublicBadgeSkipped",
+      "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus",
+      "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved",
+      "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource",
+      "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource",
+      "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId",
+      "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker",
+      "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction",
+      "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute",
+      "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt",
       "repoPublishSummaryBranch",
       "repoPublishSummaryRemoteName",
       "repoPublishSummaryVerificationSkipped",

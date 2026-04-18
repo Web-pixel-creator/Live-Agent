@@ -715,6 +715,15 @@ $railwayDeploySummaryRootDescriptorSkipped = $null
 $railwayDeploySummaryRootDescriptorExpectedUiUrl = $null
 $railwayDeploySummaryPublicBadgeAttempted = $null
 $railwayDeploySummaryPublicBadgeSkipped = $null
+$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus = "unavailable"
+$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved = $false
+$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource = $null
+$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource = $null
+$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId = $null
+$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker = $null
+$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction = $null
+$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute = $null
+$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = $null
 $repoPublishSummaryVerificationScript = $null
 $repoPublishSummaryReleaseEvidenceValidated = $false
 $repoPublishSummaryRailwayDeployEnabled = $false
@@ -737,6 +746,15 @@ $repoPublishSummaryArtifactRailwayDeploySummary = $null
 $repoPublishSummaryArtifactReleaseEvidenceReportJson = $null
 $repoPublishSummaryArtifactReleaseEvidenceManifestJson = $null
 $repoPublishSummaryArtifactBadgeDetailsJson = $null
+$repoPublishSummaryCaseWikiRuntimeSurfaceIngressStatus = "unavailable"
+$repoPublishSummaryCaseWikiRuntimeSurfaceIngressObserved = $false
+$repoPublishSummaryCaseWikiRuntimeSurfaceIngressContextSource = $null
+$repoPublishSummaryCaseWikiRuntimeSurfaceIngressIngressSource = $null
+$repoPublishSummaryCaseWikiRuntimeSurfaceIngressFocusId = $null
+$repoPublishSummaryCaseWikiRuntimeSurfaceIngressBlocker = $null
+$repoPublishSummaryCaseWikiRuntimeSurfaceIngressNextAction = $null
+$repoPublishSummaryCaseWikiRuntimeSurfaceIngressRoute = $null
+$repoPublishSummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = $null
 $badgeEvidenceOperatorTurnTruncationStatus = $null
 $badgeEvidenceOperatorTurnDeleteStatus = $null
 if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.operatorTurnTruncation) {
@@ -950,6 +968,33 @@ if ($null -ne $railwayDeploySummary) {
       $railwayDeploySummaryBadgeDetailsEndpoint = [string]$railwayDeploySummary.checks.publicBadge.badgeDetailsEndpoint
     }
   }
+  if ($null -ne $railwayDeploySummary.caseWikiRuntimeSurfaceIngress) {
+    if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.status)) {
+      $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.status
+    }
+    $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved = ($railwayDeploySummary.caseWikiRuntimeSurfaceIngress.observed -eq $true)
+    if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.contextSource)) {
+      $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.contextSource
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.ingressSource)) {
+      $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.ingressSource
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.focusId)) {
+      $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.focusId
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.blocker)) {
+      $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.blocker
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.nextAction)) {
+      $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.nextAction
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.route)) {
+      $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.route
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.updatedAt)) {
+      $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.updatedAt
+    }
+  }
 }
 if ($null -ne $repoPublishSummary) {
   if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.branch)) {
@@ -1005,6 +1050,33 @@ if ($null -ne $repoPublishSummary) {
       $repoPublishSummaryArtifactBadgeDetailsJson = [string]$repoPublishSummary.artifacts.badgeDetailsJson
     }
   }
+  if ($null -ne $repoPublishSummary.caseWikiRuntimeSurfaceIngress) {
+    if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.status)) {
+      $repoPublishSummaryCaseWikiRuntimeSurfaceIngressStatus = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.status
+    }
+    $repoPublishSummaryCaseWikiRuntimeSurfaceIngressObserved = ($repoPublishSummary.caseWikiRuntimeSurfaceIngress.observed -eq $true)
+    if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.contextSource)) {
+      $repoPublishSummaryCaseWikiRuntimeSurfaceIngressContextSource = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.contextSource
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.ingressSource)) {
+      $repoPublishSummaryCaseWikiRuntimeSurfaceIngressIngressSource = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.ingressSource
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.focusId)) {
+      $repoPublishSummaryCaseWikiRuntimeSurfaceIngressFocusId = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.focusId
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.blocker)) {
+      $repoPublishSummaryCaseWikiRuntimeSurfaceIngressBlocker = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.blocker
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.nextAction)) {
+      $repoPublishSummaryCaseWikiRuntimeSurfaceIngressNextAction = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.nextAction
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.route)) {
+      $repoPublishSummaryCaseWikiRuntimeSurfaceIngressRoute = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.route
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.updatedAt)) {
+      $repoPublishSummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.updatedAt
+    }
+  }
 }
 
 $gateEvidenceSnapshot = [ordered]@{
@@ -1027,6 +1099,15 @@ $gateEvidenceSnapshot = [ordered]@{
   railwayDeploySummaryRootDescriptorExpectedUiUrl = $railwayDeploySummaryRootDescriptorExpectedUiUrl
   railwayDeploySummaryPublicBadgeAttempted    = $railwayDeploySummaryPublicBadgeAttempted
   railwayDeploySummaryPublicBadgeSkipped      = $railwayDeploySummaryPublicBadgeSkipped
+  railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus
+  railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved
+  railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource
+  railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource
+  railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId
+  railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker
+  railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction
+  railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute
+  railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt
   repoPublishSummaryPresent                   = [bool]$repoPublishSummaryPresent
   repoPublishSummaryBranch                    = $repoPublishSummaryBranch
   repoPublishSummaryRemoteName                = $repoPublishSummaryRemoteName
@@ -1050,6 +1131,15 @@ $gateEvidenceSnapshot = [ordered]@{
   repoPublishSummaryArtifactReleaseEvidenceReportJson = $repoPublishSummaryArtifactReleaseEvidenceReportJson
   repoPublishSummaryArtifactReleaseEvidenceManifestJson = $repoPublishSummaryArtifactReleaseEvidenceManifestJson
   repoPublishSummaryArtifactBadgeDetailsJson  = $repoPublishSummaryArtifactBadgeDetailsJson
+  repoPublishSummaryCaseWikiRuntimeSurfaceIngressStatus = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressStatus
+  repoPublishSummaryCaseWikiRuntimeSurfaceIngressObserved = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressObserved
+  repoPublishSummaryCaseWikiRuntimeSurfaceIngressContextSource = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressContextSource
+  repoPublishSummaryCaseWikiRuntimeSurfaceIngressIngressSource = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressIngressSource
+  repoPublishSummaryCaseWikiRuntimeSurfaceIngressFocusId = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressFocusId
+  repoPublishSummaryCaseWikiRuntimeSurfaceIngressBlocker = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressBlocker
+  repoPublishSummaryCaseWikiRuntimeSurfaceIngressNextAction = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressNextAction
+  repoPublishSummaryCaseWikiRuntimeSurfaceIngressRoute = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressRoute
+  repoPublishSummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressUpdatedAt
   operatorTurnTruncationSummaryValidated      = $operatorTurnTruncationSummaryValidated
   operatorTurnDeleteSummaryValidated          = $operatorTurnDeleteSummaryValidated
   operatorDamageControlSummaryValidated       = $operatorDamageControlSummaryValidated

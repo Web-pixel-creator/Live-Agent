@@ -1193,6 +1193,15 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryEffectiveStartCommand" -ContextLabel $manifestEvidenceContextLabel
       $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryConfigSource" -ContextLabel $manifestEvidenceContextLabel
       $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryRootDescriptorExpectedUiUrl" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalBooleanPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt" -ContextLabel $manifestEvidenceContextLabel
 
       # Contract: source run manifest evidenceSnapshot.railwayDeploySummaryRootDescriptorAttempted expected boolean when provided
       $manifestRailwayDeploySummaryRootDescriptorAttempted = Get-OptionalBooleanPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryRootDescriptorAttempted" -ContextLabel $manifestEvidenceContextLabel
@@ -3369,6 +3378,15 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
     $manifestRailwayDeploySummaryRootDescriptorExpectedUiUrl = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryRootDescriptorExpectedUiUrl")
     $manifestRailwayDeploySummaryPublicBadgeAttempted = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryPublicBadgeAttempted"
     $manifestRailwayDeploySummaryPublicBadgeSkipped = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryPublicBadgeSkipped"
+    $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus")
+    $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved"
+    $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource")
+    $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource")
+    $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId")
+    $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker")
+    $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction")
+    $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute")
+    $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt")
     $manifestRepoPublishSummaryPresent = if ((To-BoolOrNull $manifestEvidenceSnapshot.repoPublishSummaryPresent) -eq $true) { "true" } else { "false" }
     $manifestRepoPublishSummaryBranch = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryBranch")
     $manifestRepoPublishSummaryRemoteName = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryRemoteName")
@@ -3455,6 +3473,15 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       ", railway_deploy_summary_expected_ui_url=" + $manifestRailwayDeploySummaryRootDescriptorExpectedUiUrl +
       ", railway_deploy_summary_public_badge_attempted=" + $(if ($null -ne $manifestRailwayDeploySummaryPublicBadgeAttempted) { [string]$manifestRailwayDeploySummaryPublicBadgeAttempted } else { "" }) +
       ", railway_deploy_summary_public_badge_skipped=" + $(if ($null -ne $manifestRailwayDeploySummaryPublicBadgeSkipped) { [string]$manifestRailwayDeploySummaryPublicBadgeSkipped } else { "" }) +
+      ", railway_deploy_summary_case_wiki_runtime_surface_ingress_status=" + $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus +
+      ", railway_deploy_summary_case_wiki_runtime_surface_ingress_observed=" + $(if ($null -ne $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved) { [string]$manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved } else { "" }) +
+      ", railway_deploy_summary_case_wiki_runtime_surface_ingress_context_source=" + $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource +
+      ", railway_deploy_summary_case_wiki_runtime_surface_ingress_ingress_source=" + $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource +
+      ", railway_deploy_summary_case_wiki_runtime_surface_ingress_focus_id=" + $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId +
+      ", railway_deploy_summary_case_wiki_runtime_surface_ingress_blocker=" + $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker +
+      ", railway_deploy_summary_case_wiki_runtime_surface_ingress_next_action=" + $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction +
+      ", railway_deploy_summary_case_wiki_runtime_surface_ingress_route=" + $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute +
+      ", railway_deploy_summary_case_wiki_runtime_surface_ingress_updated_at=" + $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt +
       ", repo_publish_summary_present=" + $manifestRepoPublishSummaryPresent +
       ", repo_publish_summary_branch=" + $manifestRepoPublishSummaryBranch +
       ", repo_publish_summary_remote_name=" + $manifestRepoPublishSummaryRemoteName +

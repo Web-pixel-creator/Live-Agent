@@ -734,6 +734,15 @@ jobs:
           $railwayDeploySummaryRootDescriptorExpectedUiUrl = $null
           $railwayDeploySummaryPublicBadgeAttempted = $null
           $railwayDeploySummaryPublicBadgeSkipped = $null
+          $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus = "unavailable"
+          $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved = $false
+          $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource = $null
+          $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource = $null
+          $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId = $null
+          $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker = $null
+          $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction = $null
+          $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute = $null
+          $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = $null
           $repoPublishSummaryBranch = $null
           $repoPublishSummaryRemoteName = $null
           $repoPublishSummaryVerificationScript = $null
@@ -974,6 +983,33 @@ jobs:
                 $railwayDeploySummaryBadgeDetailsEndpoint = [string]$railwayDeploySummary.checks.publicBadge.badgeDetailsEndpoint
               }
             }
+            if ($null -ne $railwayDeploySummary.caseWikiRuntimeSurfaceIngress) {
+              if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.status)) {
+                $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.status
+              }
+              $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved = ($railwayDeploySummary.caseWikiRuntimeSurfaceIngress.observed -eq $true)
+              if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.contextSource)) {
+                $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.contextSource
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.ingressSource)) {
+                $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.ingressSource
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.focusId)) {
+                $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.focusId
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.blocker)) {
+                $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.blocker
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.nextAction)) {
+                $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.nextAction
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.route)) {
+                $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.route
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.updatedAt)) {
+                $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.updatedAt
+              }
+            }
           }
           if ($null -ne $repoPublishSummary) {
             if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.branch)) {
@@ -1078,6 +1114,15 @@ jobs:
             railwayDeploySummaryRootDescriptorExpectedUiUrl = $railwayDeploySummaryRootDescriptorExpectedUiUrl
             railwayDeploySummaryPublicBadgeAttempted = $railwayDeploySummaryPublicBadgeAttempted
             railwayDeploySummaryPublicBadgeSkipped = $railwayDeploySummaryPublicBadgeSkipped
+            railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus
+            railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved
+            railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource
+            railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource
+            railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId
+            railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker
+            railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction
+            railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute
+            railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt
             repoPublishSummaryPresent = [bool]$repoPublishSummaryPresent
             repoPublishSummaryBranch = $repoPublishSummaryBranch
             repoPublishSummaryRemoteName = $repoPublishSummaryRemoteName
@@ -1271,6 +1316,15 @@ jobs:
           ("railway_deploy_summary_expected_ui_url=" + $(if ($null -ne $railwayDeploySummaryRootDescriptorExpectedUiUrl) { [string]$railwayDeploySummaryRootDescriptorExpectedUiUrl } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("railway_deploy_summary_public_badge_attempted=" + $(if ($null -ne $railwayDeploySummaryPublicBadgeAttempted) { [string]$railwayDeploySummaryPublicBadgeAttempted } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("railway_deploy_summary_public_badge_skipped=" + $(if ($null -ne $railwayDeploySummaryPublicBadgeSkipped) { [string]$railwayDeploySummaryPublicBadgeSkipped } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_case_wiki_runtime_surface_ingress_status=" + [string]$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_case_wiki_runtime_surface_ingress_observed=" + $(if ($railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_case_wiki_runtime_surface_ingress_context_source=" + $(if ($null -ne $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource) { [string]$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_case_wiki_runtime_surface_ingress_ingress_source=" + $(if ($null -ne $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource) { [string]$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_case_wiki_runtime_surface_ingress_focus_id=" + $(if ($null -ne $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId) { [string]$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_case_wiki_runtime_surface_ingress_blocker=" + $(if ($null -ne $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker) { [string]$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_case_wiki_runtime_surface_ingress_next_action=" + $(if ($null -ne $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction) { [string]$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_case_wiki_runtime_surface_ingress_route=" + $(if ($null -ne $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute) { [string]$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_case_wiki_runtime_surface_ingress_updated_at=" + $(if ($null -ne $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt) { [string]$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("repo_publish_summary_present=" + $(if ($repoPublishSummaryPresent) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("repo_publish_summary_branch=" + $(if ($null -ne $repoPublishSummaryBranch) { [string]$repoPublishSummaryBranch } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("repo_publish_summary_remote_name=" + $(if ($null -ne $repoPublishSummaryRemoteName) { [string]$repoPublishSummaryRemoteName } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append

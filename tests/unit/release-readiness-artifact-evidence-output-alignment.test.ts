@@ -69,6 +69,15 @@ test("release-readiness emits artifact source-run evidence snapshot output contr
   assert.match(source, /railway_deploy_summary_expected_ui_url=/);
   assert.match(source, /railway_deploy_summary_public_badge_attempted=/);
   assert.match(source, /railway_deploy_summary_public_badge_skipped=/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_status=/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_observed=/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_context_source=/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_ingress_source=/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_focus_id=/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_blocker=/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_next_action=/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_route=/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_updated_at=/);
   assert.match(source, /repo_publish_summary_present=/);
   assert.match(source, /repo_publish_summary_branch=/);
   assert.match(source, /repo_publish_summary_remote_name=/);
@@ -142,6 +151,14 @@ test("release-readiness emits artifact source-run evidence snapshot output contr
   assert.match(
     source,
     /Get-OptionalNonEmptyStringPropertyValue -Object \$manifestEvidenceSnapshot -Name "railwayDeploySummaryProjectId"/,
+  );
+  assert.match(
+    source,
+    /Get-OptionalNonEmptyStringPropertyValue -Object \$manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus"/,
+  );
+  assert.match(
+    source,
+    /Get-OptionalBooleanPropertyValue -Object \$manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved"/,
   );
   assert.match(
     source,

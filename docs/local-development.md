@@ -152,6 +152,8 @@ npm run verify:release:artifact:refresh-local-source
 npm run verify:release:artifact-only
 ```
 
+That local refresh now also preserves compact deploy/publish runtime ingress tuples from `artifacts/deploy/railway-deploy-summary.json` and `artifacts/deploy/repo-publish-summary.json` (`railwayDeploySummaryCaseWikiRuntimeSurfaceIngress*`, `repoPublishSummaryCaseWikiRuntimeSurfaceIngress*`), so offline artifact-only checks can distinguish deploy-owned `Case Wiki` ingress without reopening full release-evidence snapshots.
+
 ## Optional Moonshot / Kimi Text Path
 
 To test live-agent `translation` or `conversation` with Moonshot/Kimi 2.5 instead of the default Gemini text path, set:
