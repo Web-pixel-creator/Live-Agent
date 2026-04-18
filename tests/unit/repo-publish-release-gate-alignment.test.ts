@@ -30,6 +30,7 @@ test("repo publish script includes pre-publish release verification controls", (
   assert.match(source, /function Read-JsonArtifactIfPresent\(/);
   assert.match(source, /function Get-CompactRuntimeGuardrailsPrimaryPath\(/);
   assert.match(source, /function Get-CompactProviderUsagePrimaryEntry\(/);
+  assert.match(source, /function Get-CompactCaseWikiRuntimeSurfaceIngress\(/);
   assert.match(source, /function Get-ReleaseEvidenceSnapshot\(\[bool\]\$ValidatedInThisRun\)/);
   assert.match(source, /\$env:GITHUB_OUTPUT/);
   assert.match(source, /\$env:GITHUB_STEP_SUMMARY/);
@@ -47,6 +48,14 @@ test("repo publish script includes pre-publish release verification controls", (
   assert.match(source, /repo_publish_release_evidence_missing_required/);
   assert.match(source, /repo_publish_release_evidence_badge_checks/);
   assert.match(source, /repo_publish_release_evidence_runtime_guardrails_summary_status/);
+  assert.match(source, /repo_publish_release_evidence_case_wiki_runtime_surface_ingress_status/);
+  assert.match(source, /repo_publish_release_evidence_case_wiki_runtime_surface_context_source/);
+  assert.match(source, /repo_publish_release_evidence_case_wiki_runtime_surface_ingress_source/);
+  assert.match(source, /repo_publish_release_evidence_case_wiki_runtime_surface_focus_id/);
+  assert.match(source, /repo_publish_release_evidence_case_wiki_runtime_surface_blocker/);
+  assert.match(source, /repo_publish_release_evidence_case_wiki_runtime_surface_next_action/);
+  assert.match(source, /repo_publish_release_evidence_case_wiki_runtime_surface_route/);
+  assert.match(source, /repo_publish_release_evidence_case_wiki_runtime_surface_updated_at/);
   assert.match(source, /repo_publish_release_evidence_report_path/);
   assert.match(source, /repo_publish_release_evidence_manifest_path/);
   assert.match(source, /repo_publish_badge_details_path/);
@@ -59,6 +68,14 @@ test("repo publish script includes pre-publish release verification controls", (
   assert.match(source, /Repo publish release-evidence missing required artifacts:/);
   assert.match(source, /Repo publish release-evidence badge checks:/);
   assert.match(source, /Repo publish release-evidence runtime guardrails:/);
+  assert.match(source, /Repo publish case-wiki runtime-surface ingress status:/);
+  assert.match(source, /Repo publish case-wiki runtime-surface context source:/);
+  assert.match(source, /Repo publish case-wiki runtime-surface ingress source:/);
+  assert.match(source, /Repo publish case-wiki runtime-surface focus id:/);
+  assert.match(source, /Repo publish case-wiki runtime-surface blocker:/);
+  assert.match(source, /Repo publish case-wiki runtime-surface next action:/);
+  assert.match(source, /Repo publish case-wiki runtime-surface route:/);
+  assert.match(source, /Repo publish case-wiki runtime-surface updated at:/);
   assert.match(source, /Repo publish release-evidence report artifact:/);
   assert.match(source, /Repo publish release-evidence manifest artifact:/);
   assert.match(source, /Repo publish badge-details artifact:/);
@@ -79,6 +96,7 @@ test("repo publish script includes pre-publish release verification controls", (
   assert.match(source, /deviceNodeUpdates = if \(\$null -ne \$deviceNodeUpdatesSource\)/);
   assert.match(source, /runtimeGuardrails = if \(\$null -ne \$runtimeGuardrailsSource\)/);
   assert.match(source, /providerUsage = if \(\$null -ne \$providerUsageSource\)/);
+  assert.match(source, /caseWikiRuntimeSurfaceIngress = if \(\$null -ne \$report -and \$null -ne \$report\.caseWikiRuntimeSurfaceIngress\)/);
   assert.match(source, /badgeDetails = if \(\$null -ne \$badgeDetails\)/);
   assert.match(source, /\[switch\]\$DeployRailway/);
   assert.match(source, /\[string\]\$RailwayProjectId = \$env:RAILWAY_PROJECT_ID/);
@@ -127,6 +145,7 @@ test("repo publish script includes pre-publish release verification controls", (
   assert.match(readme, /\-RailwayRootDescriptorCheckMaxAttempts <n>/);
   assert.match(readme, /\-RailwayRootDescriptorCheckRetryBackoffSec <n>/);
   assert.match(readme, /repo publish surfaces local release-evidence report\/runtime-proof-report\/manifest paths after pre-publish verification/);
+  assert.match(readme, /caseWikiRuntimeSurfaceIngress/);
   assert.match(readme, /artifacts\/deploy\/repo-publish-summary\.json/);
   assert.match(readme, /repo_publish_summary_path/);
   assert.match(readme, /GITHUB_OUTPUT/);

@@ -18,7 +18,16 @@ test("repo publish forwards railway deploy arguments with stable contract", () =
   assert.match(source, /repo_publish_release_evidence_artifacts_count/);
   assert.match(source, /repo_publish_railway_summary_path/);
   assert.match(source, /repo_publish_release_evidence_snapshot_available/);
+  assert.match(source, /repo_publish_release_evidence_case_wiki_runtime_surface_ingress_status/);
+  assert.match(source, /repo_publish_release_evidence_case_wiki_runtime_surface_context_source/);
+  assert.match(source, /repo_publish_release_evidence_case_wiki_runtime_surface_ingress_source/);
+  assert.match(source, /repo_publish_release_evidence_case_wiki_runtime_surface_focus_id/);
+  assert.match(source, /repo_publish_release_evidence_case_wiki_runtime_surface_blocker/);
+  assert.match(source, /repo_publish_release_evidence_case_wiki_runtime_surface_next_action/);
+  assert.match(source, /repo_publish_release_evidence_case_wiki_runtime_surface_route/);
+  assert.match(source, /repo_publish_release_evidence_case_wiki_runtime_surface_updated_at/);
   assert.match(source, /Repo publish Railway deploy summary artifact:/);
+  assert.match(source, /Repo publish case-wiki runtime-surface ingress status:/);
 
   assert.match(
     source,
@@ -117,6 +126,7 @@ test("repo publish docs include railway badge check override example", () => {
   assert.match(readme, /-DeployRailwayFrontend/);
   assert.match(readme, /-RailwayFrontendService "Live-Agent-Frontend"/);
   assert.match(readme, /repo publish surfaces local release-evidence report\/runtime-proof-report\/manifest paths after pre-publish verification/);
+  assert.match(readme, /caseWikiRuntimeSurfaceIngress/);
   assert.match(readme, /artifacts\/deploy\/repo-publish-summary\.json/);
   assert.match(readme, /artifacts\/deploy\/railway-deploy-summary\.json/);
   assert.match(readme, /repo_publish_summary_path/);

@@ -192,6 +192,46 @@ function Get-CompactProviderUsagePrimaryEntry([object]$Value) {
   }
 }
 
+function Get-CompactCaseWikiRuntimeSurfaceIngress([object]$Value, [string]$Status) {
+  if ($null -eq $Value) {
+    return $null
+  }
+
+  $statusValue = Convert-ToNullableString -Value $Status
+  $contextSource = Convert-ToNullableString -Value $Value.contextSource
+  $ingressSource = Convert-ToNullableString -Value $Value.ingressSource
+  $focusId = Convert-ToNullableString -Value $Value.focusId
+  $blocker = Convert-ToNullableString -Value $Value.blocker
+  $nextAction = Convert-ToNullableString -Value $Value.nextAction
+  $route = Convert-ToNullableString -Value $Value.route
+  $updatedAt = Convert-ToNullableString -Value $Value.updatedAt
+
+  if (
+    [string]::IsNullOrWhiteSpace($statusValue) -and
+    [string]::IsNullOrWhiteSpace($contextSource) -and
+    [string]::IsNullOrWhiteSpace($ingressSource) -and
+    [string]::IsNullOrWhiteSpace($focusId) -and
+    [string]::IsNullOrWhiteSpace($blocker) -and
+    [string]::IsNullOrWhiteSpace($nextAction) -and
+    [string]::IsNullOrWhiteSpace($route) -and
+    [string]::IsNullOrWhiteSpace($updatedAt)
+  ) {
+    return $null
+  }
+
+  return [ordered]@{
+    status = $statusValue
+    observed = ($Value.observed -eq $true)
+    contextSource = $contextSource
+    ingressSource = $ingressSource
+    focusId = $focusId
+    blocker = $blocker
+    nextAction = $nextAction
+    route = $route
+    updatedAt = $updatedAt
+  }
+}
+
 function Get-ReleaseEvidenceSnapshot([bool]$ValidatedInThisRun) {
   $report = Read-JsonArtifactIfPresent -RelativePath "artifacts/release-evidence/report.json" -Label "release evidence report"
   $manifest = Read-JsonArtifactIfPresent -RelativePath "artifacts/release-evidence/manifest.json" -Label "release evidence manifest"
@@ -272,6 +312,12 @@ function Get-ReleaseEvidenceSnapshot([bool]$ValidatedInThisRun) {
         entriesCount = Convert-ToNullableInt -Value $(if ($null -ne $providerUsageSource.entriesCount) { $providerUsageSource.entriesCount } elseif ($null -ne $providerUsageSource.entries) { @($providerUsageSource.entries).Count } else { $null })
         primaryEntry = Get-CompactProviderUsagePrimaryEntry -Value $(if ($null -ne $providerUsageSource.primaryEntry) { $providerUsageSource.primaryEntry } elseif ($null -ne $providerUsageSource.entries) { @($providerUsageSource.entries)[0] } else { $null })
       }
+    }
+    else {
+      $null
+    }
+    caseWikiRuntimeSurfaceIngress = if ($null -ne $report -and $null -ne $report.caseWikiRuntimeSurfaceIngress) {
+      Get-CompactCaseWikiRuntimeSurfaceIngress -Value $report.caseWikiRuntimeSurfaceIngress -Status $(if ($null -ne $report.statuses) { [string]$report.statuses.caseWikiRuntimeSurfaceIngressStatus } else { [string]$report.caseWikiRuntimeSurfaceIngress.status })
     }
     else {
       $null
@@ -712,6 +758,14 @@ $repoPublishReleaseEvidenceSnapshotAvailable = if ($null -ne $releaseEvidenceSna
 $repoPublishReleaseEvidenceMissingRequired = if ($null -ne $releaseEvidenceSnapshot -and $null -ne $releaseEvidenceSnapshot.manifestInventory -and $null -ne $releaseEvidenceSnapshot.manifestInventory.missingRequired) { [string]$releaseEvidenceSnapshot.manifestInventory.missingRequired } else { "" }
 $repoPublishReleaseEvidenceBadgeChecks = if ($null -ne $releaseEvidenceSnapshot -and $null -ne $releaseEvidenceSnapshot.badgeDetails -and $null -ne $releaseEvidenceSnapshot.badgeDetails.checks) { [string]$releaseEvidenceSnapshot.badgeDetails.checks } else { "" }
 $repoPublishReleaseEvidenceRuntimeGuardrailsSummaryStatus = if ($null -ne $releaseEvidenceSnapshot -and $null -ne $releaseEvidenceSnapshot.runtimeGuardrails) { [string](Convert-ToNullableString -Value $releaseEvidenceSnapshot.runtimeGuardrails.summaryStatus) } else { "" }
+$repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceIngressStatus = if ($null -ne $releaseEvidenceSnapshot -and $null -ne $releaseEvidenceSnapshot.caseWikiRuntimeSurfaceIngress) { [string](Convert-ToNullableString -Value $releaseEvidenceSnapshot.caseWikiRuntimeSurfaceIngress.status) } else { "" }
+$repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceContextSource = if ($null -ne $releaseEvidenceSnapshot -and $null -ne $releaseEvidenceSnapshot.caseWikiRuntimeSurfaceIngress) { [string](Convert-ToNullableString -Value $releaseEvidenceSnapshot.caseWikiRuntimeSurfaceIngress.contextSource) } else { "" }
+$repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceIngressSource = if ($null -ne $releaseEvidenceSnapshot -and $null -ne $releaseEvidenceSnapshot.caseWikiRuntimeSurfaceIngress) { [string](Convert-ToNullableString -Value $releaseEvidenceSnapshot.caseWikiRuntimeSurfaceIngress.ingressSource) } else { "" }
+$repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceFocusId = if ($null -ne $releaseEvidenceSnapshot -and $null -ne $releaseEvidenceSnapshot.caseWikiRuntimeSurfaceIngress) { [string](Convert-ToNullableString -Value $releaseEvidenceSnapshot.caseWikiRuntimeSurfaceIngress.focusId) } else { "" }
+$repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceBlocker = if ($null -ne $releaseEvidenceSnapshot -and $null -ne $releaseEvidenceSnapshot.caseWikiRuntimeSurfaceIngress) { [string](Convert-ToNullableString -Value $releaseEvidenceSnapshot.caseWikiRuntimeSurfaceIngress.blocker) } else { "" }
+$repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceNextAction = if ($null -ne $releaseEvidenceSnapshot -and $null -ne $releaseEvidenceSnapshot.caseWikiRuntimeSurfaceIngress) { [string](Convert-ToNullableString -Value $releaseEvidenceSnapshot.caseWikiRuntimeSurfaceIngress.nextAction) } else { "" }
+$repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceRoute = if ($null -ne $releaseEvidenceSnapshot -and $null -ne $releaseEvidenceSnapshot.caseWikiRuntimeSurfaceIngress) { [string](Convert-ToNullableString -Value $releaseEvidenceSnapshot.caseWikiRuntimeSurfaceIngress.route) } else { "" }
+$repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceUpdatedAt = if ($null -ne $releaseEvidenceSnapshot -and $null -ne $releaseEvidenceSnapshot.caseWikiRuntimeSurfaceIngress) { [string](Convert-ToNullableString -Value $releaseEvidenceSnapshot.caseWikiRuntimeSurfaceIngress.updatedAt) } else { "" }
 $repoPublishReleaseEvidenceReportPath = [string]$repoPublishSummary.artifacts.releaseEvidenceReportJson
 $repoPublishReleaseEvidenceManifestPath = [string]$repoPublishSummary.artifacts.releaseEvidenceManifestJson
 $repoPublishBadgeDetailsPath = [string]$repoPublishSummary.artifacts.badgeDetailsJson
@@ -729,6 +783,14 @@ Write-GitHubOutputValue -Name "repo_publish_release_evidence_snapshot_available"
 Write-GitHubOutputValue -Name "repo_publish_release_evidence_missing_required" -Value $repoPublishReleaseEvidenceMissingRequired
 Write-GitHubOutputValue -Name "repo_publish_release_evidence_badge_checks" -Value $repoPublishReleaseEvidenceBadgeChecks
 Write-GitHubOutputValue -Name "repo_publish_release_evidence_runtime_guardrails_summary_status" -Value $repoPublishReleaseEvidenceRuntimeGuardrailsSummaryStatus
+Write-GitHubOutputValue -Name "repo_publish_release_evidence_case_wiki_runtime_surface_ingress_status" -Value $repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceIngressStatus
+Write-GitHubOutputValue -Name "repo_publish_release_evidence_case_wiki_runtime_surface_context_source" -Value $repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceContextSource
+Write-GitHubOutputValue -Name "repo_publish_release_evidence_case_wiki_runtime_surface_ingress_source" -Value $repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceIngressSource
+Write-GitHubOutputValue -Name "repo_publish_release_evidence_case_wiki_runtime_surface_focus_id" -Value $repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceFocusId
+Write-GitHubOutputValue -Name "repo_publish_release_evidence_case_wiki_runtime_surface_blocker" -Value $repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceBlocker
+Write-GitHubOutputValue -Name "repo_publish_release_evidence_case_wiki_runtime_surface_next_action" -Value $repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceNextAction
+Write-GitHubOutputValue -Name "repo_publish_release_evidence_case_wiki_runtime_surface_route" -Value $repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceRoute
+Write-GitHubOutputValue -Name "repo_publish_release_evidence_case_wiki_runtime_surface_updated_at" -Value $repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceUpdatedAt
 Write-GitHubOutputValue -Name "repo_publish_release_evidence_report_path" -Value $repoPublishReleaseEvidenceReportPath
 Write-GitHubOutputValue -Name "repo_publish_release_evidence_manifest_path" -Value $repoPublishReleaseEvidenceManifestPath
 Write-GitHubOutputValue -Name "repo_publish_badge_details_path" -Value $repoPublishBadgeDetailsPath
@@ -750,6 +812,30 @@ if (-not [string]::IsNullOrWhiteSpace($repoPublishReleaseEvidenceBadgeChecks)) {
 }
 if (-not [string]::IsNullOrWhiteSpace($repoPublishReleaseEvidenceRuntimeGuardrailsSummaryStatus)) {
   Write-GitHubStepSummaryLine ("Repo publish release-evidence runtime guardrails: " + $repoPublishReleaseEvidenceRuntimeGuardrailsSummaryStatus)
+}
+if (-not [string]::IsNullOrWhiteSpace($repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceIngressStatus)) {
+  Write-GitHubStepSummaryLine ("Repo publish case-wiki runtime-surface ingress status: " + $repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceIngressStatus)
+}
+if (-not [string]::IsNullOrWhiteSpace($repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceContextSource)) {
+  Write-GitHubStepSummaryLine ("Repo publish case-wiki runtime-surface context source: " + $repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceContextSource)
+}
+if (-not [string]::IsNullOrWhiteSpace($repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceIngressSource)) {
+  Write-GitHubStepSummaryLine ("Repo publish case-wiki runtime-surface ingress source: " + $repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceIngressSource)
+}
+if (-not [string]::IsNullOrWhiteSpace($repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceFocusId)) {
+  Write-GitHubStepSummaryLine ("Repo publish case-wiki runtime-surface focus id: " + $repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceFocusId)
+}
+if (-not [string]::IsNullOrWhiteSpace($repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceBlocker)) {
+  Write-GitHubStepSummaryLine ("Repo publish case-wiki runtime-surface blocker: " + $repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceBlocker)
+}
+if (-not [string]::IsNullOrWhiteSpace($repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceNextAction)) {
+  Write-GitHubStepSummaryLine ("Repo publish case-wiki runtime-surface next action: " + $repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceNextAction)
+}
+if (-not [string]::IsNullOrWhiteSpace($repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceRoute)) {
+  Write-GitHubStepSummaryLine ("Repo publish case-wiki runtime-surface route: " + $repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceRoute)
+}
+if (-not [string]::IsNullOrWhiteSpace($repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceUpdatedAt)) {
+  Write-GitHubStepSummaryLine ("Repo publish case-wiki runtime-surface updated at: " + $repoPublishReleaseEvidenceCaseWikiRuntimeSurfaceUpdatedAt)
 }
 if ($repoPublishReleaseEvidenceValidated -eq "true" -or $repoPublishReleaseEvidenceSnapshotAvailable -eq "true") {
   Write-GitHubStepSummaryLine ("Repo publish release-evidence report artifact: " + $repoPublishReleaseEvidenceReportPath)
