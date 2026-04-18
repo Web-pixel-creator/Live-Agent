@@ -68,6 +68,14 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /releaseEvidenceReport\.caseWikiRoutingContext\.mode/);
   assert.match(source, /releaseEvidenceReport\.caseWikiRoutingContext\.requestedIntent/);
   assert.match(source, /releaseEvidenceReport\.caseWikiRoutingContext\.routedIntent/);
+  assert.match(source, /releaseEvidenceReport\.statuses\.caseWikiRuntimeSurfaceIngressStatus/);
+  assert.match(source, /releaseEvidenceReport\.caseWikiRuntimeSurfaceIngress\.contextSource/);
+  assert.match(source, /releaseEvidenceReport\.caseWikiRuntimeSurfaceIngress\.ingressSource/);
+  assert.match(source, /releaseEvidenceReport\.caseWikiRuntimeSurfaceIngress\.focusId/);
+  assert.match(source, /releaseEvidenceReport\.caseWikiRuntimeSurfaceIngress\.blocker/);
+  assert.match(source, /releaseEvidenceReport\.caseWikiRuntimeSurfaceIngress\.nextAction/);
+  assert.match(source, /releaseEvidenceReport\.caseWikiRuntimeSurfaceIngress\.route/);
+  assert.match(source, /releaseEvidenceReport\.caseWikiRuntimeSurfaceIngress\.updatedAt/);
   assert.match(source, /releaseEvidenceReport\.statuses\.caseWikiContextAdoptionStatus/);
   assert.match(source, /releaseEvidenceReport\.caseWikiContextAdoption\.validated/);
   assert.match(source, /releaseEvidenceReport\.caseWikiContextAdoption\.observed/);
@@ -152,6 +160,14 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /case_wiki_routing_context_mode/);
   assert.match(source, /case_wiki_routing_context_requested_intent/);
   assert.match(source, /case_wiki_routing_context_routed_intent/);
+  assert.match(source, /case_wiki_runtime_surface_ingress_status/);
+  assert.match(source, /case_wiki_runtime_surface_ingress_context_source/);
+  assert.match(source, /case_wiki_runtime_surface_ingress_ingress_source/);
+  assert.match(source, /case_wiki_runtime_surface_ingress_focus_id/);
+  assert.match(source, /case_wiki_runtime_surface_ingress_blocker/);
+  assert.match(source, /case_wiki_runtime_surface_ingress_next_action/);
+  assert.match(source, /case_wiki_runtime_surface_ingress_route/);
+  assert.match(source, /case_wiki_runtime_surface_ingress_updated_at/);
   assert.match(source, /case_wiki_context_adoption_status/);
   assert.match(source, /case_wiki_context_adoption_validated/);
   assert.match(source, /case_wiki_context_adoption_observed/);
@@ -228,6 +244,14 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /Case-wiki-routing-context mode \(badge evidence\):/);
   assert.match(source, /Case-wiki-routing-context requested intent \(badge evidence\):/);
   assert.match(source, /Case-wiki-routing-context routed intent \(badge evidence\):/);
+  assert.match(source, /Case-wiki-runtime-surface-ingress status \(release evidence\):/);
+  assert.match(source, /Case-wiki-runtime-surface-ingress context source \(release evidence\):/);
+  assert.match(source, /Case-wiki-runtime-surface-ingress ingress source \(release evidence\):/);
+  assert.match(source, /Case-wiki-runtime-surface-ingress focus id \(release evidence\):/);
+  assert.match(source, /Case-wiki-runtime-surface-ingress blocker \(release evidence\):/);
+  assert.match(source, /Case-wiki-runtime-surface-ingress next action \(release evidence\):/);
+  assert.match(source, /Case-wiki-runtime-surface-ingress route \(release evidence\):/);
+  assert.match(source, /Case-wiki-runtime-surface-ingress updated at \(release evidence\):/);
   assert.match(source, /Case-wiki-context-adoption status \(badge evidence\):/);
   assert.match(source, /Case-wiki-context-adoption validated \(badge evidence\):/);
   assert.match(source, /Case-wiki-context-adoption observed \(badge evidence\):/);
@@ -339,6 +363,7 @@ test("workflow docs include retry-control inputs", () => {
     assert.match(content, /artifacts\/release-evidence\/report\.json/);
     assert.match(content, /artifacts\/release-evidence\/report\.md/);
     assert.match(content, /artifacts\/evals\/latest-run\.json/);
+    assert.match(content, /caseWikiRuntimeSurfaceIngress/);
   }
 });
 
