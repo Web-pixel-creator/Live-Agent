@@ -7,6 +7,7 @@ param(
   [string]$OutputManifestMarkdownPath = "artifacts/release-evidence/manifest.md",
   [string]$OutputRuntimeProofJsonPath = "",
   [string]$OutputRuntimeProofMarkdownPath = "",
+  [string]$RuntimeSurfaceSnapshotPath = "artifacts/runtime/runtime-surface-snapshot.json",
   [int]$HostedDirectLiveProofMaxAgeHours = 24
 )
 
@@ -724,6 +725,80 @@ function New-CaseWikiContextAdoptionSnapshot {
   }
 }
 
+function New-CaseWikiRuntimeSurfaceIngressSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return [ordered]@{
+      status        = "unavailable"
+      observed      = $false
+      updatedAt     = $null
+      contextSource = $null
+      ingressSource = $null
+      focusId       = $null
+      blocker       = $null
+      nextAction    = $null
+      route         = $null
+      summary       = "unavailable"
+    }
+  }
+
+  $observed = ($Value.observed -eq $true)
+  $updatedAt = $(if ([string]::IsNullOrWhiteSpace([string]$Value.updatedAt)) { $null } else { [string]$Value.updatedAt })
+  $contextSource = $(if ([string]::IsNullOrWhiteSpace([string]$Value.contextSource)) { $null } else { [string]$Value.contextSource })
+  $ingressSource = $(if ([string]::IsNullOrWhiteSpace([string]$Value.ingressSource)) { $null } else { [string]$Value.ingressSource })
+  $focusId = $(if ([string]::IsNullOrWhiteSpace([string]$Value.focusId)) { $null } else { [string]$Value.focusId })
+  $blocker = $(if ([string]::IsNullOrWhiteSpace([string]$Value.blocker)) { $null } else { [string]$Value.blocker })
+  $nextAction = $(if ([string]::IsNullOrWhiteSpace([string]$Value.nextAction)) { $null } else { [string]$Value.nextAction })
+  $route = $(if ([string]::IsNullOrWhiteSpace([string]$Value.route)) { $null } else { [string]$Value.route })
+
+  $hasAnySignal = $observed -or
+    -not [string]::IsNullOrWhiteSpace($updatedAt) -or
+    -not [string]::IsNullOrWhiteSpace($contextSource) -or
+    -not [string]::IsNullOrWhiteSpace($ingressSource) -or
+    -not [string]::IsNullOrWhiteSpace($focusId) -or
+    -not [string]::IsNullOrWhiteSpace($blocker) -or
+    -not [string]::IsNullOrWhiteSpace($nextAction) -or
+    -not [string]::IsNullOrWhiteSpace($route)
+
+  $status = "unavailable"
+  if ($hasAnySignal) {
+    if ($observed -and -not [string]::IsNullOrWhiteSpace($contextSource) -and -not [string]::IsNullOrWhiteSpace($ingressSource)) {
+      $status = "pass"
+    } else {
+      $status = "fail"
+    }
+  }
+
+  $summary = switch ($status) {
+    "pass" {
+      "context_source=" + $contextSource + "; ingress_source=" + $ingressSource + "; focus_id=" + $(if ([string]::IsNullOrWhiteSpace($focusId)) { "n/a" } else { $focusId }) + "; route=" + $(if ([string]::IsNullOrWhiteSpace($route)) { "n/a" } else { $route })
+    }
+    "fail" {
+      "runtime surface case wiki ingress is incomplete"
+    }
+    default {
+      "unavailable"
+    }
+  }
+
+  return [ordered]@{
+    status        = $status
+    observed      = $observed
+    updatedAt     = $updatedAt
+    contextSource = $contextSource
+    ingressSource = $ingressSource
+    focusId       = $focusId
+    blocker       = $blocker
+    nextAction    = $nextAction
+    route         = $route
+    summary       = $summary
+  }
+}
+
 function New-UiRefHealingSnapshot {
   param(
     [Parameter(Mandatory = $false)]
@@ -1067,6 +1142,7 @@ $resolvedOutputRuntimeProofMarkdownPath = if ([string]::IsNullOrWhiteSpace($Outp
 } else {
   [System.IO.Path]::GetFullPath($OutputRuntimeProofMarkdownPath)
 }
+$resolvedRuntimeSurfaceSnapshotPath = [System.IO.Path]::GetFullPath($RuntimeSurfaceSnapshotPath)
 $reportGeneratedAtUtc = [DateTimeOffset]::UtcNow
 $reportGeneratedAt = $reportGeneratedAtUtc.ToString("o")
 
@@ -1089,6 +1165,8 @@ $resolvedVideoShotListPath = [System.IO.Path]::GetFullPath("artifacts/release-ev
 $resolvedVideoScriptPath = [System.IO.Path]::GetFullPath("artifacts/release-evidence/video-script-4min.md")
 $resolvedScreenChecklistPath = [System.IO.Path]::GetFullPath("artifacts/release-evidence/screen-checklist.md")
 $resolvedBonusArticleDraftPath = [System.IO.Path]::GetFullPath("artifacts/release-evidence/bonus-article-draft.md")
+$runtimeSurfaceSnapshotRead = Read-JsonIfExists -Path $resolvedRuntimeSurfaceSnapshotPath
+$runtimeSurfaceSnapshot = if ($runtimeSurfaceSnapshotRead.present -and $runtimeSurfaceSnapshotRead.parsed) { $runtimeSurfaceSnapshotRead.value } else { $null }
 $gcpRuntimeProofRead = Read-JsonIfExists -Path $resolvedGcpRuntimeProofPath
 $gcpRuntimeProof = if ($gcpRuntimeProofRead.present -and $gcpRuntimeProofRead.parsed) { $gcpRuntimeProofRead.value } else { $null }
 $submissionRefreshStatusRead = Read-JsonIfExists -Path $resolvedSubmissionRefreshStatusPath
@@ -1123,10 +1201,14 @@ $report = [ordered]@{
   schemaVersion = "1.0"
   generatedAt   = $reportGeneratedAt
   source        = [ordered]@{
-    badgeDetailsPath    = $resolvedBadgeDetailsPath
-    badgeDetailsPresent = $false
-    badgeDetailsParsed  = $false
-    parseError          = $null
+    badgeDetailsPath                  = $resolvedBadgeDetailsPath
+    badgeDetailsPresent               = $false
+    badgeDetailsParsed                = $false
+    parseError                        = $null
+    runtimeSurfaceSnapshotPath        = $resolvedRuntimeSurfaceSnapshotPath
+    runtimeSurfaceSnapshotPresent     = $runtimeSurfaceSnapshotRead.present
+    runtimeSurfaceSnapshotParsed      = $runtimeSurfaceSnapshotRead.parsed
+    runtimeSurfaceSnapshotParseError  = $runtimeSurfaceSnapshotRead.parseError
   }
   statuses      = [ordered]@{
     turnTruncationStatus      = "unavailable"
@@ -1144,6 +1226,7 @@ $report = [ordered]@{
     caseWikiEvidenceSignatureStatus = "unavailable"
     caseWikiComplianceStatus = "unavailable"
     caseWikiRoutingContextStatus = "unavailable"
+    caseWikiRuntimeSurfaceIngressStatus = "unavailable"
     caseWikiGatewayHydrationStatus = "unavailable"
     caseWikiContextAdoptionStatus = "unavailable"
     uiRefHealingStatus       = "unavailable"
@@ -1285,6 +1368,18 @@ $report = [ordered]@{
     mode            = $null
     requestedIntent = $null
     routedIntent    = $null
+  }
+  caseWikiRuntimeSurfaceIngress = [ordered]@{
+    status        = "unavailable"
+    observed      = $false
+    updatedAt     = $null
+    contextSource = $null
+    ingressSource = $null
+    focusId       = $null
+    blocker       = $null
+    nextAction    = $null
+    route         = $null
+    summary       = "unavailable"
   }
   caseWikiGatewayHydration = [ordered]@{
     status                    = "unavailable"
@@ -1548,6 +1643,54 @@ if (Test-Path $resolvedBadgeDetailsPath) {
   }
 }
 
+$runtimeSurfaceCaseWikiIngressValue = $null
+if ($null -ne $runtimeSurfaceSnapshot -and $null -ne $runtimeSurfaceSnapshot.readiness) {
+  $runtimeSurfaceReadinessSummary = if ($null -ne $runtimeSurfaceSnapshot.readiness.summary) {
+    $runtimeSurfaceSnapshot.readiness.summary
+  } else {
+    $null
+  }
+  $runtimeSurfaceWorkflowSummary = if ($null -ne $runtimeSurfaceReadinessSummary -and $null -ne $runtimeSurfaceReadinessSummary.workflow) {
+    $runtimeSurfaceReadinessSummary.workflow
+  } else {
+    $null
+  }
+  if ($null -ne $runtimeSurfaceWorkflowSummary -and $null -ne $runtimeSurfaceWorkflowSummary.caseWikiIngress) {
+    $runtimeSurfaceCaseWikiIngressValue = $runtimeSurfaceWorkflowSummary.caseWikiIngress
+  }
+}
+
+if ($runtimeSurfaceSnapshotRead.present -and -not $runtimeSurfaceSnapshotRead.parsed) {
+  $report.caseWikiRuntimeSurfaceIngress = [ordered]@{
+    status        = "fail"
+    observed      = $false
+    updatedAt     = $null
+    contextSource = $null
+    ingressSource = $null
+    focusId       = $null
+    blocker       = $null
+    nextAction    = $null
+    route         = $null
+    summary       = "runtime surface snapshot parse failed"
+  }
+} elseif ($runtimeSurfaceSnapshotRead.present -and $runtimeSurfaceSnapshotRead.parsed -and $null -eq $runtimeSurfaceCaseWikiIngressValue) {
+  $report.caseWikiRuntimeSurfaceIngress = [ordered]@{
+    status        = "fail"
+    observed      = $false
+    updatedAt     = $null
+    contextSource = $null
+    ingressSource = $null
+    focusId       = $null
+    blocker       = $null
+    nextAction    = $null
+    route         = $null
+    summary       = "runtime surface snapshot is missing readiness.summary.workflow.caseWikiIngress"
+  }
+} else {
+  $report.caseWikiRuntimeSurfaceIngress = New-CaseWikiRuntimeSurfaceIngressSnapshot -Value $runtimeSurfaceCaseWikiIngressValue
+}
+$report.statuses.caseWikiRuntimeSurfaceIngressStatus = Get-StatusValueOrDefault -Value $report.caseWikiRuntimeSurfaceIngress.status -DefaultValue "unavailable"
+
 $report.caseWikiEvidenceSignature = Resolve-CaseWikiEvidenceSignatureSnapshot `
   -BadgeSnapshot $report.caseWikiEvidenceSignature `
   -HostedDirectLiveProofSnapshot $report.hostedDirectLiveProof `
@@ -1668,6 +1811,7 @@ $runtimeProof = [ordered]@{
   readyForOperatorDemo = ($runtimeProofOverallStatus -eq "pass")
   source             = [ordered]@{
     badgeDetailsPath               = $resolvedBadgeDetailsPath
+    runtimeSurfaceSnapshotPath     = $resolvedRuntimeSurfaceSnapshotPath
     releaseEvidenceReportJsonPath  = $resolvedOutputJsonPath
     releaseEvidenceReportMarkdownPath = $resolvedOutputMarkdownPath
     releaseEvidenceManifestJsonPath = $resolvedOutputManifestJsonPath
@@ -1721,6 +1865,11 @@ $runtimeProof = [ordered]@{
       routingStatus        = $report.caseWikiRoutingContext.status
       contextSource        = $report.caseWikiRoutingContext.contextSource
       routingIngressSource = $report.caseWikiRoutingContext.ingressSource
+      runtimeSurfaceIngressStatus = $report.caseWikiRuntimeSurfaceIngress.status
+      runtimeSurfaceContextSource = $report.caseWikiRuntimeSurfaceIngress.contextSource
+      runtimeSurfaceIngressSource = $report.caseWikiRuntimeSurfaceIngress.ingressSource
+      runtimeSurfaceFocusId = $report.caseWikiRuntimeSurfaceIngress.focusId
+      runtimeSurfaceRoute   = $report.caseWikiRuntimeSurfaceIngress.route
       focusId              = $report.caseWikiRoutingContext.focusId
       blocker              = $report.caseWikiRoutingContext.blocker
       nextAction           = $report.caseWikiRoutingContext.nextAction
@@ -1728,7 +1877,7 @@ $runtimeProof = [ordered]@{
       gatewayHydrationIngressSource = $report.caseWikiGatewayHydration.ingressSource
       contextAdoptionStatus = $report.caseWikiContextAdoption.status
       caseWikiRate         = $report.caseWikiContextAdoption.caseWikiRate
-      summary              = ("signature=" + $report.caseWikiEvidenceSignature.status + "; compliance=" + $report.caseWikiCompliance.status + "; template=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.templateId)) { "n/a" } else { [string]$report.caseWikiCompliance.templateId }) + "; context_source=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.contextSource)) { "n/a" } else { [string]$report.caseWikiRoutingContext.contextSource }) + "; routing_ingress=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.ingressSource)) { "n/a" } else { [string]$report.caseWikiRoutingContext.ingressSource }) + "; gateway_ingress=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.ingressSource)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.ingressSource }) + "; blocker=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.blocker)) { "n/a" } else { [string]$report.caseWikiRoutingContext.blocker }) + "; next_action=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.nextAction)) { "n/a" } else { [string]$report.caseWikiRoutingContext.nextAction }) + "; case_wiki_rate=" + $(if ($null -eq $report.caseWikiContextAdoption.caseWikiRate) { "n/a" } else { [string]$report.caseWikiContextAdoption.caseWikiRate }))
+      summary              = ("signature=" + $report.caseWikiEvidenceSignature.status + "; compliance=" + $report.caseWikiCompliance.status + "; template=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.templateId)) { "n/a" } else { [string]$report.caseWikiCompliance.templateId }) + "; context_source=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.contextSource)) { "n/a" } else { [string]$report.caseWikiRoutingContext.contextSource }) + "; routing_ingress=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.ingressSource)) { "n/a" } else { [string]$report.caseWikiRoutingContext.ingressSource }) + "; runtime_surface_ingress=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRuntimeSurfaceIngress.ingressSource)) { "n/a" } else { [string]$report.caseWikiRuntimeSurfaceIngress.ingressSource }) + "; gateway_ingress=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.ingressSource)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.ingressSource }) + "; blocker=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.blocker)) { "n/a" } else { [string]$report.caseWikiRoutingContext.blocker }) + "; next_action=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.nextAction)) { "n/a" } else { [string]$report.caseWikiRoutingContext.nextAction }) + "; case_wiki_rate=" + $(if ($null -eq $report.caseWikiContextAdoption.caseWikiRate) { "n/a" } else { [string]$report.caseWikiContextAdoption.caseWikiRate }))
     }
     navigator = [ordered]@{
       status                    = $runtimeProofNavigatorStatus
@@ -1762,6 +1911,7 @@ $runtimeProofMarkdown = @(
   "- Overall status: $($runtimeProof.status)",
   "- Ready for operator demo: $($runtimeProof.readyForOperatorDemo)",
   "- Badge details path: $($runtimeProof.source.badgeDetailsPath)",
+  "- Runtime surface snapshot path: $($runtimeProof.source.runtimeSurfaceSnapshotPath)",
   "- Release evidence report JSON: $($runtimeProof.source.releaseEvidenceReportJsonPath)",
   "",
   "| Lane | Status | Summary |",
@@ -1801,6 +1951,11 @@ $runtimeProofMarkdown = @(
 "- contextAdoptionStatus: $($runtimeProof.lanes.caseWiki.contextAdoptionStatus)",
 "- contextSource: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.contextSource)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.contextSource })",
 "- routingIngressSource: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.routingIngressSource)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.routingIngressSource })",
+"- runtimeSurfaceIngressStatus: $($runtimeProof.lanes.caseWiki.runtimeSurfaceIngressStatus)",
+"- runtimeSurfaceContextSource: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.runtimeSurfaceContextSource)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.runtimeSurfaceContextSource })",
+"- runtimeSurfaceIngressSource: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.runtimeSurfaceIngressSource)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.runtimeSurfaceIngressSource })",
+"- runtimeSurfaceFocusId: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.runtimeSurfaceFocusId)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.runtimeSurfaceFocusId })",
+"- runtimeSurfaceRoute: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.runtimeSurfaceRoute)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.runtimeSurfaceRoute })",
 "- gatewayHydrationIngressSource: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.gatewayHydrationIngressSource)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.gatewayHydrationIngressSource })",
 "- focusId: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.focusId)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.focusId })",
   "- blocker: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.blocker)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.blocker })",
@@ -1855,6 +2010,10 @@ $markdown = @(
   "- Badge details present: $($report.source.badgeDetailsPresent)",
   "- Badge details parsed: $($report.source.badgeDetailsParsed)",
   $(if (-not [string]::IsNullOrWhiteSpace([string]$report.source.parseError)) { "- Parse error: $($report.source.parseError)" } else { "- Parse error: none" }),
+  "- Runtime surface snapshot path: $($report.source.runtimeSurfaceSnapshotPath)",
+  "- Runtime surface snapshot present: $($report.source.runtimeSurfaceSnapshotPresent)",
+  "- Runtime surface snapshot parsed: $($report.source.runtimeSurfaceSnapshotParsed)",
+  $(if (-not [string]::IsNullOrWhiteSpace([string]$report.source.runtimeSurfaceSnapshotParseError)) { "- Runtime surface snapshot parse error: $($report.source.runtimeSurfaceSnapshotParseError)" } else { "- Runtime surface snapshot parse error: none" }),
   "",
   "| Evidence Lane | Status |",
   "|---|---|",
@@ -1872,6 +2031,7 @@ $markdown = @(
   "| caseWikiEvidenceSignature | $($report.statuses.caseWikiEvidenceSignatureStatus) |",
   "| caseWikiCompliance | $($report.statuses.caseWikiComplianceStatus) |",
   "| caseWikiRoutingContext | $($report.statuses.caseWikiRoutingContextStatus) |",
+  "| caseWikiRuntimeSurfaceIngress | $($report.statuses.caseWikiRuntimeSurfaceIngressStatus) |",
   "| caseWikiGatewayHydration | $($report.statuses.caseWikiGatewayHydrationStatus) |",
   "| caseWikiContextAdoption | $($report.statuses.caseWikiContextAdoptionStatus) |",
   "| uiRefHealing | $($report.statuses.uiRefHealingStatus) |",
@@ -2013,6 +2173,19 @@ $markdown = @(
   "- requestedIntent: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.requestedIntent)) { "n/a" } else { [string]$report.caseWikiRoutingContext.requestedIntent })",
   "- routedIntent: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.routedIntent)) { "n/a" } else { [string]$report.caseWikiRoutingContext.routedIntent })",
   "",
+  "## Case Wiki Runtime Surface Ingress Snapshot",
+  "",
+  "- status: $($report.caseWikiRuntimeSurfaceIngress.status)",
+  "- observed: $($report.caseWikiRuntimeSurfaceIngress.observed)",
+  "- updatedAt: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRuntimeSurfaceIngress.updatedAt)) { "n/a" } else { [string]$report.caseWikiRuntimeSurfaceIngress.updatedAt })",
+  "- contextSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRuntimeSurfaceIngress.contextSource)) { "n/a" } else { [string]$report.caseWikiRuntimeSurfaceIngress.contextSource })",
+  "- ingressSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRuntimeSurfaceIngress.ingressSource)) { "n/a" } else { [string]$report.caseWikiRuntimeSurfaceIngress.ingressSource })",
+  "- focusId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRuntimeSurfaceIngress.focusId)) { "n/a" } else { [string]$report.caseWikiRuntimeSurfaceIngress.focusId })",
+  "- blocker: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRuntimeSurfaceIngress.blocker)) { "n/a" } else { [string]$report.caseWikiRuntimeSurfaceIngress.blocker })",
+  "- nextAction: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRuntimeSurfaceIngress.nextAction)) { "n/a" } else { [string]$report.caseWikiRuntimeSurfaceIngress.nextAction })",
+  "- route: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRuntimeSurfaceIngress.route)) { "n/a" } else { [string]$report.caseWikiRuntimeSurfaceIngress.route })",
+  "- summary: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRuntimeSurfaceIngress.summary)) { "n/a" } else { [string]$report.caseWikiRuntimeSurfaceIngress.summary })",
+  "",
   "## Case Wiki Gateway Hydration Snapshot",
   "",
   "- status: $($report.caseWikiGatewayHydration.status)",
@@ -2144,6 +2317,7 @@ $artifactEntries = @(
   (New-ArtifactEntry -Id "demo.badge" -Category "demo" -Label "Demo badge JSON" -Path $resolvedDemoBadgePath -Required $true -Present (Test-Path $resolvedDemoBadgePath)),
   (New-ArtifactEntry -Id "demo.badgeDetails" -Category "demo" -Label "Demo badge-details JSON" -Path $resolvedBadgeDetailsPath -Required $true -Present (Test-Path $resolvedBadgeDetailsPath)),
   (New-ArtifactEntry -Id "demo.navigatorVisaFlows" -Category "demo" -Label "Demo navigator visa flows JSON" -Path $resolvedNavigatorVisaFlowsPath -Required $false -Present (Test-Path $resolvedNavigatorVisaFlowsPath)),
+  (New-ArtifactEntry -Id "runtime.runtimeSurfaceSnapshot" -Category "runtime" -Label "Runtime surface snapshot JSON" -Path $resolvedRuntimeSurfaceSnapshotPath -Required $false -Present (Test-Path $resolvedRuntimeSurfaceSnapshotPath)),
   (New-ArtifactEntry -Id "perf.summary" -Category "perf" -Label "Perf summary JSON" -Path $resolvedPerfSummaryPath -Required $false -Present (Test-Path $resolvedPerfSummaryPath)),
   (New-ArtifactEntry -Id "perf.policy" -Category "perf" -Label "Perf policy-check JSON" -Path $resolvedPerfPolicyPath -Required $false -Present (Test-Path $resolvedPerfPolicyPath)),
   (New-ArtifactEntry -Id "deploy.directLiveProofJson" -Category "deploy" -Label "Hosted direct-live proof JSON" -Path $resolvedDirectLiveProofJsonPath -Required $false -Present (Test-Path $resolvedDirectLiveProofJsonPath)),
@@ -2166,6 +2340,7 @@ $manifest = [ordered]@{
   generatedAt   = [datetime]::UtcNow.ToString("o")
   source        = [ordered]@{
     badgeDetailsPath          = $resolvedBadgeDetailsPath
+    runtimeSurfaceSnapshotPath = $resolvedRuntimeSurfaceSnapshotPath
     reportJsonPath            = $resolvedOutputJsonPath
     reportMarkdownPath        = $resolvedOutputMarkdownPath
     runtimeProofReportJsonPath = $resolvedOutputRuntimeProofJsonPath
@@ -2259,6 +2434,18 @@ $manifest = [ordered]@{
     mode            = $report.caseWikiRoutingContext.mode
     requestedIntent = $report.caseWikiRoutingContext.requestedIntent
     routedIntent    = $report.caseWikiRoutingContext.routedIntent
+  }
+  caseWikiRuntimeSurfaceIngress = [ordered]@{
+    status        = $report.caseWikiRuntimeSurfaceIngress.status
+    observed      = $report.caseWikiRuntimeSurfaceIngress.observed
+    updatedAt     = $report.caseWikiRuntimeSurfaceIngress.updatedAt
+    contextSource = $report.caseWikiRuntimeSurfaceIngress.contextSource
+    ingressSource = $report.caseWikiRuntimeSurfaceIngress.ingressSource
+    focusId       = $report.caseWikiRuntimeSurfaceIngress.focusId
+    blocker       = $report.caseWikiRuntimeSurfaceIngress.blocker
+    nextAction    = $report.caseWikiRuntimeSurfaceIngress.nextAction
+    route         = $report.caseWikiRuntimeSurfaceIngress.route
+    summary       = $report.caseWikiRuntimeSurfaceIngress.summary
   }
   caseWikiGatewayHydration = [ordered]@{
     status                    = $report.caseWikiGatewayHydration.status
@@ -2410,6 +2597,7 @@ $manifestMarkdown = @(
   "| caseWikiEvidenceSignature | $($report.statuses.caseWikiEvidenceSignatureStatus) |",
   "| caseWikiCompliance | $($report.statuses.caseWikiComplianceStatus) |",
   "| caseWikiRoutingContext | $($report.statuses.caseWikiRoutingContextStatus) |",
+  "| caseWikiRuntimeSurfaceIngress | $($report.statuses.caseWikiRuntimeSurfaceIngressStatus) |",
   "| caseWikiGatewayHydration | $($report.statuses.caseWikiGatewayHydrationStatus) |",
   "| caseWikiContextAdoption | $($report.statuses.caseWikiContextAdoptionStatus) |",
   "| uiRefHealing | $($report.statuses.uiRefHealingStatus) |",
@@ -2515,6 +2703,21 @@ $manifestMarkdown = @(
   "| mode | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.mode)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.mode }) |",
   "| requestedIntent | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.requestedIntent)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.requestedIntent }) |",
   "| routedIntent | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.routedIntent)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.routedIntent }) |",
+  "",
+  "## Case Wiki Runtime Surface Ingress",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.caseWikiRuntimeSurfaceIngress.status) |",
+  "| observed | $($manifest.caseWikiRuntimeSurfaceIngress.observed) |",
+  "| updatedAt | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRuntimeSurfaceIngress.updatedAt)) { "n/a" } else { [string]$manifest.caseWikiRuntimeSurfaceIngress.updatedAt }) |",
+  "| contextSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRuntimeSurfaceIngress.contextSource)) { "n/a" } else { [string]$manifest.caseWikiRuntimeSurfaceIngress.contextSource }) |",
+  "| ingressSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRuntimeSurfaceIngress.ingressSource)) { "n/a" } else { [string]$manifest.caseWikiRuntimeSurfaceIngress.ingressSource }) |",
+  "| focusId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRuntimeSurfaceIngress.focusId)) { "n/a" } else { [string]$manifest.caseWikiRuntimeSurfaceIngress.focusId }) |",
+  "| blocker | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRuntimeSurfaceIngress.blocker)) { "n/a" } else { [string]$manifest.caseWikiRuntimeSurfaceIngress.blocker }) |",
+  "| nextAction | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRuntimeSurfaceIngress.nextAction)) { "n/a" } else { [string]$manifest.caseWikiRuntimeSurfaceIngress.nextAction }) |",
+  "| route | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRuntimeSurfaceIngress.route)) { "n/a" } else { [string]$manifest.caseWikiRuntimeSurfaceIngress.route }) |",
+  "| summary | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRuntimeSurfaceIngress.summary)) { "n/a" } else { [string]$manifest.caseWikiRuntimeSurfaceIngress.summary }) |",
   "",
   "## Case Wiki Gateway Hydration",
   "",

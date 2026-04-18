@@ -966,6 +966,263 @@ test(
 );
 
 test(
+  "release evidence report surfaces case wiki runtime-surface ingress in report manifest and runtime proof",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const tempRoot = mkdtempSync(join(tmpdir(), "release-evidence-report-runtime-surface-ingress-"));
+    const badgeDetailsPath = join(tempRoot, "artifacts", "demo-e2e", "badge-details.json");
+    const runtimeSurfaceSnapshotPath = join(
+      tempRoot,
+      "artifacts",
+      "runtime",
+      "runtime-surface-snapshot.json",
+    );
+    const outputJsonPath = join(tempRoot, "artifacts", "release-evidence", "report.json");
+    const outputMarkdownPath = join(tempRoot, "artifacts", "release-evidence", "report.md");
+    const outputRuntimeProofJsonPath = join(
+      tempRoot,
+      "artifacts",
+      "release-evidence",
+      "runtime-proof-report.json",
+    );
+    const outputRuntimeProofMarkdownPath = join(
+      tempRoot,
+      "artifacts",
+      "release-evidence",
+      "runtime-proof-report.md",
+    );
+    const outputManifestJsonPath = join(tempRoot, "artifacts", "release-evidence", "manifest.json");
+    const outputManifestMarkdownPath = join(
+      tempRoot,
+      "artifacts",
+      "release-evidence",
+      "manifest.md",
+    );
+
+    writeJson(badgeDetailsPath, {
+      evidence: {
+        caseWikiEvidenceSignature: {
+          status: "pass",
+          validated: true,
+          totalArtifacts: 1,
+          signedArtifacts: 1,
+          unsignedArtifacts: 0,
+          signatureStatus: "signed",
+          signerId: "api-backend",
+          signedAt: "2026-04-18T10:00:00.000Z",
+          signedAtIsIso: true,
+          signaturePresent: true,
+          caseId: "case-runtime-surface-123",
+          sessionId: "session-runtime-surface-123",
+          nextAction: "Request passport scan",
+          sourceRefsCount: 1,
+        },
+        caseWikiCompliance: createPassingCaseWikiComplianceEvidence("signed"),
+        caseWikiRoutingContext: {
+          status: "pass",
+          validated: true,
+          observed: true,
+          contextSource: "case_wiki",
+          ingressSource: "preserved_input_case_wiki",
+          focusId: "question:passport-scan",
+          blocker: "Need passport scan",
+          nextAction: "Request passport scan",
+          route: "live-agent",
+          mode: "deterministic",
+          requestedIntent: "conversation",
+          routedIntent: "conversation",
+        },
+        caseWikiGatewayHydration: {
+          status: "pass",
+          validated: true,
+          observed: true,
+          sessionId: "session-runtime-surface-123",
+          noteEventId: "event-case-wiki-note-runtime-surface-123",
+          questionId: "question:operator-note:event-case-wiki-note-runtime-surface-123",
+          questionMatched: true,
+          noteSourceRefSeen: true,
+          questionSuggestedNextStep: "Request passport scan",
+          contextSource: "case_wiki",
+          ingressSource: "gateway_hydrated_case_wiki",
+          focusId: "question:passport-scan",
+          blocker: "Need passport scan",
+          nextAction: "Request passport scan",
+          route: "live-agent",
+          mode: "assistive_override",
+          requestedIntent: "conversation",
+          routedIntent: "conversation",
+        },
+        caseWikiContextAdoption: {
+          status: "pass",
+          validated: true,
+          observed: true,
+          observedCount: 8,
+          caseWikiObservedCount: 8,
+          inputOnlyObservedCount: 0,
+          unknownObservedCount: 0,
+          caseWikiRate: 1,
+        },
+      },
+    });
+
+    writeJson(runtimeSurfaceSnapshotPath, {
+      source: "repo_owned_runtime_surface_snapshot",
+      readiness: {
+        source: "repo_owned_runtime_surface_readiness",
+        summary: {
+          workflow: {
+            caseWikiIngress: {
+              observed: true,
+              updatedAt: "2026-04-18T10:05:00.000Z",
+              contextSource: "case_wiki",
+              ingressSource: "gateway_hydrated_case_wiki",
+              focusId: "question:passport-scan",
+              blocker: "Need passport scan",
+              nextAction: "Request passport scan",
+              route: "live-agent",
+            },
+          },
+        },
+      },
+    });
+
+    const result = spawnSync(
+      powershellBin!,
+      [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        releaseEvidenceReportScriptPath,
+        "-BadgeDetailsPath",
+        badgeDetailsPath,
+        "-OutputJsonPath",
+        outputJsonPath,
+        "-OutputMarkdownPath",
+        outputMarkdownPath,
+        "-OutputManifestJsonPath",
+        outputManifestJsonPath,
+        "-OutputManifestMarkdownPath",
+        outputManifestMarkdownPath,
+      ],
+      {
+        cwd: tempRoot,
+        encoding: "utf8",
+      },
+    );
+
+    assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
+
+    const report = JSON.parse(readFileSync(outputJsonPath, "utf8")) as {
+      source: {
+        runtimeSurfaceSnapshotPath?: string;
+        runtimeSurfaceSnapshotPresent?: boolean;
+        runtimeSurfaceSnapshotParsed?: boolean;
+      };
+      statuses: {
+        caseWikiRuntimeSurfaceIngressStatus?: string;
+      };
+      caseWikiRuntimeSurfaceIngress: {
+        status?: string;
+        observed?: boolean;
+        updatedAt?: string | null;
+        contextSource?: string | null;
+        ingressSource?: string | null;
+        focusId?: string | null;
+        blocker?: string | null;
+        nextAction?: string | null;
+        route?: string | null;
+        summary?: string | null;
+      };
+    };
+    assert.equal(report.source.runtimeSurfaceSnapshotPath, runtimeSurfaceSnapshotPath);
+    assert.equal(report.source.runtimeSurfaceSnapshotPresent, true);
+    assert.equal(report.source.runtimeSurfaceSnapshotParsed, true);
+    assert.equal(report.statuses.caseWikiRuntimeSurfaceIngressStatus, "pass");
+    assert.equal(report.caseWikiRuntimeSurfaceIngress.status, "pass");
+    assert.equal(report.caseWikiRuntimeSurfaceIngress.observed, true);
+    assert.equal(report.caseWikiRuntimeSurfaceIngress.updatedAt, "2026-04-18T10:05:00.000Z");
+    assert.equal(report.caseWikiRuntimeSurfaceIngress.contextSource, "case_wiki");
+    assert.equal(report.caseWikiRuntimeSurfaceIngress.ingressSource, "gateway_hydrated_case_wiki");
+    assert.equal(report.caseWikiRuntimeSurfaceIngress.focusId, "question:passport-scan");
+    assert.equal(report.caseWikiRuntimeSurfaceIngress.blocker, "Need passport scan");
+    assert.equal(report.caseWikiRuntimeSurfaceIngress.nextAction, "Request passport scan");
+    assert.equal(report.caseWikiRuntimeSurfaceIngress.route, "live-agent");
+    assert.match(
+      report.caseWikiRuntimeSurfaceIngress.summary ?? "",
+      /ingress_source=gateway_hydrated_case_wiki/,
+    );
+
+    const manifest = JSON.parse(readFileSync(outputManifestJsonPath, "utf8")) as {
+      source: {
+        runtimeSurfaceSnapshotPath?: string;
+      };
+      criticalEvidenceStatuses: {
+        caseWikiRuntimeSurfaceIngressStatus?: string;
+      };
+      caseWikiRuntimeSurfaceIngress: {
+        status?: string;
+        observed?: boolean;
+        updatedAt?: string | null;
+        contextSource?: string | null;
+        ingressSource?: string | null;
+        focusId?: string | null;
+        route?: string | null;
+        summary?: string | null;
+      };
+    };
+    assert.equal(manifest.source.runtimeSurfaceSnapshotPath, runtimeSurfaceSnapshotPath);
+    assert.equal(manifest.criticalEvidenceStatuses.caseWikiRuntimeSurfaceIngressStatus, "pass");
+    assert.equal(manifest.caseWikiRuntimeSurfaceIngress.status, "pass");
+    assert.equal(manifest.caseWikiRuntimeSurfaceIngress.observed, true);
+    assert.equal(manifest.caseWikiRuntimeSurfaceIngress.updatedAt, "2026-04-18T10:05:00.000Z");
+    assert.equal(manifest.caseWikiRuntimeSurfaceIngress.contextSource, "case_wiki");
+    assert.equal(manifest.caseWikiRuntimeSurfaceIngress.ingressSource, "gateway_hydrated_case_wiki");
+    assert.equal(manifest.caseWikiRuntimeSurfaceIngress.focusId, "question:passport-scan");
+    assert.equal(manifest.caseWikiRuntimeSurfaceIngress.route, "live-agent");
+    assert.match(manifest.caseWikiRuntimeSurfaceIngress.summary ?? "", /context_source=case_wiki/);
+
+    const runtimeProof = JSON.parse(readFileSync(outputRuntimeProofJsonPath, "utf8")) as {
+      source: {
+        runtimeSurfaceSnapshotPath?: string;
+      };
+      lanes: {
+        caseWiki?: {
+          runtimeSurfaceIngressStatus?: string;
+          runtimeSurfaceContextSource?: string | null;
+          runtimeSurfaceIngressSource?: string | null;
+          runtimeSurfaceFocusId?: string | null;
+          runtimeSurfaceRoute?: string | null;
+          summary?: string | null;
+        };
+      };
+    };
+    assert.equal(runtimeProof.source.runtimeSurfaceSnapshotPath, runtimeSurfaceSnapshotPath);
+    assert.equal(runtimeProof.lanes.caseWiki?.runtimeSurfaceIngressStatus, "pass");
+    assert.equal(runtimeProof.lanes.caseWiki?.runtimeSurfaceContextSource, "case_wiki");
+    assert.equal(runtimeProof.lanes.caseWiki?.runtimeSurfaceIngressSource, "gateway_hydrated_case_wiki");
+    assert.equal(runtimeProof.lanes.caseWiki?.runtimeSurfaceFocusId, "question:passport-scan");
+    assert.equal(runtimeProof.lanes.caseWiki?.runtimeSurfaceRoute, "live-agent");
+    assert.match(runtimeProof.lanes.caseWiki?.summary ?? "", /runtime_surface_ingress=gateway_hydrated_case_wiki/);
+
+    const reportMarkdown = readFileSync(outputMarkdownPath, "utf8");
+    assert.match(reportMarkdown, /\| caseWikiRuntimeSurfaceIngress \| pass \|/);
+    assert.match(reportMarkdown, /## Case Wiki Runtime Surface Ingress Snapshot/);
+    assert.match(reportMarkdown, /- ingressSource: gateway_hydrated_case_wiki/);
+
+    const runtimeProofMarkdown = readFileSync(outputRuntimeProofMarkdownPath, "utf8");
+    assert.match(runtimeProofMarkdown, /- Runtime surface snapshot path: /);
+    assert.match(runtimeProofMarkdown, /- runtimeSurfaceIngressStatus: pass/);
+    assert.match(runtimeProofMarkdown, /- runtimeSurfaceIngressSource: gateway_hydrated_case_wiki/);
+
+    const manifestMarkdown = readFileSync(outputManifestMarkdownPath, "utf8");
+    assert.match(manifestMarkdown, /\| caseWikiRuntimeSurfaceIngress \| pass \|/);
+    assert.match(manifestMarkdown, /## Case Wiki Runtime Surface Ingress/);
+    assert.match(manifestMarkdown, /\| ingressSource \| gateway_hydrated_case_wiki \|/);
+  },
+);
+
+test(
   "release evidence report fails stale hosted direct-live proof and falls back to local case wiki signature evidence",
   { skip: skipIfNoPowerShell },
   () => {

@@ -14,6 +14,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /OutputManifestMarkdownPath/);
   assert.match(source, /OutputRuntimeProofJsonPath/);
   assert.match(source, /OutputRuntimeProofMarkdownPath/);
+  assert.match(source, /RuntimeSurfaceSnapshotPath/);
   assert.match(source, /HostedDirectLiveProofMaxAgeHours/);
   assert.match(source, /artifacts\/release-evidence\/report\.json/);
   assert.match(source, /artifacts\/release-evidence\/report\.md/);
@@ -35,6 +36,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /caseWikiEvidenceSignatureStatus/);
   assert.match(source, /caseWikiComplianceStatus/);
   assert.match(source, /caseWikiRoutingContextStatus/);
+  assert.match(source, /caseWikiRuntimeSurfaceIngressStatus/);
   assert.match(source, /browserWorkerRecoveryStatus/);
   assert.match(source, /navigatorVisaFlowsStatus/);
   assert.match(source, /providerUsageStatus/);
@@ -45,6 +47,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /caseWikiEvidenceSignature = \[ordered\]@/);
   assert.match(source, /caseWikiCompliance = \[ordered\]@/);
   assert.match(source, /caseWikiRoutingContext = \[ordered\]@/);
+  assert.match(source, /caseWikiRuntimeSurfaceIngress = \[ordered\]@/);
   assert.match(source, /navigatorVisaFlows = \[ordered\]@/);
   assert.match(source, /providerUsage = \[ordered\]@/);
   assert.match(source, /summaryStatus\s*=\s*"unavailable"/);
@@ -63,6 +66,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /New-HostedCaseWikiEvidenceSignatureValue/);
   assert.match(source, /Resolve-CaseWikiEvidenceSignatureSnapshot/);
   assert.match(source, /New-CaseWikiRoutingContextSnapshot/);
+  assert.match(source, /New-CaseWikiRuntimeSurfaceIngressSnapshot/);
   assert.match(source, /New-BrowserWorkerRecoverySnapshot/);
   assert.match(source, /New-NavigatorVisaFlowsSnapshot/);
   assert.match(source, /New-ProviderUsagePrimaryEntry/);
@@ -91,6 +95,8 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /caseWikiExpectedSignatureSource/);
   assert.match(source, /Case Wiki Evidence Signature Snapshot/);
   assert.match(source, /Case Wiki Routing Context Snapshot/);
+  assert.match(source, /Case Wiki Runtime Surface Ingress Snapshot/);
+  assert.match(source, /Case Wiki Runtime Surface Ingress/);
   assert.match(source, /Browser Worker Recovery Snapshot/);
   assert.match(source, /Navigator Visa Flows Snapshot/);
   assert.match(source, /Secondary Provider Usage/);
@@ -107,6 +113,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /deploy\.directLiveProofMarkdown/);
   assert.match(source, /deploy\.directLiveProofScreenshot/);
   assert.match(source, /demo\.navigatorVisaFlows/);
+  assert.match(source, /runtime\.runtimeSurfaceSnapshot/);
   assert.match(source, /artifactRevalidation\.sourceRunManifest/);
   assert.match(source, /artifacts\/deploy\/direct-live-proof\.json/);
   assert.match(source, /artifacts\/deploy\/direct-live-proof\.md/);
@@ -128,6 +135,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /\$report\.statuses\.hostedDirectLiveProofStatus = Get-StatusValueOrDefault/);
   assert.match(source, /\$report\.statuses\.caseWikiEvidenceSignatureStatus = Get-StatusValueOrDefault/);
   assert.match(source, /\$report\.statuses\.caseWikiComplianceStatus = Get-StatusValueOrDefault/);
+  assert.match(source, /\$report\.statuses\.caseWikiRuntimeSurfaceIngressStatus = Get-StatusValueOrDefault/);
   assert.match(source, /\$report\.statuses\.navigatorVisaFlowsStatus = Get-StatusValueOrDefault/);
   assert.match(source, /hosted_direct_live_proof/);
   assert.match(source, /badge_details/);
