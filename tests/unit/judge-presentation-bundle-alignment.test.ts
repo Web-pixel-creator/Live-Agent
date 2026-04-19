@@ -82,6 +82,7 @@ test("judge presentation bundle script is wired across package scripts and docs"
     "railwayDeploySummary",
     "repoPublishSummary",
     "caseWikiRuntimeSurfaceIngress",
+    "Railway deploy case wiki ingress",
     "Repo publish case wiki ingress",
     "sanitizeDeployProvenanceRows",
     "buildDeployProvenanceRows",

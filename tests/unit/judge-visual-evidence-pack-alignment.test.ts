@@ -95,6 +95,7 @@ test("judge visual evidence pack is wired across package scripts, docs, and runb
     "railwayDeploySummary",
     "repoPublishSummary",
     "caseWikiRuntimeSurfaceIngress",
+    "Railway deploy case wiki ingress",
     "Repo publish case wiki ingress",
     "buildDeployProvenanceRows",
     "Deploy / Publish Provenance",

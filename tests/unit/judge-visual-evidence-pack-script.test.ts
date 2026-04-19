@@ -166,6 +166,17 @@ test("judge visual evidence pack strict mode passes when required captures and b
         status: "success",
         deploymentId: "railway-deploy-123",
         effectivePublicUrl: "https://live-agent.example.test",
+        caseWikiRuntimeSurfaceIngress: {
+          status: "pass",
+          observed: true,
+          contextSource: "case_wiki",
+          ingressSource: "preserved_input_case_wiki",
+          focusId: "question:passport-scan",
+          blocker: "Need passport scan",
+          nextAction: "Request passport scan",
+          route: "live-agent",
+          updatedAt: "2026-04-18T10:04:00.000Z",
+        },
         checks: {
           publicBadge: {
             badgeEndpoint: "https://live-agent.example.test/demo-e2e/badge.json",
@@ -245,6 +256,10 @@ test("judge visual evidence pack strict mode passes when required captures and b
   assert.equal(manifest.deployProvenance.submissionRefreshStatus.status, "success");
   assert.equal(manifest.deployProvenance.railwayDeploy.available, true);
   assert.equal(manifest.deployProvenance.railwayDeploy.deploymentId, "railway-deploy-123");
+  assert.equal(
+    manifest.deployProvenance.railwayDeploy.caseWikiRuntimeSurfaceIngress?.ingressSource,
+    "preserved_input_case_wiki",
+  );
   assert.equal(manifest.deployProvenance.repoPublish.verificationScript, "verify:release");
   assert.equal(manifest.deployProvenance.repoPublish.available, true);
   assert.equal(manifest.deployProvenance.repoPublish.releaseEvidenceValidated, true);
@@ -252,7 +267,7 @@ test("judge visual evidence pack strict mode passes when required captures and b
     manifest.deployProvenance.repoPublish.caseWikiRuntimeSurfaceIngress?.contextSource,
     "case_wiki",
   );
-  assert.equal(manifest.summary.deployProvenanceRows, 7);
+  assert.equal(manifest.summary.deployProvenanceRows, 8);
   assert.equal(manifest.submissionFollowUp.submissionRefreshStatus, "success");
   assert.equal(manifest.submissionFollowUp.submissionSafeSummaryGate.liveApiEnabled, true);
   assert.equal(manifest.submissionFollowUp.submissionSafeSummaryGate.translationProvider, "not_fallback");
@@ -263,6 +278,7 @@ test("judge visual evidence pack strict mode passes when required captures and b
     "GCP Cloud Run: status success; services 3; gateway https://gateway.example.test; api https://api.example.test; orchestrator https://orchestrator.example.test",
     "GCP runtime proof: status success; Cloud Run URL proof true; Firestore proof true; BigQuery rows proof true; observability screenshots proof true",
     "Railway deploy: status success; deployment railway-deploy-123; public URL https://live-agent.example.test",
+    "Railway deploy case wiki ingress: status pass; observed yes; context case_wiki; ingress preserved_input_case_wiki; focus question:passport-scan; blocker Need passport scan; next action Request passport scan; route live-agent; updated 2026-04-18T10:04:00.000Z",
     "Public badge: badge https://live-agent.example.test/demo-e2e/badge.json; badge-details https://live-agent.example.test/demo-e2e/badge-details.json",
     "Repo publish: verification verify:release; release evidence validated; Railway deploy enabled; frontend deploy disabled",
     "Repo publish case wiki ingress: status pass; observed yes; context case_wiki; ingress gateway_hydrated_case_wiki; focus question:passport-scan; blocker Need passport scan; next action Request passport scan; route live-agent; updated 2026-04-18T10:05:00.000Z",

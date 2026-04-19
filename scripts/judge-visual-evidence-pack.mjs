@@ -240,6 +240,14 @@ function buildDeployProvenanceRows(deployProvenance) {
       summary: `status ${railwayDeploy.status}; deployment ${railwayDeploy.deploymentId}; public URL ${railwayDeploy.effectivePublicUrl}`,
     });
 
+    if (railwayDeploy.caseWikiRuntimeSurfaceIngress?.summary) {
+      rows.push({
+        id: "railwayDeployCaseWikiIngress",
+        title: "Railway deploy case wiki ingress",
+        summary: railwayDeploy.caseWikiRuntimeSurfaceIngress.summary,
+      });
+    }
+
     const badgeParts = [];
     if (railwayDeploy.badgeEndpoint !== "unavailable") {
       badgeParts.push(`badge ${railwayDeploy.badgeEndpoint}`);
@@ -333,6 +341,9 @@ function collectDeployProvenance(
       status: toOptionalText(railwayDeploySummary?.status),
       deploymentId: toOptionalText(railwayDeploySummary?.deploymentId),
       effectivePublicUrl: toOptionalText(railwayDeploySummary?.effectivePublicUrl),
+      caseWikiRuntimeSurfaceIngress: summarizeCaseWikiRuntimeSurfaceIngress(
+        railwayDeploySummary?.caseWikiRuntimeSurfaceIngress,
+      ),
       badgeEndpoint: toOptionalText(railwayChecks?.badgeEndpoint),
       badgeDetailsEndpoint: toOptionalText(railwayChecks?.badgeDetailsEndpoint),
     },
