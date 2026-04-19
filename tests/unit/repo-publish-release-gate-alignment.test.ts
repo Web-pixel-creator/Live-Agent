@@ -85,6 +85,7 @@ test("repo publish script includes pre-publish release verification controls", (
   assert.match(source, /\$releaseEvidenceSnapshot = Get-ReleaseEvidenceSnapshot -ValidatedInThisRun \(-not \$SkipReleaseVerification\)/);
   assert.match(source, /caseWikiRuntimeSurfaceIngress = if \(\$null -ne \$releaseEvidenceSnapshot\) \{ \$releaseEvidenceSnapshot\.caseWikiRuntimeSurfaceIngress \} else \{ \$null \}/);
   assert.match(source, /releaseEvidenceSnapshot = \$releaseEvidenceSnapshot/);
+  assert.match(source, /\$repoPublishCaseWikiRuntimeSurfaceIngress = \$repoPublishSummary\.caseWikiRuntimeSurfaceIngress/);
   assert.match(source, /available = \(\(\$null -ne \$report\) -or \(\$null -ne \$manifest\) -or \(\$null -ne \$badgeDetails\)\)/);
   assert.match(source, /validatedInThisRun = \$ValidatedInThisRun/);
   assert.match(source, /releaseEvidenceArtifactsCount = @\(if \(\$releaseEvidenceArtifacts.Count -gt 0\) \{ \$releaseEvidenceArtifacts \} else \{ Get-RequiredReleaseEvidenceArtifacts \}\)\.Count/);
@@ -147,6 +148,7 @@ test("repo publish script includes pre-publish release verification controls", (
   assert.match(readme, /\-RailwayRootDescriptorCheckRetryBackoffSec <n>/);
   assert.match(readme, /repo publish surfaces local release-evidence report\/runtime-proof-report\/manifest paths after pre-publish verification/);
   assert.match(readme, /caseWikiRuntimeSurfaceIngress/);
+  assert.match(readme, /pre-push `GITHUB_OUTPUT` \/ `GITHUB_STEP_SUMMARY` fields now read that tuple from the top-level `repo-publish-summary\.json` field instead of reopening the nested release-evidence snapshot/);
   assert.match(readme, /`artifacts\/deploy\/repo-publish-summary\.json` now also carries the same compact `caseWikiRuntimeSurfaceIngress` object as a top-level repo-owned field/);
   assert.match(readme, /artifacts\/deploy\/repo-publish-summary\.json/);
   assert.match(readme, /repo_publish_summary_path/);

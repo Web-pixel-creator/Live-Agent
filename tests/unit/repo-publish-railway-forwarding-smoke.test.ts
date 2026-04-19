@@ -15,6 +15,7 @@ test("repo publish forwards railway deploy arguments with stable contract", () =
   assert.match(source, /artifacts\/deploy\/railway-deploy-summary\.json/);
   assert.match(source, /caseWikiRuntimeSurfaceIngress = if \(\$null -ne \$releaseEvidenceSnapshot\) \{ \$releaseEvidenceSnapshot\.caseWikiRuntimeSurfaceIngress \} else \{ \$null \}/);
   assert.match(source, /releaseEvidenceSnapshot = \$releaseEvidenceSnapshot/);
+  assert.match(source, /\$repoPublishCaseWikiRuntimeSurfaceIngress = \$repoPublishSummary\.caseWikiRuntimeSurfaceIngress/);
   assert.match(source, /repo_publish_summary_path/);
   assert.match(source, /repo_publish_release_evidence_artifacts_count/);
   assert.match(source, /repo_publish_railway_summary_path/);
@@ -128,6 +129,7 @@ test("repo publish docs include railway badge check override example", () => {
   assert.match(readme, /-RailwayFrontendService "Live-Agent-Frontend"/);
   assert.match(readme, /repo publish surfaces local release-evidence report\/runtime-proof-report\/manifest paths after pre-publish verification/);
   assert.match(readme, /caseWikiRuntimeSurfaceIngress/);
+  assert.match(readme, /pre-push `GITHUB_OUTPUT` \/ `GITHUB_STEP_SUMMARY` fields now read that tuple from the top-level `repo-publish-summary\.json` field instead of reopening the nested release-evidence snapshot/);
   assert.match(readme, /`artifacts\/deploy\/repo-publish-summary\.json` now also carries the same compact `caseWikiRuntimeSurfaceIngress` object as a top-level repo-owned field/);
   assert.match(readme, /artifacts\/deploy\/repo-publish-summary\.json/);
   assert.match(readme, /artifacts\/deploy\/railway-deploy-summary\.json/);
