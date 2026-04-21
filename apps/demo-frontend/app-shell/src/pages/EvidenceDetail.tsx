@@ -11,15 +11,15 @@ import {
   Radar,
   Eye,
 } from "lucide-react";
-import { findBundle } from "@/data/presentationBundles";
 import type { BundleEvidence } from "@/data/presentationBundles";
 import { EvidenceArtifact } from "@/components/evidence/EvidenceArtifact";
+import { usePresentationBundle } from "@/hooks/usePresentationBundles";
 
 // /evidence/:id — split-view picture trail.
 // Active artifact is synced to ?a=<index> so deep-links work.
 const EvidenceDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const bundle = id ? findBundle(id) : undefined;
+  const { bundle } = usePresentationBundle(id ?? null);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const artifactCount = bundle?.evidence?.length ?? 0;

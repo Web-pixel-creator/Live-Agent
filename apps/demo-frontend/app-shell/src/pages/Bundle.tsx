@@ -1,9 +1,5 @@
 import { useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import {
-  findBundle,
-  FEATURED_BUNDLE_ID,
-} from "@/data/presentationBundles";
 import { BundleHero } from "@/components/bundle/BundleHero";
 import { BundleTimeline } from "@/components/bundle/BundleTimeline";
 import { BundleDecision } from "@/components/bundle/BundleDecision";
@@ -16,18 +12,23 @@ import { BundleDiffOverlay } from "@/components/bundle/BundleDiffOverlay";
 import { ArrowUpRight, Link2, Check } from "lucide-react";
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
+import { usePresentationBundle } from "@/hooks/usePresentationBundles";
 
 // Public read-only narrative of a single case. No workspace chrome (no
 // sidebar, no topbar, no command palette) — a judge lands here from a bare
 // link and reads top-to-bottom. Falls back to the featured bundle when no id.
 const Bundle = () => {
   const { id } = useParams<{ id: string }>();
-  const resolvedId = id ?? FEATURED_BUNDLE_ID;
-  const bundle = findBundle(resolvedId);
+  const {
+    bundle,
+    defaultBundleId,
+    nextBundle,
+  } = usePresentationBundle(id ?? null);
+  const resolvedId = id ?? defaultBundleId;
   const [copied, setCopied] = useState(false);
 
   const handleCopyLink = async () => {
-    const url = window.location.href;
+    const url = new URL(`/bundle/${resolvedId}`, window.location.origin).toString();
     try {
       await navigator.clipboard.writeText(url);
     } catch {
@@ -84,7 +85,7 @@ const Bundle = () => {
             link was shared with you, ask the sender to regenerate it.
           </p>
           <Link
-            to="/"
+            to="/app"
             className="mt-8 inline-flex items-center gap-1.5 text-[13px] text-foreground/80 hover:text-foreground transition-colors"
           >
             Back to Action Desk
@@ -101,7 +102,7 @@ const Bundle = () => {
       <div className="border-b border-primary/15" data-diff="accent">
         <div className="container-narrow h-11 flex items-center justify-between">
           <Link
-            to="/"
+            to="/app"
             className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground hover:text-foreground transition-colors"
           >
             ← Action Desk
@@ -165,7 +166,7 @@ const Bundle = () => {
         <div className="animate-fade-up" style={{ animationDelay: "240ms" }}>
           <BundleCounterfactual bundle={bundle} />
         </div>
-        <BundleFooterNav bundle={bundle} />
+      <BundleFooterNav bundle={bundle} nextBundle={nextBundle} />
       </div>
 
       <BundleSignature bundle={bundle} />

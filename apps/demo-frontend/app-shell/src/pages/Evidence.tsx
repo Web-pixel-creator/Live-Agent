@@ -8,8 +8,8 @@ import {
   Eye,
   Link2,
 } from "lucide-react";
-import { BUNDLE_INDEX } from "@/data/presentationBundles";
 import { toast } from "@/hooks/use-toast";
+import { usePresentationBundles } from "@/hooks/usePresentationBundles";
 
 type Filter = "all" | "mint" | "rose" | "amber";
 type Sort = "newest" | "longest" | "confidence";
@@ -46,6 +46,7 @@ function durationToSeconds(d: string): number {
 }
 
 const Evidence = () => {
+  const { index: bundleIndex, runtimeDriven } = usePresentationBundles();
   const [searchParams, setSearchParams] = useSearchParams();
   const raw = searchParams.get("outcome");
   const filter: Filter = (VALID_FILTERS as string[]).includes(raw ?? "")
@@ -123,18 +124,18 @@ const Evidence = () => {
   };
 
   const counts = useMemo(() => {
-    const c: Record<string, number> = { all: BUNDLE_INDEX.length };
-    BUNDLE_INDEX.forEach((b) => {
+    const c: Record<string, number> = { all: bundleIndex.length };
+    bundleIndex.forEach((b) => {
       c[b.outcomeTone] = (c[b.outcomeTone] ?? 0) + 1;
     });
     return c;
-  }, []);
+  }, [bundleIndex]);
 
   const visible = useMemo(() => {
     const filtered =
       filter === "all"
-        ? BUNDLE_INDEX
-        : BUNDLE_INDEX.filter((b) => b.outcomeTone === filter);
+        ? bundleIndex
+        : bundleIndex.filter((b) => b.outcomeTone === filter);
     const sorted = filtered.slice();
     if (sort === "newest") {
       sorted.sort(
@@ -151,7 +152,7 @@ const Evidence = () => {
       sorted.sort((a, b) => b.confidence - a.confidence);
     }
     return sorted;
-  }, [filter, sort]);
+  }, [bundleIndex, filter, sort]);
 
   const didMount = useRef(false);
   useEffect(() => {
@@ -214,7 +215,7 @@ const Evidence = () => {
               {filter !== "all" && (
                 <span className="text-muted-foreground/30">
                   {" "}
-                  / {BUNDLE_INDEX.length}
+                  / {bundleIndex.length}
                 </span>
               )}{" "}
               cases
@@ -461,16 +462,16 @@ const Evidence = () => {
           )}
         </div>
 
-        {/* Coming soon */}
+        {/* Runtime note */}
         <div className="mt-20 flex items-start gap-4 rounded-xl border border-dashed border-border/25 px-6 py-5 text-[13px] text-muted-foreground/50">
           <Camera
             className="h-4 w-4 shrink-0 mt-0.5 opacity-50"
             strokeWidth={1.75}
           />
           <p className="leading-relaxed">
-            Visual frames, OCR overlays, and per-node capture reels will land
-            here. The structure above is the scaffold — one card per bundle,
-            expanding into a timeline of visual artifacts.
+            {runtimeDriven
+              ? "These bundles now come from repo-owned Case Wiki and session replay snapshots. The visuals stay schematic on purpose, while the posture and copy come from live runtime state."
+              : "When runtime data is unavailable, this index falls back to the curated demo set so bundle and evidence routes still present a complete design."}
           </p>
         </div>
       </section>

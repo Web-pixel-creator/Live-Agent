@@ -51,6 +51,13 @@ export interface BundleCounterfactualRow {
 export interface PresentationBundle {
   /** Shareable bundle id — appears in URL and signature. */
   id: string;
+  /** Whether the bundle is curated demo content or derived from runtime state. */
+  source?: "curated" | "runtime";
+  /** Optional runtime lookup keys for route matching. */
+  runtimeSource?: {
+    caseId?: string | null;
+    sessionId?: string | null;
+  };
   /** The underlying workspace case this bundle narrates. */
   caseRef: string;
   /** Deterministic policy hash mono-chip, displayed in hero + signature. */
@@ -685,23 +692,50 @@ export function findBundle(id: string): PresentationBundle | undefined {
   return presentationBundles.find((b) => b.id === id);
 }
 
+export type PresentationBundleIndexEntry = {
+  id: string;
+  source?: "curated" | "runtime";
+  runtimeSource?: PresentationBundle["runtimeSource"];
+  caseRef: string;
+  title: string;
+  titleLead: string;
+  titleItalic: string;
+  kicker: string;
+  verdict: string;
+  outcomeTone: PresentationBundle["outcomeTone"];
+  outcomeLabel: string;
+  confidence: number;
+  duration: string;
+  generatedAt: string;
+  operator: string;
+  policyHash: string;
+};
+
+export function buildPresentationBundleIndexEntry(
+  bundle: PresentationBundle,
+): PresentationBundleIndexEntry {
+  return {
+    id: bundle.id,
+    source: bundle.source,
+    runtimeSource: bundle.runtimeSource,
+    caseRef: bundle.caseRef,
+    title: `${bundle.titleLead} ${bundle.titleItalic}`,
+    titleLead: bundle.titleLead,
+    titleItalic: bundle.titleItalic,
+    kicker: bundle.kicker,
+    verdict: bundle.verdict,
+    outcomeTone: bundle.outcomeTone,
+    outcomeLabel: bundle.outcomeLabel,
+    confidence: bundle.confidence,
+    duration: bundle.duration,
+    generatedAt: bundle.generatedAt,
+    operator: bundle.operator,
+    policyHash: bundle.policyHash,
+  };
+}
+
 /** The canonical bundle featured on /bundle (when no id in URL). */
 export const FEATURED_BUNDLE_ID = "BDL-2841-07A3";
 
 /** All demo bundles, in display order (for indexes, link lists). */
-export const BUNDLE_INDEX = presentationBundles.map((b) => ({
-  id: b.id,
-  caseRef: b.caseRef,
-  title: `${b.titleLead} ${b.titleItalic}`,
-  titleLead: b.titleLead,
-  titleItalic: b.titleItalic,
-  kicker: b.kicker,
-  verdict: b.verdict,
-  outcomeTone: b.outcomeTone,
-  outcomeLabel: b.outcomeLabel,
-  confidence: b.confidence,
-  duration: b.duration,
-  generatedAt: b.generatedAt,
-  operator: b.operator,
-  policyHash: b.policyHash,
-}));
+export const BUNDLE_INDEX = presentationBundles.map(buildPresentationBundleIndexEntry);

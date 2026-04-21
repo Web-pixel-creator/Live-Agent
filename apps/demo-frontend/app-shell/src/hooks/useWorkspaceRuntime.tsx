@@ -27,7 +27,7 @@ import {
 } from "@/lib/runtime-device-nodes";
 import { fetchRuntimeApi } from "@/lib/runtime-api";
 
-type CaseWikiStatus =
+export type CaseWikiStatus =
   | "active"
   | "waiting_on_customer"
   | "waiting_on_operator"
@@ -43,7 +43,7 @@ type RuntimeSessionRecord = {
   updatedAt?: string | null;
 };
 
-type RuntimeCaseWikiOverview = {
+export type RuntimeCaseWikiOverview = {
   title: string;
   summary: string;
   status: CaseWikiStatus;
@@ -52,7 +52,7 @@ type RuntimeCaseWikiOverview = {
   lastMeaningfulUpdateAt: string | null;
 };
 
-type RuntimeCaseWikiEntity = {
+export type RuntimeCaseWikiEntity = {
   id: string;
   kind: string;
   label: string;
@@ -61,7 +61,7 @@ type RuntimeCaseWikiEntity = {
   sourceRefs: string[];
 };
 
-type RuntimeCaseWikiTimelineEntry = {
+export type RuntimeCaseWikiTimelineEntry = {
   ts: string;
   kind: string | null;
   title: string;
@@ -69,7 +69,7 @@ type RuntimeCaseWikiTimelineEntry = {
   sourceRefs: string[];
 };
 
-type RuntimeCaseWikiQuestion = {
+export type RuntimeCaseWikiQuestion = {
   id: string;
   question: string;
   priority: "low" | "medium" | "high";
@@ -79,7 +79,7 @@ type RuntimeCaseWikiQuestion = {
   sourceRefs: string[];
 };
 
-type RuntimeCaseWikiNextAction = {
+export type RuntimeCaseWikiNextAction = {
   type: string;
   title: string;
   summary: string;
@@ -90,7 +90,7 @@ type RuntimeCaseWikiNextAction = {
   sourceRefs: string[];
 };
 
-type RuntimeCaseWikiRemediationDraft = {
+export type RuntimeCaseWikiRemediationDraft = {
   kind: string;
   title: string;
   targetLabel: string | null;
@@ -102,7 +102,7 @@ type RuntimeCaseWikiRemediationDraft = {
   sourceRefs: string[];
 };
 
-type RuntimeCaseWiki = {
+export type RuntimeCaseWiki = {
   caseId: string;
   sessionId: string | null;
   generatedAt: string;
@@ -153,6 +153,7 @@ type PendingApproval = {
 type WorkspaceRuntimeValue = {
   runtimeActive: boolean;
   cases: WorkspaceCase[];
+  caseWikis: RuntimeCaseWiki[];
   deviceNodes: EdgeNode[];
   pendingApprovals: PendingApproval[];
   activeCaseCount: number;
@@ -166,6 +167,7 @@ type WorkspaceRuntimeValue = {
   bootstrapDoctor: Record<string, unknown> | null;
   browserWorkers: Record<string, unknown> | null;
   getCaseByRef: (ref: string | null | undefined) => WorkspaceCase | undefined;
+  getCaseWikiByRef: (ref: string | null | undefined) => RuntimeCaseWiki | undefined;
   addDraftCase: (value: WorkspaceCase) => void;
 };
 
@@ -675,6 +677,7 @@ export function WorkspaceRuntimeProvider({ children }: { children: ReactNode }) 
     () => (caseWikisQuery.data ?? []).map((wiki) => mapCaseWikiToWorkspaceCase(wiki, deviceNodes)),
     [caseWikisQuery.data, deviceNodes],
   );
+  const caseWikis = caseWikisQuery.data ?? [];
 
   const runtimeActive = runtimeCases.length > 0 || operatorSummaryQuery.data !== null;
   const baseCases = runtimeCases.length > 0 ? runtimeCases : workspaceCases;
@@ -740,6 +743,7 @@ export function WorkspaceRuntimeProvider({ children }: { children: ReactNode }) 
     () => ({
       runtimeActive,
       cases,
+      caseWikis,
       deviceNodes,
       pendingApprovals,
       activeCaseCount,
@@ -753,6 +757,12 @@ export function WorkspaceRuntimeProvider({ children }: { children: ReactNode }) 
       bootstrapDoctor,
       browserWorkers,
       getCaseByRef: (ref) => cases.find((item) => caseMatchesRef(item, ref)),
+      getCaseWikiByRef: (ref) =>
+        caseWikis.find(
+          (item) =>
+            item.caseId === ref ||
+            item.sessionId === ref,
+        ),
       addDraftCase: (draft) => {
         setDraftCases((current) => [draft, ...current.filter((item) => !caseMatchesRef(item, draft.ref))]);
       },
@@ -762,6 +772,7 @@ export function WorkspaceRuntimeProvider({ children }: { children: ReactNode }) 
       bootstrapDoctor,
       browserWorkers,
       cases,
+      caseWikis,
       defaultConsoleCaseRef,
       degradedInfraCases,
       deviceNodes,
