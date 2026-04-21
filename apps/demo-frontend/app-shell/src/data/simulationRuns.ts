@@ -81,6 +81,11 @@ export interface ReasoningStep {
 /** A single replay execution against one case + one policy snapshot. */
 export interface SimulationRun {
   id: string;
+  source?: "curated" | "runtime";
+  runtimeSource?: {
+    caseId?: string | null;
+    sessionId?: string | null;
+  };
   caseRef: string;
   /** Snapshot id replayed. */
   policyId: string;

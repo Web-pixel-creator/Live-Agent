@@ -14,6 +14,8 @@ import {
   ExternalLink,
   Copy,
   Beaker,
+  FileText,
+  Camera,
 } from "lucide-react";
 import {
   deltaTone,
@@ -24,6 +26,8 @@ import {
   type SimulationRun,
 } from "@/data/simulationRuns";
 import { useToast } from "@/hooks/use-toast";
+import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
+import { useNavigate } from "react-router-dom";
 import { DiffColumn } from "./runDetail/DiffColumn";
 import { WhatChanged } from "./runDetail/WhatChanged";
 import { ErrorPanel } from "./runDetail/ErrorPanel";
@@ -55,9 +59,11 @@ export function RunDetailDrawer({
   run,
 }: RunDetailDrawerProps) {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { getCaseByRef } = useWorkspaceRuntime();
   if (!run) return null;
 
-  const c = findCase(run.caseRef);
+  const c = getCaseByRef(run.caseRef) ?? findCase(run.caseRef);
   const policy = findPolicy(run.policyId);
   const dTone = deltaTone[run.delta];
   const isError = run.delta === "error";
@@ -117,10 +123,18 @@ export function RunDetailDrawer({
   };
 
   const handleOpenCase = () => {
-    toast({
-      title: `Open ${run.caseRef} in Live Desk`,
-      description: "Routing not yet wired — would deep-link to case workspace.",
-    });
+    onOpenChange(false);
+    navigate(`/app/console?ref=${encodeURIComponent(run.caseRef)}`);
+  };
+
+  const handleOpenBundle = () => {
+    onOpenChange(false);
+    navigate(`/bundle/${encodeURIComponent(run.caseRef)}`);
+  };
+
+  const handleOpenEvidence = () => {
+    onOpenChange(false);
+    navigate(`/evidence/${encodeURIComponent(run.caseRef)}`);
   };
 
   const hashColor = policyHashColor(run.policyId, isError);
@@ -196,8 +210,18 @@ export function RunDetailDrawer({
             <div className="flex items-center gap-1.5 shrink-0">
               <QuickAction
                 icon={ExternalLink}
-                label="Open case in Live Desk"
+                label="Open case in Operator Console"
                 onClick={handleOpenCase}
+              />
+              <QuickAction
+                icon={FileText}
+                label="Open presentation bundle"
+                onClick={handleOpenBundle}
+              />
+              <QuickAction
+                icon={Camera}
+                label="Open visual evidence"
+                onClick={handleOpenEvidence}
               />
               <QuickAction
                 icon={Copy}

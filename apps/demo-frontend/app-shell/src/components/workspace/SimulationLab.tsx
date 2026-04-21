@@ -28,7 +28,6 @@ import {
 import {
   computeStats,
   deltaTone,
-  findCase,
   findPolicy,
   outcomeTone,
   policySnapshots,
@@ -36,6 +35,8 @@ import {
   type ReplayDelta,
   type SimulationRun,
 } from "@/data/simulationRuns";
+import { buildRuntimeSimulationRuns } from "@/lib/runtime-simulation-runs";
+import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
 import { RunDetailDrawer } from "./RunDetailDrawer";
 import { NewReplaySheet } from "./NewReplaySheet";
 import { toastWithUndo } from "@/lib/undoToast";
@@ -76,6 +77,7 @@ const DELTA_FILTERS: {
 ];
 
 export function SimulationLab() {
+  const { cases, runtimeActive } = useWorkspaceRuntime();
   // `now` is captured once per mount so card "8h ago" labels stay stable
   // while the user scans the grid (otherwise relative times would jitter on
   // every re-render triggered by filter changes).
@@ -96,7 +98,7 @@ export function SimulationLab() {
   // successful "New replay" submission. Kept in component state (rather than
   // a global store) because the Lab is the only consumer and we want the
   // demo to reset on hard reload.
-  const [runs, setRuns] = useState<SimulationRun[]>(seedRuns);
+  const [createdRuns, setCreatedRuns] = useState<SimulationRun[]>([]);
   // Tracks the most recently created run so its card can pulse a violet
   // ring/glow for ~2s after landing in the grid. Cleared by a timer so the
   // animation only plays once — re-renders triggered by filters/drawer state
@@ -127,7 +129,7 @@ export function SimulationLab() {
   // animation, and surface an undo toast. Undo also clears `freshRunId` so
   // a rolled-back card doesn't leave a stale glow lingering on a phantom row.
   const handleRunCreated = (run: SimulationRun) => {
-    setRuns((prev) => [run, ...prev]);
+    setCreatedRuns((prev) => [run, ...prev]);
     setFreshRunId(run.id);
     // 2s matches the fresh-glow keyframe duration — clear the marker right
     // when the animation completes so subsequent re-renders don't re-trigger.
@@ -151,7 +153,7 @@ export function SimulationLab() {
       `Replay queued · ${run.caseRef} under ${policyName}`,
       () => {
         window.clearTimeout(autoOpenTimer);
-        setRuns((prev) => prev.filter((r) => r.id !== run.id));
+        setCreatedRuns((prev) => prev.filter((r) => r.id !== run.id));
         setFreshRunId((current) => (current === run.id ? null : current));
         // If the auto-opened drawer is still showing this rolled-back run,
         // close it so the operator isn't left staring at a phantom card.
@@ -166,6 +168,17 @@ export function SimulationLab() {
       { undoneMessage: `Replay discarded · ${run.caseRef}` },
     );
   };
+
+  const runtimeRuns = useMemo(() => buildRuntimeSimulationRuns(cases), [cases]);
+  const baseRuns =
+    runtimeActive && runtimeRuns.length > 0 ? runtimeRuns : seedRuns;
+  const runs = useMemo(() => {
+    const shadowed = new Set(createdRuns.map((item) => item.id));
+    return [
+      ...createdRuns,
+      ...baseRuns.filter((item) => !shadowed.has(item.id)),
+    ];
+  }, [baseRuns, createdRuns]);
 
   const sortedRuns = useMemo(
     () =>
@@ -401,6 +414,7 @@ export function SimulationLab() {
           if (!next) setPendingCaseRef(null);
         }}
         onRun={handleRunCreated}
+        cases={cases}
         initialCaseRef={pendingCaseRef}
       />
     </div>

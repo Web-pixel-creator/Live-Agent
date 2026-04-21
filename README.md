@@ -200,6 +200,11 @@ running.
 copy from repo-owned `GET /v1/runtime/case-wiki` plus `GET /v1/runtime/session-replay`
 and only falls back to curated `presentationBundles` when runtime case data is
 missing.
+`/app/simulation` now follows that runtime-first migration too: the replay
+sheet and baseline run grid prefer repo-owned `WorkspaceCase` runtime data and
+seed deterministic current-policy replay cards from live case state, while
+keeping curated `simulationRuns` as the fallback when the runtime shell is
+still operating without backend case memory.
 `GET /v1/operator/queue` now exposes the repo-owned operator queue compiled from `Case Wiki`, so the frontend `Active Queue` can prefer backend-prioritized remediation/approval/runtime actions and fall back to local `Case Wiki` inference only when the queue route is unavailable. The same queue snapshot now also carries compact compliance enforcement posture (`enforcementStatus`, `exportReady`, `blockingReasons`) and escalates compiled compliance blockers into the first operator queue lane instead of hiding them inside deep case memory only.
 `GET /v1/operator/summary` now also returns that same compiled queue snapshot as `data.operatorQueue`, so a normal summary refresh can hydrate the `Operator Queue` card and `Active Queue` without forcing an extra queue-only roundtrip.
 Frontend `Intent Request -> Send Conversation Item` supports multimodal parts: text + optional image + optional audio attachment.
