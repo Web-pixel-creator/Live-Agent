@@ -29,7 +29,6 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   parseSlaMinutes,
-  workspaceCases,
   type CaseEventActor,
 } from "@/data/workspace";
 import {
@@ -39,13 +38,14 @@ import {
 } from "@/data/sessionRequests";
 import { OwnerAvatar } from "./OwnerAvatar";
 import { CountryChip, countryFlag, countryTimeHint } from "./CountryChip";
-import { edgeNodes, STATUS_META } from "@/data/nodes";
+import { STATUS_META } from "@/data/nodes";
 import { RequestDocSheet } from "./RequestDocSheet";
 import { StageIcon } from "./StageIcon";
 import { AwaitingClientSheet } from "./AwaitingClientSheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useVipCases } from "@/hooks/useVipCases";
+import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
 
 // Format an ISO timestamp into a compact "Jun 24 · 14:00" label for the timeline.
 const formatEventTime = (iso: string) => {
@@ -92,6 +92,7 @@ interface ConsoleStageProps {
 }
 
 export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
+  const { deviceNodes, getCaseByRef } = useWorkspaceRuntime();
   // Tab selection — defaults are picked by the smart-default effect below
   // based on whether the case has missing docs. Initial values here are just
   // placeholders before the case is resolved.
@@ -176,7 +177,7 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
 
   // Resolve case from the workspace dataset, then layer on any operator
   // requests issued during this session (missing→review + timeline events).
-  const baseCase = workspaceCases.find((x) => x.ref === caseRef);
+  const baseCase = getCaseByRef(caseRef);
   const sessionReqs = useCaseRequests(caseRef);
   const c = baseCase ? applyRequestOverrides(baseCase, sessionReqs) : undefined;
 
@@ -772,7 +773,7 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
                       /app/nodes with the node pre-selected. */}
                   {(() => {
                     if (!c.sourceNodeId) return null;
-                    const node = edgeNodes.find((n) => n.id === c.sourceNodeId);
+                    const node = deviceNodes.find((n) => n.id === c.sourceNodeId);
                     if (!node) return null;
                     const isOffline = node.status === "offline";
                     const meta = STATUS_META[node.status];

@@ -37,6 +37,12 @@ Route guide:
 2. `http://localhost:3000/app` serves the new Action Desk workspace shell.
 3. `http://localhost:3000/bundle/<id>` serves the public presentation bundle surface.
 4. `http://localhost:3000/evidence/<id>` serves the evidence viewer shell.
+5. `Live Desk`, `Operator Console`, runtime chrome, and node detail rails in
+   that app shell prefer repo-owned runtime data from `/v1/operator/summary`,
+   `/v1/sessions`, `/v1/runtime/case-wiki`, and `/v1/device-nodes`, with
+   `GET /config.json` + `FRONTEND_API_BASE_URL` used when the frontend runs
+   standalone, and bundled design mocks kept only as fallback when a local
+   service is missing.
 
 ## Dev Cost Profiles
 

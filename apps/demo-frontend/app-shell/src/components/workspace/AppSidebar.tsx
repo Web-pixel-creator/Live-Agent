@@ -38,15 +38,10 @@ import {
 } from "@/components/ui/hover-card";
 import { Pill } from "@/components/ui/pill";
 import { useLocation, useNavigate } from "react-router-dom";
-import {
-  activeCaseCount,
-  pendingApprovalCount,
-  pendingApprovals,
-  workspaceCases,
-} from "@/data/workspace";
 import { nodeCounts } from "@/data/nodes";
 import { useToast } from "@/hooks/use-toast";
 import { useVipCases } from "@/hooks/useVipCases";
+import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
 
 type BadgeTone = "violet" | "rose" | "crimson" | "amber" | "mint" | "slate";
 
@@ -61,26 +56,6 @@ type Section = {
 // Device Nodes badge — derives from current node fleet health. Rose tone if
 // any device is offline (top-of-mind incident), amber if only degraded, no
 // badge at all when everything is steady so the sidebar stays calm.
-const _nodeC = nodeCounts();
-const _nodesBadge: { count: number; tone: BadgeTone } | null =
-  _nodeC.offline > 0
-    ? { count: _nodeC.offline + _nodeC.degraded, tone: "crimson" }
-    : _nodeC.degraded > 0
-      ? { count: _nodeC.degraded, tone: "amber" }
-      : null;
-
-const sections: Section[] = [
-  { title: "Live Desk", url: "/app", icon: LayoutList, count: activeCaseCount, tone: "violet" },
-  { title: "Operator Console", url: "/app/console", icon: Gauge, count: pendingApprovalCount, tone: "rose" },
-  { title: "Simulation Lab", url: "/app/simulation", icon: Beaker },
-  {
-    title: "Device Nodes",
-    url: "/app/nodes",
-    icon: Server,
-    ...(_nodesBadge ?? {}),
-  },
-];
-
 // Sub-navigation under Operator Console — each entry is an *anchor* into a
 // real surface that already exists in the app. We deliberately don't invent
 // new pages; the labels describe operator-facing destinations and route to
@@ -101,8 +76,6 @@ const operatorSurfaces: {
     label: "Action queue",
     icon: Inbox,
     url: "/app/console",
-    count: pendingApprovalCount,
-    tone: pendingApprovalCount > 0 ? "amber" : undefined,
   },
   // Safety rules → policy snapshots are governed in Simulation Lab.
   { label: "Safety rules", icon: ShieldCheck, url: "/app/simulation" },
@@ -162,16 +135,50 @@ export function AppSidebar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const {
+    cases,
+    deviceNodes,
+    pendingApprovals,
+    activeCaseCount,
+    pendingApprovalCount,
+  } = useWorkspaceRuntime();
+  const runtimeNodeCounts = nodeCounts(deviceNodes);
+  const runtimeNodesBadge: { count: number; tone: BadgeTone } | null =
+    runtimeNodeCounts.offline > 0
+      ? { count: runtimeNodeCounts.offline + runtimeNodeCounts.degraded, tone: "crimson" }
+      : runtimeNodeCounts.degraded > 0
+        ? { count: runtimeNodeCounts.degraded, tone: "amber" }
+        : null;
+  const runtimeSections: Section[] = [
+    { title: "Live Desk", url: "/app", icon: LayoutList, count: activeCaseCount, tone: "violet" },
+    { title: "Operator Console", url: "/app/console", icon: Gauge, count: pendingApprovalCount, tone: "rose" },
+    { title: "Simulation Lab", url: "/app/simulation", icon: Beaker },
+    {
+      title: "Device Nodes",
+      url: "/app/nodes",
+      icon: Server,
+      ...(runtimeNodesBadge ?? {}),
+    },
+  ];
+  const runtimeOperatorSurfaces = operatorSurfaces.map((surface) =>
+    surface.label === "Action queue"
+      ? {
+          ...surface,
+          count: pendingApprovalCount,
+          tone: pendingApprovalCount > 0 ? "amber" : undefined,
+        }
+      : surface,
+  );
   const firstPending = pendingApprovals[0];
   const firstPendingRef = firstPending?.caseRef;
   const firstPendingCase = firstPendingRef
-    ? workspaceCases.find((c) => c.ref === firstPendingRef)
+    ? cases.find((c) => c.ref === firstPendingRef)
     : undefined;
 
   // VIP cases — pulled from the persisted localStorage set so the count
   // updates the moment the operator toggles a case in the client tooltip.
   const { vipSet } = useVipCases();
-  const vipCases = workspaceCases.filter((c) => vipSet.has(c.ref));
+  const vipCases = cases.filter((c) => vipSet.has(c.ref));
   const vipCount = vipCases.length;
 
   const handleApprove = () => {
@@ -208,7 +215,7 @@ export function AppSidebar() {
         <SidebarGroup className="p-0">
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
-              {sections.map((s) => {
+              {runtimeSections.map((s) => {
                 const active = pathname === s.url;
                 // Sub-menu stays open when the operator is anywhere a sub
                 // entry points to — so e.g. on /app/simulation the operator
@@ -217,7 +224,7 @@ export function AppSidebar() {
                 // rather than a state-only-on-Console disclosure.
                 const onAnySubDest =
                   s.title === "Operator Console" &&
-                  operatorSurfaces.some((sub) => sub.url === pathname);
+                    runtimeOperatorSurfaces.some((sub) => sub.url === pathname);
                 const showSub =
                   (active || onAnySubDest) &&
                   !collapsed &&
@@ -403,7 +410,7 @@ export function AppSidebar() {
 
                     {showSub && (
                       <SidebarMenuSub className="mx-0 mt-2 mb-1 border-l border-sidebar-border/50 pl-3 gap-0.5">
-                        {operatorSurfaces.map((sub) => {
+                        {runtimeOperatorSurfaces.map((sub) => {
                           const SubIcon = sub.icon;
                           // Action queue deep-links to the first pending case
                           // so the click lands on the actual approval, not the

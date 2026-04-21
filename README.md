@@ -188,6 +188,13 @@ Open `http://localhost:3000`.
 The legacy dashboard root still lives at `/` for runtime-safe compatibility, while
 the new Action Desk app shell is now served at `/app` with judge/demo evidence
 surfaces at `/bundle/:id` and `/evidence/:id`.
+Inside that app shell, `Live Desk`, `Operator Console`, runtime chrome, and
+node detail rails now prefer repo-owned runtime data from
+`/v1/operator/summary`, `/v1/sessions`, `/v1/runtime/case-wiki`, and
+`/v1/device-nodes`. The app shell resolves those routes through `/config.json`
+and `FRONTEND_API_BASE_URL` when the frontend runs standalone, while still
+falling back to the design-mock data when the local stack is only partially
+running.
 `GET /v1/operator/queue` now exposes the repo-owned operator queue compiled from `Case Wiki`, so the frontend `Active Queue` can prefer backend-prioritized remediation/approval/runtime actions and fall back to local `Case Wiki` inference only when the queue route is unavailable. The same queue snapshot now also carries compact compliance enforcement posture (`enforcementStatus`, `exportReady`, `blockingReasons`) and escalates compiled compliance blockers into the first operator queue lane instead of hiding them inside deep case memory only.
 `GET /v1/operator/summary` now also returns that same compiled queue snapshot as `data.operatorQueue`, so a normal summary refresh can hydrate the `Operator Queue` card and `Active Queue` without forcing an extra queue-only roundtrip.
 Frontend `Intent Request -> Send Conversation Item` supports multimodal parts: text + optional image + optional audio attachment.

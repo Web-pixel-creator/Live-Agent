@@ -18,11 +18,11 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { edgeNodes, STATUS_META, type EdgeNode } from "@/data/nodes";
+import { CURRENT_OPERATOR, STATUS_META, type EdgeNode } from "@/data/nodes";
 import { Server } from "lucide-react";
 import {
-  workspaceCases,
   type CaseStatus,
+  type WorkspaceCase,
   slaBurnPercent,
   parseSlaMinutes,
   stuckLabel,
@@ -42,18 +42,15 @@ import {
 import { useVipCases } from "@/hooks/useVipCases";
 import { useToast } from "@/hooks/use-toast";
 import { NewCaseSheet } from "./NewCaseSheet";
+import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
 
 type Status = CaseStatus;
-
-const cases = workspaceCases;
 
 // Identity of the operator currently signed into the workspace. Mirrors the
 // name shown in AppSidebar's footer ("A. Petrova"). Centralised here so the
 // "Mine only" filter — and any future "assigned to me" affordances — share a
 // single source of truth. When real auth lands this becomes a hook reading
 // from session/profile.
-const CURRENT_OPERATOR = "A. Petrova";
-
 const statusGroups: {
   key: Status;
   label: string;
@@ -85,7 +82,7 @@ const COLS =
   "grid grid-cols-[20px_88px_minmax(0,1.4fr)_minmax(0,1fr)_72px_88px_60px] items-center gap-6";
 
 // Sort helper — most-burning SLA first, infinite/none cases last.
-function sortByBurn(items: typeof cases) {
+function sortByBurn(items: WorkspaceCase[]) {
   return [...items].sort((a, b) => {
     const ma = parseSlaMinutes(a.sla);
     const mb = parseSlaMinutes(b.sla);
@@ -139,15 +136,11 @@ const shortAge = (iso: string | undefined, now: number): string | null => {
 export const LiveDesk = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { cases, deviceNodes, addDraftCase } = useWorkspaceRuntime();
   const requestCounts = useAllRequestCounts();
   const requestStaleness = useAllRequestStaleness();
   const { isVip, toggleVip } = useVipCases();
   const [query, setQuery] = useState("");
-  // Local "version" counter that bumps whenever a new case is created via the
-  // intake sheet. We mutate the shared `workspaceCases` array directly (demo
-  // prototype, no backend), so we need *something* in React state to force
-  // dependent useMemos to recompute. The value feeds into `filtered`'s deps.
-  const [casesVersion, setCasesVersion] = useState(0);
   const [newCaseOpen, setNewCaseOpen] = useState(false);
   // Marker for the most recently created case — drives a brief fresh-glow on
   // its row so the operator can spot the new entry in the dense list.
@@ -162,8 +155,8 @@ export const LiveDesk = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const nodeFilterId = searchParams.get("node");
   const nodeFilterMeta = useMemo(
-    () => (nodeFilterId ? edgeNodes.find((n) => n.id === nodeFilterId) ?? null : null),
-    [nodeFilterId],
+    () => (nodeFilterId ? deviceNodes.find((n) => n.id === nodeFilterId) ?? null : null),
+    [deviceNodes, nodeFilterId],
   );
   // Aggregate infra-impact filter — driven by ?infra=degraded coming from the
   // Topbar pill. Narrows to cases whose sourceNode is currently non-healthy.
@@ -175,8 +168,8 @@ export const LiveDesk = () => {
   // the operator lands directly on what's about to breach.
   const burningFilter = searchParams.get("burning") === "1";
   const nonHealthyNodeIds = useMemo(
-    () => new Set(edgeNodes.filter((n) => n.status !== "healthy").map((n) => n.id)),
-    [],
+    () => new Set(deviceNodes.filter((n) => n.status !== "healthy").map((n) => n.id)),
+    [deviceNodes],
   );
   const clearNodeFilter = () => {
     setSearchParams((prev) => {
@@ -287,14 +280,14 @@ export const LiveDesk = () => {
   // the "Mine only" pill and the disabled state when the operator owns none.
   const mineTotal = useMemo(
     () => cases.filter((c) => c.owner === CURRENT_OPERATOR).length,
-    [],
+    [cases],
   );
 
   // Total VIP-flagged cases across the board — drives the "VIP only" pill
   // count badge and its disabled state.
   const vipTotal = useMemo(
     () => cases.filter((c) => isVip(c.ref)).length,
-    [isVip],
+    [cases, isVip],
   );
 
   const filtered = useMemo(
@@ -318,7 +311,7 @@ export const LiveDesk = () => {
           .toLowerCase()
           .includes(query.toLowerCase());
       }),
-    [query, onlyMine, mineOnly, vipOnly, nodeFilterId, infraFilter, burningFilter, nonHealthyNodeIds, requestCounts, isVip, casesVersion]
+    [burningFilter, cases, infraFilter, isVip, mineOnly, nodeFilterId, nonHealthyNodeIds, onlyMine, query, requestCounts, vipOnly]
   );
 
   // Staleness threshold for the My-requests view secondary grouping. 24h is
@@ -829,13 +822,15 @@ export const LiveDesk = () => {
       <NewCaseSheet
         open={newCaseOpen}
         onOpenChange={setNewCaseOpen}
-        onCreated={(ref) => {
-          setCasesVersion((n) => n + 1);
-          setFreshRef(ref);
+        existingCases={cases}
+        onCreated={(draft) => {
+          addDraftCase(draft);
+          setFreshRef(draft.ref);
+          const ref = draft.ref;
           // 2s matches the fresh-glow keyframe; clear the marker so re-renders
           // don't loop the animation.
           window.setTimeout(() => {
-            setFreshRef((curr) => (curr === ref ? null : curr));
+            setFreshRef((curr) => (curr === draft.ref ? null : curr));
           }, 2000);
           // Force-expand the section the new case lands in — otherwise the
           // fresh-glow plays inside a collapsed group and the operator sees
@@ -844,7 +839,7 @@ export const LiveDesk = () => {
           setCollapsed((prev) => ({ ...prev, in_flight: false, recent: false }));
           // Auto-focus the new row so j/k navigation lands on it and the
           // operator's eye is drawn to the top of in-flight.
-          setFocusedRef(ref);
+          setFocusedRef(draft.ref);
           toast({
             title: "Case created",
             description: `${ref} added to Live Desk · top of in-flight.`,
@@ -1207,7 +1202,7 @@ export const LiveDesk = () => {
                           desk. */}
                       {(() => {
                         if (!c.sourceNodeId) return null;
-                        const node: EdgeNode | undefined = edgeNodes.find(
+                        const node: EdgeNode | undefined = deviceNodes.find(
                           (n) => n.id === c.sourceNodeId,
                         );
                         if (!node || node.status === "healthy") return null;

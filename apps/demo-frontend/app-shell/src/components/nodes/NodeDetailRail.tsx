@@ -15,12 +15,12 @@ import {
   nodeLocalTime,
   heartbeatTone,
 } from "@/data/nodes";
-import { workspaceCases } from "@/data/workspace";
 import { OwnerAvatar } from "@/components/workspace/OwnerAvatar";
 import { countryFlag } from "@/components/workspace/CountryChip";
 import { HeartbeatSparkline } from "./HeartbeatSparkline";
 import { NodeActivityTimeline } from "./NodeActivityTimeline";
 import { useToast } from "@/hooks/use-toast";
+import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
 
 interface NodeDetailRailProps {
   node: EdgeNode | null;
@@ -29,6 +29,7 @@ interface NodeDetailRailProps {
 export function NodeDetailRail({ node }: NodeDetailRailProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { cases } = useWorkspaceRuntime();
 
   const localTime = useMemo(
     () => (node ? nodeLocalTime(node.tz) : ""),
@@ -36,8 +37,8 @@ export function NodeDetailRail({ node }: NodeDetailRailProps) {
   );
 
   const relatedCount = useMemo(
-    () => (node ? workspaceCases.filter((c) => c.sourceNodeId === node.id).length : 0),
-    [node],
+    () => (node ? cases.filter((c) => c.sourceNodeId === node.id).length : 0),
+    [cases, node],
   );
 
   if (!node) {

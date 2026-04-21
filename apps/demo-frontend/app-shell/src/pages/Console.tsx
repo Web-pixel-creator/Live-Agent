@@ -6,10 +6,12 @@ import { ConsoleStage } from "@/components/workspace/ConsoleStage";
 import { CommandPalette } from "@/components/workspace/CommandPalette";
 import { ShortcutsOverlay } from "@/components/workspace/ShortcutsOverlay";
 import { useSearchParams } from "react-router-dom";
+import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
 
 const Console = () => {
   const [params] = useSearchParams();
-  const caseRef = params.get("ref") || "VS-2841";
+  const { defaultConsoleCaseRef } = useWorkspaceRuntime();
+  const caseRef = params.get("ref") || defaultConsoleCaseRef || "VS-2841";
 
   return (
     <SidebarProvider defaultOpen>

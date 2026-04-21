@@ -38,6 +38,9 @@ export interface CaseDocument {
 
 export interface WorkspaceCase {
   ref: string;
+  caseId?: string;
+  sessionId?: string | null;
+  source?: "mock" | "runtime" | "draft";
   client: string;
   /** Client primary email — surfaced in the Console identity tooltip. */
   email: string;
@@ -64,7 +67,7 @@ export interface WorkspaceCase {
    *  /app/nodes and the future per-node case rollups. Geo-correlated with
    *  client.country where possible — assigning a JP case to NODE-LON-04
    *  would break the operator's mental map. */
-  sourceNodeId: string;
+  sourceNodeId?: string;
 }
 
 // "Now" anchor for stuck calculations — keeps the demo deterministic across reloads.

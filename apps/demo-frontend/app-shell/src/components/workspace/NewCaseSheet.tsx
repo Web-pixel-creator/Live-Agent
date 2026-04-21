@@ -8,14 +8,15 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { FilePlus2, Loader2, Check } from "lucide-react";
-import { workspaceCases, type WorkspaceCase } from "@/data/workspace";
+import { type WorkspaceCase } from "@/data/workspace";
 import { edgeNodes } from "@/data/nodes";
 
 interface NewCaseSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Fired with the new case ref so the parent can bump a counter / re-render. */
-  onCreated: (caseRef: string) => void;
+  existingCases: WorkspaceCase[];
+  /** Fired with the new case payload so the parent can merge it into runtime state. */
+  onCreated: (value: WorkspaceCase) => void;
 }
 
 // Compact intake form. Quiet by default — same airy language as
@@ -26,6 +27,7 @@ interface NewCaseSheetProps {
 export function NewCaseSheet({
   open,
   onOpenChange,
+  existingCases,
   onCreated,
 }: NewCaseSheetProps) {
   const [client, setClient] = useState("");
@@ -51,11 +53,9 @@ export function NewCaseSheet({
   const handleSubmit = () => {
     if (!canSubmit) return;
     setSubmitting(true);
-    // Tiny artificial latency so the action registers as a real spawn,
-    // matching the rhythm of NewReplaySheet's 1.5s synth.
     setTimeout(() => {
       const nextNumber =
-        workspaceCases.reduce((max, c) => {
+        existingCases.reduce((max, c) => {
           const n = parseInt(c.ref.replace("VS-", ""), 10);
           return Number.isFinite(n) && n > max ? n : max;
         }, 2840) + 1;
@@ -82,12 +82,7 @@ export function NewCaseSheet({
         ],
         documents: [],
       };
-      // Mutating the shared module-level array on purpose: this is a demo
-      // prototype with no backend, and re-architecting LiveDesk's 1.5k LOC
-      // to source cases from state isn't justified for a single intake flow.
-      // The parent bumps a counter to force a re-render.
-      workspaceCases.unshift(newCase);
-      onCreated(ref);
+      onCreated(newCase);
       setSubmitting(false);
       onOpenChange(false);
     }, 900);

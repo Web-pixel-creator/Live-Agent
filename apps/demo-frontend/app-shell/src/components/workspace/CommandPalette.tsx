@@ -25,7 +25,6 @@ import {
   RotateCw,
   Beaker,
 } from "lucide-react";
-import { workspaceCases } from "@/data/workspace";
 import {
   backdateAllRequests,
   clearAllRequests,
@@ -35,6 +34,7 @@ import {
 } from "@/data/sessionRequests";
 import { useToast } from "@/hooks/use-toast";
 import { toastWithUndo } from "@/lib/undoToast";
+import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
 
 // Global cmd+k palette: search cases, jump between surfaces, run quick actions
 // against the case currently in context (from /app/console?ref=… or last opened).
@@ -44,6 +44,7 @@ export function CommandPalette() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const { cases, pendingApprovals } = useWorkspaceRuntime();
   const requestCounts = useAllRequestCounts();
   const totalOutstanding = useMemo(
     () => Array.from(requestCounts.values()).reduce((n, v) => n + v, 0),
@@ -55,12 +56,12 @@ export function CommandPalette() {
   const currentCaseRef = useMemo(() => {
     if (location.pathname.startsWith("/app/console")) {
       const params = new URLSearchParams(location.search);
-      return params.get("ref") || workspaceCases[0]?.ref;
+      return params.get("ref") || pendingApprovals[0]?.caseRef || cases[0]?.ref;
     }
-    return workspaceCases.find((c) => c.status === "needs_action")?.ref;
-  }, [location]);
+    return pendingApprovals[0]?.caseRef ?? cases.find((c) => c.status === "needs_action")?.ref;
+  }, [cases, location, pendingApprovals]);
 
-  const currentCase = workspaceCases.find((c) => c.ref === currentCaseRef);
+  const currentCase = cases.find((c) => c.ref === currentCaseRef);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -163,7 +164,7 @@ export function CommandPalette() {
         )}
 
         <CommandGroup heading="Cases">
-          {workspaceCases.map((c) => (
+          {cases.map((c) => (
             <CommandItem
               key={c.ref}
               // Keep value tight — only ref/client/visa/country/stage tokens.
@@ -203,12 +204,7 @@ export function CommandPalette() {
           </CommandItem>
           <CommandItem
             onSelect={() =>
-              run(() =>
-                toast({
-                  title: "Nodes",
-                  description: "Coming soon",
-                }),
-              )
+              run(() => navigate("/app/nodes"))
             }
           >
             <WorkflowIcon className="mr-2 h-4 w-4 text-[hsl(var(--tint-mint-fg))]" />
