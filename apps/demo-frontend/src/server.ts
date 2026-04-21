@@ -7,6 +7,9 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicDir = path.resolve(__dirname, "../public");
+const appShellDir = path.resolve(publicDir, "app-shell");
+const legacyIndexPath = path.resolve(publicDir, "index.html");
+const appShellIndexPath = path.resolve(appShellDir, "index.html");
 
 const port = Number(process.env.PORT ?? process.env.FRONTEND_PORT ?? 3000);
 const configuredWsUrl = (process.env.FRONTEND_WS_URL ?? "").trim();
@@ -22,13 +25,22 @@ const contentTypes: Record<string, string> = {
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
   ".ico": "image/x-icon",
+  ".woff2": "font/woff2",
 };
 
-function resolveSafePath(urlPath: string): string {
+function resolveSafePath(baseDir: string, urlPath: string): string {
   const decoded = decodeURIComponent(urlPath);
   const normalized = decoded.replace(/\\/g, "/");
   const target = normalized === "/" ? "/index.html" : normalized;
-  return path.resolve(publicDir, `.${target}`);
+  return path.resolve(baseDir, `.${target}`);
+}
+
+function isAppShellDocumentRoute(urlPath: string): boolean {
+  return /^\/(app(?:\/.*)?|bundle(?:\/.*)?|evidence(?:\/.*)?)\/?$/.test(urlPath);
+}
+
+function isAppShellAssetRoute(urlPath: string): boolean {
+  return urlPath === "/app-shell" || urlPath.startsWith("/app-shell/");
 }
 
 const server = createServer(async (req, res) => {
@@ -57,17 +69,33 @@ const server = createServer(async (req, res) => {
   }
 
   const requestPath = req.url?.split("?")[0] ?? "/";
-  const absolutePath = resolveSafePath(requestPath);
+  let filePath: string;
+  let allowFallbackIndex = true;
 
-  if (!absolutePath.startsWith(publicDir)) {
+  if (isAppShellDocumentRoute(requestPath) && existsSync(appShellIndexPath)) {
+    filePath = appShellIndexPath;
+    allowFallbackIndex = false;
+  } else if (isAppShellAssetRoute(requestPath)) {
+    const assetPath = requestPath === "/app-shell" ? "/app-shell/index.html" : requestPath;
+    filePath = resolveSafePath(publicDir, assetPath);
+    allowFallbackIndex = false;
+  } else {
+    filePath = resolveSafePath(publicDir, requestPath);
+  }
+
+  if (!filePath.startsWith(publicDir)) {
     res.statusCode = 403;
     res.end("Forbidden");
     return;
   }
 
-  let filePath = absolutePath;
   if (!existsSync(filePath)) {
-    filePath = path.join(publicDir, "index.html");
+    if (!allowFallbackIndex) {
+      res.statusCode = 404;
+      res.end("Not found");
+      return;
+    }
+    filePath = legacyIndexPath;
   }
 
   try {

@@ -31,6 +31,13 @@ is bound elsewhere.
 
 Frontend: `http://localhost:3000`
 
+Route guide:
+
+1. `http://localhost:3000/` keeps the legacy static dashboard/runtime surfaces.
+2. `http://localhost:3000/app` serves the new Action Desk workspace shell.
+3. `http://localhost:3000/bundle/<id>` serves the public presentation bundle surface.
+4. `http://localhost:3000/evidence/<id>` serves the evidence viewer shell.
+
 ## Dev Cost Profiles
 
 Use the repo-owned profile switcher when you want to lower Gemini spend during
