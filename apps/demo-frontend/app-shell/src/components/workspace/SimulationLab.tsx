@@ -28,15 +28,18 @@ import {
 import {
   computeStats,
   deltaTone,
-  findPolicy,
   outcomeTone,
-  policySnapshots,
   simulationRuns as seedRuns,
+  type PolicySnapshot,
   type ReplayDelta,
   type SimulationRun,
 } from "@/data/simulationRuns";
 import { buildRuntimeSimulationRuns } from "@/lib/runtime-simulation-runs";
 import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
+import {
+  buildSimulationPolicySnapshots,
+  findSimulationPolicy,
+} from "@/lib/runtime-simulation-policies";
 import { RunDetailDrawer } from "./RunDetailDrawer";
 import { NewReplaySheet } from "./NewReplaySheet";
 import { toastWithUndo } from "@/lib/undoToast";
@@ -77,7 +80,7 @@ const DELTA_FILTERS: {
 ];
 
 export function SimulationLab() {
-  const { cases, runtimeActive } = useWorkspaceRuntime();
+  const { cases, runtimeActive, governancePolicy } = useWorkspaceRuntime();
   // `now` is captured once per mount so card "8h ago" labels stay stable
   // while the user scans the grid (otherwise relative times would jitter on
   // every re-render triggered by filter changes).
@@ -148,7 +151,7 @@ export function SimulationLab() {
         return run;
       });
     }, 700);
-    const policyName = findPolicy(run.policyId)?.name ?? "policy";
+    const policyName = findSimulationPolicy(run.policyId, policies)?.name ?? "policy";
     toastWithUndo(
       `Replay queued · ${run.caseRef} under ${policyName}`,
       () => {
@@ -169,7 +172,14 @@ export function SimulationLab() {
     );
   };
 
-  const runtimeRuns = useMemo(() => buildRuntimeSimulationRuns(cases), [cases]);
+  const policies = useMemo(
+    () => buildSimulationPolicySnapshots(governancePolicy),
+    [governancePolicy],
+  );
+  const runtimeRuns = useMemo(
+    () => buildRuntimeSimulationRuns(cases, policies),
+    [cases, policies],
+  );
   const baseRuns =
     runtimeActive && runtimeRuns.length > 0 ? runtimeRuns : seedRuns;
   const runs = useMemo(() => {
@@ -330,7 +340,7 @@ export function SimulationLab() {
           </SelectTrigger>
           <SelectContent className="font-mono text-[11.5px]">
             <SelectItem value="all">all policies</SelectItem>
-            {policySnapshots.map((p) => (
+            {policies.map((p) => (
               <SelectItem key={p.id} value={p.id}>
                 <span className="inline-flex items-center gap-2">
                   {p.name}
@@ -391,6 +401,7 @@ export function SimulationLab() {
               <RunCard
                 key={run.id}
                 run={run}
+                policies={policies}
                 now={now}
                 fresh={run.id === freshRunId}
                 onOpen={() => openRun(run)}
@@ -404,6 +415,7 @@ export function SimulationLab() {
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
         run={activeRun}
+        policies={policies}
       />
       <NewReplaySheet
         open={newSheetOpen}
@@ -415,6 +427,7 @@ export function SimulationLab() {
         }}
         onRun={handleRunCreated}
         cases={cases}
+        policies={policies}
         initialCaseRef={pendingCaseRef}
       />
     </div>
@@ -462,17 +475,19 @@ function StatItem({
 
 function RunCard({
   run,
+  policies,
   now,
   fresh,
   onOpen,
 }: {
   run: SimulationRun;
+  policies: PolicySnapshot[];
   now: number;
   fresh: boolean;
   onOpen: () => void;
 }) {
   const c = findCase(run.caseRef);
-  const policy = findPolicy(run.policyId);
+  const policy = findSimulationPolicy(run.policyId, policies);
   const dTone = deltaTone[run.delta];
   const fromOutcome = outcomeTone[run.originalOutcome];
   const toOutcome = outcomeTone[run.replayedOutcome];

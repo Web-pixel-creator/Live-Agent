@@ -1,5 +1,4 @@
-import type { SimulationRun } from "@/data/simulationRuns";
-import { findPolicy } from "@/data/simulationRuns";
+import type { PolicySnapshot } from "@/data/simulationRuns";
 
 // Format an ISO timestamp into a compact "Apr 20 · 05:42" line. Times are
 // always rendered in the operator's locale so the page reads as "right now".
@@ -16,8 +15,7 @@ const formatTime = (iso: string) => {
 
 // Short context block that helps the operator decide whether to promote.
 // Skipped entirely when the policy can't be resolved (orphaned run).
-export function PolicyBlurb({ policyId }: { policyId: SimulationRun["policyId"] }) {
-  const policy = findPolicy(policyId);
+export function PolicyBlurb({ policy }: { policy: PolicySnapshot | null | undefined }) {
   if (!policy) return null;
 
   return (

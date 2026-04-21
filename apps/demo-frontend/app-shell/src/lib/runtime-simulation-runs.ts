@@ -1,6 +1,5 @@
 import type { WorkspaceCase } from "../data/workspace";
 import {
-  findPolicy,
   outcomeTone,
   policySnapshots,
   type PolicySnapshot,
@@ -9,6 +8,7 @@ import {
   type RiskOutcome,
   type SimulationRun,
 } from "../data/simulationRuns";
+import { findSimulationPolicy } from "./runtime-simulation-policies";
 
 const CURRENT_POLICY_ID = "policy-current";
 
@@ -267,8 +267,9 @@ export function buildSimulationRun(params: {
 
 export function buildRuntimeSimulationRuns(
   cases: WorkspaceCase[],
+  policies: PolicySnapshot[] = policySnapshots,
 ): SimulationRun[] {
-  const currentPolicy = findPolicy(CURRENT_POLICY_ID);
+  const currentPolicy = findSimulationPolicy(CURRENT_POLICY_ID, policies);
   if (!currentPolicy) {
     return [];
   }

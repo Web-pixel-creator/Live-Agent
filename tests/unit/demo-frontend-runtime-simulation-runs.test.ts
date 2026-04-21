@@ -6,6 +6,7 @@ import {
   buildSimulationRun,
   buildRuntimeSimulationRuns,
 } from "../../apps/demo-frontend/app-shell/src/lib/runtime-simulation-runs";
+import { buildSimulationPolicySnapshots } from "../../apps/demo-frontend/app-shell/src/lib/runtime-simulation-policies";
 
 function makeCase(overrides: Partial<WorkspaceCase> = {}): WorkspaceCase {
   return {
@@ -104,4 +105,36 @@ test("runtime simulation runs use current policy and sort newest first", () => {
   assert.equal(runs[1].policyId, "policy-current");
   assert.equal(runs[0].id, "runtime-VS-9003-policy-current");
   assert.equal(runs[1].id, "runtime-VS-9002-policy-current");
+});
+
+test("runtime simulation runs can overlay the live policy label from governance runtime", () => {
+  const runtimeCase = makeCase({
+    ref: "VS-9010",
+    caseId: "case-9010",
+    sessionId: "session-9010",
+  });
+  const policies = buildSimulationPolicySnapshots({
+    source: "tenant_override",
+    complianceTemplate: "strict",
+    requestedTemplateId: "strict",
+    fallbackApplied: false,
+    retentionPolicy: {
+      rawMediaDays: 2,
+      signedEvidenceDays: 30,
+      auditTrailDays: 180,
+    },
+    overrideVersion: 7,
+    overrideUpdatedAt: "2026-07-01T12:00:00Z",
+  });
+
+  const currentPolicy = policies.find((policy) => policy.id === "policy-current");
+  assert.ok(currentPolicy);
+  assert.equal(currentPolicy.name, "current · strict");
+  assert.match(currentPolicy.description, /Template strict from tenant override/i);
+  assert.equal(currentPolicy.author, "tenant override v7");
+
+  const runs = buildRuntimeSimulationRuns([runtimeCase], policies);
+  assert.equal(runs.length, 1);
+  assert.equal(runs[0].policyId, "policy-current");
+  assert.match(runs[0].headline, /current · strict/i);
 });

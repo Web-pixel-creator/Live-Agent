@@ -20,8 +20,8 @@ import {
 import {
   deltaTone,
   findCase,
-  findPolicy,
   outcomeTone,
+  type PolicySnapshot,
   type ReasoningStep,
   type SimulationRun,
 } from "@/data/simulationRuns";
@@ -32,6 +32,7 @@ import {
   buildCaseBundlePath,
   buildCaseEvidencePath,
 } from "@/lib/case-artifact-links";
+import { findSimulationPolicy } from "@/lib/runtime-simulation-policies";
 import { DiffColumn } from "./runDetail/DiffColumn";
 import { WhatChanged } from "./runDetail/WhatChanged";
 import { ErrorPanel } from "./runDetail/ErrorPanel";
@@ -42,6 +43,7 @@ interface RunDetailDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   run: SimulationRun | null;
+  policies: PolicySnapshot[];
 }
 
 // Format an ISO timestamp into a compact "Apr 20 · 05:42" line. Times are
@@ -61,6 +63,7 @@ export function RunDetailDrawer({
   open,
   onOpenChange,
   run,
+  policies,
 }: RunDetailDrawerProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -68,7 +71,7 @@ export function RunDetailDrawer({
   if (!run) return null;
 
   const c = getCaseByRef(run.caseRef) ?? findCase(run.caseRef);
-  const policy = findPolicy(run.policyId);
+  const policy = findSimulationPolicy(run.policyId, policies);
   const dTone = deltaTone[run.delta];
   const isError = run.delta === "error";
   const fromOutcome = outcomeTone[run.originalOutcome];
@@ -391,7 +394,7 @@ export function RunDetailDrawer({
 
               {/* Policy snapshot blurb — short context for the operator deciding
                   whether to promote. */}
-              <PolicyBlurb policyId={run.policyId} />
+              <PolicyBlurb policy={policy} />
             </>
           )}
         </div>

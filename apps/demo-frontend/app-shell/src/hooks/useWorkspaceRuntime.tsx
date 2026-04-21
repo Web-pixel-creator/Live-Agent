@@ -137,6 +137,16 @@ export type RuntimeCaseWiki = {
   } | null;
 };
 
+export type RuntimeGovernancePolicy = {
+  source: string | null;
+  complianceTemplate: string | null;
+  requestedTemplateId: string | null;
+  fallbackApplied: boolean;
+  retentionPolicy: Record<string, number> | null;
+  overrideVersion: number | null;
+  overrideUpdatedAt: string | null;
+};
+
 type RuntimeOperatorQueueItemRecord = {
   caseId?: string | null;
   sessionId?: string | null;
@@ -161,6 +171,7 @@ type WorkspaceRuntimeValue = {
   slaBurningCases: WorkspaceCase[];
   degradedInfraCases: WorkspaceCase[];
   defaultConsoleCaseRef: string | null;
+  governancePolicy: RuntimeGovernancePolicy | null;
   operatorSummary: Record<string, unknown> | null;
   operatorQueue: Record<string, unknown> | null;
   runtimeDiagnostics: Record<string, unknown> | null;
@@ -201,6 +212,20 @@ function toOptionalString(value: unknown): string | null {
 
 function toArrayOfRecords(value: unknown): Record<string, unknown>[] {
   return Array.isArray(value) ? value.filter((item): item is Record<string, unknown> => isRecord(item)) : [];
+}
+
+function toOptionalNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function toNumberRecord(value: unknown): Record<string, number> | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const entries = Object.entries(value).filter(([, entryValue]) =>
+    typeof entryValue === "number" && Number.isFinite(entryValue),
+  );
+  return entries.length > 0 ? Object.fromEntries(entries) : null;
 }
 
 function formatUpdatedLabel(value: string | null | undefined): string {
@@ -520,6 +545,44 @@ async function fetchOperatorSummary(
   return isRecord(payload.data) ? payload.data : null;
 }
 
+async function fetchGovernancePolicy(
+  fetchImpl: typeof fetch = fetch,
+): Promise<RuntimeGovernancePolicy | null> {
+  const response = await fetchRuntimeApi(
+    "/v1/governance/policy",
+    {
+      headers: {
+        "x-operator-role": "viewer",
+      },
+    },
+    fetchImpl,
+  );
+  if (!response.ok) {
+    throw new Error(`governance_policy_${response.status}`);
+  }
+  const payload = (await response.json()) as { data?: unknown };
+  const data = isRecord(payload.data) ? payload.data : null;
+  if (!data) {
+    return null;
+  }
+  const profile = isRecord(data.profile) ? data.profile : null;
+  const policy = isRecord(data.policy) ? data.policy : null;
+  const override = isRecord(data.override) ? data.override : null;
+  return {
+    source: toOptionalString(data.source),
+    complianceTemplate:
+      toOptionalString(policy?.complianceTemplate) ??
+      toOptionalString(profile?.id),
+    requestedTemplateId: toOptionalString(profile?.requestedTemplateId),
+    fallbackApplied: Boolean(profile?.fallbackApplied),
+    retentionPolicy:
+      toNumberRecord(policy?.retentionPolicy) ??
+      toNumberRecord(profile?.retentionPolicy),
+    overrideVersion: toOptionalNumber(override?.version),
+    overrideUpdatedAt: toOptionalString(override?.updatedAt),
+  };
+}
+
 async function fetchSessions(
   fetchImpl: typeof fetch = fetch,
 ): Promise<RuntimeSessionRecord[]> {
@@ -625,6 +688,13 @@ export function WorkspaceRuntimeProvider({ children }: { children: ReactNode }) 
     retry: 1,
   });
 
+  const governancePolicyQuery = useQuery({
+    queryKey: ["app-shell", "governance-policy"],
+    queryFn: () => fetchGovernancePolicy(),
+    staleTime: 30_000,
+    retry: 1,
+  });
+
   const sessionsQuery = useQuery({
     queryKey: ["app-shell", "sessions"],
     queryFn: () => fetchSessions(),
@@ -683,6 +753,7 @@ export function WorkspaceRuntimeProvider({ children }: { children: ReactNode }) 
   const baseCases = runtimeCases.length > 0 ? runtimeCases : workspaceCases;
   const cases = useMemo(() => [...draftCases, ...baseCases], [draftCases, baseCases]);
 
+  const governancePolicy = governancePolicyQuery.data;
   const operatorSummary = operatorSummaryQuery.data;
   const operatorQueue = isRecord(operatorSummary?.operatorQueue) ? operatorSummary.operatorQueue : null;
   const runtimeDiagnostics = isRecord(operatorSummary?.runtimeDiagnostics)
@@ -751,6 +822,7 @@ export function WorkspaceRuntimeProvider({ children }: { children: ReactNode }) 
       slaBurningCases,
       degradedInfraCases,
       defaultConsoleCaseRef,
+      governancePolicy,
       operatorSummary,
       operatorQueue,
       runtimeDiagnostics,
@@ -776,6 +848,7 @@ export function WorkspaceRuntimeProvider({ children }: { children: ReactNode }) 
       defaultConsoleCaseRef,
       degradedInfraCases,
       deviceNodes,
+      governancePolicy,
       operatorQueue,
       operatorSummary,
       pendingApprovalCount,

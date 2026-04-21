@@ -71,6 +71,7 @@ test("runtime app shell resolves backend endpoints through runtime config and sh
 
   assert.match(workspaceRuntime, /import \{ fetchRuntimeApi \} from "@\/lib\/runtime-api";/);
   assert.match(workspaceRuntime, /fetchRuntimeApi\(\s*"\/v1\/operator\/summary"/);
+  assert.match(workspaceRuntime, /fetchRuntimeApi\(\s*"\/v1\/governance\/policy"/);
   assert.match(workspaceRuntime, /fetchRuntimeApi\(\s*"\/v1\/sessions\?limit=8"/);
   assert.match(workspaceRuntime, /fetchRuntimeApi\(\s*`\/v1\/runtime\/case-wiki\?sessionId=\$\{encodeURIComponent\(sessionId\)\}`/);
 
@@ -110,4 +111,36 @@ test("live desk, operator console, and simulation drilldowns share case-driven j
   assert.match(readme, /\/bundle\/:id` and `\/evidence\/:id` prefer runtime `caseId\/sessionId` targets/);
   assert.match(operatorGuide, /Operator proof-link note:/);
   assert.match(operatorGuide, /Presentation Bundle` \/ `Visual Evidence` targets through the same repo-owned `caseId\/sessionId\/ref` resolver/);
+});
+
+test("simulation lab prefers runtime governance metadata for the live policy snapshot", () => {
+  const workspaceRuntime = readAppShellSource("hooks/useWorkspaceRuntime.tsx");
+  const runtimePolicies = readAppShellSource("lib/runtime-simulation-policies.ts");
+  const simulationLab = readAppShellSource("components/workspace/SimulationLab.tsx");
+  const newReplaySheet = readAppShellSource("components/workspace/NewReplaySheet.tsx");
+  const runDetailDrawer = readAppShellSource("components/workspace/RunDetailDrawer.tsx");
+  const policyBlurb = readAppShellSource("components/workspace/runDetail/PolicyBlurb.tsx");
+  const readme = readRepoSource("README.md");
+  const operatorGuide = readRepoSource("docs/operator-guide.md");
+
+  assert.match(workspaceRuntime, /governancePolicy: RuntimeGovernancePolicy \| null;/);
+  assert.match(workspaceRuntime, /fetchRuntimeApi\(\s*"\/v1\/governance\/policy"/);
+
+  assert.match(runtimePolicies, /export function buildSimulationPolicySnapshots/);
+  assert.match(runtimePolicies, /return `current/);
+  assert.match(runtimePolicies, /Template \$\{template\} from \$\{source\}/);
+  assert.match(runtimePolicies, /tenant override/i);
+
+  assert.match(simulationLab, /const \{ cases, runtimeActive, governancePolicy \} = useWorkspaceRuntime\(\);/);
+  assert.match(simulationLab, /buildSimulationPolicySnapshots\(governancePolicy\)/);
+  assert.match(simulationLab, /buildRuntimeSimulationRuns\(cases, policies\)/);
+  assert.match(newReplaySheet, /policies: PolicySnapshot\[\];/);
+  assert.match(newReplaySheet, /policies\.find\(\(policy\) => policy\.id === policyId\)/);
+  assert.match(runDetailDrawer, /policies: PolicySnapshot\[\];/);
+  assert.match(runDetailDrawer, /findSimulationPolicy\(run\.policyId, policies\)/);
+  assert.match(policyBlurb, /policy: PolicySnapshot \| null \| undefined/);
+
+  assert.match(readme, /Simulation Lab` now also overlays the live `policy-current` snapshot/i);
+  assert.match(readme, /repo-owned governance runtime data \(`\/v1\/governance\/policy`\)/i);
+  assert.match(operatorGuide, /Simulation Lab policy note:/);
 });

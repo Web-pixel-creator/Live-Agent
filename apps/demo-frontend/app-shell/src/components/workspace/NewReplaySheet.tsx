@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import { Beaker, Play, Loader2, Search, Check, ArrowRight } from "lucide-react";
 import {
-  policySnapshots,
+  type PolicySnapshot,
   type SimulationRun,
 } from "@/data/simulationRuns";
 import type { WorkspaceCase } from "@/data/workspace";
@@ -21,6 +21,7 @@ interface NewReplaySheetProps {
   onOpenChange: (open: boolean) => void;
   onRun: (run: SimulationRun) => void;
   cases: WorkspaceCase[];
+  policies: PolicySnapshot[];
   initialCaseRef?: string | null;
 }
 
@@ -29,6 +30,7 @@ export function NewReplaySheet({
   onOpenChange,
   onRun,
   cases,
+  policies,
   initialCaseRef,
 }: NewReplaySheetProps) {
   const [caseRef, setCaseRef] = useState<string | null>(null);
@@ -63,7 +65,7 @@ export function NewReplaySheet({
     ? cases.find((workspaceCase) => workspaceCase.ref === caseRef) ?? null
     : null;
   const selectedPolicy = policyId
-    ? policySnapshots.find((policy) => policy.id === policyId) ?? null
+    ? policies.find((policy) => policy.id === policyId) ?? null
     : null;
 
   const canRun = Boolean(selectedCase) && Boolean(selectedPolicy) && !running;
@@ -208,7 +210,7 @@ export function NewReplaySheet({
             </div>
 
             <div className="grid grid-cols-1 gap-2">
-              {policySnapshots.map((policy) => {
+              {policies.map((policy) => {
                 const active = policy.id === policyId;
                 return (
                   <button
