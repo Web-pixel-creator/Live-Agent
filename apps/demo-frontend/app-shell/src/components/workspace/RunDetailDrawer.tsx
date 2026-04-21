@@ -28,6 +28,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
 import { useNavigate } from "react-router-dom";
+import {
+  buildCaseBundlePath,
+  buildCaseEvidencePath,
+} from "@/lib/case-artifact-links";
 import { DiffColumn } from "./runDetail/DiffColumn";
 import { WhatChanged } from "./runDetail/WhatChanged";
 import { ErrorPanel } from "./runDetail/ErrorPanel";
@@ -129,12 +133,12 @@ export function RunDetailDrawer({
 
   const handleOpenBundle = () => {
     onOpenChange(false);
-    navigate(`/bundle/${encodeURIComponent(run.caseRef)}`);
+    navigate(buildCaseBundlePath(c ?? run.caseRef));
   };
 
   const handleOpenEvidence = () => {
     onOpenChange(false);
-    navigate(`/evidence/${encodeURIComponent(run.caseRef)}`);
+    navigate(buildCaseEvidencePath(c ?? run.caseRef));
   };
 
   const hashColor = policyHashColor(run.policyId, isError);

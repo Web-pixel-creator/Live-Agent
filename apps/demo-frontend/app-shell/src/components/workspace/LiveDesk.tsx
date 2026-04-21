@@ -9,7 +9,9 @@ import {
   ArrowUpRight,
   Clock,
   CheckCircle2,
+  Camera,
   Download,
+  FileText,
   X,
   Inbox,
   User,
@@ -43,6 +45,10 @@ import { useVipCases } from "@/hooks/useVipCases";
 import { useToast } from "@/hooks/use-toast";
 import { NewCaseSheet } from "./NewCaseSheet";
 import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
+import {
+  buildCaseBundlePath,
+  buildCaseEvidencePath,
+} from "@/lib/case-artifact-links";
 
 type Status = CaseStatus;
 
@@ -415,6 +421,20 @@ export const LiveDesk = () => {
   const handleOpen = (e: React.MouseEvent | null, ref: string) => {
     e?.stopPropagation();
     navigate(`/app/console?ref=${encodeURIComponent(ref)}`);
+  };
+  const handleOpenBundle = (
+    e: React.MouseEvent | null,
+    value: WorkspaceCase,
+  ) => {
+    e?.stopPropagation();
+    navigate(buildCaseBundlePath(value));
+  };
+  const handleOpenEvidence = (
+    e: React.MouseEvent | null,
+    value: WorkspaceCase,
+  ) => {
+    e?.stopPropagation();
+    navigate(buildCaseEvidencePath(value));
   };
   // VIP toggle from row context menu — mirrors the client-tooltip Star, but
   // accessible without hover-targeting a 12px icon. Toast confirms the
@@ -1424,6 +1444,20 @@ export const LiveDesk = () => {
                         <UserRoundCog className="h-3 w-3" strokeWidth={1.75} />
                       </button>
                       <button
+                        onClick={(e) => handleOpenBundle(e, c)}
+                        title="Open presentation bundle"
+                        className="inline-flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/80 ring-1 ring-inset ring-border/60 transition-smooth"
+                      >
+                        <FileText className="h-3 w-3" strokeWidth={1.75} />
+                      </button>
+                      <button
+                        onClick={(e) => handleOpenEvidence(e, c)}
+                        title="Open visual evidence"
+                        className="inline-flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/80 ring-1 ring-inset ring-border/60 transition-smooth"
+                      >
+                        <Camera className="h-3 w-3" strokeWidth={1.75} />
+                      </button>
+                      <button
                         onClick={(e) => handleOpen(e, c.ref)}
                         title="Open in Console (↵)"
                         className="inline-flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/80 ring-1 ring-inset ring-border/60 transition-smooth"
@@ -1460,6 +1494,20 @@ export const LiveDesk = () => {
                         <UserRoundCog className="h-3.5 w-3.5" strokeWidth={1.75} />
                         Reassign owner
                         <span className="ml-auto font-mono text-[10px] text-muted-foreground/70">e</span>
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        onSelect={() => handleOpenBundle(null, c)}
+                        className="text-[12px] gap-2"
+                      >
+                        <FileText className="h-3.5 w-3.5" strokeWidth={1.75} />
+                        Open presentation bundle
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        onSelect={() => handleOpenEvidence(null, c)}
+                        className="text-[12px] gap-2"
+                      >
+                        <Camera className="h-3.5 w-3.5" strokeWidth={1.75} />
+                        Open visual evidence
                       </ContextMenuItem>
                       <ContextMenuSeparator />
                       {/* VIP toggle — labelled by current state so the action

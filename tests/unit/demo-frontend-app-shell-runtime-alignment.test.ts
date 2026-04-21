@@ -10,6 +10,10 @@ function readAppShellSource(relativePath: string): string {
   );
 }
 
+function readRepoSource(relativePath: string): string {
+  return readFileSync(resolve(process.cwd(), ...relativePath.split("/")), "utf8");
+}
+
 test("app shell wraps routes with the workspace runtime provider", () => {
   const source = readAppShellSource("App.tsx");
 
@@ -75,4 +79,35 @@ test("runtime app shell resolves backend endpoints through runtime config and sh
 
   assert.match(nodesPage, /import \{\s*fetchRuntimeDeviceNodes,\s*mapRuntimeDeviceNode,\s*\} from "@\/lib\/runtime-device-nodes";/);
   assert.doesNotMatch(nodesPage, /async function fetchRuntimeDeviceNodes\(\)/);
+});
+
+test("live desk, operator console, and simulation drilldowns share case-driven judge artifact links", () => {
+  const helper = readAppShellSource("lib/case-artifact-links.ts");
+  const liveDesk = readAppShellSource("components/workspace/LiveDesk.tsx");
+  const consoleStage = readAppShellSource("components/workspace/ConsoleStage.tsx");
+  const runDetailDrawer = readAppShellSource("components/workspace/RunDetailDrawer.tsx");
+  const readme = readRepoSource("README.md");
+  const operatorGuide = readRepoSource("docs/operator-guide.md");
+
+  assert.match(helper, /export function resolveCaseArtifactRef/);
+  assert.match(helper, /return firstArtifactToken\(target\.caseId, target\.sessionId, target\.ref\);/);
+  assert.match(helper, /export function buildCaseBundlePath/);
+  assert.match(helper, /export function buildCaseEvidencePath/);
+
+  assert.match(liveDesk, /import \{\s*buildCaseBundlePath,\s*buildCaseEvidencePath,\s*\} from "@\/lib\/case-artifact-links";/);
+  assert.match(liveDesk, /navigate\(buildCaseBundlePath\(value\)\);/);
+  assert.match(liveDesk, /navigate\(buildCaseEvidencePath\(value\)\);/);
+
+  assert.match(consoleStage, /import \{\s*buildCaseBundlePath,\s*buildCaseEvidencePath,\s*\} from "@\/lib\/case-artifact-links";/);
+  assert.match(consoleStage, /navigate\(buildCaseBundlePath\(c\)\);/);
+  assert.match(consoleStage, /navigate\(buildCaseEvidencePath\(c\)\);/);
+
+  assert.match(runDetailDrawer, /import \{\s*buildCaseBundlePath,\s*buildCaseEvidencePath,\s*\} from "@\/lib\/case-artifact-links";/);
+  assert.match(runDetailDrawer, /navigate\(buildCaseBundlePath\(c \?\? run\.caseRef\)\);/);
+  assert.match(runDetailDrawer, /navigate\(buildCaseEvidencePath\(c \?\? run\.caseRef\)\);/);
+
+  assert.match(readme, /Live Desk` row actions\/context menus and `Operator Console` hero quick actions/);
+  assert.match(readme, /\/bundle\/:id` and `\/evidence\/:id` prefer runtime `caseId\/sessionId` targets/);
+  assert.match(operatorGuide, /Operator proof-link note:/);
+  assert.match(operatorGuide, /Presentation Bundle` \/ `Visual Evidence` targets through the same repo-owned `caseId\/sessionId\/ref` resolver/);
 });

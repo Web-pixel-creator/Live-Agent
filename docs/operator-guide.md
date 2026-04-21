@@ -35,6 +35,7 @@ Control tray note: That same Control tray now owns low-frequency operator extras
 Advanced operator tools note: those lower-frequency surfaces now sit behind one collapsed `Advanced operator tools` shell, so the first scan inside `Control` stays focused on approvals, queue state, and the handoff into `Operator Console`.
 
 Operator handoff note: `Operator Console` now starts with one explicit `Operator handoff` card (`Approvals`, `Runtime`, `Audit`, `Refresh Summary`), so live-to-operator transitions land in a clearer operator-first route before the deeper board surfaces.
+Operator proof-link note: `Live Desk` row actions/context menus and the `Operator Console` hero quick actions now open per-case `Presentation Bundle` / `Visual Evidence` targets through the same repo-owned `caseId/sessionId/ref` resolver, so proof surfaces stay attached to the active runtime case instead of bouncing through the generic judge-artifact index.
 Operator onboarding note: that same first fold now exposes a guided `Refresh -> Inspect -> Recover` path, so first-time operators see one state-aware sequence before they open deeper console lanes.
 Operator onboarding note: that same guided path now also uses workspace-first inspect/open wording, so the first operator sequence stays aligned with `Choose workspace`, the `Operator brief` preview row, and the current product-surface vocabulary.
 Case workspace note: the secondary jump/review subshells inside `Case path` and `Result tools` now keep one current path row on top and quieter later jumps or reviews underneath it.

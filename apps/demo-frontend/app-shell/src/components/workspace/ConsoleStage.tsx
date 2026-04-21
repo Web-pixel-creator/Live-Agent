@@ -15,6 +15,7 @@ import {
   Copy,
   BellOff,
   ArrowRight,
+  Camera,
   Hash,
   FileText,
   Globe,
@@ -46,6 +47,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useVipCases } from "@/hooks/useVipCases";
 import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
+import {
+  buildCaseBundlePath,
+  buildCaseEvidencePath,
+} from "@/lib/case-artifact-links";
 
 // Format an ISO timestamp into a compact "Jun 24 · 14:00" label for the timeline.
 const formatEventTime = (iso: string) => {
@@ -388,6 +393,12 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
         };
         const handleOpenLiveDesk = () => {
           navigate(`/app?focus=${encodeURIComponent(c.ref)}`);
+        };
+        const handleOpenBundle = () => {
+          navigate(buildCaseBundlePath(c));
+        };
+        const handleOpenEvidence = () => {
+          navigate(buildCaseEvidencePath(c));
         };
         const handleSnooze = () => {
           toast(`Snoozed ${c.ref}`, {
@@ -847,6 +858,16 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
                     icon={ExternalLink}
                     label="Open in Live Desk"
                     onClick={handleOpenLiveDesk}
+                  />
+                  <QuickAction
+                    icon={FileText}
+                    label="Open presentation bundle"
+                    onClick={handleOpenBundle}
+                  />
+                  <QuickAction
+                    icon={Camera}
+                    label="Open visual evidence"
+                    onClick={handleOpenEvidence}
                   />
                   <QuickAction
                     icon={Copy}
