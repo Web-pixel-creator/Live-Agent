@@ -29,11 +29,16 @@ test("legacy demo frontend is framed as a compatibility dashboard with a path ba
     'subtitle: "Compatibility dashboard for runtime-safe checks, evidence review, and older walkthroughs."',
     'note: "The primary Action Desk workspace now lives at /app. Keep /legacy for compatibility fallback only."',
     'cta: "Open Action Desk"',
+    'const LEGACY_DEFAULT_TAB_ID = "operator";',
+    'const LEGACY_VISIBLE_TAB_IDS = new Set(["operator", "device-nodes"]);',
+    'button.hidden = !isAllowed;',
+    'return !button.hidden && target.length > 0',
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(legacyRuntime.includes(token), `legacy runtime missing compatibility token: ${token}`);
   }
 
   assert.ok(readme.includes("`/legacy` only as a compatibility"));
-  assert.ok(localDevelopment.includes("`http://localhost:3000/legacy` keeps the legacy compatibility dashboard"));
+  assert.ok(readme.includes("defaults to `Operator Console`"));
+  assert.ok(localDevelopment.includes("defaults to `Operator Console` + `Device Nodes` fallback tabs"));
 });

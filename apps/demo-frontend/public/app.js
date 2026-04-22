@@ -4163,6 +4163,8 @@ let deviceNodePrimaryShellAutoOpen = false;
 const tabButtons = Array.from(document.querySelectorAll(".tab-btn[data-tab-target]"));
 const tabContents = Array.from(document.querySelectorAll(".tab-content[data-tab]"));
 const DEFAULT_TAB_ID = "live-negotiator";
+const LEGACY_DEFAULT_TAB_ID = "operator";
+const LEGACY_VISIBLE_TAB_IDS = new Set(["operator", "device-nodes"]);
 const TAB_HASH_PREFIX = "tab=";
 const customSelectShells = new Set();
 let customSelectObserver = null;
@@ -9119,10 +9121,14 @@ function applyLanguageMode(languageMode, options = {}) {
 
 function resolveTabId(value) {
   const requested = typeof value === "string" ? value.trim() : "";
+  const fallbackTabId = isLegacyCompatibilityRoute() ? LEGACY_DEFAULT_TAB_ID : DEFAULT_TAB_ID;
   if (!requested) {
-    return DEFAULT_TAB_ID;
+    return fallbackTabId;
   }
-  return tabContents.some((section) => section.dataset.tab === requested) ? requested : DEFAULT_TAB_ID;
+  if (isLegacyCompatibilityRoute() && !LEGACY_VISIBLE_TAB_IDS.has(requested)) {
+    return fallbackTabId;
+  }
+  return tabContents.some((section) => section.dataset.tab === requested) ? requested : fallbackTabId;
 }
 
 function readTabIdFromHash() {
@@ -9183,7 +9189,37 @@ function readStoredTabId() {
   } catch {
     /* no-op on storage failures */
   }
-  return DEFAULT_TAB_ID;
+  return resolveTabId("");
+}
+
+function isLegacyCompatibilityRoute() {
+  if (typeof window === "undefined" || !window.location) {
+    return false;
+  }
+  const pathname = typeof window.location.pathname === "string" ? window.location.pathname : "";
+  return pathname === "/legacy" || pathname === "/legacy/";
+}
+
+function applyLegacyCompatibilityShell() {
+  if (!isLegacyCompatibilityRoute()) {
+    return;
+  }
+  document.body.classList.add("legacy-compat-route");
+  const layoutRoot = document.querySelector(".layout");
+  if (layoutRoot instanceof HTMLElement) {
+    layoutRoot.classList.add("is-legacy-compat");
+  }
+  const dashboardNav = document.querySelector(".dashboard-nav");
+  if (dashboardNav instanceof HTMLElement) {
+    dashboardNav.setAttribute("aria-label", "Legacy compatibility sections");
+  }
+  for (const button of tabButtons) {
+    const target = button.dataset.tabTarget ?? "";
+    const isAllowed = LEGACY_VISIBLE_TAB_IDS.has(target);
+    button.hidden = !isAllowed;
+    button.toggleAttribute("inert", !isAllowed);
+    button.setAttribute("aria-hidden", isAllowed ? "false" : "true");
+  }
 }
 
 function applyThemeMode(themeMode, options = {}) {
@@ -44626,7 +44662,7 @@ function toggleFallbackMode() {
 function bindEvents() {
   const orderedTabButtons = tabButtons.filter((button) => {
     const target = button.dataset.tabTarget ?? "";
-    return target.length > 0 && tabContents.some((section) => section.dataset.tab === target);
+    return !button.hidden && target.length > 0 && tabContents.some((section) => section.dataset.tab === target);
   });
 
   const resolveTabButtonIndex = (button) => orderedTabButtons.findIndex((candidate) => candidate === button);
@@ -46241,6 +46277,7 @@ async function bootstrap() {
   setDeviceNodeSelectionBadge(null);
   setDeviceNodeRegistryState("idle");
   syncDeviceNodeSupportLayout();
+  applyLegacyCompatibilityShell();
   bindEvents();
   syncOperatorRoleControls();
   renderRoleDependentPanels();

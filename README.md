@@ -189,8 +189,11 @@ Open `http://localhost:3000/app`.
 runtime-safe dashboard remains available on `/legacy` only as a compatibility
 surface for fallback checks and older walkthroughs. The legacy shell now
 labels itself as `AI Action Desk Legacy Dashboard` and links operators back to
-`/app` instead of posing as a second primary frontend. Judge/demo evidence
-surfaces stay at `/bundle/:id` and `/evidence/:id`.
+`/app` instead of posing as a second primary frontend. On `/legacy`, the shell
+now defaults to `Operator Console` and keeps `Device Nodes` as the remaining
+runtime fallback tab, while `Live` and `Simulation Lab` stay in the new `/app`
+workspace. Judge/demo evidence surfaces stay at `/bundle/:id` and
+`/evidence/:id`.
 Inside that app shell, `Live Desk`, `Operator Console`, runtime chrome, and
 node detail rails now prefer repo-owned runtime data from
 `/v1/operator/summary`, `/v1/sessions`, `/v1/runtime/case-wiki`, and
