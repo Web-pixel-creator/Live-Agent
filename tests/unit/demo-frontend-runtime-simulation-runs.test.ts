@@ -114,6 +114,7 @@ test("runtime simulation runs can overlay the live policy label from governance 
     sessionId: "session-9010",
   });
   const policies = buildSimulationPolicySnapshots({
+    tenantId: "tenant-demo",
     source: "tenant_override",
     complianceTemplate: "strict",
     requestedTemplateId: "strict",
@@ -137,4 +138,59 @@ test("runtime simulation runs can overlay the live policy label from governance 
   assert.equal(runs.length, 1);
   assert.equal(runs[0].policyId, "policy-current");
   assert.match(runs[0].headline, /current · strict/i);
+});
+
+test("runtime governance template candidates drive stricter replay outcomes", () => {
+  const safeCase = makeCase({
+    ref: "VS-9011",
+    caseId: "case-9011",
+    sessionId: "session-9011",
+    country: "US",
+    documents: [
+      { name: "Passport scan", state: "ok" },
+      { name: "Employment contract", state: "ok" },
+      { name: "Salary proof", state: "ok" },
+      { name: "Diploma apostille", state: "review" },
+    ],
+  });
+  const policies = buildSimulationPolicySnapshots(
+    {
+      tenantId: "tenant-demo",
+      source: "tenant_override",
+      complianceTemplate: "baseline",
+      requestedTemplateId: "baseline",
+      fallbackApplied: false,
+      retentionPolicy: null,
+      overrideVersion: 4,
+      overrideUpdatedAt: "2026-07-01T12:00:00Z",
+    },
+    {
+      source: "tenant_override",
+      activeTemplateId: "baseline",
+      availableTemplates: [
+        { id: "baseline", description: "Baseline template.", isActive: true },
+        { id: "strict", description: "Strict template.", isActive: false },
+      ],
+    },
+    [],
+  );
+
+  const strictPolicy = policies.find((policy) => policy.id === "policy-template-strict");
+  assert.ok(strictPolicy);
+  if (!strictPolicy) {
+    return;
+  }
+
+  const run = buildSimulationRun({
+    workspaceCase: safeCase,
+    policy: strictPolicy,
+    ranAt: "2026-07-01T10:15:00Z",
+    durationMs: 1200,
+    id: "runtime-VS-9011-policy-template-strict",
+    source: "runtime",
+  });
+
+  assert.equal(run.replayedOutcome, "review");
+  assert.equal(run.delta, "tightened");
+  assert.match(run.headline, /strict/i);
 });

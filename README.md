@@ -210,10 +210,13 @@ now use the same repo-owned case-artifact link helper, so jumps into
 `/bundle/:id` and `/evidence/:id` prefer runtime `caseId/sessionId` targets and
 only fall back to legacy refs when no runtime case identifier exists.
 `Simulation Lab` now also overlays the live `policy-current` snapshot from
-repo-owned governance runtime data (`/v1/governance/policy`) before it falls
-back to curated policy metadata, so the current replay label/description stays
-aligned with the active operator-desk compliance template instead of drifting
-back to static demo copy.
+repo-owned governance runtime data (`/v1/governance/policy`) and the real
+template catalog (`/v1/governance/compliance-template`) before it falls back to
+curated policy metadata, so replay labels, candidate templates, and the drawer
+blurb stay aligned with the active operator-desk compliance template instead of
+drifting back to static demo copy. When a runtime template candidate is
+selected, the drawer promote action now routes through `POST /v1/governance/policy`
+and refreshes the live policy/history lanes instead of showing a placeholder toast.
 `GET /v1/operator/queue` now exposes the repo-owned operator queue compiled from `Case Wiki`, so the frontend `Active Queue` can prefer backend-prioritized remediation/approval/runtime actions and fall back to local `Case Wiki` inference only when the queue route is unavailable. The same queue snapshot now also carries compact compliance enforcement posture (`enforcementStatus`, `exportReady`, `blockingReasons`) and escalates compiled compliance blockers into the first operator queue lane instead of hiding them inside deep case memory only.
 `GET /v1/operator/summary` now also returns that same compiled queue snapshot as `data.operatorQueue`, so a normal summary refresh can hydrate the `Operator Queue` card and `Active Queue` without forcing an extra queue-only roundtrip.
 Frontend `Intent Request -> Send Conversation Item` supports multimodal parts: text + optional image + optional audio attachment.

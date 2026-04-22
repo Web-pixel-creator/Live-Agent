@@ -80,7 +80,13 @@ const DELTA_FILTERS: {
 ];
 
 export function SimulationLab() {
-  const { cases, runtimeActive, governancePolicy } = useWorkspaceRuntime();
+  const {
+    cases,
+    runtimeActive,
+    governancePolicy,
+    governanceTemplateCatalog,
+    governancePolicyUpdates,
+  } = useWorkspaceRuntime();
   // `now` is captured once per mount so card "8h ago" labels stay stable
   // while the user scans the grid (otherwise relative times would jitter on
   // every re-render triggered by filter changes).
@@ -173,8 +179,13 @@ export function SimulationLab() {
   };
 
   const policies = useMemo(
-    () => buildSimulationPolicySnapshots(governancePolicy),
-    [governancePolicy],
+    () =>
+      buildSimulationPolicySnapshots(
+        governancePolicy,
+        governanceTemplateCatalog,
+        governancePolicyUpdates,
+      ),
+    [governancePolicy, governancePolicyUpdates, governanceTemplateCatalog],
   );
   const runtimeRuns = useMemo(
     () => buildRuntimeSimulationRuns(cases, policies),

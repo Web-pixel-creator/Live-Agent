@@ -33,6 +33,22 @@ export interface PolicySnapshot {
   author: string;
   /** Whether this is the live policy currently serving the desk. */
   isLive?: boolean;
+  /** Optional runtime governance metadata when this snapshot maps to a real policy template. */
+  runtimeGovernance?: {
+    templateId: string | null;
+    tenantId: string | null;
+    source: string | null;
+    promoteable: boolean;
+    version: number | null;
+    history?: Array<{
+      createdAt: string;
+      outcome: string | null;
+      actorRole: string | null;
+      reason: string | null;
+      errorCode: string | null;
+      version: number | null;
+    }>;
+  };
 }
 
 export const policySnapshots: PolicySnapshot[] = [

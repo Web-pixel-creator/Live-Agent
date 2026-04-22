@@ -124,23 +124,37 @@ test("simulation lab prefers runtime governance metadata for the live policy sna
   const operatorGuide = readRepoSource("docs/operator-guide.md");
 
   assert.match(workspaceRuntime, /governancePolicy: RuntimeGovernancePolicy \| null;/);
+  assert.match(workspaceRuntime, /governanceTemplateCatalog: RuntimeGovernanceTemplateCatalog \| null;/);
+  assert.match(workspaceRuntime, /governancePolicyUpdates: RuntimeGovernancePolicyUpdate\[\];/);
+  assert.match(workspaceRuntime, /promoteGovernancePolicyTemplate: \(/);
   assert.match(workspaceRuntime, /fetchRuntimeApi\(\s*"\/v1\/governance\/policy"/);
+  assert.match(workspaceRuntime, /fetchRuntimeApi\(\s*"\/v1\/governance\/compliance-template"/);
+  assert.match(workspaceRuntime, /fetchRuntimeApi\(\s*`\/v1\/governance\/policy\/\$\{encodeURIComponent\(tenantId\)\}\/updates\?limit=12`/);
+  assert.match(workspaceRuntime, /fetchRuntimeApi\(\s*"\/v1\/governance\/policy",\s*\{\s*method: "POST"/);
+  assert.match(workspaceRuntime, /"x-operator-role": "admin"/);
 
   assert.match(runtimePolicies, /export function buildSimulationPolicySnapshots/);
-  assert.match(runtimePolicies, /return `current/);
+  assert.match(runtimePolicies, /const TEMPLATE_POLICY_PREFIX = "policy-template-";/);
+  assert.match(runtimePolicies, /function buildRuntimeTemplatePolicyId/);
   assert.match(runtimePolicies, /Template \$\{template\} from \$\{source\}/);
-  assert.match(runtimePolicies, /tenant override/i);
+  assert.match(runtimePolicies, /Promote to live to apply it to the operator desk/i);
 
-  assert.match(simulationLab, /const \{ cases, runtimeActive, governancePolicy \} = useWorkspaceRuntime\(\);/);
-  assert.match(simulationLab, /buildSimulationPolicySnapshots\(governancePolicy\)/);
+  assert.match(simulationLab, /governanceTemplateCatalog,/);
+  assert.match(simulationLab, /governancePolicyUpdates,/);
+  assert.match(simulationLab, /buildSimulationPolicySnapshots\(\s*governancePolicy,\s*governanceTemplateCatalog,\s*governancePolicyUpdates,\s*\)/);
   assert.match(simulationLab, /buildRuntimeSimulationRuns\(cases, policies\)/);
   assert.match(newReplaySheet, /policies: PolicySnapshot\[\];/);
   assert.match(newReplaySheet, /policies\.find\(\(policy\) => policy\.id === policyId\)/);
   assert.match(runDetailDrawer, /policies: PolicySnapshot\[\];/);
   assert.match(runDetailDrawer, /findSimulationPolicy\(run\.policyId, policies\)/);
+  assert.match(runDetailDrawer, /promoteGovernancePolicyTemplate/);
+  assert.match(runDetailDrawer, /Live policy updated to/);
   assert.match(policyBlurb, /policy: PolicySnapshot \| null \| undefined/);
+  assert.match(policyBlurb, /Recent governance activity/);
 
   assert.match(readme, /Simulation Lab` now also overlays the live `policy-current` snapshot/i);
   assert.match(readme, /repo-owned governance runtime data \(`\/v1\/governance\/policy`\)/i);
+  assert.match(readme, /`\/v1\/governance\/compliance-template`/i);
+  assert.match(readme, /`POST \/v1\/governance\/policy`/i);
   assert.match(operatorGuide, /Simulation Lab policy note:/);
 });

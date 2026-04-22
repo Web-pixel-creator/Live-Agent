@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
+import { useState } from "react";
 import {
   ArrowRight,
   Check,
@@ -67,7 +68,12 @@ export function RunDetailDrawer({
 }: RunDetailDrawerProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { getCaseByRef } = useWorkspaceRuntime();
+  const {
+    governancePolicy,
+    getCaseByRef,
+    promoteGovernancePolicyTemplate,
+  } = useWorkspaceRuntime();
+  const [promoting, setPromoting] = useState(false);
   if (!run) return null;
 
   const c = getCaseByRef(run.caseRef) ?? findCase(run.caseRef);
@@ -77,6 +83,10 @@ export function RunDetailDrawer({
   const fromOutcome = outcomeTone[run.originalOutcome];
   const toOutcome = outcomeTone[run.replayedOutcome];
   const confDelta = run.replayedConfidence - run.originalConfidence;
+  const promoteableTemplateId =
+    !isError && policy?.runtimeGovernance?.promoteable
+      ? policy.runtimeGovernance.templateId
+      : null;
 
   // Synthetic "original reasoning" — the live policy's take on the case at
   // resolution time. We don't store this on each run (too much duplication),
@@ -105,13 +115,32 @@ export function RunDetailDrawer({
       ]
     : [];
 
-  const handlePromote = () => {
-    onOpenChange(false);
-    toast({
-      title: `Promote ${policy?.name ?? "policy"} to live?`,
-      description:
-        "Confirmation flow not yet implemented — will route through the policy review queue.",
-    });
+  const handlePromote = async () => {
+    if (!policy || !promoteableTemplateId) {
+      return;
+    }
+    try {
+      setPromoting(true);
+      const previousTemplate = governancePolicy?.complianceTemplate ?? "current";
+      const promoted = await promoteGovernancePolicyTemplate(promoteableTemplateId);
+      toast({
+        title: `Live policy updated to ${policy.name}`,
+        description: `${previousTemplate} -> ${promoted.effectiveTemplateId ?? promoteableTemplateId}`,
+      });
+      onOpenChange(false);
+    } catch (error) {
+      const description =
+        error instanceof Error && error.message.trim().length > 0
+          ? error.message
+          : "governance policy promotion failed";
+      toast({
+        title: `Could not promote ${policy.name}`,
+        description,
+        variant: "destructive",
+      });
+    } finally {
+      setPromoting(false);
+    }
   };
 
   const handleRerun = () => {
@@ -401,12 +430,17 @@ export function RunDetailDrawer({
 
         {/* ─── Footer actions ─────────────────────────────────────────── */}
         <div className="px-8 py-4 border-t border-border flex items-center gap-2">
-          {!isError && policy && !policy.isLive && (
+          {!isError && policy && promoteableTemplateId && (
             <Button
               onClick={handlePromote}
+              disabled={promoting}
               className="h-10 px-5 bg-foreground text-background hover:bg-foreground/90"
             >
-              <Check className="mr-2 h-3.5 w-3.5" strokeWidth={2} />
+              {promoting ? (
+                <RotateCw className="mr-2 h-3.5 w-3.5 animate-spin" strokeWidth={2} />
+              ) : (
+                <Check className="mr-2 h-3.5 w-3.5" strokeWidth={2} />
+              )}
               Promote {policy.name} to live
             </Button>
           )}
@@ -418,6 +452,14 @@ export function RunDetailDrawer({
                   style={{ backgroundColor: "hsl(var(--tint-violet-fg))" }}
                 />
                 Already the live policy — nothing to promote.
+              </span>
+            </div>
+          )}
+          {!isError && policy && !policy.isLive && !promoteableTemplateId && (
+            <div className="text-[12px] text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-border" />
+                Curated replay snapshot only — no runtime promote path.
               </span>
             </div>
           )}

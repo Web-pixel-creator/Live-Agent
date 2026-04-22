@@ -1,7 +1,5 @@
 import type { PolicySnapshot } from "@/data/simulationRuns";
 
-// Format an ISO timestamp into a compact "Apr 20 · 05:42" line. Times are
-// always rendered in the operator's locale so the page reads as "right now".
 const formatTime = (iso: string) => {
   const d = new Date(iso);
   const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -13,10 +11,9 @@ const formatTime = (iso: string) => {
   return `${date} · ${time}`;
 };
 
-// Short context block that helps the operator decide whether to promote.
-// Skipped entirely when the policy can't be resolved (orphaned run).
 export function PolicyBlurb({ policy }: { policy: PolicySnapshot | null | undefined }) {
   if (!policy) return null;
+  const history = policy.runtimeGovernance?.history ?? [];
 
   return (
     <div className="px-8 py-6 border-t border-border/60 space-y-2.5">
@@ -46,6 +43,31 @@ export function PolicyBlurb({ policy }: { policy: PolicySnapshot | null | undefi
       <p className="text-[11px] text-muted-foreground/75 font-mono">
         {policy.author} · {formatTime(policy.authoredAt)}
       </p>
+      {policy.runtimeGovernance?.templateId && (
+        <p className="text-[11px] text-muted-foreground/75 font-mono">
+          template={policy.runtimeGovernance.templateId}
+          {policy.runtimeGovernance.version !== null
+            ? ` · version=${policy.runtimeGovernance.version}`
+            : ""}
+        </p>
+      )}
+      {history.length > 0 && (
+        <div className="space-y-1.5 pt-1">
+          <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70 font-medium">
+            Recent governance activity
+          </div>
+          {history.map((item) => (
+            <p
+              key={`${item.createdAt}:${item.version ?? "none"}`}
+              className="text-[11px] text-muted-foreground/80 font-mono"
+            >
+              {formatTime(item.createdAt)} · {item.outcome ?? "observed"}
+              {item.version !== null ? ` · v${item.version}` : ""}
+              {item.actorRole ? ` · ${item.actorRole}` : ""}
+            </p>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,11 +1,12 @@
 import {
+  useCallback,
   createContext,
   useContext,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   edgeNodes,
   type EdgeNode,
@@ -138,6 +139,7 @@ export type RuntimeCaseWiki = {
 };
 
 export type RuntimeGovernancePolicy = {
+  tenantId: string | null;
   source: string | null;
   complianceTemplate: string | null;
   requestedTemplateId: string | null;
@@ -145,6 +147,38 @@ export type RuntimeGovernancePolicy = {
   retentionPolicy: Record<string, number> | null;
   overrideVersion: number | null;
   overrideUpdatedAt: string | null;
+};
+
+export type RuntimeGovernanceTemplateOption = {
+  id: string;
+  description: string;
+  isActive: boolean;
+};
+
+export type RuntimeGovernanceTemplateCatalog = {
+  source: string | null;
+  activeTemplateId: string | null;
+  availableTemplates: RuntimeGovernanceTemplateOption[];
+};
+
+export type RuntimeGovernancePolicyUpdate = {
+  actionId: string;
+  tenantId: string | null;
+  actorRole: string | null;
+  createdAt: string;
+  outcome: string | null;
+  reason: string | null;
+  errorCode: string | null;
+  complianceTemplate: string | null;
+  version: number | null;
+};
+
+export type RuntimeGovernancePolicyPromotion = {
+  outcome: string | null;
+  tenantId: string | null;
+  effectiveTemplateId: string | null;
+  effectiveSource: string | null;
+  version: number | null;
 };
 
 type RuntimeOperatorQueueItemRecord = {
@@ -172,6 +206,8 @@ type WorkspaceRuntimeValue = {
   degradedInfraCases: WorkspaceCase[];
   defaultConsoleCaseRef: string | null;
   governancePolicy: RuntimeGovernancePolicy | null;
+  governanceTemplateCatalog: RuntimeGovernanceTemplateCatalog | null;
+  governancePolicyUpdates: RuntimeGovernancePolicyUpdate[];
   operatorSummary: Record<string, unknown> | null;
   operatorQueue: Record<string, unknown> | null;
   runtimeDiagnostics: Record<string, unknown> | null;
@@ -180,6 +216,9 @@ type WorkspaceRuntimeValue = {
   getCaseByRef: (ref: string | null | undefined) => WorkspaceCase | undefined;
   getCaseWikiByRef: (ref: string | null | undefined) => RuntimeCaseWiki | undefined;
   addDraftCase: (value: WorkspaceCase) => void;
+  promoteGovernancePolicyTemplate: (
+    templateId: string,
+  ) => Promise<RuntimeGovernancePolicyPromotion>;
 };
 
 const WorkspaceRuntimeContext = createContext<WorkspaceRuntimeValue | null>(null);
@@ -565,10 +604,12 @@ async function fetchGovernancePolicy(
   if (!data) {
     return null;
   }
+  const tenant = isRecord(data.tenant) ? data.tenant : null;
   const profile = isRecord(data.profile) ? data.profile : null;
   const policy = isRecord(data.policy) ? data.policy : null;
   const override = isRecord(data.override) ? data.override : null;
   return {
+    tenantId: toOptionalString(tenant?.tenantId),
     source: toOptionalString(data.source),
     complianceTemplate:
       toOptionalString(policy?.complianceTemplate) ??
@@ -580,6 +621,141 @@ async function fetchGovernancePolicy(
       toNumberRecord(profile?.retentionPolicy),
     overrideVersion: toOptionalNumber(override?.version),
     overrideUpdatedAt: toOptionalString(override?.updatedAt),
+  };
+}
+
+async function fetchGovernanceTemplateCatalog(
+  fetchImpl: typeof fetch = fetch,
+): Promise<RuntimeGovernanceTemplateCatalog | null> {
+  const response = await fetchRuntimeApi(
+    "/v1/governance/compliance-template",
+    {
+      headers: {
+        "x-operator-role": "viewer",
+      },
+    },
+    fetchImpl,
+  );
+  if (!response.ok) {
+    throw new Error(`governance_template_catalog_${response.status}`);
+  }
+  const payload = (await response.json()) as { data?: unknown };
+  const data = isRecord(payload.data) ? payload.data : null;
+  if (!data) {
+    return null;
+  }
+  const active = isRecord(data.active) ? data.active : null;
+  const activeTemplateId = toOptionalString(active?.id);
+  const availableTemplates = toArrayOfRecords(data.availableTemplates)
+    .map((item) => {
+      const id = toOptionalString(item.id);
+      if (!id) {
+        return null;
+      }
+      return {
+        id,
+        description: toOptionalString(item.description) ?? "",
+        isActive: id === activeTemplateId,
+      } satisfies RuntimeGovernanceTemplateOption;
+    })
+    .filter((item): item is RuntimeGovernanceTemplateOption => item !== null);
+  return {
+    source: toOptionalString(data.source),
+    activeTemplateId,
+    availableTemplates,
+  };
+}
+
+async function fetchGovernancePolicyUpdates(
+  tenantId: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<RuntimeGovernancePolicyUpdate[]> {
+  const response = await fetchRuntimeApi(
+    `/v1/governance/policy/${encodeURIComponent(tenantId)}/updates?limit=12`,
+    {
+      headers: {
+        "x-operator-role": "viewer",
+      },
+    },
+    fetchImpl,
+  );
+  if (!response.ok) {
+    throw new Error(`governance_policy_updates_${response.status}`);
+  }
+  const payload = (await response.json()) as { data?: unknown };
+  return toArrayOfRecords(payload.data)
+    .map((item) => {
+      const details = isRecord(item.details) ? item.details : null;
+      const actionId = toOptionalString(item.actionId);
+      const createdAt = toOptionalString(item.createdAt);
+      if (!actionId || !createdAt) {
+        return null;
+      }
+      return {
+        actionId,
+        tenantId: toOptionalString(details?.tenantId) ?? toOptionalString(item.tenantId),
+        actorRole: toOptionalString(item.actorRole),
+        createdAt,
+        outcome: toOptionalString(item.outcome),
+        reason: toOptionalString(item.reason),
+        errorCode: toOptionalString(item.errorCode),
+        complianceTemplate: toOptionalString(details?.complianceTemplate),
+        version: toOptionalNumber(details?.version),
+      } satisfies RuntimeGovernancePolicyUpdate;
+    })
+    .filter((item): item is RuntimeGovernancePolicyUpdate => item !== null);
+}
+
+async function promoteGovernancePolicyTemplate(params: {
+  tenantId: string;
+  templateId: string;
+  expectedVersion: number | null;
+  fetchImpl?: typeof fetch;
+}): Promise<RuntimeGovernancePolicyPromotion> {
+  const { tenantId, templateId, expectedVersion, fetchImpl = fetch } = params;
+  const response = await fetchRuntimeApi(
+    "/v1/governance/policy",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-operator-role": "admin",
+        "x-operator-id": "action-desk-app-shell",
+      },
+      body: JSON.stringify({
+        tenantId,
+        complianceTemplate: templateId,
+        expectedVersion: expectedVersion ?? undefined,
+        idempotencyKey: `app-shell-governance-${tenantId}-${templateId}-${Date.now()}`,
+        metadata: {
+          source: "app-shell-simulation-lab",
+          flow: "promote_runtime_policy_template",
+        },
+      }),
+    },
+    fetchImpl,
+  );
+  const payload = (await response.json().catch(() => ({}))) as { data?: unknown; error?: unknown };
+  if (!response.ok) {
+    const error = isRecord(payload.error) ? payload.error : null;
+    const message =
+      toOptionalString(error?.message) ??
+      toOptionalString(error?.code) ??
+      `governance_policy_promote_${response.status}`;
+    throw new Error(message);
+  }
+  const data = isRecord(payload.data) ? payload.data : null;
+  const effective = isRecord(data?.effective) ? data?.effective : null;
+  const effectiveProfile = effective && isRecord(effective.profile) ? effective.profile : null;
+  const policy = isRecord(data?.policy) ? data?.policy : null;
+  return {
+    outcome: toOptionalString(data?.outcome),
+    tenantId: toOptionalString(isRecord(data?.tenant) ? data?.tenant.tenantId : null),
+    effectiveTemplateId:
+      toOptionalString(effectiveProfile?.id) ??
+      toOptionalString(policy?.complianceTemplate),
+    effectiveSource: toOptionalString(effective?.source),
+    version: toOptionalNumber(policy?.version),
   };
 }
 
@@ -680,6 +856,7 @@ function buildRuntimePendingApprovals(
 
 export function WorkspaceRuntimeProvider({ children }: { children: ReactNode }) {
   const [draftCases, setDraftCases] = useState<WorkspaceCase[]>([]);
+  const queryClient = useQueryClient();
 
   const operatorSummaryQuery = useQuery({
     queryKey: ["app-shell", "operator-summary"],
@@ -691,6 +868,25 @@ export function WorkspaceRuntimeProvider({ children }: { children: ReactNode }) 
   const governancePolicyQuery = useQuery({
     queryKey: ["app-shell", "governance-policy"],
     queryFn: () => fetchGovernancePolicy(),
+    staleTime: 30_000,
+    retry: 1,
+  });
+
+  const governanceTemplateCatalogQuery = useQuery({
+    queryKey: ["app-shell", "governance-compliance-template"],
+    queryFn: () => fetchGovernanceTemplateCatalog(),
+    staleTime: 30_000,
+    retry: 1,
+  });
+
+  const governancePolicyUpdatesQuery = useQuery({
+    queryKey: [
+      "app-shell",
+      "governance-policy-updates",
+      governancePolicyQuery.data?.tenantId ?? null,
+    ],
+    enabled: Boolean(governancePolicyQuery.data?.tenantId),
+    queryFn: () => fetchGovernancePolicyUpdates(governancePolicyQuery.data?.tenantId ?? ""),
     staleTime: 30_000,
     retry: 1,
   });
@@ -809,6 +1005,32 @@ export function WorkspaceRuntimeProvider({ children }: { children: ReactNode }) 
   );
 
   const defaultConsoleCaseRef = pendingApprovals[0]?.caseRef ?? cases[0]?.ref ?? null;
+  const governanceTemplateCatalog = governanceTemplateCatalogQuery.data;
+  const governancePolicyUpdates = governancePolicyUpdatesQuery.data ?? [];
+
+  const promoteGovernancePolicyTemplateAction = useCallback(
+    async (templateId: string): Promise<RuntimeGovernancePolicyPromotion> => {
+      const tenantId = governancePolicy?.tenantId;
+      if (!tenantId) {
+        throw new Error("governance policy tenant is unavailable");
+      }
+      const result = await promoteGovernancePolicyTemplate({
+        tenantId,
+        templateId,
+        expectedVersion: governancePolicy.overrideVersion,
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["app-shell", "governance-policy"] }),
+        queryClient.invalidateQueries({ queryKey: ["app-shell", "governance-compliance-template"] }),
+        queryClient.invalidateQueries({
+          queryKey: ["app-shell", "governance-policy-updates", tenantId],
+        }),
+        queryClient.invalidateQueries({ queryKey: ["app-shell", "operator-summary"] }),
+      ]);
+      return result;
+    },
+    [governancePolicy?.overrideVersion, governancePolicy?.tenantId, queryClient],
+  );
 
   const value = useMemo<WorkspaceRuntimeValue>(
     () => ({
@@ -823,6 +1045,8 @@ export function WorkspaceRuntimeProvider({ children }: { children: ReactNode }) 
       degradedInfraCases,
       defaultConsoleCaseRef,
       governancePolicy,
+      governanceTemplateCatalog,
+      governancePolicyUpdates,
       operatorSummary,
       operatorQueue,
       runtimeDiagnostics,
@@ -838,6 +1062,7 @@ export function WorkspaceRuntimeProvider({ children }: { children: ReactNode }) 
       addDraftCase: (draft) => {
         setDraftCases((current) => [draft, ...current.filter((item) => !caseMatchesRef(item, draft.ref))]);
       },
+      promoteGovernancePolicyTemplate: promoteGovernancePolicyTemplateAction,
     }),
     [
       activeCaseCount,
@@ -849,10 +1074,13 @@ export function WorkspaceRuntimeProvider({ children }: { children: ReactNode }) 
       degradedInfraCases,
       deviceNodes,
       governancePolicy,
+      governancePolicyUpdates,
+      governanceTemplateCatalog,
       operatorQueue,
       operatorSummary,
       pendingApprovalCount,
       pendingApprovals,
+      promoteGovernancePolicyTemplateAction,
       runtimeActive,
       runtimeDiagnostics,
       slaBurningCases,

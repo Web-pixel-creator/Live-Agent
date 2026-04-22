@@ -12,6 +12,13 @@ import { findSimulationPolicy } from "./runtime-simulation-policies";
 
 const CURRENT_POLICY_ID = "policy-current";
 
+type SimulationPolicyMode =
+  | "current"
+  | "baseline"
+  | "strict"
+  | "regulated"
+  | "experimental";
+
 const countryTier = (country: string): "A" | "B" | "C" =>
   country === "DE" || country === "NL" || country === "FR"
     ? "A"
@@ -41,7 +48,30 @@ function buildHeadline(
   if (from === to) {
     return `${outcomeTone[to].label} held under ${policyName}.`;
   }
-  return `${outcomeTone[from].label} → ${outcomeTone[to].label} · ${policyName} shifted the verdict.`;
+  return `${outcomeTone[from].label} -> ${outcomeTone[to].label} · ${policyName} shifted the verdict.`;
+}
+
+function resolvePolicyMode(policy: PolicySnapshot): SimulationPolicyMode {
+  const runtimeTemplate = policy.runtimeGovernance?.templateId;
+  if (
+    runtimeTemplate === "baseline" ||
+    runtimeTemplate === "strict" ||
+    runtimeTemplate === "regulated"
+  ) {
+    return runtimeTemplate;
+  }
+  switch (policy.id) {
+    case CURRENT_POLICY_ID:
+      return "current";
+    case "policy-draft-v3":
+      return "strict";
+    case "policy-conservative-v2":
+      return "regulated";
+    case "policy-experimental":
+      return "experimental";
+    default:
+      return "current";
+  }
 }
 
 export function computeSimulationDelta(
@@ -73,6 +103,7 @@ export function synthesiseReplay(
 } {
   const tier = countryTier(workspaceCase.country);
   const completeness = docCompleteness(workspaceCase);
+  const policyMode = resolvePolicyMode(policy);
 
   const originalOutcome: RiskOutcome =
     completeness >= 0.75 && tier !== "C"
@@ -91,9 +122,15 @@ export function synthesiseReplay(
   let replayedConfidence = originalConfidence;
   const reasoning: ReasoningStep[] = [];
 
-  if (policy.id === "policy-current") {
+  if (policyMode === "current" || policyMode === "baseline") {
     reasoning.push(
-      { label: `Country tier ${tier} · standard weighting`, signal: "neutral" },
+      {
+        label:
+          policyMode === "baseline"
+            ? `Country tier ${tier} · baseline weighting`
+            : `Country tier ${tier} · standard weighting`,
+        signal: "neutral",
+      },
       {
         label:
           completeness >= 0.75
@@ -101,7 +138,13 @@ export function synthesiseReplay(
             : "Document set thin · flagged for review",
         signal: completeness >= 0.75 ? "positive" : "negative",
       },
-      { label: "Live policy heuristics applied", signal: "neutral" },
+      {
+        label:
+          policyMode === "baseline"
+            ? "Baseline template heuristics applied"
+            : "Live policy heuristics applied",
+        signal: "neutral",
+      },
     );
     replayedConfidence = Math.max(
       40,
@@ -111,16 +154,16 @@ export function synthesiseReplay(
           deterministicConfidenceOffset(`${workspaceCase.ref}:${policy.id}`),
       ),
     );
-  } else if (policy.id === "policy-draft-v3") {
+  } else if (policyMode === "strict") {
     reasoning.push(
       {
-        label: "Draft-v3 secondary reference letter requirement",
+        label: "Strict template secondary reference requirement",
         signal: "negative",
       },
       {
         label:
           tier === "C"
-            ? "Country tier C · escalated under draft-v3"
+            ? "Country tier C · escalated under strict template"
             : `Country tier ${tier} · within tolerance`,
         signal: tier === "C" ? "negative" : "neutral",
       },
@@ -144,10 +187,10 @@ export function synthesiseReplay(
     } else {
       replayedConfidence = Math.max(50, originalConfidence - 6);
     }
-  } else if (policy.id === "policy-conservative-v2") {
+  } else if (policyMode === "regulated") {
     reasoning.push(
       {
-        label: "Conservative-v2 disables all auto-approval paths",
+        label: "Regulated template disables auto-approval paths",
         signal: "negative",
       },
       { label: "Manual review mandatory regardless of signal", signal: "neutral" },
@@ -165,7 +208,7 @@ export function synthesiseReplay(
     } else {
       replayedConfidence = Math.min(98, originalConfidence + 6);
     }
-  } else if (policy.id === "policy-experimental") {
+  } else if (policyMode === "experimental") {
     reasoning.push(
       {
         label:
