@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Multimodal Agent Dashboard</title>
+    <title>AI Action Desk Legacy Dashboard</title>
     <link rel="stylesheet" href="/styles.css?v=20260316" />
     <link rel="stylesheet" href="/storyteller-runtime-tail.css?v=20260316" />
     <link rel="stylesheet" href="/storyteller-header-nav-authority.css?v=20260316g" />
@@ -26,7 +26,7 @@
     <main class="layout">
       <header class="hero">
         <div class="hero-headline">
-          <h1 id="heroTitle" data-i18n="hero.title">Multimodal Agent Dashboard</h1>
+          <h1 id="heroTitle" data-i18n="hero.title">AI Action Desk Legacy Dashboard</h1>
           <div class="hero-toolbar">
             <label class="hero-language-control" for="languageModeSelect">
               <span id="languageModeLabel" data-i18n="hero.languageLabel">Language</span>
@@ -35,11 +35,15 @@
                 <option value="ru">&#1056;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081;</option>
               </select>
             </label>
+            <a id="openAppLink" class="button-muted hero-open-app-link" href="/app">Open Action Desk</a>
             <button id="themeToggleBtn" type="button" class="button-muted">Switch to Light Theme</button>
           </div>
         </div>
         <p id="heroSubtitle" class="hero-sub" data-i18n="hero.subtitle">
-          One clean workspace for live chat, stories, operations, and device nodes.
+          Compatibility dashboard for runtime-safe checks, evidence review, and older walkthroughs.
+        </p>
+        <p id="legacyCompatibilityNote" class="hero-legacy-note">
+          The primary Action Desk workspace now lives at /app. Keep /legacy for compatibility fallback only.
         </p>
         <section class="dashboard-workspace-summary" aria-label="Active workspace overview">
           <div class="dashboard-workspace-head">

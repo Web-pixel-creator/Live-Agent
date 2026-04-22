@@ -171,14 +171,28 @@ const DIRECT_GEMINI_LIVE_WEBSOCKET_BASE_URL = "wss://generativelanguage.googleap
 function getHeroCopy(languageMode) {
   if (languageMode === "ru") {
     return {
-      title: "\u041f\u0430\u043d\u0435\u043b\u044c \u043c\u0443\u043b\u044c\u0442\u0438\u043c\u043e\u0434\u0430\u043b\u044c\u043d\u043e\u0433\u043e \u0430\u0433\u0435\u043d\u0442\u0430",
+      title: "AI Action Desk Legacy Dashboard",
       subtitle:
-        "\u041e\u0434\u043d\u0430 \u0447\u0438\u0441\u0442\u0430\u044f \u043f\u0430\u043d\u0435\u043b\u044c \u0434\u043b\u044f \u0434\u0438\u0430\u043b\u043e\u0433\u0430, \u0438\u0441\u0442\u043e\u0440\u0438\u0439, \u043e\u043f\u0435\u0440\u0430\u0446\u0438\u0439 \u0438 \u0443\u0437\u043b\u043e\u0432 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432.",
+        "\u0421\u043e\u0432\u043c\u0435\u0441\u0442\u0438\u043c\u044b\u0439 dashboard \u0434\u043b\u044f runtime-\u043f\u0440\u043e\u0432\u0435\u0440\u043e\u043a, evidence-\u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440\u0430 \u0438 \u0441\u0442\u0430\u0440\u044b\u0445 walkthrough.",
     };
   }
   return {
-    title: "Multimodal Agent Dashboard",
-    subtitle: "One clean workspace for live chat, stories, operations, and device nodes.",
+    title: "AI Action Desk Legacy Dashboard",
+    subtitle: "Compatibility dashboard for runtime-safe checks, evidence review, and older walkthroughs.",
+  };
+}
+
+function getLegacyCompatibilityCopy(languageMode) {
+  if (languageMode === "ru") {
+    return {
+      note:
+        "\u041e\u0441\u043d\u043e\u0432\u043d\u0430\u044f \u0440\u0430\u0431\u043e\u0447\u0430\u044f \u0437\u043e\u043d\u0430 Action Desk \u0442\u0435\u043f\u0435\u0440\u044c \u043e\u0442\u043a\u0440\u044b\u0432\u0430\u0435\u0442\u0441\u044f \u043d\u0430 /app. \u042d\u043a\u0440\u0430\u043d /legacy \u043e\u0441\u0442\u0430\u0432\u043b\u0435\u043d \u0442\u043e\u043b\u044c\u043a\u043e \u043a\u0430\u043a \u0441\u043e\u0432\u043c\u0435\u0441\u0442\u0438\u043c\u044b\u0439 fallback.",
+      cta: "\u041e\u0442\u043a\u0440\u044b\u0442\u044c Action Desk",
+    };
+  }
+  return {
+    note: "The primary Action Desk workspace now lives at /app. Keep /legacy for compatibility fallback only.",
+    cta: "Open Action Desk",
   };
 }
 
@@ -3065,6 +3079,8 @@ const el = {
   languageModeSelect: document.getElementById("languageModeSelect"),
   heroTitle: document.getElementById("heroTitle"),
   heroSubtitle: document.getElementById("heroSubtitle"),
+  legacyCompatibilityNote: document.getElementById("legacyCompatibilityNote"),
+  openAppLink: document.getElementById("openAppLink"),
   wsUrl: document.getElementById("wsUrl"),
   apiBaseUrl: document.getElementById("apiBaseUrl"),
   userId: document.getElementById("userId"),
@@ -9054,6 +9070,7 @@ function applyLanguageMode(languageMode, options = {}) {
   const persist = options.persist === true;
   const announce = options.announce === true;
   const heroCopy = getHeroCopy(normalizedMode);
+  const legacyCompatibilityCopy = getLegacyCompatibilityCopy(normalizedMode);
   const previousStoryModeConfig = getStoryComposerModeConfig(state.storyComposerMode);
   state.languageMode = normalizedMode;
   document.documentElement.lang = normalizedMode;
@@ -9068,6 +9085,12 @@ function applyLanguageMode(languageMode, options = {}) {
   }
   if (el.heroSubtitle instanceof HTMLElement) {
     el.heroSubtitle.textContent = heroCopy.subtitle;
+  }
+  if (el.legacyCompatibilityNote instanceof HTMLElement) {
+    el.legacyCompatibilityNote.textContent = legacyCompatibilityCopy.note;
+  }
+  if (el.openAppLink instanceof HTMLElement) {
+    el.openAppLink.textContent = legacyCompatibilityCopy.cta;
   }
   initFilePickerControls();
   syncAllCustomSelectControls();
