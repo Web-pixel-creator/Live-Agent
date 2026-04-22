@@ -143,6 +143,8 @@ test("simulation lab prefers runtime governance metadata for the live policy sna
   assert.match(simulationLab, /governancePolicyUpdates,/);
   assert.match(simulationLab, /buildSimulationPolicySnapshots\(\s*governancePolicy,\s*governanceTemplateCatalog,\s*governancePolicyUpdates,\s*\)/);
   assert.match(simulationLab, /buildRuntimeSimulationRuns\(cases, policies\)/);
+  assert.match(simulationLab, /findCase,/);
+  assert.match(simulationLab, /const c = findCase\(run\.caseRef\);/);
   assert.match(newReplaySheet, /policies: PolicySnapshot\[\];/);
   assert.match(newReplaySheet, /policies\.find\(\(policy\) => policy\.id === policyId\)/);
   assert.match(runDetailDrawer, /policies: PolicySnapshot\[\];/);

@@ -28,6 +28,7 @@ import {
 import {
   computeStats,
   deltaTone,
+  findCase,
   outcomeTone,
   simulationRuns as seedRuns,
   type PolicySnapshot,
