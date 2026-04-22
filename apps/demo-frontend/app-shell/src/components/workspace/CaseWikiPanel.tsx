@@ -20,6 +20,7 @@ import { toast } from "sonner";
 type CaseWikiPanelProps = {
   caseValue: WorkspaceCase;
   wiki: RuntimeCaseWiki | undefined;
+  embedded?: boolean;
 };
 
 function formatTimestamp(value: string | null | undefined): string {
@@ -83,7 +84,7 @@ function formatStatusLabel(value: string | null | undefined, fallback: string): 
   return value.replace(/[_-]+/g, " ").trim();
 }
 
-export const CaseWikiPanel = ({ caseValue, wiki }: CaseWikiPanelProps) => {
+export const CaseWikiPanel = ({ caseValue, wiki, embedded = false }: CaseWikiPanelProps) => {
   const bundlePath = buildCaseBundlePath(caseValue);
   const evidencePath = buildCaseEvidencePath(caseValue);
   const refs = collectCaseWikiRefs(wiki);
@@ -174,7 +175,14 @@ export const CaseWikiPanel = ({ caseValue, wiki }: CaseWikiPanelProps) => {
   };
 
   return (
-    <section className="relative mt-10 -mx-8 px-8 py-6 bg-secondary/[0.04] border-y border-border/50">
+    <section
+      id={embedded ? undefined : "case-wiki"}
+      className={
+        embedded
+          ? "relative scroll-mt-24 pl-4 pr-1 py-2"
+          : "relative mt-10 -mx-8 scroll-mt-24 px-8 py-6 bg-secondary/[0.04] border-y border-border/50"
+      }
+    >
       <span aria-hidden className={`absolute left-0 top-0 bottom-0 w-[3px] ${railColor}`} />
 
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">

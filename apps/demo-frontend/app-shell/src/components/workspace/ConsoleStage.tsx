@@ -26,7 +26,7 @@ import {
   Server,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   parseSlaMinutes,
@@ -43,6 +43,7 @@ import { STATUS_META } from "@/data/nodes";
 import { RequestDocSheet } from "./RequestDocSheet";
 import { StageIcon } from "./StageIcon";
 import { AwaitingClientSheet } from "./AwaitingClientSheet";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useVipCases } from "@/hooks/useVipCases";
@@ -100,6 +101,20 @@ interface ConsoleStageProps {
   caseRef?: string;
 }
 
+type ConsoleSupportingSection =
+  | "session-boundary"
+  | "case-wiki"
+  | "session-ops"
+  | "runtime-diagnostics";
+
+const SUPPORTING_SECTION_BY_HASH: Partial<Record<string, ConsoleSupportingSection>> = {
+  connections: "session-boundary",
+  "case-wiki": "case-wiki",
+  "session-ops": "session-ops",
+  "safety-rules": "runtime-diagnostics",
+  "health-check": "runtime-diagnostics",
+};
+
 export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
   const { deviceNodes, getCaseByRef, getCaseWikiByRef } = useWorkspaceRuntime();
   // Tab selection — defaults are picked by the smart-default effect below
@@ -116,6 +131,7 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
   const [hintHovered, setHintHovered] = useState(false);
   const [requestDoc, setRequestDoc] = useState<string | null>(null);
   const [awaitingDoc, setAwaitingDoc] = useState<string | null>(null);
+  const [expandedSupportSections, setExpandedSupportSections] = useState<ConsoleSupportingSection[]>([]);
   // Bulk request: which missing docs the operator has ticked, plus the
   // committed list passed into the sheet when "Request all" is clicked.
   const [selectedMissing, setSelectedMissing] = useState<Set<string>>(() => new Set());
@@ -166,6 +182,7 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
   };
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   // Deep-link target — when a caller (e.g. the "N requested" badge on the
   // Live Desk row) wants the operator to land directly on the Documents
   // section, they pass `?focus=documents`. We force the wiki open and
@@ -244,6 +261,23 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
     });
     return () => cancelAnimationFrame(id);
   }, [focusTarget, caseRef]);
+
+  useEffect(() => {
+    const targetHash = location.hash.replace(/^#/, "");
+    const nextSection = SUPPORTING_SECTION_BY_HASH[targetHash];
+    if (!nextSection) {
+      return;
+    }
+    setExpandedSupportSections((current) =>
+      current.includes(nextSection) ? current : [...current, nextSection],
+    );
+    const frameId = window.requestAnimationFrame(() => {
+      document
+        .getElementById(targetHash)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [location.hash]);
 
   // Smart default tab — when the operator switches between cases without an
   // explicit ?focus deep-link, show the tab that matters most: Documents if
@@ -1494,10 +1528,83 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
           </>
         )}
         </section>
-        <SessionBoundaryPanel caseValue={c} wiki={caseWiki} />
-        <CaseWikiPanel caseValue={c} wiki={caseWiki} />
-        <SessionOpsPanel caseValue={c} wiki={caseWiki} />
-        <RuntimeDiagnosticsPanels caseValue={c} />
+        <section className="mt-10 pb-10">
+          <div className="text-[10px] uppercase tracking-[0.22em] text-primary">
+            Runtime support
+          </div>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            Replay, Case Wiki, export, and diagnostics remain available here as supporting
+            surfaces. They stay collapsed by default so the approval path remains the first scan.
+          </p>
+
+          <Accordion
+            type="multiple"
+            value={expandedSupportSections}
+            onValueChange={(value) => setExpandedSupportSections(value as ConsoleSupportingSection[])}
+            className="mt-4 space-y-3"
+          >
+            <AccordionItem value="session-boundary" className="rounded-[24px] border border-border/60 bg-secondary/[0.04] px-5">
+              <div id="connections" className="scroll-mt-24" />
+              <AccordionTrigger className="py-4 hover:no-underline">
+                <div className="min-w-0 text-left">
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-primary">Session Boundary</div>
+                  <div className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                    Replay state, approval gate, proof ingress, and recovery path.
+                  </div>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pt-0 pb-1">
+                <SessionBoundaryPanel caseValue={c} wiki={caseWiki} embedded />
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="case-wiki" className="rounded-[24px] border border-border/60 bg-secondary/[0.04] px-5">
+              <div id="case-wiki" className="scroll-mt-24" />
+              <AccordionTrigger className="py-4 hover:no-underline">
+                <div className="min-w-0 text-left">
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-primary">Case Wiki</div>
+                  <div className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                    Repo-owned case memory, blocker, next action, and export posture.
+                  </div>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pt-0 pb-1">
+                <CaseWikiPanel caseValue={c} wiki={caseWiki} embedded />
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="session-ops" className="rounded-[24px] border border-border/60 bg-secondary/[0.04] px-5">
+              <div id="session-ops" className="scroll-mt-24" />
+              <AccordionTrigger className="py-4 hover:no-underline">
+                <div className="min-w-0 text-left">
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-primary">Operator Session Ops</div>
+                  <div className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                    Replay refresh, export controls, and proof metadata.
+                  </div>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pt-0 pb-1">
+                <SessionOpsPanel caseValue={c} wiki={caseWiki} embedded />
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="runtime-diagnostics" className="rounded-[24px] border border-border/60 bg-secondary/[0.04] px-5">
+              <div id="safety-rules" className="scroll-mt-24" />
+              <div id="health-check" className="scroll-mt-24" />
+              <AccordionTrigger className="py-4 hover:no-underline">
+                <div className="min-w-0 text-left">
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-primary">Runtime diagnostics</div>
+                  <div className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                    Workflow, guardrails, bootstrap doctor, and browser workers.
+                  </div>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pt-0 pb-1">
+                <RuntimeDiagnosticsPanels caseValue={c} embedded />
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </section>
       </div>
 
       <RequestDocSheet
