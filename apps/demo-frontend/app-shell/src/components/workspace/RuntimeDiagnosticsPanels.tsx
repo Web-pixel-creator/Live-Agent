@@ -557,7 +557,7 @@ export const RuntimeDiagnosticsPanels = ({
             ) : null}
           </div>
           <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-            The new app shell now keeps the legacy runtime moat inside the same operator workspace: repo-owned workflow control-plane state, runtime guardrails posture, bootstrap doctor/auth-profile readiness, and browser worker triage all live in `/app/console`.
+            The new app shell now keeps the legacy runtime moat inside the same operator workspace without changing the approval-first console layout: repo-owned workflow control-plane state, runtime guardrails posture, bootstrap doctor/auth-profile readiness, and browser worker triage now live on `/app/console/runtime`.
           </p>
         </div>
       </div>

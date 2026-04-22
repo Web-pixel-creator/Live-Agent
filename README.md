@@ -220,36 +220,32 @@ still operating without backend case memory.
 now use the same repo-owned case-artifact link helper, so jumps into
 `/bundle/:id` and `/evidence/:id` prefer runtime `caseId/sessionId` targets and
 only fall back to legacy refs when no runtime case identifier exists.
-`/app/console` now also exposes a runtime-backed `Case Wiki` panel inside the
-new shell: the console shows repo-owned blocker, next action, compliance/export
-readiness, evidence-signature posture, remediation draft, and copy/open actions
-for handoff and refs while keeping the same export gate behavior for blocked
-cases instead of falling back to the old `/legacy` operator surface.
-`/app/console` now also mirrors the repo-owned `Session Boundary` and
-`Operator Session Ops` surfaces inside the new shell: the console fetches
-`GET /v1/runtime/session-replay` for the active case session, shows replay
-state, approval gate, primary step, proof ingress (`contextSource` /
-`ingressSource`), recovery path, and structured `After refresh` follow-up
-paths, then keeps `Refresh replay`, `Refresh Case Wiki`, `Export Markdown`,
-and `Export JSON` in the same operator workspace without bouncing back to
-`/legacy`. The new export actions build repo-owned payloads from the current
-case, compiled `Case Wiki`, selected replay boundary, and compact runtime
-surface ingress, and they keep the same compliance gate semantics by returning
-the repo-owned blocked reason when `compliance.enforcement.exportReady=false`.
-`/app/console` now also carries the deeper runtime moat that used to live only
-in `/legacy`: `Workflow Runtime`, `Runtime Guardrails`, `Bootstrap Doctor`,
-and `Browser Workers` are rendered in the new shell and prefer repo-owned
-control-plane routes (`GET /v1/runtime/workflow-config`,
+`/app/console` now stays approval-first and matches the transferred design
+`1:1`: the main console stops after the approval hero, message card, actions,
+and `Case history` / `Documents` block. The deeper repo-owned runtime moat now
+lives on `/app/console/runtime`, so `Case Wiki`, `Session Boundary`,
+`Operator Session Ops`, `Workflow Runtime`, `Runtime Guardrails`,
+`Bootstrap Doctor`, and `Browser Workers` keep their functionality without
+changing the main console layout.
+`/app/console/runtime` now owns the repo-backed support surfaces: it fetches
+`GET /v1/runtime/session-replay` for replay state, approval gate, proof
+ingress (`contextSource` / `ingressSource`), recovery path, and structured
+`After refresh` follow-up paths; keeps `Refresh replay`, `Refresh Case Wiki`,
+`Export Markdown`, and `Export JSON` inside the same operator support route;
+and preserves the same compliance/export gate semantics by returning the
+repo-owned blocked reason when `compliance.enforcement.exportReady=false`.
+That support route also carries the deeper runtime control plane that used to
+live only in `/legacy`: `Workflow Runtime`, `Runtime Guardrails`,
+`Bootstrap Doctor`, and `Browser Workers` prefer repo-owned routes
+(`GET /v1/runtime/workflow-config`,
 `POST /v1/runtime/workflow-control-plane-override`,
 `GET /v1/runtime/bootstrap-status`, `GET /v1/runtime/auth-profiles`,
 `POST /v1/runtime/auth-profiles/rotate`, `GET /v1/runtime/browser-jobs`, and
-`POST /v1/runtime/browser-jobs/:jobId/resume|cancel`). That means workflow
-override clearing, auth-profile rotation, and browser-worker resume/cancel now
-work from the same `/app/console` surface instead of forcing operators back
-into `/legacy` for those runtime actions.
-Those same runtime cards now also own the surviving operator jump targets:
-`Action queue`, `Connections`, `Safety rules`, and `Health check` deep-link
-into anchored sections of `/app/console` instead of relying on legacy-only
+`POST /v1/runtime/browser-jobs/:jobId/resume|cancel`).
+Operator helper entries now split cleanly by intent: `Live activity` and
+`Action queue` deep-link into anchored sections of the main `/app/console`
+screen, while `Connections`, `Safety rules`, and `Health check` deep-link into
+anchored sections of `/app/console/runtime` instead of relying on legacy-only
 placeholder navigation.
 `Simulation Lab` now also overlays the live `policy-current` snapshot from
 repo-owned governance runtime data (`/v1/governance/policy`) and the real

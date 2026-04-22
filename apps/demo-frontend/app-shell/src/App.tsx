@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { WorkspaceRuntimeProvider } from "@/hooks/useWorkspaceRuntime";
 import Workspace from "./pages/Workspace.tsx";
 import Console from "./pages/Console.tsx";
+import ConsoleRuntime from "./pages/ConsoleRuntime.tsx";
 import Simulation from "./pages/Simulation.tsx";
 import Nodes from "./pages/Nodes.tsx";
 import Bundle from "./pages/Bundle.tsx";
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/" element={<Navigate replace to="/app" />} />
             <Route path="/app" element={<Workspace />} />
             <Route path="/app/console" element={<Console />} />
+            <Route path="/app/console/runtime" element={<ConsoleRuntime />} />
             <Route path="/app/simulation" element={<Simulation />} />
             <Route path="/app/nodes" element={<Nodes />} />
             <Route path="/bundle" element={<Bundle />} />

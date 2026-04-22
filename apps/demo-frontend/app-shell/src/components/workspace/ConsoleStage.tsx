@@ -51,10 +51,6 @@ import {
   buildCaseBundlePath,
   buildCaseEvidencePath,
 } from "@/lib/case-artifact-links";
-import { CaseWikiPanel } from "@/components/workspace/CaseWikiPanel";
-import { RuntimeDiagnosticsPanels } from "@/components/workspace/RuntimeDiagnosticsPanels";
-import { SessionBoundaryPanel } from "@/components/workspace/SessionBoundaryPanel";
-import { SessionOpsPanel } from "@/components/workspace/SessionOpsPanel";
 
 // Format an ISO timestamp into a compact "Jun 24 · 14:00" label for the timeline.
 const formatEventTime = (iso: string) => {
@@ -101,7 +97,7 @@ interface ConsoleStageProps {
 }
 
 export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
-  const { deviceNodes, getCaseByRef, getCaseWikiByRef } = useWorkspaceRuntime();
+  const { deviceNodes, getCaseByRef } = useWorkspaceRuntime();
   // Tab selection — defaults are picked by the smart-default effect below
   // based on whether the case has missing docs. Initial values here are just
   // placeholders before the case is resolved.
@@ -187,7 +183,6 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
   // Resolve case from the workspace dataset, then layer on any operator
   // requests issued during this session (missing→review + timeline events).
   const baseCase = getCaseByRef(caseRef);
-  const caseWiki = getCaseWikiByRef(baseCase?.caseId ?? baseCase?.sessionId ?? caseRef);
   const sessionReqs = useCaseRequests(caseRef);
   const c = baseCase ? applyRequestOverrides(baseCase, sessionReqs) : undefined;
 
@@ -1494,10 +1489,6 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
           </>
         )}
         </section>
-        <SessionBoundaryPanel caseValue={c} wiki={caseWiki} />
-        <CaseWikiPanel caseValue={c} wiki={caseWiki} />
-        <SessionOpsPanel caseValue={c} wiki={caseWiki} />
-        <RuntimeDiagnosticsPanels caseValue={c} />
       </div>
 
       <RequestDocSheet

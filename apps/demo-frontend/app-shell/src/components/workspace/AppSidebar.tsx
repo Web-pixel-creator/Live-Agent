@@ -68,9 +68,9 @@ const operatorSurfaces: {
   tone?: BadgeTone;
 }[] = [
   // Live activity → the case stream the operator sees first.
-  { label: "Live activity", icon: Activity, url: "/app" },
+  { label: "Live activity", icon: Activity, url: "/app/console#live-activity" },
   // Connections → device/node fleet that feeds events into the desk.
-  { label: "Connections", icon: Plug, url: "/app/console#connections" },
+  { label: "Connections", icon: Plug, url: "/app/console/runtime#connections" },
   // Action queue → pending approvals, jumps straight to the first one.
   {
     label: "Action queue",
@@ -78,9 +78,9 @@ const operatorSurfaces: {
     url: "/app/console#action-queue",
   },
   // Safety rules → policy snapshots are governed in Simulation Lab.
-  { label: "Safety rules", icon: ShieldCheck, url: "/app/console#safety-rules" },
+  { label: "Safety rules", icon: ShieldCheck, url: "/app/console/runtime#safety-rules" },
   // Health check → fleet health lives in Device Nodes.
-  { label: "Health check", icon: HeartPulse, url: "/app/console#health-check" },
+  { label: "Health check", icon: HeartPulse, url: "/app/console/runtime#health-check" },
 ];
 
 const judgeArtifacts: { label: string; icon: typeof FileText; count?: number; tone?: BadgeTone; url?: string }[] = [
@@ -216,7 +216,10 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
               {runtimeSections.map((s) => {
-                const active = pathname === s.url;
+                const active =
+                  s.title === "Operator Console"
+                    ? pathname.startsWith("/app/console")
+                    : pathname === s.url;
                 // Sub-menu stays open when the operator is anywhere a sub
                 // entry points to — so e.g. on /app/simulation the operator
                 // still sees "Safety rules" highlighted under Console. This

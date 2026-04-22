@@ -6,17 +6,28 @@ import { RuntimeRail } from "@/components/workspace/RuntimeRail";
 import { ConsoleStage } from "@/components/workspace/ConsoleStage";
 import { CommandPalette } from "@/components/workspace/CommandPalette";
 import { ShortcutsOverlay } from "@/components/workspace/ShortcutsOverlay";
-import { useLocation, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
 
 const Console = () => {
   const [params] = useSearchParams();
   const { hash } = useLocation();
+  const navigate = useNavigate();
   const { defaultConsoleCaseRef } = useWorkspaceRuntime();
   const caseRef = params.get("ref") || defaultConsoleCaseRef || "VS-2841";
 
   useEffect(() => {
-    if (!hash) {
+    if (!["#connections", "#safety-rules", "#health-check"].includes(hash)) {
+      return;
+    }
+    const search = params.toString();
+    navigate(`/app/console/runtime${search ? `?${search}` : ""}${hash}`, {
+      replace: true,
+    });
+  }, [hash, navigate, params]);
+
+  useEffect(() => {
+    if (!hash || ["#connections", "#safety-rules", "#health-check"].includes(hash)) {
       return;
     }
     const targetId = hash.replace(/^#/, "");

@@ -20,11 +20,13 @@ test("app shell wraps routes with the workspace runtime provider", () => {
   assert.match(source, /import \{ WorkspaceRuntimeProvider \} from "@\/hooks\/useWorkspaceRuntime";/);
   assert.match(source, /<WorkspaceRuntimeProvider>/);
   assert.match(source, /<\/WorkspaceRuntimeProvider>/);
+  assert.match(source, /<Route path="\/app\/console\/runtime" element=\{<ConsoleRuntime \/>} \/>/);
 });
 
 test("live desk and console surfaces prefer repo-owned runtime data with draft fallback support", () => {
   const liveDesk = readAppShellSource("components/workspace/LiveDesk.tsx");
   const consoleStage = readAppShellSource("components/workspace/ConsoleStage.tsx");
+  const consoleRuntime = readAppShellSource("pages/ConsoleRuntime.tsx");
   const caseWikiPanel = readAppShellSource("components/workspace/CaseWikiPanel.tsx");
   const runtimeDiagnosticsPanels = readAppShellSource("components/workspace/RuntimeDiagnosticsPanels.tsx");
   const sessionBoundaryPanel = readAppShellSource("components/workspace/SessionBoundaryPanel.tsx");
@@ -37,20 +39,22 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(liveDesk, /addDraftCase\(draft\);/);
   assert.match(liveDesk, /deviceNodes\.find\(\(n\) => n\.id === nodeFilterId\)/);
 
-  assert.match(consoleStage, /const \{ deviceNodes, getCaseByRef, getCaseWikiByRef \} = useWorkspaceRuntime\(\);/);
+  assert.match(consoleStage, /const \{ deviceNodes, getCaseByRef \} = useWorkspaceRuntime\(\);/);
   assert.match(consoleStage, /const baseCase = getCaseByRef\(caseRef\);/);
-  assert.match(consoleStage, /const caseWiki = getCaseWikiByRef\(baseCase\?\.caseId \?\? baseCase\?\.sessionId \?\? caseRef\);/);
   assert.match(consoleStage, /deviceNodes\.find\(\(n\) => n\.id === c\.sourceNodeId\)/);
   assert.match(consoleStage, /id="action-queue"/);
   assert.match(consoleStage, /id="live-activity"/);
-  assert.match(consoleStage, /<SessionBoundaryPanel caseValue=\{c\} wiki=\{caseWiki\} \/>/);
-  assert.match(consoleStage, /<CaseWikiPanel caseValue=\{c\} wiki=\{caseWiki\} \/>/);
-  assert.match(consoleStage, /<SessionOpsPanel caseValue=\{c\} wiki=\{caseWiki\} \/>/);
-  assert.match(consoleStage, /<RuntimeDiagnosticsPanels caseValue=\{c\} \/>/);
-  assert.ok(
-    consoleStage.indexOf('id="live-activity"') < consoleStage.indexOf("<SessionBoundaryPanel caseValue={c} wiki={caseWiki} />"),
-    "Documents/activity section should render before Session Boundary in the approval-first console layout",
-  );
+  assert.doesNotMatch(consoleStage, /SessionBoundaryPanel/);
+  assert.doesNotMatch(consoleStage, /CaseWikiPanel/);
+  assert.doesNotMatch(consoleStage, /SessionOpsPanel/);
+  assert.doesNotMatch(consoleStage, /RuntimeDiagnosticsPanels/);
+  assert.match(consoleRuntime, /const \{ defaultConsoleCaseRef, getCaseByRef, getCaseWikiByRef \} = useWorkspaceRuntime\(\);/);
+  assert.match(consoleRuntime, /<Topbar section="Operator Runtime" caseRef=\{caseRef\} \/>/);
+  assert.match(consoleRuntime, /<SessionBoundaryPanel caseValue=\{runtimeCase\} wiki=\{wiki\} \/>/);
+  assert.match(consoleRuntime, /<CaseWikiPanel caseValue=\{runtimeCase\} wiki=\{wiki\} \/>/);
+  assert.match(consoleRuntime, /<SessionOpsPanel caseValue=\{runtimeCase\} wiki=\{wiki\} \/>/);
+  assert.match(consoleRuntime, /<RuntimeDiagnosticsPanels caseValue=\{runtimeCase\} \/>/);
+  assert.match(consoleRuntime, /navigate\(`\/app\/console\$\{search \? `\?\$\{search\}` : ""\}\$\{hash\}`/);
   assert.match(caseWikiPanel, /Copy handoff/);
   assert.match(caseWikiPanel, /Copy refs/);
   assert.match(caseWikiPanel, /Open bundle/);
@@ -103,6 +107,8 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
 
   assert.match(consolePage, /const \{ defaultConsoleCaseRef \} = useWorkspaceRuntime\(\);/);
   assert.match(consolePage, /const \{ hash \} = useLocation\(\);/);
+  assert.match(consolePage, /const navigate = useNavigate\(\);/);
+  assert.match(consolePage, /navigate\(`\/app\/console\/runtime\$\{search \? `\?\$\{search\}` : ""\}\$\{hash\}`/);
   assert.match(consolePage, /document\s*\.getElementById\(targetId\)\s*\?\.scrollIntoView/);
   assert.match(consolePage, /const caseRef = params\.get\("ref"\) \|\| defaultConsoleCaseRef \|\| "VS-2841";/);
 });
@@ -120,11 +126,13 @@ test("shared app shell chrome reads runtime-backed counts, nodes, and diagnostic
   assert.match(sidebar, /const \{\s+cases,\s+deviceNodes,\s+pendingApprovals,\s+activeCaseCount,\s+pendingApprovalCount,/);
   assert.match(sidebar, /const runtimeSections: Section\[\] = \[/);
   assert.match(sidebar, /const runtimeOperatorSurfaces = operatorSurfaces\.map/);
-  assert.match(sidebar, /Connections", icon: Plug, url: "\/app\/console#connections"/);
+  assert.match(sidebar, /Live activity", icon: Activity, url: "\/app\/console#live-activity"/);
+  assert.match(sidebar, /Connections", icon: Plug, url: "\/app\/console\/runtime#connections"/);
   assert.match(sidebar, /Action queue"[\s\S]*url: "\/app\/console#action-queue"/);
-  assert.match(sidebar, /Safety rules", icon: ShieldCheck, url: "\/app\/console#safety-rules"/);
-  assert.match(sidebar, /Health check", icon: HeartPulse, url: "\/app\/console#health-check"/);
+  assert.match(sidebar, /Safety rules", icon: ShieldCheck, url: "\/app\/console\/runtime#safety-rules"/);
+  assert.match(sidebar, /Health check", icon: HeartPulse, url: "\/app\/console\/runtime#health-check"/);
   assert.match(sidebar, /const \{ pathname, hash \} = useLocation\(\);/);
+  assert.match(sidebar, /pathname\.startsWith\("\/app\/console"\)/);
   assert.match(sidebar, /\/app\/console\?ref=\$\{encodeURIComponent\(firstPendingRef\)\}#action-queue/);
 
   assert.match(palette, /const \{ cases, pendingApprovals \} = useWorkspaceRuntime\(\);/);
