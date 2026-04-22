@@ -193,7 +193,8 @@ labels itself as `AI Action Desk Legacy Dashboard` and links operators back to
 now defaults to `Operator Console` and keeps `Device Nodes` as the remaining
 runtime fallback tab, while `Live` and `Simulation Lab` stay in the new `/app`
 workspace, with the hidden live/story panels no longer running their legacy
-render loops in the background. Judge/demo evidence surfaces stay at `/bundle/:id` and
+render loops or binding their compatibility-only controls in the background.
+Judge/demo evidence surfaces stay at `/bundle/:id` and
 `/evidence/:id`.
 Inside that app shell, `Live Desk`, `Operator Console`, runtime chrome, and
 node detail rails now prefer repo-owned runtime data from

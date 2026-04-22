@@ -44711,6 +44711,8 @@ function bindEvents() {
     const target = button.dataset.tabTarget ?? "";
     return !button.hidden && target.length > 0 && tabContents.some((section) => section.dataset.tab === target);
   });
+  const shouldBindLegacyLiveSurface = shouldRenderLegacyCompatibilitySurface("live-negotiator");
+  const shouldBindLegacyStorySurface = shouldRenderLegacyCompatibilitySurface("storyteller");
 
   const resolveTabButtonIndex = (button) => orderedTabButtons.findIndex((candidate) => candidate === button);
   const bindDashboardActionButton = (button) => {
@@ -44784,9 +44786,12 @@ function bindEvents() {
     syncOperatorMobileDockVisibility();
     syncOperatorBoardCardPresentationTitles();
     syncOperatorSignalStripSurface();
-    renderStoryModeRail();
-    renderStorySignalStrip();
+    if (shouldBindLegacyStorySurface) {
+      renderStoryModeRail();
+      renderStorySignalStrip();
+    }
   });
+  if (shouldBindLegacyLiveSurface) {
   const orderedLiveContextDockButtons = getLiveContextDockOrderedButtons();
   const focusLiveContextDockButtonByIndex = (index) => {
     if (orderedLiveContextDockButtons.length === 0) {
@@ -45261,6 +45266,7 @@ function bindEvents() {
   document.getElementById("interruptBtn").addEventListener("click", interruptAssistant);
   document.getElementById("fallbackBtn").addEventListener("click", toggleFallbackMode);
   document.getElementById("refreshTasksBtn").addEventListener("click", refreshActiveTasks);
+  }
   document.getElementById("operatorRefreshBtn").addEventListener("click", () => {
     void refreshOperatorSummary({ markUserRefresh: true });
   });
@@ -46150,12 +46156,15 @@ function bindEvents() {
       renderDeviceNodeList(Array.from(state.deviceNodes.values()));
     });
   }
-  [el.targetPrice, el.targetDelivery, el.targetSla].forEach((input) => {
-    input.addEventListener("input", evaluateConstraints);
-  });
-  if (el.intent) {
-    el.intent.addEventListener("change", setUiTaskFieldsVisibility);
+  if (shouldBindLegacyLiveSurface) {
+    [el.targetPrice, el.targetDelivery, el.targetSla].forEach((input) => {
+      input.addEventListener("input", evaluateConstraints);
+    });
+    if (el.intent) {
+      el.intent.addEventListener("change", setUiTaskFieldsVisibility);
+    }
   }
+  if (shouldBindLegacyStorySurface) {
   if (el.storyModeRail instanceof HTMLElement) {
     for (const button of Array.from(el.storyModeRail.querySelectorAll("[data-story-mode]"))) {
       if (!(button instanceof HTMLButtonElement)) {
@@ -46242,12 +46251,15 @@ function bindEvents() {
   if (el.storyTimelineGuideTemplateBtn) {
     el.storyTimelineGuideTemplateBtn.addEventListener("click", submitStoryComposerRequest);
   }
+  }
 }
 
 async function bootstrap() {
   ensureOperatorMobileDockMounted();
   const initialTabId = readTabIdFromHash() ?? readStoredTabId();
   setActiveTab(initialTabId, { syncHash: false });
+  const shouldBootstrapLegacyLiveSurface = shouldRenderLegacyCompatibilitySurface("live-negotiator");
+  const shouldBootstrapLegacyStorySurface = shouldRenderLegacyCompatibilitySurface("storyteller");
 
   enhanceSelectControls();
   observeCustomSelectControls();
@@ -46274,12 +46286,16 @@ async function bootstrap() {
   applyThemeMode(readStoredThemeMode(), { persist: false, announce: false });
   setConnectionStatus("disconnected");
   setExportStatus("idle");
-  renderLiveModeStatus();
+  if (shouldBootstrapLegacyLiveSurface) {
+    renderLiveModeStatus();
+  }
   updatePttUi();
   setStatusPill(el.constraintStatus, "Waiting for offer", "neutral");
   setFallbackAsset(false);
-  setStoryTimelineData();
-  applyStoryComposerMode(state.storyComposerMode, { force: true });
+  if (shouldBootstrapLegacyStorySurface) {
+    setStoryTimelineData();
+    applyStoryComposerMode(state.storyComposerMode, { force: true });
+  }
   clearPendingApproval();
   resetOperatorHealthWidget("no_data");
   resetOperatorDeviceNodeUpdatesWidget("no_data");
@@ -46298,12 +46314,16 @@ async function bootstrap() {
   state.operatorPurposeDeclaration = readStoredOperatorPurposeDeclaration();
   setOperatorLastRefreshState("pending");
   renderTaskList();
-  evaluateConstraints();
+  if (shouldBootstrapLegacyLiveSurface) {
+    evaluateConstraints();
+  }
   setActiveTab(readStoredTabId(), { syncHash: false });
-  mountLiveContextDockPanels();
-  setUiTaskFieldsVisibility();
-  renderLiveIntentExperience();
-  initBackgroundVideoLoopBlend();
+  if (shouldBootstrapLegacyLiveSurface) {
+    mountLiveContextDockPanels();
+    setUiTaskFieldsVisibility();
+    renderLiveIntentExperience();
+    initBackgroundVideoLoopBlend();
+  }
   state.deviceNodeListFilter = normalizeDeviceNodeListFilter(
     el.deviceNodeListFilter ? el.deviceNodeListFilter.value : state.deviceNodeListFilter,
   );

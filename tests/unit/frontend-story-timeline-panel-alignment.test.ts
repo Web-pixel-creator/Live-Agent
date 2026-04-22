@@ -259,7 +259,9 @@ test("demo frontend wires prompt-first storyteller studio across UI/runtime/docs
     "frontend runtime missing Story Studio compact mobile delivery helper",
   );
   assert.ok(
-    app.includes("renderStoryModeRail();\n    renderStorySignalStrip();"),
+    app.includes(
+      "if (shouldBindLegacyStorySurface) {\n      renderStoryModeRail();\n      renderStorySignalStrip();\n    }",
+    ),
     "frontend runtime missing Story Studio responsive copy rerender on resize",
   );
   assert.ok(
