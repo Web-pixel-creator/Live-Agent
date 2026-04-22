@@ -15,7 +15,7 @@ test("demo frontend package builds the app shell before compiling the server", (
   assert.equal(pkg.scripts?.["dev:app-shell"], "vite -c vite.app-shell.config.ts");
 });
 
-test("demo frontend server keeps legacy root and serves the app shell on new routes", () => {
+test("demo frontend server redirects root to /app and keeps legacy on /legacy", () => {
   const serverPath = resolve(process.cwd(), "apps", "demo-frontend", "src", "server.ts");
   const source = readFileSync(serverPath, "utf8");
 
@@ -24,6 +24,9 @@ test("demo frontend server keeps legacy root and serves the app shell on new rou
   assert.match(source, /const appShellIndexPath = path\.resolve\(appShellDir, "index\.html"\);/);
   assert.match(source, /function isAppShellDocumentRoute\(urlPath: string\): boolean/);
   assert.match(source, /function isAppShellAssetRoute\(urlPath: string\): boolean/);
+  assert.match(source, /req\.method === "GET" && \(req\.url === "\/" \|\| req\.url\?\.startsWith\("\/\?"\)\)/);
+  assert.match(source, /res\.setHeader\("Location", `\/app\$\{query\}`\);/);
+  assert.match(source, /requestPath === "\/legacy" \|\| requestPath === "\/legacy\/"/);
   assert.match(source, /filePath = appShellIndexPath;/);
   assert.match(source, /filePath = legacyIndexPath;/);
 });

@@ -16,7 +16,7 @@ Product framing for operators:
 
 ## Access Points
 
-1. Frontend: `http://localhost:3000`
+1. Frontend: `http://localhost:3000/app`
 2. API summary: `GET /v1/operator/summary`
 3. Operator queue: `GET /v1/operator/queue`
 4. Operator actions: `POST /v1/operator/actions`

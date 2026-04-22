@@ -29,15 +29,16 @@ before dispatching `orchestrator.request`. Local development assumes
 `API_BACKEND_BASE_URL=http://localhost:8081`; override that env var if your API
 is bound elsewhere.
 
-Frontend: `http://localhost:3000`
+Frontend: `http://localhost:3000/app`
 
 Route guide:
 
-1. `http://localhost:3000/` keeps the legacy static dashboard/runtime surfaces.
-2. `http://localhost:3000/app` serves the new Action Desk workspace shell.
-3. `http://localhost:3000/bundle/<id>` serves the public presentation bundle surface.
-4. `http://localhost:3000/evidence/<id>` serves the evidence viewer shell.
-5. `Live Desk`, `Operator Console`, runtime chrome, and node detail rails in
+1. `http://localhost:3000/` redirects to the new Action Desk workspace shell.
+2. `http://localhost:3000/app` serves the primary Action Desk workspace shell.
+3. `http://localhost:3000/legacy` keeps the legacy static dashboard/runtime surfaces.
+4. `http://localhost:3000/bundle/<id>` serves the public presentation bundle surface.
+5. `http://localhost:3000/evidence/<id>` serves the evidence viewer shell.
+6. `Live Desk`, `Operator Console`, runtime chrome, and node detail rails in
    that app shell prefer repo-owned runtime data from `/v1/operator/summary`,
    `/v1/sessions`, `/v1/runtime/case-wiki`, and `/v1/device-nodes`, with
    `GET /config.json` + `FRONTEND_API_BASE_URL` used when the frontend runs

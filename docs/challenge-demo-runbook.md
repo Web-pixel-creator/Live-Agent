@@ -357,7 +357,7 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
     - `workload.gateway_replay.contract.taskStartedExactlyOneAll`
     - `workload.ui.adapterMode.remote_http`
 
-3. Open `http://localhost:3000` and confirm:
+3. Open `http://localhost:3000/app` and confirm:
 - `Connection status` changes to `connected`.
 - KPI panel is visible (`target/current/final`).
 - `Approval Control` panel is visible.

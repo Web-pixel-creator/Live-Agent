@@ -184,10 +184,11 @@ npm run dev:ui-executor
 ```bash
 npm run dev:frontend
 ```
-Open `http://localhost:3000`.
-The legacy dashboard root still lives at `/` for runtime-safe compatibility, while
-the new Action Desk app shell is now served at `/app` with judge/demo evidence
-surfaces at `/bundle/:id` and `/evidence/:id`.
+Open `http://localhost:3000/app`.
+`/` now redirects to the new Action Desk app shell at `/app`, while the legacy
+runtime-safe dashboard remains available on `/legacy` for compatibility and
+older walkthroughs. Judge/demo evidence surfaces stay at `/bundle/:id` and
+`/evidence/:id`.
 Inside that app shell, `Live Desk`, `Operator Console`, runtime chrome, and
 node detail rails now prefer repo-owned runtime data from
 `/v1/operator/summary`, `/v1/sessions`, `/v1/runtime/case-wiki`, and

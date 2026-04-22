@@ -44,6 +44,14 @@ function isAppShellAssetRoute(urlPath: string): boolean {
 }
 
 const server = createServer(async (req, res) => {
+  if (req.method === "GET" && (req.url === "/" || req.url?.startsWith("/?"))) {
+    const query = req.url.length > 1 ? req.url.slice(1) : "";
+    res.statusCode = 302;
+    res.setHeader("Location", `/app${query}`);
+    res.end();
+    return;
+  }
+
   if (req.method === "GET" && req.url === "/config.json") {
     res.statusCode = 200;
     res.setHeader("Cache-Control", "no-store");
@@ -74,6 +82,9 @@ const server = createServer(async (req, res) => {
 
   if (isAppShellDocumentRoute(requestPath) && existsSync(appShellIndexPath)) {
     filePath = appShellIndexPath;
+    allowFallbackIndex = false;
+  } else if ((requestPath === "/legacy" || requestPath === "/legacy/") && existsSync(legacyIndexPath)) {
+    filePath = legacyIndexPath;
     allowFallbackIndex = false;
   } else if (isAppShellAssetRoute(requestPath)) {
     const assetPath = requestPath === "/app-shell" ? "/app-shell/index.html" : requestPath;
@@ -117,5 +128,5 @@ const server = createServer(async (req, res) => {
 
 server.listen(port, () => {
   console.log(`[demo-frontend] listening on :${port}`);
-  console.log(`[demo-frontend] open http://localhost:${port}`);
+  console.log(`[demo-frontend] open http://localhost:${port}/app`);
 });
