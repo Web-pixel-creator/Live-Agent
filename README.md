@@ -194,6 +194,9 @@ now defaults to `Operator Console` and keeps `Device Nodes` as the remaining
 runtime fallback tab, while `Live` and `Simulation Lab` stay in the new `/app`
 workspace, with the hidden live/story panels no longer running their legacy
 render loops or binding their compatibility-only controls in the background.
+Legacy quick-start actions that still depend on those primary surfaces now
+redirect operators back into `/app` instead of trying to revive hidden legacy
+flows.
 Judge/demo evidence surfaces stay at `/bundle/:id` and
 `/evidence/:id`.
 Inside that app shell, `Live Desk`, `Operator Console`, runtime chrome, and

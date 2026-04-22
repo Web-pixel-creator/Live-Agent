@@ -35,8 +35,11 @@ test("legacy demo frontend is framed as a compatibility dashboard with a path ba
     'button.hidden = !isAllowed;',
     'panel.hidden = !isAllowed;',
     'function shouldRenderLegacyCompatibilitySurface(surfaceId) {',
+    'function openPrimaryActionDeskRoute(pathname = "/app") {',
     'const shouldBindLegacyLiveSurface = shouldRenderLegacyCompatibilitySurface("live-negotiator");',
     'const shouldBindLegacyStorySurface = shouldRenderLegacyCompatibilitySurface("storyteller");',
+    'openPrimaryActionDeskRoute("/app/console");',
+    'openPrimaryActionDeskRoute("/app/simulation");',
     'if (!shouldRenderLegacyCompatibilitySurface("live-negotiator")) {',
     'if (!shouldRenderLegacyCompatibilitySurface("storyteller")) {',
     'return !button.hidden && target.length > 0',
@@ -49,6 +52,8 @@ test("legacy demo frontend is framed as a compatibility dashboard with a path ba
   assert.ok(readme.includes("defaults to `Operator Console`"));
   assert.ok(readme.includes("hidden live/story panels no longer running their legacy"));
   assert.ok(readme.includes("compatibility-only controls in the background"));
+  assert.ok(readme.includes("redirect operators back into `/app`"));
   assert.ok(localDevelopment.includes("defaults to `Operator Console` + `Device Nodes` fallback tabs"));
   assert.ok(localDevelopment.includes("no longer keeps the hidden legacy live/simulation render loops or compatibility-only control bindings active"));
+  assert.ok(localDevelopment.includes("bounces any remaining quick-start actions that need those primary surfaces into `/app`"));
 });

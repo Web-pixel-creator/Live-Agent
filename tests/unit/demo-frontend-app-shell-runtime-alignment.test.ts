@@ -47,6 +47,10 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(consoleStage, /<CaseWikiPanel caseValue=\{c\} wiki=\{caseWiki\} \/>/);
   assert.match(consoleStage, /<SessionOpsPanel caseValue=\{c\} wiki=\{caseWiki\} \/>/);
   assert.match(consoleStage, /<RuntimeDiagnosticsPanels caseValue=\{c\} \/>/);
+  assert.ok(
+    consoleStage.indexOf('id="live-activity"') < consoleStage.indexOf("<SessionBoundaryPanel caseValue={c} wiki={caseWiki} />"),
+    "Documents/activity section should render before Session Boundary in the approval-first console layout",
+  );
   assert.match(caseWikiPanel, /Copy handoff/);
   assert.match(caseWikiPanel, /Copy refs/);
   assert.match(caseWikiPanel, /Open bundle/);

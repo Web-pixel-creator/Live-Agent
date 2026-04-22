@@ -9212,6 +9212,14 @@ function shouldRenderLegacyCompatibilitySurface(surfaceId) {
   return LEGACY_VISIBLE_TAB_PANEL_IDS.has(normalizedSurfaceId);
 }
 
+function openPrimaryActionDeskRoute(pathname = "/app") {
+  if (typeof window === "undefined" || !window.location) {
+    return;
+  }
+  const normalizedPathname = typeof pathname === "string" && pathname.trim().length > 0 ? pathname.trim() : "/app";
+  window.location.assign(normalizedPathname);
+}
+
 function applyLegacyCompatibilityShell() {
   if (!isLegacyCompatibilityRoute()) {
     return;
@@ -45287,16 +45295,28 @@ function bindEvents() {
   }
   if (el.operatorQuickStartRunNegotiationBtn) {
     el.operatorQuickStartRunNegotiationBtn.addEventListener("click", () => {
+      if (isLegacyCompatibilityRoute()) {
+        openPrimaryActionDeskRoute("/app/console");
+        return;
+      }
       applyIntentTemplateFromActiveTasks("negotiation", ACTIVE_TASK_NEGOTIATION_PROMPT);
     });
   }
   if (el.operatorQuickStartRunStoryBtn) {
     el.operatorQuickStartRunStoryBtn.addEventListener("click", () => {
+      if (isLegacyCompatibilityRoute()) {
+        openPrimaryActionDeskRoute("/app/simulation");
+        return;
+      }
       applyIntentTemplateFromActiveTasks("story", STORY_EMPTY_STATE_PROMPT);
     });
   }
   if (el.operatorQuickStartRunUiTaskBtn) {
     el.operatorQuickStartRunUiTaskBtn.addEventListener("click", () => {
+      if (isLegacyCompatibilityRoute()) {
+        openPrimaryActionDeskRoute("/app/console");
+        return;
+      }
       applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_UI_TASK_PROMPT);
     });
   }
@@ -45312,6 +45332,10 @@ function bindEvents() {
   }
   if (el.operatorPlaybookRunNegotiationBtn) {
     el.operatorPlaybookRunNegotiationBtn.addEventListener("click", () => {
+      if (isLegacyCompatibilityRoute()) {
+        openPrimaryActionDeskRoute("/app/console");
+        return;
+      }
       applyIntentTemplateFromActiveTasks("negotiation", ACTIVE_TASK_NEGOTIATION_PROMPT);
     });
   }
@@ -45322,6 +45346,10 @@ function bindEvents() {
   }
   if (el.operatorPlaybookRunStoryBtn) {
     el.operatorPlaybookRunStoryBtn.addEventListener("click", () => {
+      if (isLegacyCompatibilityRoute()) {
+        openPrimaryActionDeskRoute("/app/simulation");
+        return;
+      }
       applyIntentTemplateFromActiveTasks("story", STORY_EMPTY_STATE_PROMPT);
     });
   }
@@ -45332,6 +45360,10 @@ function bindEvents() {
   }
   if (el.operatorPlaybookRunUiTaskBtn) {
     el.operatorPlaybookRunUiTaskBtn.addEventListener("click", () => {
+      if (isLegacyCompatibilityRoute()) {
+        openPrimaryActionDeskRoute("/app/console");
+        return;
+      }
       applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_UI_TASK_PROMPT);
     });
   }

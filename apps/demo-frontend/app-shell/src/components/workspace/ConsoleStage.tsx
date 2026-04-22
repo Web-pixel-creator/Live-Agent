@@ -1109,11 +1109,6 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
             space). The whole zone gets a left rail + soft wash so it
             anchors visually to the same vertical the hero/approval blocks
             live on. */}
-        <SessionBoundaryPanel caseValue={c} wiki={caseWiki} />
-        <CaseWikiPanel caseValue={c} wiki={caseWiki} />
-        <SessionOpsPanel caseValue={c} wiki={caseWiki} />
-        <RuntimeDiagnosticsPanels caseValue={c} />
-
         <section
           id="live-activity"
           className={`relative mt-12 -mx-8 scroll-mt-24 px-8 py-6 bg-secondary/[0.06] border-y border-border/50 transition-opacity duration-500 ${isApproving ? "opacity-40 pointer-events-none" : "opacity-100"}`}
@@ -1499,6 +1494,10 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
           </>
         )}
         </section>
+        <SessionBoundaryPanel caseValue={c} wiki={caseWiki} />
+        <CaseWikiPanel caseValue={c} wiki={caseWiki} />
+        <SessionOpsPanel caseValue={c} wiki={caseWiki} />
+        <RuntimeDiagnosticsPanels caseValue={c} />
       </div>
 
       <RequestDocSheet
