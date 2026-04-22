@@ -39,7 +39,7 @@ Route guide:
 
 1. `http://localhost:3000/` redirects to the new Action Desk workspace shell.
 2. `http://localhost:3000/app` serves the primary Action Desk workspace shell.
-3. `http://localhost:3000/legacy` keeps the legacy compatibility dashboard/runtime surfaces, links back to `/app`, and defaults to `Operator Console` + `Device Nodes` fallback tabs.
+3. `http://localhost:3000/legacy` keeps the legacy compatibility dashboard/runtime surfaces, links back to `/app`, defaults to `Operator Console` + `Device Nodes` fallback tabs, and no longer keeps the hidden legacy live/simulation render loops active.
 4. `http://localhost:3000/bundle/<id>` serves the public presentation bundle surface.
 5. `http://localhost:3000/evidence/<id>` serves the evidence viewer shell.
 6. `Live Desk`, `Operator Console`, runtime chrome, and node detail rails in

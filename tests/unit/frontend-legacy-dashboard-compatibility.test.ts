@@ -31,7 +31,12 @@ test("legacy demo frontend is framed as a compatibility dashboard with a path ba
     'cta: "Open Action Desk"',
     'const LEGACY_DEFAULT_TAB_ID = "operator";',
     'const LEGACY_VISIBLE_TAB_IDS = new Set(["operator", "device-nodes"]);',
+    'const LEGACY_VISIBLE_TAB_PANEL_IDS = new Set(["operator", "device-nodes"]);',
     'button.hidden = !isAllowed;',
+    'panel.hidden = !isAllowed;',
+    'function shouldRenderLegacyCompatibilitySurface(surfaceId) {',
+    'if (!shouldRenderLegacyCompatibilitySurface("live-negotiator")) {',
+    'if (!shouldRenderLegacyCompatibilitySurface("storyteller")) {',
     'return !button.hidden && target.length > 0',
   ];
   for (const token of requiredRuntimeTokens) {
@@ -40,5 +45,7 @@ test("legacy demo frontend is framed as a compatibility dashboard with a path ba
 
   assert.ok(readme.includes("`/legacy` only as a compatibility"));
   assert.ok(readme.includes("defaults to `Operator Console`"));
+  assert.ok(readme.includes("hidden live/story panels no longer running their legacy"));
   assert.ok(localDevelopment.includes("defaults to `Operator Console` + `Device Nodes` fallback tabs"));
+  assert.ok(localDevelopment.includes("no longer keeps the hidden legacy live/simulation render loops active"));
 });

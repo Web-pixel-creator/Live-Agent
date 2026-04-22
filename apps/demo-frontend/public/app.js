@@ -4165,6 +4165,7 @@ const tabContents = Array.from(document.querySelectorAll(".tab-content[data-tab]
 const DEFAULT_TAB_ID = "live-negotiator";
 const LEGACY_DEFAULT_TAB_ID = "operator";
 const LEGACY_VISIBLE_TAB_IDS = new Set(["operator", "device-nodes"]);
+const LEGACY_VISIBLE_TAB_PANEL_IDS = new Set(["operator", "device-nodes"]);
 const TAB_HASH_PREFIX = "tab=";
 const customSelectShells = new Set();
 let customSelectObserver = null;
@@ -4668,6 +4669,9 @@ function mountLiveContextDockPanels() {
 }
 
 function renderLiveContextDock() {
+  if (!shouldRenderLegacyCompatibilitySurface("live-negotiator")) {
+    return;
+  }
   const activePanel = normalizeLiveContextDockPanel(state.liveContextDockPanel);
   const buttonMap = getLiveContextDockButtonMap();
   const trayMap = getLiveContextDockTrayMap();
@@ -9200,6 +9204,14 @@ function isLegacyCompatibilityRoute() {
   return pathname === "/legacy" || pathname === "/legacy/";
 }
 
+function shouldRenderLegacyCompatibilitySurface(surfaceId) {
+  if (!isLegacyCompatibilityRoute()) {
+    return true;
+  }
+  const normalizedSurfaceId = typeof surfaceId === "string" ? surfaceId.trim() : "";
+  return LEGACY_VISIBLE_TAB_PANEL_IDS.has(normalizedSurfaceId);
+}
+
 function applyLegacyCompatibilityShell() {
   if (!isLegacyCompatibilityRoute()) {
     return;
@@ -9219,6 +9231,20 @@ function applyLegacyCompatibilityShell() {
     button.hidden = !isAllowed;
     button.toggleAttribute("inert", !isAllowed);
     button.setAttribute("aria-hidden", isAllowed ? "false" : "true");
+  }
+  const tabPanels = document.querySelectorAll(".tab-content[data-tab]");
+  for (const panel of tabPanels) {
+    if (!(panel instanceof HTMLElement)) {
+      continue;
+    }
+    const panelId = panel.dataset.tab ?? "";
+    const isAllowed = LEGACY_VISIBLE_TAB_PANEL_IDS.has(panelId);
+    panel.hidden = !isAllowed;
+    panel.toggleAttribute("inert", !isAllowed);
+    panel.setAttribute("aria-hidden", isAllowed ? "false" : "true");
+    if (!isAllowed) {
+      panel.classList.remove("active");
+    }
   }
 }
 
@@ -20340,6 +20366,9 @@ function buildLiveModeStatusLabel() {
 }
 
 function renderLiveModeStatus() {
+  if (!shouldRenderLegacyCompatibilitySurface("live-negotiator")) {
+    return;
+  }
   const label = buildLiveModeStatusLabel();
   setStatusPill(el.modeStatus, label, resolveModeStatusVariant(label));
 }
@@ -20692,6 +20721,9 @@ function filterLiveConversationHistoryByIntent(history, intent) {
 }
 
 function renderConversationHistory() {
+  if (!shouldRenderLegacyCompatibilitySurface("live-negotiator")) {
+    return;
+  }
   if (!(el.conversationHistory instanceof HTMLElement)) {
     return;
   }
@@ -20997,6 +21029,9 @@ function renderLiveIntentCards() {
 }
 
 function renderLiveIntentExperience() {
+  if (!shouldRenderLegacyCompatibilitySurface("live-negotiator")) {
+    return;
+  }
   const intent = el.intent instanceof HTMLSelectElement ? el.intent.value : state.lastRequestedIntent;
   const normalizedIntent = typeof intent === "string" && intent.trim().length > 0 ? intent.trim() : "conversation";
   const isRu = state.languageMode === "ru";
@@ -24447,6 +24482,9 @@ function renderStoryAtlasCards() {
 }
 
 function renderStoryStudioSurface() {
+  if (!shouldRenderLegacyCompatibilitySurface("storyteller")) {
+    return;
+  }
   const copy = getStoryComposerCopy();
   const modeConfig = getStoryComposerModeConfig();
   const normalizedMode = normalizeStoryComposerMode(state.storyComposerMode);
@@ -25957,6 +25995,9 @@ function renderStoryTimelineList() {
 }
 
 function renderStoryTimeline() {
+  if (!shouldRenderLegacyCompatibilitySurface("storyteller")) {
+    return;
+  }
   const copy = getStoryTimelineCopy();
   const segments = state.storyTimelineSegments;
   const count = segments.length;
@@ -27838,6 +27879,9 @@ function createTaskReferenceCard(label, value) {
 }
 
 function renderTaskList() {
+  if (!shouldRenderLegacyCompatibilitySurface("live-negotiator")) {
+    return;
+  }
   const records = [...state.taskRecords.values()].sort((left, right) =>
     String(right.updatedAt).localeCompare(String(left.updatedAt)),
   );
@@ -28156,6 +28200,9 @@ function setStatusPill(node, text, variant) {
 }
 
 function renderAssistantActivityStatus() {
+  if (!shouldRenderLegacyCompatibilitySurface("live-negotiator")) {
+    return;
+  }
   const resolved = resolveAssistantActivityStatus({
     connectionStatus: state.connectionStatus,
     isStreaming: state.assistantIsStreaming,
