@@ -31,6 +31,10 @@ is bound elsewhere.
 
 Frontend: `http://localhost:3000/app`
 
+`npm run dev:frontend` prebuilds the React app shell into
+`apps/demo-frontend/public/app-shell`, and the server then serves `/app`,
+`/bundle/<id>`, and `/evidence/<id>` from that built asset set.
+
 Route guide:
 
 1. `http://localhost:3000/` redirects to the new Action Desk workspace shell.

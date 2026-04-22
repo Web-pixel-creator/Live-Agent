@@ -1,8 +1,13 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Config } from "tailwindcss";
+
+const configDir = path.dirname(fileURLToPath(import.meta.url));
+const fromConfigDir = (target: string) => path.resolve(configDir, target).replaceAll("\\", "/");
 
 export default {
   darkMode: ["class"],
-  content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
+  content: [fromConfigDir("index.html"), fromConfigDir("src/**/*.{js,jsx,ts,tsx}")],
   prefix: "",
   theme: {
     container: {

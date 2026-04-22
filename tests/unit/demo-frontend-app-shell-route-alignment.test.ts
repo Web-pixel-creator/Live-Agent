@@ -39,3 +39,14 @@ test("built app shell publishes stable public assets for /app, /bundle, and /evi
   assert.match(html, /\/app-shell\/style\.css/);
   assert.match(html, /\/app-shell\/index\.js/);
 });
+
+test("app shell tailwind config resolves content globs from the config directory", () => {
+  const configPath = resolve(process.cwd(), "apps", "demo-frontend", "app-shell", "tailwind.config.ts");
+  const source = readFileSync(configPath, "utf8");
+
+  assert.match(source, /import path from "node:path";/);
+  assert.match(source, /import \{ fileURLToPath \} from "node:url";/);
+  assert.match(source, /const configDir = path\.dirname\(fileURLToPath\(import\.meta\.url\)\);/);
+  assert.match(source, /const fromConfigDir = \(target: string\) => path\.resolve\(configDir, target\)\.replaceAll\("\\\\", "\/"\);/);
+  assert.match(source, /content: \[fromConfigDir\("index\.html"\), fromConfigDir\("src\/\*\*\/\*\.\{js,jsx,ts,tsx\}"\)\],/);
+});
