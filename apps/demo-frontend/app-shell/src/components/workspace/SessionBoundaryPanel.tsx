@@ -19,7 +19,6 @@ import {
 type SessionBoundaryPanelProps = {
   caseValue: WorkspaceCase;
   wiki: RuntimeCaseWiki | undefined;
-  embedded?: boolean;
 };
 
 function formatStatusLabel(value: string | null | undefined, fallback: string): string {
@@ -45,7 +44,6 @@ function toneForReplay(summary: RuntimeSessionReplaySummary | null): "mint" | "r
 export const SessionBoundaryPanel = ({
   caseValue,
   wiki,
-  embedded = false,
 }: SessionBoundaryPanelProps) => {
   const sessionId = caseValue.sessionId ?? wiki?.sessionId ?? null;
   const replayQuery = useQuery({
@@ -76,12 +74,8 @@ export const SessionBoundaryPanel = ({
 
   return (
     <section
-      id={embedded ? undefined : "connections"}
-      className={
-        embedded
-          ? "relative scroll-mt-24 pl-4 pr-1 py-2"
-          : "relative mt-10 -mx-8 scroll-mt-24 px-8 py-6 bg-secondary/[0.04] border-y border-border/50"
-      }
+      id="connections"
+      className="relative mt-10 -mx-8 scroll-mt-24 px-8 py-6 bg-secondary/[0.04] border-y border-border/50"
     >
       <span
         aria-hidden

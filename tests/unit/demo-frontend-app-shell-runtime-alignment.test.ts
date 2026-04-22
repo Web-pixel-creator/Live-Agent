@@ -41,16 +41,14 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(consoleStage, /const baseCase = getCaseByRef\(caseRef\);/);
   assert.match(consoleStage, /const caseWiki = getCaseWikiByRef\(baseCase\?\.caseId \?\? baseCase\?\.sessionId \?\? caseRef\);/);
   assert.match(consoleStage, /deviceNodes\.find\(\(n\) => n\.id === c\.sourceNodeId\)/);
-  assert.match(consoleStage, /import \{ Accordion, AccordionContent, AccordionItem, AccordionTrigger \} from "@\/components\/ui\/accordion";/);
   assert.match(consoleStage, /id="action-queue"/);
   assert.match(consoleStage, /id="live-activity"/);
-  assert.match(consoleStage, /Runtime support/);
-  assert.match(consoleStage, /<SessionBoundaryPanel caseValue=\{c\} wiki=\{caseWiki\} embedded \/>/);
-  assert.match(consoleStage, /<CaseWikiPanel caseValue=\{c\} wiki=\{caseWiki\} embedded \/>/);
-  assert.match(consoleStage, /<SessionOpsPanel caseValue=\{c\} wiki=\{caseWiki\} embedded \/>/);
-  assert.match(consoleStage, /<RuntimeDiagnosticsPanels caseValue=\{c\} embedded \/>/);
+  assert.match(consoleStage, /<SessionBoundaryPanel caseValue=\{c\} wiki=\{caseWiki\} \/>/);
+  assert.match(consoleStage, /<CaseWikiPanel caseValue=\{c\} wiki=\{caseWiki\} \/>/);
+  assert.match(consoleStage, /<SessionOpsPanel caseValue=\{c\} wiki=\{caseWiki\} \/>/);
+  assert.match(consoleStage, /<RuntimeDiagnosticsPanels caseValue=\{c\} \/>/);
   assert.ok(
-    consoleStage.indexOf('id="live-activity"') < consoleStage.indexOf("<SessionBoundaryPanel caseValue={c} wiki={caseWiki} embedded />"),
+    consoleStage.indexOf('id="live-activity"') < consoleStage.indexOf("<SessionBoundaryPanel caseValue={c} wiki={caseWiki} />"),
     "Documents/activity section should render before Session Boundary in the approval-first console layout",
   );
   assert.match(caseWikiPanel, /Copy handoff/);
@@ -62,7 +60,7 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(caseWikiPanel, /compliance\?\.enforcement\?\.summary/);
   assert.match(caseWikiPanel, /evidenceSignature\?\.status/);
   assert.match(sessionBoundaryPanel, /Session Boundary/);
-  assert.match(sessionBoundaryPanel, /id=\{embedded \? undefined : "connections"\}/);
+  assert.match(sessionBoundaryPanel, /id="connections"/);
   assert.match(sessionBoundaryPanel, /fetchRuntimeSessionReplay/);
   assert.match(sessionBoundaryPanel, /buildRuntimeSessionReplaySummary/);
   assert.match(sessionBoundaryPanel, /Proof ingress:/);
@@ -86,8 +84,8 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(runtimeDiagnosticsPanels, /Runtime Guardrails/);
   assert.match(runtimeDiagnosticsPanels, /Bootstrap Doctor/);
   assert.match(runtimeDiagnosticsPanels, /Browser Workers/);
-  assert.match(consoleStage, /<div id="safety-rules" className="scroll-mt-24" \/>/);
-  assert.match(consoleStage, /<div id="health-check" className="scroll-mt-24" \/>/);
+  assert.match(runtimeDiagnosticsPanels, /id="safety-rules"/);
+  assert.match(runtimeDiagnosticsPanels, /id="health-check"/);
   assert.match(runtimeDiagnosticsPanels, /readJsonDataRecord\(\s*"\/v1\/runtime\/workflow-config"/);
   assert.match(runtimeDiagnosticsPanels, /readJsonDataRecord\(\s*"\/v1\/runtime\/workflow-control-plane-override"/);
   assert.match(runtimeDiagnosticsPanels, /readJsonDataRecord\(\s*"\/v1\/runtime\/bootstrap-status"/);

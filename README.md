@@ -220,25 +220,26 @@ still operating without backend case memory.
 now use the same repo-owned case-artifact link helper, so jumps into
 `/bundle/:id` and `/evidence/:id` prefer runtime `caseId/sessionId` targets and
 only fall back to legacy refs when no runtime case identifier exists.
-`/app/console` now also keeps the repo-owned `Case Wiki`, `Session Boundary`,
-`Operator Session Ops`, and deeper runtime diagnostics inside the new shell.
-Those surfaces remain fully functional, but they now live in a collapsed
-`Runtime support` stack below the main approval/documents flow so the default
-console stays approval-first instead of reading like a long diagnostics page.
-When opened, the same panels still show blocker/next-action memory,
-compliance/export readiness, evidence-signature posture, replay state,
-approval gate, primary step, proof ingress (`contextSource` / `ingressSource`),
-recovery path, structured `After refresh` follow-up paths, and repo-owned
-`Refresh replay`, `Refresh Case Wiki`, `Export Markdown`, and `Export JSON`
-actions without bouncing back to `/legacy`. The export actions still build
-repo-owned payloads from the current case, compiled `Case Wiki`, selected
-replay boundary, and compact runtime-surface ingress, and they keep the same
-compliance gate semantics by returning the repo-owned blocked reason when
-`compliance.enforcement.exportReady=false`.
-That same collapsed support stack also carries the deeper runtime moat that
-used to live only in `/legacy`: `Workflow Runtime`, `Runtime Guardrails`,
-`Bootstrap Doctor`, and `Browser Workers` still prefer repo-owned control-plane
-routes (`GET /v1/runtime/workflow-config`,
+`/app/console` now also exposes a runtime-backed `Case Wiki` panel inside the
+new shell: the console shows repo-owned blocker, next action, compliance/export
+readiness, evidence-signature posture, remediation draft, and copy/open actions
+for handoff and refs while keeping the same export gate behavior for blocked
+cases instead of falling back to the old `/legacy` operator surface.
+`/app/console` now also mirrors the repo-owned `Session Boundary` and
+`Operator Session Ops` surfaces inside the new shell: the console fetches
+`GET /v1/runtime/session-replay` for the active case session, shows replay
+state, approval gate, primary step, proof ingress (`contextSource` /
+`ingressSource`), recovery path, and structured `After refresh` follow-up
+paths, then keeps `Refresh replay`, `Refresh Case Wiki`, `Export Markdown`,
+and `Export JSON` in the same operator workspace without bouncing back to
+`/legacy`. The new export actions build repo-owned payloads from the current
+case, compiled `Case Wiki`, selected replay boundary, and compact runtime
+surface ingress, and they keep the same compliance gate semantics by returning
+the repo-owned blocked reason when `compliance.enforcement.exportReady=false`.
+`/app/console` now also carries the deeper runtime moat that used to live only
+in `/legacy`: `Workflow Runtime`, `Runtime Guardrails`, `Bootstrap Doctor`,
+and `Browser Workers` are rendered in the new shell and prefer repo-owned
+control-plane routes (`GET /v1/runtime/workflow-config`,
 `POST /v1/runtime/workflow-control-plane-override`,
 `GET /v1/runtime/bootstrap-status`, `GET /v1/runtime/auth-profiles`,
 `POST /v1/runtime/auth-profiles/rotate`, `GET /v1/runtime/browser-jobs`, and
