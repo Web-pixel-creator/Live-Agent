@@ -52,6 +52,9 @@ import {
   buildCaseEvidencePath,
 } from "@/lib/case-artifact-links";
 import { CaseWikiPanel } from "@/components/workspace/CaseWikiPanel";
+import { RuntimeDiagnosticsPanels } from "@/components/workspace/RuntimeDiagnosticsPanels";
+import { SessionBoundaryPanel } from "@/components/workspace/SessionBoundaryPanel";
+import { SessionOpsPanel } from "@/components/workspace/SessionOpsPanel";
 
 // Format an ISO timestamp into a compact "Jun 24 · 14:00" label for the timeline.
 const formatEventTime = (iso: string) => {
@@ -457,7 +460,10 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
         const clientTime = countryTimeHint(c.country);
 
         return (
-          <header className={`relative px-8 pt-7 pb-7 border-b border-border overflow-hidden transition-opacity duration-500 ${isApproving ? "opacity-40 pointer-events-none" : "opacity-100"}`}>
+          <header
+            id="action-queue"
+            className={`relative scroll-mt-24 px-8 pt-7 pb-7 border-b border-border overflow-hidden transition-opacity duration-500 ${isApproving ? "opacity-40 pointer-events-none" : "opacity-100"}`}
+          >
             {/* SLA urgency hash bar — 3px, full-height, on the left edge. */}
             <span
               aria-hidden
@@ -1103,9 +1109,15 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
             space). The whole zone gets a left rail + soft wash so it
             anchors visually to the same vertical the hero/approval blocks
             live on. */}
+        <SessionBoundaryPanel caseValue={c} wiki={caseWiki} />
         <CaseWikiPanel caseValue={c} wiki={caseWiki} />
+        <SessionOpsPanel caseValue={c} wiki={caseWiki} />
+        <RuntimeDiagnosticsPanels caseValue={c} />
 
-        <section className={`relative mt-12 -mx-8 px-8 py-6 bg-secondary/[0.06] border-y border-border/50 transition-opacity duration-500 ${isApproving ? "opacity-40 pointer-events-none" : "opacity-100"}`}>
+        <section
+          id="live-activity"
+          className={`relative mt-12 -mx-8 scroll-mt-24 px-8 py-6 bg-secondary/[0.06] border-y border-border/50 transition-opacity duration-500 ${isApproving ? "opacity-40 pointer-events-none" : "opacity-100"}`}
+        >
           <span
             aria-hidden
             className="absolute left-0 top-0 bottom-0 w-[3px] bg-border/70"

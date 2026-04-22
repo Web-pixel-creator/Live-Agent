@@ -70,17 +70,17 @@ const operatorSurfaces: {
   // Live activity → the case stream the operator sees first.
   { label: "Live activity", icon: Activity, url: "/app" },
   // Connections → device/node fleet that feeds events into the desk.
-  { label: "Connections", icon: Plug, url: "/app/nodes" },
+  { label: "Connections", icon: Plug, url: "/app/console#connections" },
   // Action queue → pending approvals, jumps straight to the first one.
   {
     label: "Action queue",
     icon: Inbox,
-    url: "/app/console",
+    url: "/app/console#action-queue",
   },
   // Safety rules → policy snapshots are governed in Simulation Lab.
-  { label: "Safety rules", icon: ShieldCheck, url: "/app/simulation" },
+  { label: "Safety rules", icon: ShieldCheck, url: "/app/console#safety-rules" },
   // Health check → fleet health lives in Device Nodes.
-  { label: "Health check", icon: HeartPulse, url: "/app/nodes" },
+  { label: "Health check", icon: HeartPulse, url: "/app/console#health-check" },
 ];
 
 const judgeArtifacts: { label: string; icon: typeof FileText; count?: number; tone?: BadgeTone; url?: string }[] = [
@@ -132,7 +132,7 @@ const ROW_ACTIVE =
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const {
@@ -224,7 +224,10 @@ export function AppSidebar() {
                 // rather than a state-only-on-Console disclosure.
                 const onAnySubDest =
                   s.title === "Operator Console" &&
-                    runtimeOperatorSurfaces.some((sub) => sub.url === pathname);
+                    runtimeOperatorSurfaces.some((sub) => {
+                      const [subPath, subHash = ""] = sub.url.split("#");
+                      return subPath === pathname && (!subHash || `#${subHash}` === hash);
+                    });
                 const showSub =
                   (active || onAnySubDest) &&
                   !collapsed &&
@@ -417,15 +420,18 @@ export function AppSidebar() {
                           // empty /app/console fallback.
                           const target =
                             sub.label === "Action queue" && firstPendingRef
-                              ? `/app/console?ref=${encodeURIComponent(firstPendingRef)}`
+                              ? `/app/console?ref=${encodeURIComponent(firstPendingRef)}#action-queue`
                               : sub.url;
                           // Active when current pathname matches this sub's
                           // destination. Console itself counts as "Action
                           // queue" since that's its primary purpose.
+                          const [subPath, subHash = ""] = sub.url.split("#");
                           const subActive =
-                            pathname === sub.url ||
+                            (pathname === subPath &&
+                              (!subHash || `#${subHash}` === hash)) ||
                             (sub.label === "Action queue" &&
-                              pathname === "/app/console");
+                              pathname === "/app/console" &&
+                              (hash === "" || hash === "#action-queue"));
                           return (
                             <SidebarMenuSubItem key={sub.label}>
                               <SidebarMenuSubButton

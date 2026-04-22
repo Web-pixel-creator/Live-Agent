@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/workspace/AppSidebar";
 import { Topbar } from "@/components/workspace/Topbar";
@@ -5,13 +6,27 @@ import { RuntimeRail } from "@/components/workspace/RuntimeRail";
 import { ConsoleStage } from "@/components/workspace/ConsoleStage";
 import { CommandPalette } from "@/components/workspace/CommandPalette";
 import { ShortcutsOverlay } from "@/components/workspace/ShortcutsOverlay";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
 
 const Console = () => {
   const [params] = useSearchParams();
+  const { hash } = useLocation();
   const { defaultConsoleCaseRef } = useWorkspaceRuntime();
   const caseRef = params.get("ref") || defaultConsoleCaseRef || "VS-2841";
+
+  useEffect(() => {
+    if (!hash) {
+      return;
+    }
+    const targetId = hash.replace(/^#/, "");
+    const frameId = window.requestAnimationFrame(() => {
+      document
+        .getElementById(targetId)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [hash, caseRef]);
 
   return (
     <SidebarProvider defaultOpen>

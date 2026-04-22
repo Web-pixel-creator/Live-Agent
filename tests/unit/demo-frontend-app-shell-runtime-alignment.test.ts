@@ -26,6 +26,10 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   const liveDesk = readAppShellSource("components/workspace/LiveDesk.tsx");
   const consoleStage = readAppShellSource("components/workspace/ConsoleStage.tsx");
   const caseWikiPanel = readAppShellSource("components/workspace/CaseWikiPanel.tsx");
+  const runtimeDiagnosticsPanels = readAppShellSource("components/workspace/RuntimeDiagnosticsPanels.tsx");
+  const sessionBoundaryPanel = readAppShellSource("components/workspace/SessionBoundaryPanel.tsx");
+  const sessionOpsPanel = readAppShellSource("components/workspace/SessionOpsPanel.tsx");
+  const replayRuntime = readAppShellSource("lib/runtime-session-replay.ts");
   const consolePage = readAppShellSource("pages/Console.tsx");
 
   assert.match(liveDesk, /const \{ cases, deviceNodes, addDraftCase \} = useWorkspaceRuntime\(\);/);
@@ -37,7 +41,12 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(consoleStage, /const baseCase = getCaseByRef\(caseRef\);/);
   assert.match(consoleStage, /const caseWiki = getCaseWikiByRef\(baseCase\?\.caseId \?\? baseCase\?\.sessionId \?\? caseRef\);/);
   assert.match(consoleStage, /deviceNodes\.find\(\(n\) => n\.id === c\.sourceNodeId\)/);
+  assert.match(consoleStage, /id="action-queue"/);
+  assert.match(consoleStage, /id="live-activity"/);
+  assert.match(consoleStage, /<SessionBoundaryPanel caseValue=\{c\} wiki=\{caseWiki\} \/>/);
   assert.match(consoleStage, /<CaseWikiPanel caseValue=\{c\} wiki=\{caseWiki\} \/>/);
+  assert.match(consoleStage, /<SessionOpsPanel caseValue=\{c\} wiki=\{caseWiki\} \/>/);
+  assert.match(consoleStage, /<RuntimeDiagnosticsPanels caseValue=\{c\} \/>/);
   assert.match(caseWikiPanel, /Copy handoff/);
   assert.match(caseWikiPanel, /Copy refs/);
   assert.match(caseWikiPanel, /Open bundle/);
@@ -46,8 +55,51 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(caseWikiPanel, /operatorPreviewPack\?\.remediation\?\.draft/);
   assert.match(caseWikiPanel, /compliance\?\.enforcement\?\.summary/);
   assert.match(caseWikiPanel, /evidenceSignature\?\.status/);
+  assert.match(sessionBoundaryPanel, /Session Boundary/);
+  assert.match(sessionBoundaryPanel, /id="connections"/);
+  assert.match(sessionBoundaryPanel, /fetchRuntimeSessionReplay/);
+  assert.match(sessionBoundaryPanel, /buildRuntimeSessionReplaySummary/);
+  assert.match(sessionBoundaryPanel, /Proof ingress:/);
+  assert.match(sessionBoundaryPanel, /Turn ingress:/);
+  assert.match(sessionBoundaryPanel, /After refresh/);
+  assert.match(sessionOpsPanel, /Operator Session Ops/);
+  assert.match(sessionOpsPanel, /Export Markdown/);
+  assert.match(sessionOpsPanel, /Export JSON/);
+  assert.match(sessionOpsPanel, /Refresh replay/);
+  assert.match(sessionOpsPanel, /Refresh Case Wiki/);
+  assert.match(sessionOpsPanel, /buildSessionExportPayload/);
+  assert.match(sessionOpsPanel, /buildSessionExportMarkdown/);
+  assert.match(sessionOpsPanel, /case wiki export blocked/);
+  assert.match(replayRuntime, /export async function fetchRuntimeSessionReplay/);
+  assert.match(replayRuntime, /export function buildRuntimeSessionReplaySummary/);
+  assert.match(replayRuntime, /export function buildSessionExportPayload/);
+  assert.match(replayRuntime, /export function buildSessionExportMarkdown/);
+  assert.match(replayRuntime, /latestProofIngressSource/);
+  assert.match(replayRuntime, /primaryStepRefreshFollowupPath/);
+  assert.match(runtimeDiagnosticsPanels, /Workflow Runtime/);
+  assert.match(runtimeDiagnosticsPanels, /Runtime Guardrails/);
+  assert.match(runtimeDiagnosticsPanels, /Bootstrap Doctor/);
+  assert.match(runtimeDiagnosticsPanels, /Browser Workers/);
+  assert.match(runtimeDiagnosticsPanels, /id="safety-rules"/);
+  assert.match(runtimeDiagnosticsPanels, /id="health-check"/);
+  assert.match(runtimeDiagnosticsPanels, /readJsonDataRecord\(\s*"\/v1\/runtime\/workflow-config"/);
+  assert.match(runtimeDiagnosticsPanels, /readJsonDataRecord\(\s*"\/v1\/runtime\/workflow-control-plane-override"/);
+  assert.match(runtimeDiagnosticsPanels, /readJsonDataRecord\(\s*"\/v1\/runtime\/bootstrap-status"/);
+  assert.match(runtimeDiagnosticsPanels, /fetchRuntimeApi\(\s*"\/v1\/runtime\/auth-profiles"/);
+  assert.match(runtimeDiagnosticsPanels, /fetchRuntimeApi\(\s*"\/v1\/runtime\/auth-profiles\/rotate"/);
+  assert.match(runtimeDiagnosticsPanels, /readJsonDataRecord\(\s*"\/v1\/runtime\/browser-jobs\?limit=6"/);
+  assert.match(runtimeDiagnosticsPanels, /Refresh workflow/);
+  assert.match(runtimeDiagnosticsPanels, /Clear override/);
+  assert.match(runtimeDiagnosticsPanels, /Refresh guardrails/);
+  assert.match(runtimeDiagnosticsPanels, /Refresh doctor/);
+  assert.match(runtimeDiagnosticsPanels, /Rotate next credential/);
+  assert.match(runtimeDiagnosticsPanels, /Refresh workers/);
+  assert.match(runtimeDiagnosticsPanels, /Resume job/);
+  assert.match(runtimeDiagnosticsPanels, /Cancel job/);
 
   assert.match(consolePage, /const \{ defaultConsoleCaseRef \} = useWorkspaceRuntime\(\);/);
+  assert.match(consolePage, /const \{ hash \} = useLocation\(\);/);
+  assert.match(consolePage, /document\s*\.getElementById\(targetId\)\s*\?\.scrollIntoView/);
   assert.match(consolePage, /const caseRef = params\.get\("ref"\) \|\| defaultConsoleCaseRef \|\| "VS-2841";/);
 });
 
@@ -64,6 +116,12 @@ test("shared app shell chrome reads runtime-backed counts, nodes, and diagnostic
   assert.match(sidebar, /const \{\s+cases,\s+deviceNodes,\s+pendingApprovals,\s+activeCaseCount,\s+pendingApprovalCount,/);
   assert.match(sidebar, /const runtimeSections: Section\[\] = \[/);
   assert.match(sidebar, /const runtimeOperatorSurfaces = operatorSurfaces\.map/);
+  assert.match(sidebar, /Connections", icon: Plug, url: "\/app\/console#connections"/);
+  assert.match(sidebar, /Action queue"[\s\S]*url: "\/app\/console#action-queue"/);
+  assert.match(sidebar, /Safety rules", icon: ShieldCheck, url: "\/app\/console#safety-rules"/);
+  assert.match(sidebar, /Health check", icon: HeartPulse, url: "\/app\/console#health-check"/);
+  assert.match(sidebar, /const \{ pathname, hash \} = useLocation\(\);/);
+  assert.match(sidebar, /\/app\/console\?ref=\$\{encodeURIComponent\(firstPendingRef\)\}#action-queue/);
 
   assert.match(palette, /const \{ cases, pendingApprovals \} = useWorkspaceRuntime\(\);/);
   assert.match(palette, /run\(\(\) => navigate\("\/app\/nodes"\)\)/);
