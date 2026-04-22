@@ -210,6 +210,11 @@ still operating without backend case memory.
 now use the same repo-owned case-artifact link helper, so jumps into
 `/bundle/:id` and `/evidence/:id` prefer runtime `caseId/sessionId` targets and
 only fall back to legacy refs when no runtime case identifier exists.
+`/app/console` now also exposes a runtime-backed `Case Wiki` panel inside the
+new shell: the console shows repo-owned blocker, next action, compliance/export
+readiness, evidence-signature posture, remediation draft, and copy/open actions
+for handoff and refs while keeping the same export gate behavior for blocked
+cases instead of falling back to the old `/legacy` operator surface.
 `Simulation Lab` now also overlays the live `policy-current` snapshot from
 repo-owned governance runtime data (`/v1/governance/policy`) and the real
 template catalog (`/v1/governance/compliance-template`) before it falls back to

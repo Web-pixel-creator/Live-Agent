@@ -51,6 +51,7 @@ import {
   buildCaseBundlePath,
   buildCaseEvidencePath,
 } from "@/lib/case-artifact-links";
+import { CaseWikiPanel } from "@/components/workspace/CaseWikiPanel";
 
 // Format an ISO timestamp into a compact "Jun 24 · 14:00" label for the timeline.
 const formatEventTime = (iso: string) => {
@@ -97,7 +98,7 @@ interface ConsoleStageProps {
 }
 
 export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
-  const { deviceNodes, getCaseByRef } = useWorkspaceRuntime();
+  const { deviceNodes, getCaseByRef, getCaseWikiByRef } = useWorkspaceRuntime();
   // Tab selection — defaults are picked by the smart-default effect below
   // based on whether the case has missing docs. Initial values here are just
   // placeholders before the case is resolved.
@@ -183,6 +184,7 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
   // Resolve case from the workspace dataset, then layer on any operator
   // requests issued during this session (missing→review + timeline events).
   const baseCase = getCaseByRef(caseRef);
+  const caseWiki = getCaseWikiByRef(baseCase?.caseId ?? baseCase?.sessionId ?? caseRef);
   const sessionReqs = useCaseRequests(caseRef);
   const c = baseCase ? applyRequestOverrides(baseCase, sessionReqs) : undefined;
 
@@ -1101,6 +1103,8 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
             space). The whole zone gets a left rail + soft wash so it
             anchors visually to the same vertical the hero/approval blocks
             live on. */}
+        <CaseWikiPanel caseValue={c} wiki={caseWiki} />
+
         <section className={`relative mt-12 -mx-8 px-8 py-6 bg-secondary/[0.06] border-y border-border/50 transition-opacity duration-500 ${isApproving ? "opacity-40 pointer-events-none" : "opacity-100"}`}>
           <span
             aria-hidden

@@ -25,6 +25,7 @@ test("app shell wraps routes with the workspace runtime provider", () => {
 test("live desk and console surfaces prefer repo-owned runtime data with draft fallback support", () => {
   const liveDesk = readAppShellSource("components/workspace/LiveDesk.tsx");
   const consoleStage = readAppShellSource("components/workspace/ConsoleStage.tsx");
+  const caseWikiPanel = readAppShellSource("components/workspace/CaseWikiPanel.tsx");
   const consolePage = readAppShellSource("pages/Console.tsx");
 
   assert.match(liveDesk, /const \{ cases, deviceNodes, addDraftCase \} = useWorkspaceRuntime\(\);/);
@@ -32,9 +33,19 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(liveDesk, /addDraftCase\(draft\);/);
   assert.match(liveDesk, /deviceNodes\.find\(\(n\) => n\.id === nodeFilterId\)/);
 
-  assert.match(consoleStage, /const \{ deviceNodes, getCaseByRef \} = useWorkspaceRuntime\(\);/);
+  assert.match(consoleStage, /const \{ deviceNodes, getCaseByRef, getCaseWikiByRef \} = useWorkspaceRuntime\(\);/);
   assert.match(consoleStage, /const baseCase = getCaseByRef\(caseRef\);/);
+  assert.match(consoleStage, /const caseWiki = getCaseWikiByRef\(baseCase\?\.caseId \?\? baseCase\?\.sessionId \?\? caseRef\);/);
   assert.match(consoleStage, /deviceNodes\.find\(\(n\) => n\.id === c\.sourceNodeId\)/);
+  assert.match(consoleStage, /<CaseWikiPanel caseValue=\{c\} wiki=\{caseWiki\} \/>/);
+  assert.match(caseWikiPanel, /Copy handoff/);
+  assert.match(caseWikiPanel, /Copy refs/);
+  assert.match(caseWikiPanel, /Open bundle/);
+  assert.match(caseWikiPanel, /Open evidence/);
+  assert.match(caseWikiPanel, /exportReady === false/);
+  assert.match(caseWikiPanel, /operatorPreviewPack\?\.remediation\?\.draft/);
+  assert.match(caseWikiPanel, /compliance\?\.enforcement\?\.summary/);
+  assert.match(caseWikiPanel, /evidenceSignature\?\.status/);
 
   assert.match(consolePage, /const \{ defaultConsoleCaseRef \} = useWorkspaceRuntime\(\);/);
   assert.match(consolePage, /const caseRef = params\.get\("ref"\) \|\| defaultConsoleCaseRef \|\| "VS-2841";/);
