@@ -31,6 +31,8 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   const runtimeDiagnosticsPanels = readAppShellSource("components/workspace/RuntimeDiagnosticsPanels.tsx");
   const sessionBoundaryPanel = readAppShellSource("components/workspace/SessionBoundaryPanel.tsx");
   const sessionOpsPanel = readAppShellSource("components/workspace/SessionOpsPanel.tsx");
+  const artifactViewerPanel = readAppShellSource("components/workspace/ArtifactViewerPanel.tsx");
+  const artifactViewerLib = readAppShellSource("lib/runtime-artifact-viewer.ts");
   const replayRuntime = readAppShellSource("lib/runtime-session-replay.ts");
   const consolePage = readAppShellSource("pages/Console.tsx");
 
@@ -54,6 +56,7 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(consoleRuntime, /<CaseWikiPanel caseValue=\{runtimeCase\} wiki=\{wiki\} \/>/);
   assert.match(consoleRuntime, /<SessionOpsPanel caseValue=\{runtimeCase\} wiki=\{wiki\} \/>/);
   assert.match(consoleRuntime, /<RuntimeDiagnosticsPanels caseValue=\{runtimeCase\} \/>/);
+  assert.match(consoleRuntime, /<ArtifactViewerPanel \/>/);
   assert.match(consoleRuntime, /navigate\(`\/app\/console\$\{search \? `\?\$\{search\}` : ""\}\$\{hash\}`/);
   assert.match(caseWikiPanel, /Copy handoff/);
   assert.match(caseWikiPanel, /Copy refs/);
@@ -104,6 +107,15 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(runtimeDiagnosticsPanels, /Refresh workers/);
   assert.match(runtimeDiagnosticsPanels, /Resume job/);
   assert.match(runtimeDiagnosticsPanels, /Cancel job/);
+  assert.match(artifactViewerPanel, /id="artifact-viewer"/);
+  assert.match(artifactViewerPanel, /Euphony-inspired/);
+  assert.match(artifactViewerPanel, /fetchRuntimeArtifactIndex/);
+  assert.match(artifactViewerPanel, /fetchRuntimeArtifactDocument/);
+  assert.match(artifactViewerPanel, /Open raw/);
+  assert.match(artifactViewerPanel, /Copy JSON/);
+  assert.match(artifactViewerLib, /export async function fetchRuntimeArtifactIndex/);
+  assert.match(artifactViewerLib, /export async function fetchRuntimeArtifactDocument/);
+  assert.match(artifactViewerLib, /export function summarizeRuntimeArtifact/);
 
   assert.match(consolePage, /const \{ defaultConsoleCaseRef \} = useWorkspaceRuntime\(\);/);
   assert.match(consolePage, /const \{ hash \} = useLocation\(\);/);
@@ -138,6 +150,7 @@ test("shared app shell chrome reads runtime-backed counts, nodes, and diagnostic
   assert.match(palette, /const \{ cases, pendingApprovals \} = useWorkspaceRuntime\(\);/);
   assert.match(palette, /run\(\(\) => navigate\("\/app\/nodes"\)\)/);
   assert.match(palette, /run\(\(\) => navigate\("\/app\/console\/runtime"\)\)/);
+  assert.match(palette, /run\(\(\) => navigate\("\/app\/console\/runtime#artifact-viewer"\)\)/);
 
   assert.match(rail, /const \{\s+runtimeActive,\s+pendingApprovalCount,\s+runtimeDiagnostics,\s+bootstrapDoctor,\s+browserWorkers,\s+\} = useWorkspaceRuntime\(\);/);
   assert.match(rail, /const items: RailItem\[\] = runtimeActive/);

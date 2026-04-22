@@ -11,6 +11,7 @@ import { SessionBoundaryPanel } from "@/components/workspace/SessionBoundaryPane
 import { CaseWikiPanel } from "@/components/workspace/CaseWikiPanel";
 import { SessionOpsPanel } from "@/components/workspace/SessionOpsPanel";
 import { RuntimeDiagnosticsPanels } from "@/components/workspace/RuntimeDiagnosticsPanels";
+import { ArtifactViewerPanel } from "@/components/workspace/ArtifactViewerPanel";
 import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
 
 const ConsoleRuntime = () => {
@@ -60,6 +61,7 @@ const ConsoleRuntime = () => {
                   <CaseWikiPanel caseValue={runtimeCase} wiki={wiki} />
                   <SessionOpsPanel caseValue={runtimeCase} wiki={wiki} />
                   <RuntimeDiagnosticsPanels caseValue={runtimeCase} />
+                  <ArtifactViewerPanel />
                 </div>
               ) : (
                 <div className="flex h-full items-center justify-center px-8 py-12 text-center">

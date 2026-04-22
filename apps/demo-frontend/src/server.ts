@@ -8,6 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicDir = path.resolve(__dirname, "../public");
 const appShellDir = path.resolve(publicDir, "app-shell");
+const artifactsDir = path.resolve(__dirname, "../../../artifacts");
 const legacyIndexPath = path.resolve(publicDir, "index.html");
 const appShellIndexPath = path.resolve(appShellDir, "index.html");
 
@@ -43,6 +44,96 @@ function isAppShellAssetRoute(urlPath: string): boolean {
   return urlPath === "/app-shell" || urlPath.startsWith("/app-shell/");
 }
 
+const debugArtifactCatalog = [
+  {
+    category: "release-evidence",
+    label: "Release evidence report",
+    description: "Unified release evidence summary for runtime, publish, and deploy proof lanes.",
+    relativePath: "release-evidence/report.json",
+  },
+  {
+    category: "release-evidence",
+    label: "Release evidence manifest",
+    description: "Release manifest with compact runtime ingress and proof references.",
+    relativePath: "release-evidence/manifest.json",
+  },
+  {
+    category: "release-evidence",
+    label: "Runtime proof report",
+    description: "Runtime-focused proof block used by release readiness and judge outputs.",
+    relativePath: "release-evidence/runtime-proof-report.json",
+  },
+  {
+    category: "release-evidence",
+    label: "Submission refresh status",
+    description: "Judge-facing refresh status for the current submission pack.",
+    relativePath: "release-evidence/submission-refresh-status.json",
+  },
+  {
+    category: "runtime",
+    label: "Runtime surface snapshot",
+    description: "Compact runtime surface snapshot used by first-scan diagnostics.",
+    relativePath: "runtime/runtime-surface-snapshot.json",
+  },
+  {
+    category: "runtime",
+    label: "Runtime surface parity",
+    description: "Parity snapshot for runtime surface contract drift checks.",
+    relativePath: "runtime/runtime-surface-parity.json",
+  },
+  {
+    category: "runtime",
+    label: "Runtime surface doc drift",
+    description: "Documentation drift artifact for runtime surface snapshots.",
+    relativePath: "runtime/runtime-surface-doc-drift.json",
+  },
+  {
+    category: "demo-e2e",
+    label: "Demo summary",
+    description: "Repo-owned end-to-end summary for the current demo run.",
+    relativePath: "demo-e2e/summary.json",
+  },
+  {
+    category: "demo-e2e",
+    label: "Demo policy check",
+    description: "Policy gate verdicts and KPI evidence for the demo lane.",
+    relativePath: "demo-e2e/policy-check.json",
+  },
+  {
+    category: "demo-e2e",
+    label: "Navigator visa flows",
+    description: "Browser-worker and replay evidence for visa flow reliability checks.",
+    relativePath: "demo-e2e/navigator-visa-flows.json",
+  },
+  {
+    category: "demo-e2e",
+    label: "Direct live browser smoke",
+    description: "Direct-live browser proof artifact from the demo lane.",
+    relativePath: "demo-e2e/direct-live-browser-smoke.json",
+  },
+  {
+    category: "demo-e2e",
+    label: "Badge details",
+    description: "Badge detail payload used by the public demo proof mirror.",
+    relativePath: "demo-e2e/badge-details.json",
+  },
+] as const;
+
+function resolveDebugArtifactPath(requestPath: string): string | null {
+  if (!requestPath.startsWith("/debug-artifacts/")) {
+    return null;
+  }
+  const relative = requestPath.replace(/^\/debug-artifacts\//, "");
+  if (!relative || relative.includes("..") || !/\.jsonl?$/i.test(relative)) {
+    return null;
+  }
+  const isAllowed = debugArtifactCatalog.some((entry) => entry.relativePath === relative);
+  if (!isAllowed) {
+    return null;
+  }
+  return path.resolve(artifactsDir, relative);
+}
+
 const server = createServer(async (req, res) => {
   if (req.method === "GET" && (req.url === "/" || req.url?.startsWith("/?"))) {
     const query = req.url.length > 1 ? req.url.slice(1) : "";
@@ -76,6 +167,29 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === "GET" && req.url === "/debug-artifacts/index.json") {
+    const items = await Promise.all(
+      debugArtifactCatalog.map(async (entry) => {
+        const fullPath = path.resolve(artifactsDir, entry.relativePath);
+        if (!existsSync(fullPath)) {
+          return null;
+        }
+        const fileStat = await stat(fullPath);
+        return {
+          ...entry,
+          size: fileStat.size,
+          updatedAt: fileStat.mtime.toISOString(),
+          url: `/debug-artifacts/${entry.relativePath}`,
+        };
+      }),
+    );
+    res.statusCode = 200;
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.end(JSON.stringify({ ok: true, items: items.filter((item) => item !== null) }));
+    return;
+  }
+
   const requestPath = req.url?.split("?")[0] ?? "/";
   let filePath: string;
   let allowFallbackIndex = true;
@@ -90,11 +204,20 @@ const server = createServer(async (req, res) => {
     const assetPath = requestPath === "/app-shell" ? "/app-shell/index.html" : requestPath;
     filePath = resolveSafePath(publicDir, assetPath);
     allowFallbackIndex = false;
+  } else if (requestPath.startsWith("/debug-artifacts/")) {
+    const debugArtifactPath = resolveDebugArtifactPath(requestPath);
+    if (!debugArtifactPath) {
+      res.statusCode = 404;
+      res.end("Not found");
+      return;
+    }
+    filePath = debugArtifactPath;
+    allowFallbackIndex = false;
   } else {
     filePath = resolveSafePath(publicDir, requestPath);
   }
 
-  if (!filePath.startsWith(publicDir)) {
+  if (!filePath.startsWith(publicDir) && !filePath.startsWith(artifactsDir)) {
     res.statusCode = 403;
     res.end("Forbidden");
     return;

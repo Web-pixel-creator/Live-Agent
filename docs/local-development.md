@@ -41,6 +41,7 @@ Route guide:
 1. `http://localhost:3000/` redirects to the new Action Desk workspace shell.
 2. `http://localhost:3000/app` serves the primary Action Desk workspace shell.
 3. `http://localhost:3000/app/console/runtime` serves the deeper operator support route for replay, compliance, export, and runtime diagnostics. It remains a secondary/internal surface, while the primary sidebar keeps the transferred `hello-friend` routing (`/app`, `/app/console`, `/app/simulation`, `/app/nodes`) intact.
+3.1. `http://localhost:3000/debug-artifacts/index.json` serves the read-only artifact index used by the runtime support `Artifact Viewer`, and the same frontend server can then serve allowlisted JSON files from `artifacts/demo-e2e`, `artifacts/runtime`, and `artifacts/release-evidence`.
 4. `http://localhost:3000/legacy` keeps the legacy compatibility dashboard/runtime surfaces, links back to `/app`, defaults to `Operator Console` + `Device Nodes` fallback tabs, no longer keeps the hidden legacy live/simulation render loops or compatibility-only control bindings active, and bounces any remaining quick-start actions that need those primary surfaces into `/app`.
 5. `http://localhost:3000/bundle/<id>` serves the public presentation bundle surface.
 6. `http://localhost:3000/evidence/<id>` serves the evidence viewer shell.

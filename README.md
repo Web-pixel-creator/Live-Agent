@@ -244,6 +244,11 @@ live only in `/legacy`: `Workflow Runtime`, `Runtime Guardrails`,
 `GET /v1/runtime/bootstrap-status`, `GET /v1/runtime/auth-profiles`,
 `POST /v1/runtime/auth-profiles/rotate`, `GET /v1/runtime/browser-jobs`, and
 `POST /v1/runtime/browser-jobs/:jobId/resume|cancel`).
+That same support route now includes an `Artifact Viewer` section backed by
+read-only debug artifact routes from `demo-frontend`. It indexes repo-owned
+JSON artifacts from `artifacts/demo-e2e`, `artifacts/runtime`, and
+`artifacts/release-evidence` so replay, runtime, and release evidence can be
+inspected inside the support workspace without opening raw files manually.
 Operator helper entries now match the transferred `hello-friend` shell `1:1`:
 `Live activity` opens `/app`, `Action queue` opens `/app/console`,
 `Connections` and `Health check` open `/app/nodes`, and `Safety rules` opens

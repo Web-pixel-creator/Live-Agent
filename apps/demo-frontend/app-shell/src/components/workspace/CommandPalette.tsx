@@ -24,6 +24,7 @@ import {
   Sprout,
   RotateCw,
   Beaker,
+  Files,
 } from "lucide-react";
 import {
   backdateAllRequests,
@@ -215,6 +216,11 @@ export function CommandPalette() {
             <Terminal className="mr-2 h-4 w-4 text-muted-foreground" />
             Runtime Support
             <CommandShortcut>g r</CommandShortcut>
+          </CommandItem>
+          <CommandItem onSelect={() => run(() => navigate("/app/console/runtime#artifact-viewer"))}>
+            <Files className="mr-2 h-4 w-4 text-muted-foreground" />
+            Artifact Viewer
+            <CommandShortcut>g a</CommandShortcut>
           </CommandItem>
         </CommandGroup>
 
