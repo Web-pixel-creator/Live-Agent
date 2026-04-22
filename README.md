@@ -102,6 +102,8 @@ Priority decision filter:
 - Worker Roles: `docs/worker-roles.md`
 - Eval Plane: `docs/evals.md`
 - Operator Guide: `docs/operator-guide.md`
+- External Adoption Priorities: `docs/external-adoption-priorities.md`
+- hello-friend Parity Audit: `docs/hello-friend-parity-audit.md`
 - Judge Quickstart: `docs/judge-quickstart.md`
 - Judge Runbook (alias): `docs/judge-runbook.md`
 - Canonical Challenge Runbook: `docs/challenge-demo-runbook.md`
