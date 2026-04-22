@@ -68,19 +68,19 @@ const operatorSurfaces: {
   tone?: BadgeTone;
 }[] = [
   // Live activity → the case stream the operator sees first.
-  { label: "Live activity", icon: Activity, url: "/app/console#live-activity" },
+  { label: "Live activity", icon: Activity, url: "/app" },
   // Connections → device/node fleet that feeds events into the desk.
-  { label: "Connections", icon: Plug, url: "/app/console/runtime#connections" },
+  { label: "Connections", icon: Plug, url: "/app/nodes" },
   // Action queue → pending approvals, jumps straight to the first one.
   {
     label: "Action queue",
     icon: Inbox,
-    url: "/app/console#action-queue",
+    url: "/app/console",
   },
   // Safety rules → policy snapshots are governed in Simulation Lab.
-  { label: "Safety rules", icon: ShieldCheck, url: "/app/console/runtime#safety-rules" },
+  { label: "Safety rules", icon: ShieldCheck, url: "/app/simulation" },
   // Health check → fleet health lives in Device Nodes.
-  { label: "Health check", icon: HeartPulse, url: "/app/console/runtime#health-check" },
+  { label: "Health check", icon: HeartPulse, url: "/app/nodes" },
 ];
 
 const judgeArtifacts: { label: string; icon: typeof FileText; count?: number; tone?: BadgeTone; url?: string }[] = [
@@ -423,7 +423,7 @@ export function AppSidebar() {
                           // empty /app/console fallback.
                           const target =
                             sub.label === "Action queue" && firstPendingRef
-                              ? `/app/console?ref=${encodeURIComponent(firstPendingRef)}#action-queue`
+                              ? `/app/console?ref=${encodeURIComponent(firstPendingRef)}`
                               : sub.url;
                           // Active when current pathname matches this sub's
                           // destination. Console itself counts as "Action

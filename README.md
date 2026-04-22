@@ -242,11 +242,12 @@ live only in `/legacy`: `Workflow Runtime`, `Runtime Guardrails`,
 `GET /v1/runtime/bootstrap-status`, `GET /v1/runtime/auth-profiles`,
 `POST /v1/runtime/auth-profiles/rotate`, `GET /v1/runtime/browser-jobs`, and
 `POST /v1/runtime/browser-jobs/:jobId/resume|cancel`).
-Operator helper entries now split cleanly by intent: `Live activity` and
-`Action queue` deep-link into anchored sections of the main `/app/console`
-screen, while `Connections`, `Safety rules`, and `Health check` deep-link into
-anchored sections of `/app/console/runtime` instead of relying on legacy-only
-placeholder navigation.
+Operator helper entries now match the transferred `hello-friend` shell `1:1`:
+`Live activity` opens `/app`, `Action queue` opens `/app/console`,
+`Connections` and `Health check` open `/app/nodes`, and `Safety rules` opens
+`/app/simulation`. The deeper runtime support route at `/app/console/runtime`
+remains available as a secondary/internal surface through direct links and the
+command palette.
 `Simulation Lab` now also overlays the live `policy-current` snapshot from
 repo-owned governance runtime data (`/v1/governance/policy`) and the real
 template catalog (`/v1/governance/compliance-template`) before it falls back to

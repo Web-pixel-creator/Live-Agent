@@ -126,17 +126,18 @@ test("shared app shell chrome reads runtime-backed counts, nodes, and diagnostic
   assert.match(sidebar, /const \{\s+cases,\s+deviceNodes,\s+pendingApprovals,\s+activeCaseCount,\s+pendingApprovalCount,/);
   assert.match(sidebar, /const runtimeSections: Section\[\] = \[/);
   assert.match(sidebar, /const runtimeOperatorSurfaces = operatorSurfaces\.map/);
-  assert.match(sidebar, /Live activity", icon: Activity, url: "\/app\/console#live-activity"/);
-  assert.match(sidebar, /Connections", icon: Plug, url: "\/app\/console\/runtime#connections"/);
-  assert.match(sidebar, /Action queue"[\s\S]*url: "\/app\/console#action-queue"/);
-  assert.match(sidebar, /Safety rules", icon: ShieldCheck, url: "\/app\/console\/runtime#safety-rules"/);
-  assert.match(sidebar, /Health check", icon: HeartPulse, url: "\/app\/console\/runtime#health-check"/);
+  assert.match(sidebar, /Live activity", icon: Activity, url: "\/app"/);
+  assert.match(sidebar, /Connections", icon: Plug, url: "\/app\/nodes"/);
+  assert.match(sidebar, /Action queue"[\s\S]*url: "\/app\/console"/);
+  assert.match(sidebar, /Safety rules", icon: ShieldCheck, url: "\/app\/simulation"/);
+  assert.match(sidebar, /Health check", icon: HeartPulse, url: "\/app\/nodes"/);
   assert.match(sidebar, /const \{ pathname, hash \} = useLocation\(\);/);
   assert.match(sidebar, /pathname\.startsWith\("\/app\/console"\)/);
-  assert.match(sidebar, /\/app\/console\?ref=\$\{encodeURIComponent\(firstPendingRef\)\}#action-queue/);
+  assert.match(sidebar, /\/app\/console\?ref=\$\{encodeURIComponent\(firstPendingRef\)\}/);
 
   assert.match(palette, /const \{ cases, pendingApprovals \} = useWorkspaceRuntime\(\);/);
   assert.match(palette, /run\(\(\) => navigate\("\/app\/nodes"\)\)/);
+  assert.match(palette, /run\(\(\) => navigate\("\/app\/console\/runtime"\)\)/);
 
   assert.match(rail, /const \{\s+runtimeActive,\s+pendingApprovalCount,\s+runtimeDiagnostics,\s+bootstrapDoctor,\s+browserWorkers,\s+\} = useWorkspaceRuntime\(\);/);
   assert.match(rail, /const items: RailItem\[\] = runtimeActive/);

@@ -211,6 +211,11 @@ export function CommandPalette() {
             Nodes
             <CommandShortcut>g n</CommandShortcut>
           </CommandItem>
+          <CommandItem onSelect={() => run(() => navigate("/app/console/runtime"))}>
+            <Terminal className="mr-2 h-4 w-4 text-muted-foreground" />
+            Runtime Support
+            <CommandShortcut>g r</CommandShortcut>
+          </CommandItem>
         </CommandGroup>
 
         <CommandSeparator />
