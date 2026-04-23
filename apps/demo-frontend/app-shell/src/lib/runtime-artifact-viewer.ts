@@ -29,6 +29,11 @@ export type RuntimeArtifactStructuredView = {
   sections: RuntimeArtifactStructuredSection[];
 };
 
+export type RuntimeArtifactIssueSummary = {
+  headline: string;
+  rows: RuntimeArtifactStructuredRow[];
+};
+
 export type RuntimeArtifactIssue =
   | "compliance-blocker"
   | "export-posture"
@@ -340,6 +345,83 @@ function buildBadgeDetailsStructuredView(payload: Record<string, unknown>): Runt
   };
 }
 
+function buildComplianceBlockerIssueSummary(
+  payload: Record<string, unknown>,
+): RuntimeArtifactIssueSummary | null {
+  const evidenceSignature = asRecord(payload.caseWikiEvidenceSignature);
+  const compliance = asRecord(payload.caseWikiCompliance);
+  const routing = asRecord(payload.caseWikiRoutingContext);
+
+  return {
+    headline: "Compliance blocker focus",
+    rows: [
+      pickRow("Signature status", evidenceSignature?.signatureStatus),
+      pickRow("Overview status", evidenceSignature?.overviewStatus),
+      pickRow("Blocker", routing?.blocker),
+      pickRow("Next action", routing?.nextAction),
+      pickRow(
+        "Expected signature",
+        asRecord(compliance?.evidenceSigning)?.expectedSignatureStatus ?? compliance?.expectedSignatureStatus,
+      ),
+    ],
+  };
+}
+
+function buildExportPostureIssueSummary(
+  payload: Record<string, unknown>,
+): RuntimeArtifactIssueSummary | null {
+  const runtimeProof = asRecord(payload.runtimeProof);
+  const compliance = asRecord(payload.caseWikiCompliance);
+
+  return {
+    headline: "Export posture focus",
+    rows: [
+      pickRow("Runtime proof", runtimeProof?.status),
+      pickRow("Case Wiki lane", runtimeProof?.caseWikiStatus),
+      pickRow("Blocker count", runtimeProof?.blockerCount),
+      pickRow("Expected signature", compliance?.expectedSignatureStatus),
+      pickRow("Observed signature", compliance?.observedSignatureStatus),
+    ],
+  };
+}
+
+function buildRawArtifactBlockerIssueSummary(
+  payload: Record<string, unknown>,
+): RuntimeArtifactIssueSummary | null {
+  const runtimeProof = asRecord(payload.runtimeProof);
+  const compliance = asRecord(payload.caseWikiCompliance);
+
+  return {
+    headline: "Raw artifact blocker focus",
+    rows: [
+      pickRow("Case Wiki lane", runtimeProof?.caseWikiStatus),
+      pickRow("Runtime proof", runtimeProof?.status),
+      pickRow("Blocker count", runtimeProof?.blockerCount),
+      pickRow("Raw media retention", compliance?.rawMediaDays),
+      pickRow("Observed signature", compliance?.observedSignatureStatus),
+    ],
+  };
+}
+
+function buildProofIssueSummary(payload: Record<string, unknown>): RuntimeArtifactIssueSummary | null {
+  const lanes = asRecord(payload.lanes);
+  const caseWiki = asRecord(lanes?.caseWiki);
+  if (!caseWiki) {
+    return null;
+  }
+  return {
+    headline: "Case Wiki proof focus",
+    rows: [
+      pickRow("Signature status", caseWiki.signatureStatus),
+      pickRow("Signature kind", caseWiki.signatureKind),
+      pickRow("Expected signature", caseWiki.expectedSignatureStatus),
+      pickRow("Observed signature", caseWiki.observedSignatureStatus),
+      pickRow("Blocker", caseWiki.blocker),
+      pickRow("Next action", caseWiki.nextAction),
+    ],
+  };
+}
+
 function toArtifactIndexEntry(value: unknown): RuntimeArtifactIndexEntry | null {
   if (!isRecord(value)) {
     return null;
@@ -472,6 +554,30 @@ export function getRuntimeArtifactIssueFocusSectionTitle(
   issue: string | null | undefined,
 ): string | null {
   return getRuntimeArtifactIssueConfig(issue)?.focusSectionTitle ?? null;
+}
+
+export function buildRuntimeArtifactIssueSummary(
+  entry: RuntimeArtifactIndexEntry | null | undefined,
+  payload: unknown,
+  issue: string | null | undefined,
+): RuntimeArtifactIssueSummary | null {
+  if (!entry || !isRecord(payload) || !issue) {
+    return null;
+  }
+
+  switch (issue as RuntimeArtifactIssue) {
+    case "compliance-blocker":
+      return buildComplianceBlockerIssueSummary(payload);
+    case "export-posture":
+      return buildExportPostureIssueSummary(payload);
+    case "raw-artifact-blocker":
+      return buildRawArtifactBlockerIssueSummary(payload);
+    case "signature-pending":
+    case "unsigned-proof":
+      return buildProofIssueSummary(payload);
+    default:
+      return null;
+  }
 }
 
 export function buildRuntimeArtifactIssueViewerPath(

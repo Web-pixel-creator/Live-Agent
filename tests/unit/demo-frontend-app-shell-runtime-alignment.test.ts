@@ -240,8 +240,14 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(artifactViewerPanel, /initialCaseRef\?: string \| null;/);
   assert.match(artifactViewerPanel, /getRuntimeArtifactIssueConfig/);
   assert.match(artifactViewerPanel, /getRuntimeArtifactIssueFocusSectionTitle/);
+  assert.match(artifactViewerPanel, /buildRuntimeArtifactIssueSummary/);
   assert.match(artifactViewerPanel, /entry\.relativePath === initialArtifactPath/);
   assert.match(artifactViewerPanel, /Focused by/);
+  assert.match(artifactViewerPanel, /Focus summary/);
+  assert.match(artifactViewerPanel, /Case ref/);
+  assert.match(artifactViewerPanel, /Focus section/);
+  assert.match(artifactViewerPanel, /issueSummary\.headline/);
+  assert.match(artifactViewerPanel, /issueSummary\.rows\.map/);
   assert.match(artifactViewerPanel, /section\.title === issueFocusSectionTitle/);
   assert.match(artifactViewerPanel, /focus/);
   assert.match(artifactViewerLib, /export async function fetchRuntimeArtifactIndex/);
@@ -257,6 +263,12 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(artifactViewerLib, /export function getRuntimeArtifactIssueConfig/);
   assert.match(artifactViewerLib, /focusSectionTitle:/);
   assert.match(artifactViewerLib, /export function getRuntimeArtifactIssueFocusSectionTitle/);
+  assert.match(artifactViewerLib, /export type RuntimeArtifactIssueSummary =/);
+  assert.match(artifactViewerLib, /Compliance blocker focus/);
+  assert.match(artifactViewerLib, /Export posture focus/);
+  assert.match(artifactViewerLib, /Raw artifact blocker focus/);
+  assert.match(artifactViewerLib, /Case Wiki proof focus/);
+  assert.match(artifactViewerLib, /export function buildRuntimeArtifactIssueSummary/);
   assert.match(artifactViewerLib, /export function buildRuntimeArtifactIssueViewerPath/);
   assert.match(artifactViewerLib, /export function buildRuntimeArtifactStructuredView/);
   assert.match(artifactViewerLib, /Unified release evidence report/);

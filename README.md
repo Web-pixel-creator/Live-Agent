@@ -304,7 +304,10 @@ and `issue=...` query, so `Raw artifact blocker`, `Signature pending`,
 instead of dropping operators into a generic debug catalog. Inside the viewer,
 the matching structured section is now highlighted as the focused evidence
 lane, so support operators land on the right proof card and the right proof
-summary at the same time.
+summary at the same time. That same viewer now also lifts a compact issue
+summary above the structured snapshot, exposing repo-owned fields like
+signature status, blocker, next action, and proof posture for the current
+issue without forcing operators to parse the raw JSON first.
 `Operator Session Ops` now mirrors that same remediation posture in its export
 lane, so blocked session exports show the same `Raw artifact blocker` /
 `Signature pending` pills and `Next repo-owned step` hint before operators try

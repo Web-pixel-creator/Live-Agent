@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  buildRuntimeArtifactIssueSummary,
   buildRuntimeArtifactStructuredView,
   fetchRuntimeArtifactDocument,
   fetchRuntimeArtifactIndex,
@@ -149,6 +150,11 @@ export const ArtifactViewerPanel = ({
   );
   const issueConfig = getRuntimeArtifactIssueConfig(initialArtifactIssue as RuntimeArtifactIssue | null);
   const issueFocusSectionTitle = getRuntimeArtifactIssueFocusSectionTitle(initialArtifactIssue);
+  const issueSummary = buildRuntimeArtifactIssueSummary(
+    selectedEntry,
+    artifactDocumentQuery.data?.payload,
+    initialArtifactIssue,
+  );
 
   const copyJson = async () => {
     const raw = artifactDocumentQuery.data?.raw;
@@ -381,6 +387,39 @@ export const ArtifactViewerPanel = ({
                     "."
                   )}{" "}
                   {issueConfig.summary}
+                </div>
+              ) : null}
+              {issueSummary ? (
+                <div className="mt-4 rounded-2xl border border-primary/25 bg-secondary/[0.18] p-4">
+                  <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                    Focus summary
+                    <Pill tone="violet" size="sm">
+                      {issueSummary.headline}
+                    </Pill>
+                  </div>
+                  <dl className="mt-3 grid gap-2 text-sm lg:grid-cols-2">
+                    {initialCaseRef ? (
+                      <div className="flex items-start justify-between gap-3 rounded-xl border border-border/40 bg-background/45 px-3 py-2">
+                        <dt className="text-muted-foreground">Case ref</dt>
+                        <dd className="font-mono text-[11px] text-foreground/88">{initialCaseRef}</dd>
+                      </div>
+                    ) : null}
+                    {issueFocusSectionTitle ? (
+                      <div className="flex items-start justify-between gap-3 rounded-xl border border-border/40 bg-background/45 px-3 py-2">
+                        <dt className="text-muted-foreground">Focus section</dt>
+                        <dd className="text-right text-foreground/88">{issueFocusSectionTitle}</dd>
+                      </div>
+                    ) : null}
+                    {issueSummary.rows.map((row) => (
+                      <div
+                        key={`issue-summary-${row.label}`}
+                        className="flex items-start justify-between gap-3 rounded-xl border border-border/40 bg-background/45 px-3 py-2"
+                      >
+                        <dt className="text-muted-foreground">{row.label}</dt>
+                        <dd className="max-w-[14rem] text-right text-foreground/88">{row.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
                 </div>
               ) : null}
 
