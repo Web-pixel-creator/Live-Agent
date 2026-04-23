@@ -40,6 +40,7 @@ type RuntimeArtifactIssueConfig = {
   label: string;
   summary: string;
   relativePath: (typeof PINNED_RUNTIME_ARTIFACT_PATHS)[number];
+  focusSectionTitle: string;
 };
 
 export const PINNED_RUNTIME_ARTIFACT_PATHS = [
@@ -62,30 +63,35 @@ const RUNTIME_ARTIFACT_ISSUE_CONFIG: Record<RuntimeArtifactIssue, RuntimeArtifac
     summary:
       "Use the unified release report to inspect the current export posture and repo-owned blocker context.",
     relativePath: RUNTIME_ARTIFACT_VIEW_PRESETS.report,
+    focusSectionTitle: "Critical statuses",
   },
   "export-posture": {
     label: "Export posture",
     summary:
       "Use the manifest view to inspect release-facing export posture and proof readiness for the current case.",
     relativePath: RUNTIME_ARTIFACT_VIEW_PRESETS.manifest,
+    focusSectionTitle: "Runtime proof",
   },
   "raw-artifact-blocker": {
     label: "Raw artifact blocker",
     summary:
       "Use the manifest view to inspect which release evidence lane is still blocked by raw or unredacted artifact posture.",
     relativePath: RUNTIME_ARTIFACT_VIEW_PRESETS.manifest,
+    focusSectionTitle: "Critical evidence",
   },
   "signature-pending": {
     label: "Signature pending",
     summary:
       "Use the runtime proof report to inspect the current signing state and downstream proof readiness.",
     relativePath: RUNTIME_ARTIFACT_VIEW_PRESETS.runtimeProof,
+    focusSectionTitle: "Case Wiki",
   },
   "unsigned-proof": {
     label: "Unsigned proof",
     summary:
       "Use the runtime proof report to inspect missing proof publication or unsigned evidence state.",
     relativePath: RUNTIME_ARTIFACT_VIEW_PRESETS.runtimeProof,
+    focusSectionTitle: "Case Wiki",
   },
 };
 
@@ -460,6 +466,12 @@ export function getRuntimeArtifactIssueConfig(
     return null;
   }
   return RUNTIME_ARTIFACT_ISSUE_CONFIG[issue as RuntimeArtifactIssue] ?? null;
+}
+
+export function getRuntimeArtifactIssueFocusSectionTitle(
+  issue: string | null | undefined,
+): string | null {
+  return getRuntimeArtifactIssueConfig(issue)?.focusSectionTitle ?? null;
 }
 
 export function buildRuntimeArtifactIssueViewerPath(

@@ -11,6 +11,7 @@ import {
   fetchRuntimeArtifactDocument,
   fetchRuntimeArtifactIndex,
   getRuntimeArtifactIssueConfig,
+  getRuntimeArtifactIssueFocusSectionTitle,
   isPinnedRuntimeArtifactPath,
   PINNED_RUNTIME_ARTIFACT_PATHS,
   summarizeRuntimeArtifact,
@@ -147,6 +148,7 @@ export const ArtifactViewerPanel = ({
     artifactDocumentQuery.data?.payload,
   );
   const issueConfig = getRuntimeArtifactIssueConfig(initialArtifactIssue as RuntimeArtifactIssue | null);
+  const issueFocusSectionTitle = getRuntimeArtifactIssueFocusSectionTitle(initialArtifactIssue);
 
   const copyJson = async () => {
     const raw = artifactDocumentQuery.data?.raw;
@@ -392,10 +394,19 @@ export const ArtifactViewerPanel = ({
                     {structuredView.sections.map((section) => (
                       <div
                         key={section.title}
-                        className="rounded-2xl border border-border/50 bg-secondary/[0.14] p-4"
+                        className={`rounded-2xl border p-4 ${
+                          section.title === issueFocusSectionTitle
+                            ? "border-primary/45 bg-secondary/[0.24] ring-1 ring-primary/25"
+                            : "border-border/50 bg-secondary/[0.14]"
+                        }`}
                       >
-                        <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                           {section.title}
+                          {section.title === issueFocusSectionTitle ? (
+                            <Pill tone="violet" size="sm">
+                              focus
+                            </Pill>
+                          ) : null}
                         </div>
                         <dl className="mt-3 space-y-2">
                           {section.rows.map((row) => (

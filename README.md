@@ -301,7 +301,10 @@ copying handoff text or exporting Markdown. Those support-lane remediation
 hints now also open the `Artifact Viewer` with an issue-aware `artifact=...`
 and `issue=...` query, so `Raw artifact blocker`, `Signature pending`,
 `Unsigned proof`, and export posture each land on the right proof/report lane
-instead of dropping operators into a generic debug catalog.
+instead of dropping operators into a generic debug catalog. Inside the viewer,
+the matching structured section is now highlighted as the focused evidence
+lane, so support operators land on the right proof card and the right proof
+summary at the same time.
 `Operator Session Ops` now mirrors that same remediation posture in its export
 lane, so blocked session exports show the same `Raw artifact blocker` /
 `Signature pending` pills and `Next repo-owned step` hint before operators try
