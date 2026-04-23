@@ -281,6 +281,10 @@ support posture needs attention (`Export blocked|waiting`, `Proof pending`,
 (`Inspect export block`, `Inspect missing proof`, `Inspect replay gate`, or
 `Inspect replay`) so the main approval-first screen stays clean while problem
 cases still expose one direct path into `/app/console/runtime`.
+When the `Case Wiki` already carries a remediation draft or an unsigned
+evidence signature, that CTA becomes `Inspect compliance blocker` or
+`Inspect unsigned proof` and deep-links straight to the `Case Wiki` support
+section instead of a generic runtime landing point.
 `Simulation Lab` now also overlays the live `policy-current` snapshot from
 repo-owned governance runtime data (`/v1/governance/policy`) and the real
 template catalog (`/v1/governance/compliance-template`) before it falls back to

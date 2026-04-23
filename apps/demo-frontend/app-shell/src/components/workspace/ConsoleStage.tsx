@@ -224,6 +224,7 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
   });
   const replaySummary = buildRuntimeSessionReplaySummary(replayQuery.data);
   const runtimeSupportPath = buildCaseRuntimeSupportPath(c);
+  const remediationDraft = wiki?.operatorPreviewPack?.remediation?.draft ?? null;
   const exportReady =
     wiki?.operatorPreviewPack?.compliance?.enforcement?.exportReady ??
     wiki?.compliance?.enforcement?.exportReady;
@@ -277,15 +278,25 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
   }
   const showRuntimeSupportStrip = runtimeSupportItems.length > 0;
   const runtimeSupportCta = exportReady !== true
-    ? {
-        label: exportReady === false ? "Inspect export block" : "Inspect export posture",
-        to: buildCaseRuntimeSupportPath(c, "session-ops"),
-      }
-    : !proofPublished
+    ? remediationDraft
       ? {
-          label: "Inspect missing proof",
-          to: buildCaseRuntimeSupportPath(c, "connections"),
+          label: "Inspect compliance blocker",
+          to: buildCaseRuntimeSupportPath(c, "case-wiki"),
         }
+      : {
+          label: exportReady === false ? "Inspect export block" : "Inspect export posture",
+          to: buildCaseRuntimeSupportPath(c, "session-ops"),
+        }
+    : !proofPublished
+      ? signatureStatus === "unsigned"
+        ? {
+            label: "Inspect unsigned proof",
+            to: buildCaseRuntimeSupportPath(c, "case-wiki"),
+          }
+        : {
+            label: "Inspect missing proof",
+            to: buildCaseRuntimeSupportPath(c, "connections"),
+          }
       : gatePending
         ? {
             label: "Inspect replay gate",
