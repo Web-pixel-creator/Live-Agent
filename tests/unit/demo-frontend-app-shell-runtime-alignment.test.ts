@@ -253,6 +253,9 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(artifactViewerPanel, /orderedStructuredSections\.map/);
   assert.match(artifactViewerPanel, /section\.title === issueFocusSectionTitle/);
   assert.match(artifactViewerPanel, /focus/);
+  assert.match(artifactViewerPanel, /Focus fields/);
+  assert.match(artifactViewerPanel, /issueSummary\.rows\.slice\(0, 4\)\.map/);
+  assert.match(artifactViewerPanel, /focus-field-/);
   assert.match(artifactViewerPanel, /Raw JSON focus:/);
   assert.match(artifactViewerPanel, /stays first in the structured snapshot above/);
   assert.match(artifactViewerLib, /export async function fetchRuntimeArtifactIndex/);

@@ -309,7 +309,10 @@ summary above the structured snapshot, exposing repo-owned fields like
 signature status, blocker, next action, and proof posture for the current
 issue without forcing operators to parse the raw JSON first. The same focused
 lane is now rendered first in the structured snapshot, while the raw JSON pane
-keeps a quiet focus cue without rewriting the underlying payload.
+keeps a quiet focus cue without rewriting the underlying payload. That focused
+card now also embeds compact `Focus fields`, so the most relevant repo-owned
+values stay inside the prioritized evidence card instead of living only in the
+summary above it.
 `Operator Session Ops` now mirrors that same remediation posture in its export
 lane, so blocked session exports show the same `Raw artifact blocker` /
 `Signature pending` pills and `Next repo-owned step` hint before operators try

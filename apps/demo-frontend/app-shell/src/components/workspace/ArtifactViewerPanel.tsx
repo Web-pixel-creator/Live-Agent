@@ -465,6 +465,26 @@ export const ArtifactViewerPanel = ({
                             </Pill>
                           ) : null}
                         </div>
+                        {section.title === issueFocusSectionTitle && issueSummary ? (
+                          <div className="mt-3 grid gap-2">
+                            <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                              Focus fields
+                            </div>
+                            <div className="grid gap-2">
+                              {issueSummary.rows.slice(0, 4).map((row) => (
+                                <div
+                                  key={`focus-field-${section.title}-${row.label}`}
+                                  className="rounded-xl border border-primary/20 bg-background/45 px-3 py-2"
+                                >
+                                  <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                                    {row.label}
+                                  </div>
+                                  <div className="mt-1 text-sm text-foreground/92">{row.value}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
                         <dl className="mt-3 space-y-2">
                           {section.rows.map((row) => (
                             <div
