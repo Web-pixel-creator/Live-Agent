@@ -305,7 +305,11 @@ to download Markdown or JSON.
 `Runtime Guardrails` on `/app/console/runtime` now mirrors that same quiet
 repo-owned remediation posture, so support operators see `Raw artifact blocker`
  / `Signature pending` plus the same `Next repo-owned step` hint while triaging
- runtime safety state.
+runtime safety state.
+`Workflow Runtime` now mirrors that same quiet remediation posture, so the
+control-plane card shows `Raw artifact blocker` / `Signature pending` plus the
+same `Next repo-owned step` hint before operators clear overrides or inspect the
+report lane.
 `Simulation Lab` now also overlays the live `policy-current` snapshot from
 repo-owned governance runtime data (`/v1/governance/policy`) and the real
 template catalog (`/v1/governance/compliance-template`) before it falls back to

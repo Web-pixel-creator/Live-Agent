@@ -617,6 +617,16 @@ export const RuntimeDiagnosticsPanels = ({
                 <Pill tone={toneFromRuntimeStatus(workflowStatus)} size="sm">
                   {formatStatusLabel(toOptionalText(workflowSummary?.workflowCurrentStage), "no stage")}
                 </Pill>
+                {hasRawArtifactBlocker ? (
+                  <Pill tone="rose" size="sm">
+                    Raw artifact blocker
+                  </Pill>
+                ) : null}
+                {hasSignatureBlocker ? (
+                  <Pill tone="violet" size="sm">
+                    Signature pending
+                  </Pill>
+                ) : null}
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -671,6 +681,11 @@ export const RuntimeDiagnosticsPanels = ({
               </dd>
             </div>
           </dl>
+          {remediationHint ? (
+            <div className="mt-4 rounded-2xl border border-border/50 bg-secondary/[0.2] p-3 text-sm leading-relaxed text-muted-foreground">
+              Next repo-owned step: <span className="text-foreground/88">{remediationHint}</span>
+            </div>
+          ) : null}
           <div className="mt-4 rounded-2xl border border-border/50 bg-secondary/[0.2] p-4 text-sm leading-relaxed text-muted-foreground">
             {workflowOverrideActive
               ? workflowOverrideReason ?? "Workflow control-plane override is active. Clear it from this shell when the drill or recovery step is complete."

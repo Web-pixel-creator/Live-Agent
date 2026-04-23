@@ -201,6 +201,7 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(runtimeDiagnosticsPanels, /Raw artifact blocker/);
   assert.match(runtimeDiagnosticsPanels, /Signature pending/);
   assert.match(runtimeDiagnosticsPanels, /Next repo-owned step:/);
+  assert.match(runtimeDiagnosticsPanels, /Workflow Runtime/);
   assert.match(runtimeDiagnosticsPanels, /Refresh doctor/);
   assert.match(runtimeDiagnosticsPanels, /Rotate next credential/);
   assert.match(runtimeDiagnosticsPanels, /Refresh workers/);
