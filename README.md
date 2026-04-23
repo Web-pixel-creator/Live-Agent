@@ -248,7 +248,10 @@ That same support route now includes an `Artifact Viewer` section backed by
 read-only debug artifact routes from `demo-frontend`. It indexes repo-owned
 JSON artifacts from `artifacts/demo-e2e`, `artifacts/runtime`, and
 `artifacts/release-evidence` so replay, runtime, and release evidence can be
-inspected inside the support workspace without opening raw files manually.
+inspected inside the support workspace without opening raw files manually. The
+viewer now also pins quick-view tabs for `report.json`, `manifest.json`,
+`runtime-proof-report.json`, and `badge-details.json`, with a structured
+snapshot layer above the raw JSON dump for faster operator/judge forensics.
 Operator helper entries now match the transferred `hello-friend` shell `1:1`:
 `Live activity` opens `/app`, `Action queue` opens `/app/console`,
 `Connections` and `Health check` open `/app/nodes`, and `Safety rules` opens

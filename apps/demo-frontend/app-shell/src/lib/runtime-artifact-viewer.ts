@@ -14,8 +14,271 @@ export type RuntimeArtifactDocument = {
   raw: string;
 };
 
+export type RuntimeArtifactStructuredRow = {
+  label: string;
+  value: string;
+};
+
+export type RuntimeArtifactStructuredSection = {
+  title: string;
+  rows: RuntimeArtifactStructuredRow[];
+};
+
+export type RuntimeArtifactStructuredView = {
+  headline: string;
+  sections: RuntimeArtifactStructuredSection[];
+};
+
+export const PINNED_RUNTIME_ARTIFACT_PATHS = [
+  "release-evidence/report.json",
+  "release-evidence/manifest.json",
+  "release-evidence/runtime-proof-report.json",
+  "demo-e2e/badge-details.json",
+] as const;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return isRecord(value) ? value : null;
+}
+
+function asBoolean(value: unknown): boolean | null {
+  return typeof value === "boolean" ? value : null;
+}
+
+function asNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function asString(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function formatScalar(value: unknown): string {
+  const stringValue = asString(value);
+  if (stringValue) {
+    return stringValue;
+  }
+  const numberValue = asNumber(value);
+  if (numberValue !== null) {
+    return Number.isInteger(numberValue) ? String(numberValue) : numberValue.toFixed(2);
+  }
+  const booleanValue = asBoolean(value);
+  if (booleanValue !== null) {
+    return booleanValue ? "true" : "false";
+  }
+  if (Array.isArray(value)) {
+    return `${value.length} item${value.length === 1 ? "" : "s"}`;
+  }
+  if (isRecord(value)) {
+    return `${Object.keys(value).length} keys`;
+  }
+  return "n/a";
+}
+
+function pickRow(label: string, value: unknown): RuntimeArtifactStructuredRow {
+  return { label, value: formatScalar(value) };
+}
+
+function buildReportStructuredView(payload: Record<string, unknown>): RuntimeArtifactStructuredView {
+  const statuses = asRecord(payload.statuses);
+  const caseWikiIngress = asRecord(payload.caseWikiRuntimeSurfaceIngress);
+  const caseWikiAdoption = asRecord(payload.caseWikiContextAdoption);
+  const providerUsage = asRecord(payload.providerUsage);
+
+  return {
+    headline: "Unified release evidence report",
+    sections: [
+      {
+        title: "Critical statuses",
+        rows: [
+          pickRow("Guardrails", statuses?.runtimeGuardrailsSignalPathsStatus),
+          pickRow("Live transport", statuses?.liveTransportStatus),
+          pickRow("Case Wiki routing", statuses?.caseWikiRoutingContextStatus),
+          pickRow("Runtime ingress", statuses?.caseWikiRuntimeSurfaceIngressStatus),
+          pickRow("Navigator flows", statuses?.navigatorVisaFlowsStatus),
+        ],
+      },
+      {
+        title: "Case Wiki ingress",
+        rows: [
+          pickRow("Observed", caseWikiIngress?.observed),
+          pickRow("Context source", caseWikiIngress?.contextSource),
+          pickRow("Ingress source", caseWikiIngress?.ingressSource),
+          pickRow("Route", caseWikiIngress?.route),
+          pickRow("Next action", caseWikiIngress?.nextAction),
+        ],
+      },
+      {
+        title: "Case Wiki adoption",
+        rows: [
+          pickRow("Status", caseWikiAdoption?.status),
+          pickRow("Observed count", caseWikiAdoption?.observedCount),
+          pickRow("Case Wiki seen", caseWikiAdoption?.caseWikiObservedCount),
+          pickRow("Input-only", caseWikiAdoption?.inputOnlyObservedCount),
+          pickRow("Adoption rate", caseWikiAdoption?.caseWikiRate),
+        ],
+      },
+      {
+        title: "Provider usage",
+        rows: [
+          pickRow("Status", providerUsage?.status),
+          pickRow("Validated", providerUsage?.validated),
+          pickRow("Entries", providerUsage?.entriesCount),
+          pickRow("Primary entry", providerUsage?.primaryEntry),
+          pickRow("Secondary providers", providerUsage?.activeSecondaryProviders),
+        ],
+      },
+    ],
+  };
+}
+
+function buildManifestStructuredView(payload: Record<string, unknown>): RuntimeArtifactStructuredView {
+  const runtimeProof = asRecord(payload.runtimeProof);
+  const submissionRefreshGate = asRecord(payload.submissionRefreshGate);
+  const criticalStatuses = asRecord(payload.criticalEvidenceStatuses);
+  const artifacts = asArray(payload.artifacts);
+
+  return {
+    headline: "Release evidence manifest",
+    sections: [
+      {
+        title: "Runtime proof",
+        rows: [
+          pickRow("Status", runtimeProof?.status),
+          pickRow("Ready for operator demo", runtimeProof?.readyForOperatorDemo),
+          pickRow("Passed lanes", runtimeProof?.passedLanes),
+          pickRow("Total lanes", runtimeProof?.totalLanes),
+          pickRow("Blocker count", runtimeProof?.blockerCount),
+        ],
+      },
+      {
+        title: "Submission refresh gate",
+        rows: [
+          pickRow("Live API enabled", submissionRefreshGate?.liveApiEnabled),
+          pickRow("Translation provider", submissionRefreshGate?.translationProvider),
+          pickRow("Storyteller mode", submissionRefreshGate?.storytellerMediaMode),
+          pickRow("UI executor forced sim", submissionRefreshGate?.uiExecutorForceSimulation),
+          pickRow("Artifacts listed", artifacts.length),
+        ],
+      },
+      {
+        title: "Critical evidence",
+        rows: [
+          pickRow("Turn truncation", criticalStatuses?.turnTruncationStatus),
+          pickRow("Case Wiki ingress", criticalStatuses?.caseWikiRuntimeSurfaceIngressStatus),
+          pickRow("Context adoption", criticalStatuses?.caseWikiContextAdoptionStatus),
+          pickRow("Browser worker recovery", criticalStatuses?.browserWorkerRecoveryStatus),
+          pickRow("Device node updates", criticalStatuses?.deviceNodeUpdatesStatus),
+        ],
+      },
+    ],
+  };
+}
+
+function buildRuntimeProofStructuredView(payload: Record<string, unknown>): RuntimeArtifactStructuredView {
+  const directLive = asRecord(payload.lanes ? asRecord(payload.lanes)?.directLive ?? null : payload.directLive);
+  const caseWiki = asRecord(payload.lanes ? asRecord(payload.lanes)?.caseWiki ?? null : payload.caseWiki);
+  const navigator = asRecord(payload.lanes ? asRecord(payload.lanes)?.navigator ?? null : payload.navigator);
+  const blockers = asArray(payload.blockers);
+
+  return {
+    headline: "Runtime proof lanes",
+    sections: [
+      {
+        title: "Overall",
+        rows: [
+          pickRow("Status", payload.status),
+          pickRow("Ready", payload.readyForOperatorDemo),
+          pickRow("Summary", payload.summary),
+          pickRow("Lane groups", Object.keys(payload).filter((key) => ["directLive", "caseWiki", "navigator"].includes(key)).length),
+          pickRow("Blockers", blockers.length),
+        ],
+      },
+      {
+        title: "Direct live",
+        rows: [
+          pickRow("Status", directLive?.status),
+          pickRow("Freshness", directLive?.freshnessStatus),
+          pickRow("Replay mode", directLive?.replayActiveMode),
+          pickRow("First audio ms", directLive?.firstAudioMs),
+          pickRow("Fallback events", directLive?.fallbackEventCount),
+        ],
+      },
+      {
+        title: "Case Wiki",
+        rows: [
+          pickRow("Status", caseWiki?.status),
+          pickRow("Template", caseWiki?.templateId),
+          pickRow("Routing ingress", caseWiki?.routingIngressSource),
+          pickRow("Gateway ingress", caseWiki?.gatewayHydrationIngressSource),
+          pickRow("Next action", caseWiki?.nextAction),
+        ],
+      },
+      {
+        title: "Navigator",
+        rows: [
+          pickRow("Status", navigator?.status),
+          pickRow("Adapter mode", navigator?.adapterMode),
+          pickRow("Total flows", navigator?.totalFlows),
+          pickRow("Success rate", navigator?.successRate),
+          pickRow("Resumed checkpoints", navigator?.resumedCheckpointCount),
+        ],
+      },
+    ],
+  };
+}
+
+function buildBadgeDetailsStructuredView(payload: Record<string, unknown>): RuntimeArtifactStructuredView {
+  const badge = asRecord(payload.badge);
+  const evidence = asRecord(payload.evidence);
+  const liveTransport = asRecord(payload.liveTransport);
+
+  return {
+    headline: "Demo KPI badge details",
+    sections: [
+      {
+        title: "Badge",
+        rows: [
+          pickRow("Label", badge?.label),
+          pickRow("Message", badge?.message),
+          pickRow("Color", badge?.color),
+          pickRow("Checks", payload.checks),
+          pickRow("Violations", asArray(payload.violations).length),
+        ],
+      },
+      {
+        title: "Transport & evidence",
+        rows: [
+          pickRow("Transport status", liveTransport?.status),
+          pickRow("Transport runtime", liveTransport?.runtime),
+          pickRow("Transport session", liveTransport?.session),
+          pickRow("Runtime guardrails", asRecord(evidence?.runtimeGuardrailsSignalPaths)?.status),
+          pickRow("Case Wiki routing", asRecord(evidence?.caseWikiRoutingContext)?.status),
+        ],
+      },
+      {
+        title: "Operator signals",
+        rows: [
+          pickRow("Turn truncation", asRecord(evidence?.operatorTurnTruncation)?.status),
+          pickRow("Turn delete", asRecord(evidence?.operatorTurnDelete)?.status),
+          pickRow("Damage control", asRecord(evidence?.operatorDamageControl)?.status),
+          pickRow("Device nodes", asRecord(evidence?.deviceNodes)?.status),
+          pickRow("Navigator flows", asRecord(evidence?.navigatorVisaFlows)?.status),
+        ],
+      },
+    ],
+  };
 }
 
 function toArtifactIndexEntry(value: unknown): RuntimeArtifactIndexEntry | null {
@@ -111,4 +374,31 @@ export function summarizeRuntimeArtifact(payload: unknown): {
     count: "scalar",
     topLevelKeys: [],
   };
+}
+
+export function isPinnedRuntimeArtifactPath(relativePath: string): boolean {
+  return PINNED_RUNTIME_ARTIFACT_PATHS.includes(
+    relativePath as (typeof PINNED_RUNTIME_ARTIFACT_PATHS)[number],
+  );
+}
+
+export function buildRuntimeArtifactStructuredView(
+  entry: RuntimeArtifactIndexEntry | null | undefined,
+  payload: unknown,
+): RuntimeArtifactStructuredView | null {
+  if (!entry || !isRecord(payload)) {
+    return null;
+  }
+  switch (entry.relativePath) {
+    case "release-evidence/report.json":
+      return buildReportStructuredView(payload);
+    case "release-evidence/manifest.json":
+      return buildManifestStructuredView(payload);
+    case "release-evidence/runtime-proof-report.json":
+      return buildRuntimeProofStructuredView(payload);
+    case "demo-e2e/badge-details.json":
+      return buildBadgeDetailsStructuredView(payload);
+    default:
+      return null;
+  }
 }

@@ -5,9 +5,13 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  buildRuntimeArtifactStructuredView,
   fetchRuntimeArtifactDocument,
   fetchRuntimeArtifactIndex,
+  isPinnedRuntimeArtifactPath,
+  PINNED_RUNTIME_ARTIFACT_PATHS,
   summarizeRuntimeArtifact,
   type RuntimeArtifactIndexEntry,
 } from "@/lib/runtime-artifact-viewer";
@@ -107,6 +111,21 @@ export const ArtifactViewerPanel = () => {
     }
     return [...groups.entries()];
   }, [artifactEntries]);
+  const pinnedEntries = useMemo(
+    () =>
+      PINNED_RUNTIME_ARTIFACT_PATHS.map((relativePath) =>
+        artifactEntries.find((entry) => entry.relativePath === relativePath),
+      ).filter((entry): entry is RuntimeArtifactIndexEntry => entry !== undefined),
+    [artifactEntries],
+  );
+  const activePinnedPath =
+    selectedEntry && isPinnedRuntimeArtifactPath(selectedEntry.relativePath)
+      ? selectedEntry.relativePath
+      : (pinnedEntries[0]?.relativePath ?? null);
+  const structuredView = buildRuntimeArtifactStructuredView(
+    selectedEntry,
+    artifactDocumentQuery.data?.payload,
+  );
 
   const copyJson = async () => {
     const raw = artifactDocumentQuery.data?.raw;
@@ -190,6 +209,37 @@ export const ArtifactViewerPanel = () => {
             Artifact sources
           </div>
           <div className="mt-4 space-y-4">
+            {pinnedEntries.length > 0 ? (
+              <div className="space-y-2">
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Quick views
+                </div>
+                <Tabs
+                  value={activePinnedPath ?? undefined}
+                  onValueChange={(value) => setSelectedPath(value)}
+                  className="space-y-3"
+                >
+                  <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-2xl bg-secondary/[0.18] p-1">
+                    {pinnedEntries.map((entry) => (
+                      <TabsTrigger
+                        key={entry.relativePath}
+                        value={entry.relativePath}
+                        className="h-auto min-h-[3rem] rounded-xl px-3 py-2 text-left text-[11px] leading-snug data-[state=active]:bg-background/90"
+                      >
+                        {entry.label}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  {pinnedEntries.map((entry) => (
+                    <TabsContent key={entry.relativePath} value={entry.relativePath} className="mt-0">
+                      <div className="rounded-2xl border border-border/50 bg-background/65 p-3 text-xs leading-relaxed text-muted-foreground">
+                        {entry.description}
+                      </div>
+                    </TabsContent>
+                  ))}
+                </Tabs>
+              </div>
+            ) : null}
             {groupedEntries.map(([category, entries]) => (
               <div key={category} className="space-y-2">
                 <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -218,8 +268,15 @@ export const ArtifactViewerPanel = () => {
                         <div className="mt-2 text-xs leading-relaxed text-muted-foreground">
                           {entry.description}
                         </div>
-                        <div className="mt-2 font-mono text-[10px] text-muted-foreground/80">
-                          {entry.relativePath}
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <span className="font-mono text-[10px] text-muted-foreground/80">
+                            {entry.relativePath}
+                          </span>
+                          {isPinnedRuntimeArtifactPath(entry.relativePath) ? (
+                            <Pill tone="slate" size="sm">
+                              quick view
+                            </Pill>
+                          ) : null}
                         </div>
                       </button>
                     );
@@ -284,6 +341,40 @@ export const ArtifactViewerPanel = () => {
               <div className="mt-4 rounded-2xl border border-border/50 bg-secondary/[0.2] p-4 text-sm leading-relaxed text-muted-foreground">
                 {selectedEntry.description}
               </div>
+
+              {structuredView ? (
+                <div className="mt-4 rounded-2xl border border-border/60 bg-background/65 p-4">
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                    Structured snapshot
+                  </div>
+                  <div className="mt-2 text-sm text-foreground/92">{structuredView.headline}</div>
+                  <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                    {structuredView.sections.map((section) => (
+                      <div
+                        key={section.title}
+                        className="rounded-2xl border border-border/50 bg-secondary/[0.14] p-4"
+                      >
+                        <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                          {section.title}
+                        </div>
+                        <dl className="mt-3 space-y-2">
+                          {section.rows.map((row) => (
+                            <div
+                              key={`${section.title}-${row.label}`}
+                              className="flex items-start justify-between gap-3 text-sm"
+                            >
+                              <dt className="text-muted-foreground">{row.label}</dt>
+                              <dd className="max-w-[14rem] text-right text-foreground/88">
+                                {row.value}
+                              </dd>
+                            </div>
+                          ))}
+                        </dl>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
               <div className="mt-4 overflow-hidden rounded-2xl border border-border/60 bg-background/65">
                 <div className="border-b border-border/50 px-4 py-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">

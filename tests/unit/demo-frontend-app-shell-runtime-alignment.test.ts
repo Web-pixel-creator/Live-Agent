@@ -113,9 +113,16 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(artifactViewerPanel, /fetchRuntimeArtifactDocument/);
   assert.match(artifactViewerPanel, /Open raw/);
   assert.match(artifactViewerPanel, /Copy JSON/);
+  assert.match(artifactViewerPanel, /Quick views/);
+  assert.match(artifactViewerPanel, /Structured snapshot/);
   assert.match(artifactViewerLib, /export async function fetchRuntimeArtifactIndex/);
   assert.match(artifactViewerLib, /export async function fetchRuntimeArtifactDocument/);
   assert.match(artifactViewerLib, /export function summarizeRuntimeArtifact/);
+  assert.match(artifactViewerLib, /export const PINNED_RUNTIME_ARTIFACT_PATHS = \[/);
+  assert.match(artifactViewerLib, /export function isPinnedRuntimeArtifactPath/);
+  assert.match(artifactViewerLib, /export function buildRuntimeArtifactStructuredView/);
+  assert.match(artifactViewerLib, /Unified release evidence report/);
+  assert.match(artifactViewerLib, /Runtime proof lanes/);
 
   assert.match(consolePage, /const \{ defaultConsoleCaseRef \} = useWorkspaceRuntime\(\);/);
   assert.match(consolePage, /const \{ hash \} = useLocation\(\);/);
