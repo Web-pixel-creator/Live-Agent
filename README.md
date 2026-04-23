@@ -318,7 +318,9 @@ card now also embeds compact `Focus fields`, so the most relevant repo-owned
 values stay inside the prioritized evidence card instead of living only in the
 summary above it. The focused subsection now also gets a stable support-lane
 anchor, so the viewer can jump directly to the relevant structured card before
-operators start reading the raw payload.
+operators start reading the raw payload, and issue-aware row emphasis quietly
+marks the structured rows that matter most for that blocker inside the focused
+card itself.
 `Operator Session Ops` now mirrors that same remediation posture in its export
 lane, so blocked session exports show the same `Raw artifact blocker` /
 `Signature pending` pills and `Next repo-owned step` hint before operators try

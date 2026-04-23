@@ -13,6 +13,7 @@ import {
   fetchRuntimeArtifactDocument,
   fetchRuntimeArtifactIndex,
   getRuntimeArtifactIssueConfig,
+  getRuntimeArtifactIssueFocusRowLabels,
   getRuntimeArtifactIssueFocusSectionTitle,
   isPinnedRuntimeArtifactPath,
   PINNED_RUNTIME_ARTIFACT_PATHS,
@@ -154,6 +155,15 @@ export const ArtifactViewerPanel = ({
   const issueConfig = getRuntimeArtifactIssueConfig(initialArtifactIssue as RuntimeArtifactIssue | null);
   const issueFocusSectionTitle = getRuntimeArtifactIssueFocusSectionTitle(initialArtifactIssue);
   const focusedSectionTitle = initialArtifactSection?.trim() || issueFocusSectionTitle;
+  const focusedRowLabels = useMemo(
+    () =>
+      new Set(
+        getRuntimeArtifactIssueFocusRowLabels(initialArtifactIssue).map((label) =>
+          label.trim().toLowerCase(),
+        ),
+      ),
+    [initialArtifactIssue],
+  );
   const issueSummary = buildRuntimeArtifactIssueSummary(
     selectedEntry,
     artifactDocumentQuery.data?.payload,
@@ -513,17 +523,34 @@ export const ArtifactViewerPanel = ({
                           </div>
                         ) : null}
                         <dl className="mt-3 space-y-2">
-                          {section.rows.map((row) => (
-                            <div
-                              key={`${section.title}-${row.label}`}
-                              className="flex items-start justify-between gap-3 text-sm"
-                            >
-                              <dt className="text-muted-foreground">{row.label}</dt>
-                              <dd className="max-w-[14rem] text-right text-foreground/88">
-                                {row.value}
-                              </dd>
-                            </div>
-                          ))}
+                          {section.rows.map((row) => {
+                            const isFocusedRow =
+                              section.title === focusedSectionTitle &&
+                              focusedRowLabels.has(row.label.trim().toLowerCase());
+
+                            return (
+                              <div
+                                key={`${section.title}-${row.label}`}
+                                className={`flex items-start justify-between gap-3 rounded-xl px-3 py-2 text-sm ${
+                                  isFocusedRow
+                                    ? "border border-primary/25 bg-background/45"
+                                    : "border border-transparent"
+                                }`}
+                              >
+                                <dt className="flex min-w-0 items-center gap-2 text-muted-foreground">
+                                  <span>{row.label}</span>
+                                  {isFocusedRow ? (
+                                    <Pill tone="violet" size="sm">
+                                      focus field
+                                    </Pill>
+                                  ) : null}
+                                </dt>
+                                <dd className="max-w-[14rem] text-right text-foreground/88">
+                                  {row.value}
+                                </dd>
+                              </div>
+                            );
+                          })}
                         </dl>
                       </div>
                     ))}

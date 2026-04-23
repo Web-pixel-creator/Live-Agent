@@ -46,6 +46,7 @@ type RuntimeArtifactIssueConfig = {
   summary: string;
   relativePath: (typeof PINNED_RUNTIME_ARTIFACT_PATHS)[number];
   focusSectionTitle: string;
+  focusRowLabels: string[];
 };
 
 export const PINNED_RUNTIME_ARTIFACT_PATHS = [
@@ -69,6 +70,7 @@ const RUNTIME_ARTIFACT_ISSUE_CONFIG: Record<RuntimeArtifactIssue, RuntimeArtifac
       "Use the unified release report to inspect the current export posture and repo-owned blocker context.",
     relativePath: RUNTIME_ARTIFACT_VIEW_PRESETS.report,
     focusSectionTitle: "Critical statuses",
+    focusRowLabels: ["Case Wiki routing", "Runtime ingress"],
   },
   "export-posture": {
     label: "Export posture",
@@ -76,6 +78,7 @@ const RUNTIME_ARTIFACT_ISSUE_CONFIG: Record<RuntimeArtifactIssue, RuntimeArtifac
       "Use the manifest view to inspect release-facing export posture and proof readiness for the current case.",
     relativePath: RUNTIME_ARTIFACT_VIEW_PRESETS.manifest,
     focusSectionTitle: "Runtime proof",
+    focusRowLabels: ["Status", "Ready for operator demo", "Blocker count"],
   },
   "raw-artifact-blocker": {
     label: "Raw artifact blocker",
@@ -83,6 +86,7 @@ const RUNTIME_ARTIFACT_ISSUE_CONFIG: Record<RuntimeArtifactIssue, RuntimeArtifac
       "Use the manifest view to inspect which release evidence lane is still blocked by raw or unredacted artifact posture.",
     relativePath: RUNTIME_ARTIFACT_VIEW_PRESETS.manifest,
     focusSectionTitle: "Critical evidence",
+    focusRowLabels: ["Case Wiki ingress"],
   },
   "signature-pending": {
     label: "Signature pending",
@@ -90,6 +94,7 @@ const RUNTIME_ARTIFACT_ISSUE_CONFIG: Record<RuntimeArtifactIssue, RuntimeArtifac
       "Use the runtime proof report to inspect the current signing state and downstream proof readiness.",
     relativePath: RUNTIME_ARTIFACT_VIEW_PRESETS.runtimeProof,
     focusSectionTitle: "Case Wiki",
+    focusRowLabels: ["Status", "Next action"],
   },
   "unsigned-proof": {
     label: "Unsigned proof",
@@ -97,6 +102,7 @@ const RUNTIME_ARTIFACT_ISSUE_CONFIG: Record<RuntimeArtifactIssue, RuntimeArtifac
       "Use the runtime proof report to inspect missing proof publication or unsigned evidence state.",
     relativePath: RUNTIME_ARTIFACT_VIEW_PRESETS.runtimeProof,
     focusSectionTitle: "Case Wiki",
+    focusRowLabels: ["Status", "Next action"],
   },
 };
 
@@ -567,6 +573,12 @@ export function getRuntimeArtifactIssueFocusSectionTitle(
   issue: string | null | undefined,
 ): string | null {
   return getRuntimeArtifactIssueConfig(issue)?.focusSectionTitle ?? null;
+}
+
+export function getRuntimeArtifactIssueFocusRowLabels(
+  issue: string | null | undefined,
+): string[] {
+  return getRuntimeArtifactIssueConfig(issue)?.focusRowLabels ?? [];
 }
 
 export function buildRuntimeArtifactIssueSummary(

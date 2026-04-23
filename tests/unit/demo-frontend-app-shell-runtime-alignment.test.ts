@@ -242,10 +242,12 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(artifactViewerPanel, /initialCaseRef\?: string \| null;/);
   assert.match(artifactViewerPanel, /buildRuntimeArtifactSectionAnchorId/);
   assert.match(artifactViewerPanel, /getRuntimeArtifactIssueConfig/);
+  assert.match(artifactViewerPanel, /getRuntimeArtifactIssueFocusRowLabels/);
   assert.match(artifactViewerPanel, /getRuntimeArtifactIssueFocusSectionTitle/);
   assert.match(artifactViewerPanel, /buildRuntimeArtifactIssueSummary/);
   assert.match(artifactViewerPanel, /entry\.relativePath === initialArtifactPath/);
   assert.match(artifactViewerPanel, /const focusedSectionTitle = initialArtifactSection\?\.trim\(\) \|\| issueFocusSectionTitle;/);
+  assert.match(artifactViewerPanel, /const focusedRowLabels = useMemo/);
   assert.match(artifactViewerPanel, /Focused by/);
   assert.match(artifactViewerPanel, /Focus summary/);
   assert.match(artifactViewerPanel, /Case ref/);
@@ -258,8 +260,10 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(artifactViewerPanel, /document\.getElementById\(sectionAnchorId\)\?\.scrollIntoView/);
   assert.match(artifactViewerPanel, /orderedStructuredSections\.map/);
   assert.match(artifactViewerPanel, /section\.title === focusedSectionTitle/);
+  assert.match(artifactViewerPanel, /focusedRowLabels\.has\(row\.label\.trim\(\)\.toLowerCase\(\)\)/);
   assert.match(artifactViewerPanel, /focus/);
   assert.match(artifactViewerPanel, /Focus fields/);
+  assert.match(artifactViewerPanel, /focus field/);
   assert.match(artifactViewerPanel, /issueSummary\.rows\.slice\(0, 4\)\.map/);
   assert.match(artifactViewerPanel, /focus-field-/);
   assert.match(artifactViewerPanel, /id=\{buildRuntimeArtifactSectionAnchorId\(section\.title\)\}/);
@@ -280,7 +284,9 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(artifactViewerLib, /export function buildRuntimeArtifactSectionAnchorId/);
   assert.match(artifactViewerLib, /export function getRuntimeArtifactIssueConfig/);
   assert.match(artifactViewerLib, /focusSectionTitle:/);
+  assert.match(artifactViewerLib, /focusRowLabels: \[/);
   assert.match(artifactViewerLib, /export function getRuntimeArtifactIssueFocusSectionTitle/);
+  assert.match(artifactViewerLib, /export function getRuntimeArtifactIssueFocusRowLabels/);
   assert.match(artifactViewerLib, /export type RuntimeArtifactIssueSummary =/);
   assert.match(artifactViewerLib, /Compliance blocker focus/);
   assert.match(artifactViewerLib, /Export posture focus/);
