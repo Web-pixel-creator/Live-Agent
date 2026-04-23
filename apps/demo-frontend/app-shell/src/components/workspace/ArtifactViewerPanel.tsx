@@ -155,6 +155,24 @@ export const ArtifactViewerPanel = ({
     artifactDocumentQuery.data?.payload,
     initialArtifactIssue,
   );
+  const orderedStructuredSections = useMemo(() => {
+    if (!structuredView) {
+      return [];
+    }
+    if (!issueFocusSectionTitle) {
+      return structuredView.sections;
+    }
+    const focusSection = structuredView.sections.find(
+      (section) => section.title === issueFocusSectionTitle,
+    );
+    if (!focusSection) {
+      return structuredView.sections;
+    }
+    return [
+      focusSection,
+      ...structuredView.sections.filter((section) => section.title !== issueFocusSectionTitle),
+    ];
+  }, [issueFocusSectionTitle, structuredView]);
 
   const copyJson = async () => {
     const raw = artifactDocumentQuery.data?.raw;
@@ -430,7 +448,7 @@ export const ArtifactViewerPanel = ({
                   </div>
                   <div className="mt-2 text-sm text-foreground/92">{structuredView.headline}</div>
                   <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                    {structuredView.sections.map((section) => (
+                    {orderedStructuredSections.map((section) => (
                       <div
                         key={section.title}
                         className={`rounded-2xl border p-4 ${
@@ -470,6 +488,16 @@ export const ArtifactViewerPanel = ({
                 <div className="border-b border-border/50 px-4 py-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                   Raw JSON
                 </div>
+                {issueFocusSectionTitle ? (
+                  <div className="border-b border-border/40 bg-secondary/[0.12] px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+                    Raw JSON focus:
+                    {" "}
+                    <span className="text-foreground/88">{issueFocusSectionTitle}</span>
+                    {" "}
+                    stays first in the structured snapshot above. The raw payload below remains
+                    unchanged for full inspection.
+                  </div>
+                ) : null}
                 <div className="max-h-[34rem] overflow-auto px-4 py-3">
                   <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-5 text-foreground/88">
                     {artifactDocumentQuery.isLoading
