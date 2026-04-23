@@ -48,6 +48,7 @@ import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
 import {
   buildCaseBundlePath,
   buildCaseEvidencePath,
+  buildCaseVaultPath,
 } from "@/lib/case-artifact-links";
 
 type Status = CaseStatus;
@@ -435,6 +436,13 @@ export const LiveDesk = () => {
   ) => {
     e?.stopPropagation();
     navigate(buildCaseEvidencePath(value));
+  };
+  const handleOpenCaseVault = (
+    e: React.MouseEvent | null,
+    value: WorkspaceCase,
+  ) => {
+    e?.stopPropagation();
+    navigate(buildCaseVaultPath(value));
   };
   // VIP toggle from row context menu — mirrors the client-tooltip Star, but
   // accessible without hover-targeting a 12px icon. Toast confirms the
@@ -1458,6 +1466,13 @@ export const LiveDesk = () => {
                         <Camera className="h-3 w-3" strokeWidth={1.75} />
                       </button>
                       <button
+                        onClick={(e) => handleOpenCaseVault(e, c)}
+                        title="Open Case Vault"
+                        className="inline-flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/80 ring-1 ring-inset ring-border/60 transition-smooth"
+                      >
+                        <Server className="h-3 w-3" strokeWidth={1.75} />
+                      </button>
+                      <button
                         onClick={(e) => handleOpen(e, c.ref)}
                         title="Open in Console (↵)"
                         className="inline-flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/80 ring-1 ring-inset ring-border/60 transition-smooth"
@@ -1508,6 +1523,13 @@ export const LiveDesk = () => {
                       >
                         <Camera className="h-3.5 w-3.5" strokeWidth={1.75} />
                         Open visual evidence
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        onSelect={() => handleOpenCaseVault(null, c)}
+                        className="text-[12px] gap-2"
+                      >
+                        <Server className="h-3.5 w-3.5" strokeWidth={1.75} />
+                        Open Case Vault
                       </ContextMenuItem>
                       <ContextMenuSeparator />
                       {/* VIP toggle — labelled by current state so the action

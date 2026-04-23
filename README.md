@@ -265,7 +265,9 @@ secondary support surface without pushing that deeper memory graph back into
 the primary operator shell. That same `Case Vault` now also carries repo-owned
 projection modes for `Operator handoff` and `CRM prep`, plus `Copy` / `Export`
 actions that reuse the same compiled compliance/export gate instead of leaking
-handoff text while `exportReady=false`.
+handoff text while `exportReady=false`. `Live Desk`, `Operator Console`, and
+`Case Wiki` now all deep-link into that same case-scoped vault support route
+instead of leaving it discoverable only through the generic runtime catalog.
 snapshot layer above the raw JSON dump for faster operator/judge forensics.
 Operator helper entries now match the transferred `hello-friend` shell `1:1`:
 `Live activity` opens `/app`, `Action queue` opens `/app/console`,
@@ -273,6 +275,10 @@ Operator helper entries now match the transferred `hello-friend` shell `1:1`:
 `/app/simulation`. The deeper runtime support route at `/app/console/runtime`
 remains available as a secondary/internal surface through direct links and the
 command palette.
+`/app/console` now also keeps one compact runtime-support strip under the
+approval actions (`Export`, `Proof`, `Replay`, plus `Runtime support`) so the
+main approval-first screen stays clean while repo-owned support posture remains
+visible without reopening the larger runtime cards inline.
 `Simulation Lab` now also overlays the live `policy-current` snapshot from
 repo-owned governance runtime data (`/v1/governance/policy`) and the real
 template catalog (`/v1/governance/compliance-template`) before it falls back to

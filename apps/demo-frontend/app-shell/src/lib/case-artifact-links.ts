@@ -38,3 +38,20 @@ export function buildCaseEvidencePath(target: CaseArtifactTarget): string {
   const ref = resolveCaseArtifactRef(target);
   return ref ? `/evidence/${encodeURIComponent(ref)}` : "/evidence";
 }
+
+export function buildCaseRuntimeSupportPath(
+  target: CaseArtifactTarget,
+  hash?: string | null,
+): string {
+  const ref = resolveCaseArtifactRef(target);
+  const search = ref ? `?ref=${encodeURIComponent(ref)}` : "";
+  const anchor =
+    typeof hash === "string" && hash.trim().length > 0
+      ? `#${hash.replace(/^#/, "").trim()}`
+      : "";
+  return `/app/console/runtime${search}${anchor}`;
+}
+
+export function buildCaseVaultPath(target: CaseArtifactTarget): string {
+  return buildCaseRuntimeSupportPath(target, "case-vault");
+}

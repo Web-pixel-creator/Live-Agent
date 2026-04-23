@@ -1,7 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import type { RuntimeCaseWiki, RuntimeCaseWikiQuestion } from "@/hooks/useWorkspaceRuntime";
-import { buildCaseBundlePath, buildCaseEvidencePath } from "@/lib/case-artifact-links";
+import {
+  buildCaseBundlePath,
+  buildCaseEvidencePath,
+  buildCaseVaultPath,
+} from "@/lib/case-artifact-links";
 import {
   buildRuntimeArtifactViewerPath,
   RUNTIME_ARTIFACT_VIEW_PRESETS,
@@ -94,7 +98,7 @@ export const CaseWikiPanel = ({ caseValue, wiki }: CaseWikiPanelProps) => {
     RUNTIME_ARTIFACT_VIEW_PRESETS.runtimeProof,
     { caseRef: caseValue.ref },
   );
-  const caseVaultPath = `/app/console/runtime?ref=${encodeURIComponent(caseValue.ref)}#case-vault`;
+  const caseVaultPath = buildCaseVaultPath(caseValue);
   const refs = collectCaseWikiRefs(wiki);
   const blockingQuestion = pickBlockingQuestion(wiki);
   const nextAction = wiki?.recommendedNextAction ?? null;

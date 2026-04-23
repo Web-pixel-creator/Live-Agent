@@ -43,10 +43,18 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(liveDesk, /existingCases=\{cases\}/);
   assert.match(liveDesk, /addDraftCase\(draft\);/);
   assert.match(liveDesk, /deviceNodes\.find\(\(n\) => n\.id === nodeFilterId\)/);
+  assert.match(liveDesk, /buildCaseVaultPath/);
+  assert.match(liveDesk, /Open Case Vault/);
+  assert.match(liveDesk, /handleOpenCaseVault/);
 
-  assert.match(consoleStage, /const \{ deviceNodes, getCaseByRef \} = useWorkspaceRuntime\(\);/);
+  assert.match(consoleStage, /const \{ deviceNodes, getCaseByRef, getCaseWikiByRef \} = useWorkspaceRuntime\(\);/);
   assert.match(consoleStage, /const baseCase = getCaseByRef\(caseRef\);/);
   assert.match(consoleStage, /deviceNodes\.find\(\(n\) => n\.id === c\.sourceNodeId\)/);
+  assert.match(consoleStage, /buildCaseVaultPath/);
+  assert.match(consoleStage, /buildCaseRuntimeSupportPath/);
+  assert.match(consoleStage, /handleOpenCaseVault/);
+  assert.match(consoleStage, /label="Open Case Vault"/);
+  assert.match(consoleStage, /Runtime support/);
   assert.match(consoleStage, /id="action-queue"/);
   assert.match(consoleStage, /id="live-activity"/);
   assert.doesNotMatch(consoleStage, /SessionBoundaryPanel/);
@@ -69,9 +77,9 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(caseWikiPanel, /Open evidence/);
   assert.match(caseWikiPanel, /Inspect proof/);
   assert.match(caseWikiPanel, /Open Case Vault/);
+  assert.match(caseWikiPanel, /buildCaseVaultPath/);
   assert.match(caseWikiPanel, /buildRuntimeArtifactViewerPath/);
   assert.match(caseWikiPanel, /RUNTIME_ARTIFACT_VIEW_PRESETS\.runtimeProof/);
-  assert.match(caseWikiPanel, /\/app\/console\/runtime\?ref=\$\{encodeURIComponent\(caseValue\.ref\)\}#case-vault/);
   assert.match(caseWikiPanel, /exportReady === false/);
   assert.match(caseWikiPanel, /operatorPreviewPack\?\.remediation\?\.draft/);
   assert.match(caseWikiPanel, /compliance\?\.enforcement\?\.summary/);
@@ -251,14 +259,27 @@ test("live desk, operator console, and simulation drilldowns share case-driven j
   assert.match(helper, /return firstArtifactToken\(target\.caseId, target\.sessionId, target\.ref\);/);
   assert.match(helper, /export function buildCaseBundlePath/);
   assert.match(helper, /export function buildCaseEvidencePath/);
+  assert.match(helper, /export function buildCaseRuntimeSupportPath/);
+  assert.match(helper, /return `\/app\/console\/runtime\$\{search\}\$\{anchor\}`;/);
 
-  assert.match(liveDesk, /import \{\s*buildCaseBundlePath,\s*buildCaseEvidencePath,\s*\} from "@\/lib\/case-artifact-links";/);
+  assert.match(liveDesk, /import \{\s*buildCaseBundlePath,\s*buildCaseEvidencePath,\s*buildCaseVaultPath,\s*\} from "@\/lib\/case-artifact-links";/);
   assert.match(liveDesk, /navigate\(buildCaseBundlePath\(value\)\);/);
   assert.match(liveDesk, /navigate\(buildCaseEvidencePath\(value\)\);/);
+  assert.match(liveDesk, /navigate\(buildCaseVaultPath\(value\)\);/);
 
-  assert.match(consoleStage, /import \{\s*buildCaseBundlePath,\s*buildCaseEvidencePath,\s*\} from "@\/lib\/case-artifact-links";/);
+  assert.match(consoleStage, /import \{\s*buildCaseBundlePath,\s*buildCaseEvidencePath,\s*buildCaseRuntimeSupportPath,\s*buildCaseVaultPath,\s*\} from "@\/lib\/case-artifact-links";/);
+  assert.match(consoleStage, /import \{ useQuery \} from "@tanstack\/react-query";/);
+  assert.match(consoleStage, /import \{\s*buildRuntimeSessionReplaySummary,\s*fetchRuntimeSessionReplay,\s*type RuntimeSessionReplaySummary,\s*\} from "@\/lib\/runtime-session-replay";/);
+  assert.match(consoleStage, /const \{ deviceNodes, getCaseByRef, getCaseWikiByRef \} = useWorkspaceRuntime\(\);/);
   assert.match(consoleStage, /navigate\(buildCaseBundlePath\(c\)\);/);
   assert.match(consoleStage, /navigate\(buildCaseEvidencePath\(c\)\);/);
+  assert.match(consoleStage, /navigate\(buildCaseVaultPath\(c\)\);/);
+  assert.match(consoleStage, /const runtimeSupportPath = buildCaseRuntimeSupportPath\(c\);/);
+  assert.match(consoleStage, /Runtime support/);
+  assert.match(consoleStage, /Export blocked|Export ready|Export waiting/);
+  assert.match(consoleStage, /Proof signed|Proof published|Proof pending/);
+  assert.match(consoleStage, /Replay loading|Replay waiting/);
+  assert.match(consoleStage, /Gate pending/);
 
   assert.match(runDetailDrawer, /import \{\s*buildCaseBundlePath,\s*buildCaseEvidencePath,\s*\} from "@\/lib\/case-artifact-links";/);
   assert.match(runDetailDrawer, /navigate\(buildCaseBundlePath\(c \?\? run\.caseRef\)\);/);

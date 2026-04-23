@@ -26,6 +26,7 @@ import {
   Server,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -50,7 +51,14 @@ import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
 import {
   buildCaseBundlePath,
   buildCaseEvidencePath,
+  buildCaseRuntimeSupportPath,
+  buildCaseVaultPath,
 } from "@/lib/case-artifact-links";
+import {
+  buildRuntimeSessionReplaySummary,
+  fetchRuntimeSessionReplay,
+  type RuntimeSessionReplaySummary,
+} from "@/lib/runtime-session-replay";
 
 // Format an ISO timestamp into a compact "Jun 24 · 14:00" label for the timeline.
 const formatEventTime = (iso: string) => {
@@ -92,12 +100,32 @@ const shortAge = (iso: string | undefined, now: number): string | null => {
 // to signal "stale — chase the client". Mirrors the Live Desk threshold.
 const REQUESTED_STALE_MS = 24 * 60 * 60 * 1000;
 
+function formatStatusLabel(value: string | null | undefined, fallback: string): string {
+  if (!value || value.trim().length === 0) {
+    return fallback;
+  }
+  return value.replace(/[_-]+/g, " ").trim();
+}
+
+function toneForReplay(summary: RuntimeSessionReplaySummary | null): "mint" | "rose" | "violet" | "slate" {
+  if (!summary) {
+    return "slate";
+  }
+  if (summary.resumeReady === false || summary.approvalGateStatus === "pending") {
+    return "rose";
+  }
+  if (summary.replayState === "verified" || summary.resumeReady === true) {
+    return "mint";
+  }
+  return "violet";
+}
+
 interface ConsoleStageProps {
   caseRef?: string;
 }
 
 export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
-  const { deviceNodes, getCaseByRef } = useWorkspaceRuntime();
+  const { deviceNodes, getCaseByRef, getCaseWikiByRef } = useWorkspaceRuntime();
   // Tab selection — defaults are picked by the smart-default effect below
   // based on whether the case has missing docs. Initial values here are just
   // placeholders before the case is resolved.
@@ -185,6 +213,45 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
   const baseCase = getCaseByRef(caseRef);
   const sessionReqs = useCaseRequests(caseRef);
   const c = baseCase ? applyRequestOverrides(baseCase, sessionReqs) : undefined;
+  const wiki = getCaseWikiByRef(c?.caseId ?? c?.sessionId ?? null);
+  const sessionId = c?.sessionId ?? wiki?.sessionId ?? null;
+  const replayQuery = useQuery({
+    queryKey: ["app-shell", "console-stage-session-replay", sessionId],
+    enabled: Boolean(sessionId),
+    queryFn: () => fetchRuntimeSessionReplay(sessionId ?? ""),
+    staleTime: 30_000,
+    retry: 1,
+  });
+  const replaySummary = buildRuntimeSessionReplaySummary(replayQuery.data);
+  const runtimeSupportPath = buildCaseRuntimeSupportPath(c);
+  const exportReady =
+    wiki?.operatorPreviewPack?.compliance?.enforcement?.exportReady ??
+    wiki?.compliance?.enforcement?.exportReady;
+  const exportStatusLabel =
+    exportReady === false
+      ? "Export blocked"
+      : exportReady === true
+        ? "Export ready"
+        : "Export waiting";
+  const exportTone: "mint" | "rose" | "violet" | "slate" =
+    exportReady === false ? "rose" : exportReady === true ? "mint" : "slate";
+  const proofSigned = wiki?.evidenceSignature?.status === "signed";
+  const proofPublished = proofSigned || Boolean(replaySummary?.latestProofSummary);
+  const proofStatusLabel = proofSigned
+    ? "Proof signed"
+    : proofPublished
+      ? "Proof published"
+      : "Proof pending";
+  const proofTone: "mint" | "rose" | "violet" | "slate" = proofSigned
+    ? "mint"
+    : proofPublished
+      ? "violet"
+      : "slate";
+  const replayStatusLabel = replayQuery.isLoading
+    ? "Replay loading"
+    : formatStatusLabel(replaySummary?.replayState, "Replay waiting");
+  const replayTone = replayQuery.isLoading ? "slate" : toneForReplay(replaySummary);
+  const gatePending = replaySummary?.approvalGateStatus === "pending";
 
   // List of doc names currently in `missing` state — drives the bulk bar.
   // Computed unconditionally so hook order stays stable across renders.
@@ -399,6 +466,9 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
         };
         const handleOpenEvidence = () => {
           navigate(buildCaseEvidencePath(c));
+        };
+        const handleOpenCaseVault = () => {
+          navigate(buildCaseVaultPath(c));
         };
         const handleSnooze = () => {
           toast(`Snoozed ${c.ref}`, {
@@ -873,6 +943,11 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
                     onClick={handleOpenEvidence}
                   />
                   <QuickAction
+                    icon={Server}
+                    label="Open Case Vault"
+                    onClick={handleOpenCaseVault}
+                  />
+                  <QuickAction
                     icon={Copy}
                     label="Copy case reference"
                     onClick={handleCopyRef}
@@ -1071,6 +1146,32 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
                 <kbd className="px-1.5 py-0.5 rounded border border-border bg-secondary/50 text-foreground/80 text-[10.5px] tracking-tight font-mono">⌘↵</kbd>
                 to approve
               </span>
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/40 pt-3">
+              <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+                Runtime support
+              </span>
+              <Pill tone={exportTone} size="sm" dot>
+                {exportStatusLabel}
+              </Pill>
+              <Pill tone={proofTone} size="sm" dot>
+                {proofStatusLabel}
+              </Pill>
+              <Pill tone={replayTone} size="sm" dot>
+                {replayStatusLabel}
+              </Pill>
+              {gatePending ? (
+                <Pill tone="rose" size="sm">
+                  Gate pending
+                </Pill>
+              ) : null}
+              <Button asChild variant="ghost" className="ml-auto h-8 px-3 text-[11.5px]">
+                <Link to={runtimeSupportPath}>
+                  <Server className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
+                  Runtime support
+                </Link>
+              </Button>
             </div>
           </>
           )
