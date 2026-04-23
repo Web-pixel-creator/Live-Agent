@@ -23,6 +23,7 @@ const ConsoleRuntime = () => {
   const caseRef = params.get("ref") || defaultConsoleCaseRef || "VS-2841";
   const initialArtifactPath = params.get("artifact");
   const initialArtifactIssue = params.get("issue");
+  const initialArtifactSection = params.get("section");
   const caseValue = getCaseByRef(caseRef);
   const runtimeCase =
     caseValue ?? (defaultConsoleCaseRef ? getCaseByRef(defaultConsoleCaseRef) : undefined);
@@ -68,6 +69,7 @@ const ConsoleRuntime = () => {
                   <ArtifactViewerPanel
                     initialArtifactPath={initialArtifactPath}
                     initialArtifactIssue={initialArtifactIssue}
+                    initialArtifactSection={initialArtifactSection}
                     initialCaseRef={runtimeCase.ref}
                   />
                 </div>

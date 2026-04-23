@@ -254,7 +254,10 @@ viewer now also pins quick-view tabs for `report.json`, `manifest.json`,
 snapshot above the raw JSON dump. `Case Wiki`, `/bundle/:id`, and
 `/evidence/:id` now deep-link into that viewer with an `artifact=` query so
 support opens on the relevant proof/report tab instead of landing on the
-generic artifact catalog first. The same viewer is also linked from
+generic artifact catalog first. Issue-aware support links now also carry a
+`section=` query so the viewer can jump to the relevant repo-owned subsection
+anchor inside the structured snapshot, not just the right file. The same
+viewer is also linked from
 `Session Boundary`, `Operator Session Ops`, and `Runtime Guardrails` cards on
 `/app/console/runtime`, so replay/export/debug inspection keeps one repo-owned
 support path instead of splitting across ad hoc debug links.
@@ -298,11 +301,12 @@ the operator reaches for deeper draft/export actions.
 handoff/CRM projection card, so support operators see the same `Raw artifact
 blocker` / `Signature pending` state and `Next repo-owned step` hint before
 copying handoff text or exporting Markdown. Those support-lane remediation
-hints now also open the `Artifact Viewer` with an issue-aware `artifact=...`
-and `issue=...` query, so `Raw artifact blocker`, `Signature pending`,
-`Unsigned proof`, and export posture each land on the right proof/report lane
-instead of dropping operators into a generic debug catalog. Inside the viewer,
-the matching structured section is now highlighted as the focused evidence
+hints now also open the `Artifact Viewer` with an issue-aware `artifact=...`,
+`issue=...`, and `section=...` query, so `Raw artifact blocker`,
+`Signature pending`, `Unsigned proof`, and export posture each land on the
+right proof/report lane and jump to the right structured subsection instead of
+dropping operators into a generic debug catalog. Inside the viewer, the
+matching structured section is now highlighted as the focused evidence
 lane, so support operators land on the right proof card and the right proof
 summary at the same time. That same viewer now also lifts a compact issue
 summary above the structured snapshot, exposing repo-owned fields like
@@ -312,7 +316,9 @@ lane is now rendered first in the structured snapshot, while the raw JSON pane
 keeps a quiet focus cue without rewriting the underlying payload. That focused
 card now also embeds compact `Focus fields`, so the most relevant repo-owned
 values stay inside the prioritized evidence card instead of living only in the
-summary above it.
+summary above it. The focused subsection now also gets a stable support-lane
+anchor, so the viewer can jump directly to the relevant structured card before
+operators start reading the raw payload.
 `Operator Session Ops` now mirrors that same remediation posture in its export
 lane, so blocked session exports show the same `Raw artifact blocker` /
 `Signature pending` pills and `Next repo-owned step` hint before operators try

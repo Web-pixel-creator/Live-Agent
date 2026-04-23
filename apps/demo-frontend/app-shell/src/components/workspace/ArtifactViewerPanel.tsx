@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  buildRuntimeArtifactSectionAnchorId,
   buildRuntimeArtifactIssueSummary,
   buildRuntimeArtifactStructuredView,
   fetchRuntimeArtifactDocument,
@@ -23,6 +24,7 @@ import {
 type ArtifactViewerPanelProps = {
   initialArtifactPath?: string | null;
   initialArtifactIssue?: string | null;
+  initialArtifactSection?: string | null;
   initialCaseRef?: string | null;
 };
 
@@ -70,6 +72,7 @@ function categoryOrder(value: string): number {
 export const ArtifactViewerPanel = ({
   initialArtifactPath,
   initialArtifactIssue,
+  initialArtifactSection,
   initialCaseRef,
 }: ArtifactViewerPanelProps) => {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
@@ -150,6 +153,7 @@ export const ArtifactViewerPanel = ({
   );
   const issueConfig = getRuntimeArtifactIssueConfig(initialArtifactIssue as RuntimeArtifactIssue | null);
   const issueFocusSectionTitle = getRuntimeArtifactIssueFocusSectionTitle(initialArtifactIssue);
+  const focusedSectionTitle = initialArtifactSection?.trim() || issueFocusSectionTitle;
   const issueSummary = buildRuntimeArtifactIssueSummary(
     selectedEntry,
     artifactDocumentQuery.data?.payload,
@@ -159,20 +163,34 @@ export const ArtifactViewerPanel = ({
     if (!structuredView) {
       return [];
     }
-    if (!issueFocusSectionTitle) {
+    if (!focusedSectionTitle) {
       return structuredView.sections;
     }
     const focusSection = structuredView.sections.find(
-      (section) => section.title === issueFocusSectionTitle,
+      (section) => section.title === focusedSectionTitle,
     );
     if (!focusSection) {
       return structuredView.sections;
     }
     return [
       focusSection,
-      ...structuredView.sections.filter((section) => section.title !== issueFocusSectionTitle),
+      ...structuredView.sections.filter((section) => section.title !== focusedSectionTitle),
     ];
-  }, [issueFocusSectionTitle, structuredView]);
+  }, [focusedSectionTitle, structuredView]);
+
+  useEffect(() => {
+    if (!focusedSectionTitle || !structuredView) {
+      return;
+    }
+    if (!structuredView.sections.some((section) => section.title === focusedSectionTitle)) {
+      return;
+    }
+    const sectionAnchorId = buildRuntimeArtifactSectionAnchorId(focusedSectionTitle);
+    const frameId = window.requestAnimationFrame(() => {
+      document.getElementById(sectionAnchorId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [focusedSectionTitle, selectedEntry?.relativePath, structuredView]);
 
   const copyJson = async () => {
     const raw = artifactDocumentQuery.data?.raw;
@@ -422,10 +440,18 @@ export const ArtifactViewerPanel = ({
                         <dd className="font-mono text-[11px] text-foreground/88">{initialCaseRef}</dd>
                       </div>
                     ) : null}
-                    {issueFocusSectionTitle ? (
+                    {focusedSectionTitle ? (
                       <div className="flex items-start justify-between gap-3 rounded-xl border border-border/40 bg-background/45 px-3 py-2">
                         <dt className="text-muted-foreground">Focus section</dt>
-                        <dd className="text-right text-foreground/88">{issueFocusSectionTitle}</dd>
+                        <dd className="text-right text-foreground/88">{focusedSectionTitle}</dd>
+                      </div>
+                    ) : null}
+                    {focusedSectionTitle ? (
+                      <div className="flex items-start justify-between gap-3 rounded-xl border border-border/40 bg-background/45 px-3 py-2">
+                        <dt className="text-muted-foreground">Subsection anchor</dt>
+                        <dd className="font-mono text-[11px] text-right text-foreground/88">
+                          {buildRuntimeArtifactSectionAnchorId(focusedSectionTitle)}
+                        </dd>
                       </div>
                     ) : null}
                     {issueSummary.rows.map((row) => (
@@ -451,21 +477,22 @@ export const ArtifactViewerPanel = ({
                     {orderedStructuredSections.map((section) => (
                       <div
                         key={section.title}
+                        id={buildRuntimeArtifactSectionAnchorId(section.title)}
                         className={`rounded-2xl border p-4 ${
-                          section.title === issueFocusSectionTitle
+                          section.title === focusedSectionTitle
                             ? "border-primary/45 bg-secondary/[0.24] ring-1 ring-primary/25"
                             : "border-border/50 bg-secondary/[0.14]"
                         }`}
                       >
                         <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                           {section.title}
-                          {section.title === issueFocusSectionTitle ? (
+                          {section.title === focusedSectionTitle ? (
                             <Pill tone="violet" size="sm">
                               focus
                             </Pill>
                           ) : null}
                         </div>
-                        {section.title === issueFocusSectionTitle && issueSummary ? (
+                        {section.title === focusedSectionTitle && issueSummary ? (
                           <div className="mt-3 grid gap-2">
                             <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                               Focus fields
@@ -508,12 +535,10 @@ export const ArtifactViewerPanel = ({
                 <div className="border-b border-border/50 px-4 py-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                   Raw JSON
                 </div>
-                {issueFocusSectionTitle ? (
+                {focusedSectionTitle ? (
                   <div className="border-b border-border/40 bg-secondary/[0.12] px-4 py-3 text-xs leading-relaxed text-muted-foreground">
                     Raw JSON focus:
-                    {" "}
-                    <span className="text-foreground/88">{issueFocusSectionTitle}</span>
-                    {" "}
+                    <span className="ml-1 text-foreground/88">{focusedSectionTitle}</span>{" "}
                     stays first in the structured snapshot above. The raw payload below remains
                     unchanged for full inspection.
                   </div>

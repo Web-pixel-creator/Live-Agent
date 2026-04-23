@@ -528,6 +528,7 @@ export function buildRuntimeArtifactViewerPath(
   options?: {
     caseRef?: string | null | undefined;
     issue?: RuntimeArtifactIssue | null | undefined;
+    section?: string | null | undefined;
   },
 ): string {
   const params = new URLSearchParams();
@@ -538,7 +539,19 @@ export function buildRuntimeArtifactViewerPath(
   if (options?.issue) {
     params.set("issue", options.issue);
   }
+  if (options?.section && options.section.trim().length > 0) {
+    params.set("section", options.section.trim());
+  }
   return `/app/console/runtime?${params.toString()}#artifact-viewer`;
+}
+
+export function buildRuntimeArtifactSectionAnchorId(sectionTitle: string): string {
+  const normalized = sectionTitle
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return `artifact-section-${normalized || "unknown"}`;
 }
 
 export function getRuntimeArtifactIssueConfig(
@@ -590,6 +603,7 @@ export function buildRuntimeArtifactIssueViewerPath(
     {
       caseRef: options?.caseRef,
       issue,
+      section: config?.focusSectionTitle ?? null,
     },
   );
 }
