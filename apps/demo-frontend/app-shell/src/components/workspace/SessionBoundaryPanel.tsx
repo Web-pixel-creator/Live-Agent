@@ -2,6 +2,10 @@ import { Pill } from "@/components/ui/pill";
 import type { WorkspaceCase } from "@/data/workspace";
 import type { RuntimeCaseWiki } from "@/hooks/useWorkspaceRuntime";
 import {
+  buildRuntimeArtifactViewerPath,
+  RUNTIME_ARTIFACT_VIEW_PRESETS,
+} from "@/lib/runtime-artifact-viewer";
+import {
   buildRuntimeSessionReplaySummary,
   fetchRuntimeSessionReplay,
   type RuntimeSessionReplaySummary,
@@ -15,6 +19,7 @@ import {
   Timer,
   Workflow,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 type SessionBoundaryPanelProps = {
   caseValue: WorkspaceCase;
@@ -55,6 +60,10 @@ export const SessionBoundaryPanel = ({
   });
   const replaySummary = buildRuntimeSessionReplaySummary(replayQuery.data);
   const tone = toneForReplay(replaySummary);
+  const runtimeProofPath = buildRuntimeArtifactViewerPath(
+    RUNTIME_ARTIFACT_VIEW_PRESETS.runtimeProof,
+    { caseRef: caseValue.ref },
+  );
   const boundarySummary =
     replaySummary?.workflowBoundarySummary ??
     replaySummary?.nextOperatorActionLabel ??
@@ -123,6 +132,18 @@ export const SessionBoundaryPanel = ({
           <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
             {boundarySummary}
           </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Pill tone="slate" size="sm">
+            support
+          </Pill>
+          <Link
+            to={runtimeProofPath}
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-border/60 bg-background/65 px-3 text-[12px] text-foreground/88 transition-smooth hover:border-border/80 hover:bg-secondary/[0.18]"
+          >
+            <Compass className="h-3.5 w-3.5" strokeWidth={1.75} />
+            Inspect proof
+          </Link>
         </div>
       </div>
 

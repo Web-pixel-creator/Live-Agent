@@ -17,7 +17,12 @@ import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import type { WorkspaceCase } from "@/data/workspace";
 import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
+import {
+  buildRuntimeArtifactViewerPath,
+  RUNTIME_ARTIFACT_VIEW_PRESETS,
+} from "@/lib/runtime-artifact-viewer";
 import { fetchRuntimeApi } from "@/lib/runtime-api";
+import { Link } from "react-router-dom";
 
 type RuntimeDiagnosticsPanelsProps = {
   caseValue: WorkspaceCase;
@@ -413,6 +418,14 @@ export const RuntimeDiagnosticsPanels = ({
     () => normalizeBrowserJobs(browserWorkerSnapshot).slice(0, 3),
     [browserWorkerSnapshot],
   );
+  const reportPath = buildRuntimeArtifactViewerPath(
+    RUNTIME_ARTIFACT_VIEW_PRESETS.report,
+    { caseRef: caseValue.ref },
+  );
+  const badgeDetailsPath = buildRuntimeArtifactViewerPath(
+    RUNTIME_ARTIFACT_VIEW_PRESETS.badgeDetails,
+    { caseRef: caseValue.ref },
+  );
 
   const refreshOperatorSummary = async () => {
     await queryClient.invalidateQueries({ queryKey: ["app-shell", "operator-summary"] });
@@ -580,6 +593,12 @@ export const RuntimeDiagnosticsPanels = ({
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
+              <Button asChild variant="ghost" className="h-8 px-3 text-[12px]">
+                <Link to={reportPath}>
+                  <ShieldCheck className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
+                  Inspect report
+                </Link>
+              </Button>
               <Button variant="ghost" className="h-8 px-3 text-[12px]" onClick={refreshWorkflow}>
                 <RefreshCcw className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
                 Refresh workflow
@@ -658,6 +677,12 @@ export const RuntimeDiagnosticsPanels = ({
             <Button variant="ghost" className="h-8 px-3 text-[12px]" onClick={refreshGuardrails}>
               <RefreshCcw className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
               Refresh guardrails
+            </Button>
+            <Button asChild variant="ghost" className="h-8 px-3 text-[12px]">
+              <Link to={badgeDetailsPath}>
+                <ShieldCheck className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
+                Inspect badge
+              </Link>
             </Button>
           </div>
           <dl className="mt-4 grid gap-2 text-sm">

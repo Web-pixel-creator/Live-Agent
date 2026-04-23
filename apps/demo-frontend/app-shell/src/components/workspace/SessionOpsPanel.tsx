@@ -4,6 +4,10 @@ import type { WorkspaceCase } from "@/data/workspace";
 import type { RuntimeCaseWiki } from "@/hooks/useWorkspaceRuntime";
 import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
 import {
+  buildRuntimeArtifactViewerPath,
+  RUNTIME_ARTIFACT_VIEW_PRESETS,
+} from "@/lib/runtime-artifact-viewer";
+import {
   buildRuntimeSessionReplaySummary,
   buildSessionExportMarkdown,
   buildSessionExportPayload,
@@ -19,6 +23,7 @@ import {
   ShieldAlert,
   ShieldCheck,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 type SessionOpsPanelProps = {
@@ -57,6 +62,10 @@ export const SessionOpsPanel = ({ caseValue, wiki }: SessionOpsPanelProps) => {
   });
 
   const replaySummary = buildRuntimeSessionReplaySummary(replayQuery.data);
+  const manifestPath = buildRuntimeArtifactViewerPath(
+    RUNTIME_ARTIFACT_VIEW_PRESETS.manifest,
+    { caseRef: caseValue.ref },
+  );
   const exportReady =
     wiki?.operatorPreviewPack?.compliance?.enforcement?.exportReady ??
     wiki?.compliance?.enforcement?.exportReady;
@@ -158,6 +167,12 @@ export const SessionOpsPanel = ({ caseValue, wiki }: SessionOpsPanelProps) => {
           <Button variant="ghost" className="h-9 px-3 text-[12px]" onClick={refreshCaseWiki}>
             <RefreshCcw className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
             Refresh Case Wiki
+          </Button>
+          <Button asChild variant="ghost" className="h-9 px-3 text-[12px]">
+            <Link to={manifestPath}>
+              <ShieldCheck className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
+              Inspect manifest
+            </Link>
           </Button>
           <Button variant="ghost" className="h-9 px-3 text-[12px]" onClick={downloadMarkdown}>
             <FileText className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />

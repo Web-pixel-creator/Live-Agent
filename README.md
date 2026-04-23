@@ -254,7 +254,10 @@ viewer now also pins quick-view tabs for `report.json`, `manifest.json`,
 snapshot above the raw JSON dump. `Case Wiki`, `/bundle/:id`, and
 `/evidence/:id` now deep-link into that viewer with an `artifact=` query so
 support opens on the relevant proof/report tab instead of landing on the
-generic artifact catalog first.
+generic artifact catalog first. The same viewer is also linked from
+`Session Boundary`, `Operator Session Ops`, and `Runtime Guardrails` cards on
+`/app/console/runtime`, so replay/export/debug inspection keeps one repo-owned
+support path instead of splitting across ad hoc debug links.
 snapshot layer above the raw JSON dump for faster operator/judge forensics.
 Operator helper entries now match the transferred `hello-friend` shell `1:1`:
 `Live activity` opens `/app`, `Action queue` opens `/app/console`,

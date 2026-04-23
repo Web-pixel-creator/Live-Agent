@@ -76,6 +76,9 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(sessionBoundaryPanel, /id="connections"/);
   assert.match(sessionBoundaryPanel, /fetchRuntimeSessionReplay/);
   assert.match(sessionBoundaryPanel, /buildRuntimeSessionReplaySummary/);
+  assert.match(sessionBoundaryPanel, /buildRuntimeArtifactViewerPath/);
+  assert.match(sessionBoundaryPanel, /RUNTIME_ARTIFACT_VIEW_PRESETS\.runtimeProof/);
+  assert.match(sessionBoundaryPanel, /Inspect proof/);
   assert.match(sessionBoundaryPanel, /Proof ingress:/);
   assert.match(sessionBoundaryPanel, /Turn ingress:/);
   assert.match(sessionBoundaryPanel, /After refresh/);
@@ -84,6 +87,9 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(sessionOpsPanel, /Export JSON/);
   assert.match(sessionOpsPanel, /Refresh replay/);
   assert.match(sessionOpsPanel, /Refresh Case Wiki/);
+  assert.match(sessionOpsPanel, /buildRuntimeArtifactViewerPath/);
+  assert.match(sessionOpsPanel, /RUNTIME_ARTIFACT_VIEW_PRESETS\.manifest/);
+  assert.match(sessionOpsPanel, /Inspect manifest/);
   assert.match(sessionOpsPanel, /buildSessionExportPayload/);
   assert.match(sessionOpsPanel, /buildSessionExportMarkdown/);
   assert.match(sessionOpsPanel, /case wiki export blocked/);
@@ -105,9 +111,14 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(runtimeDiagnosticsPanels, /fetchRuntimeApi\(\s*"\/v1\/runtime\/auth-profiles"/);
   assert.match(runtimeDiagnosticsPanels, /fetchRuntimeApi\(\s*"\/v1\/runtime\/auth-profiles\/rotate"/);
   assert.match(runtimeDiagnosticsPanels, /readJsonDataRecord\(\s*"\/v1\/runtime\/browser-jobs\?limit=6"/);
+  assert.match(runtimeDiagnosticsPanels, /buildRuntimeArtifactViewerPath/);
+  assert.match(runtimeDiagnosticsPanels, /RUNTIME_ARTIFACT_VIEW_PRESETS\.report/);
+  assert.match(runtimeDiagnosticsPanels, /RUNTIME_ARTIFACT_VIEW_PRESETS\.badgeDetails/);
   assert.match(runtimeDiagnosticsPanels, /Refresh workflow/);
+  assert.match(runtimeDiagnosticsPanels, /Inspect report/);
   assert.match(runtimeDiagnosticsPanels, /Clear override/);
   assert.match(runtimeDiagnosticsPanels, /Refresh guardrails/);
+  assert.match(runtimeDiagnosticsPanels, /Inspect badge/);
   assert.match(runtimeDiagnosticsPanels, /Refresh doctor/);
   assert.match(runtimeDiagnosticsPanels, /Rotate next credential/);
   assert.match(runtimeDiagnosticsPanels, /Refresh workers/);
