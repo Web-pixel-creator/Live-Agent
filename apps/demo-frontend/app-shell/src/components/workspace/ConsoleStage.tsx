@@ -107,6 +107,18 @@ function formatStatusLabel(value: string | null | undefined, fallback: string): 
   return value.replace(/[_-]+/g, " ").trim();
 }
 
+function formatRuntimeSupportRef(value: string | null | undefined): string | null {
+  if (!value || value.trim().length === 0) {
+    return null;
+  }
+  if (value.startsWith("file:")) {
+    const normalized = value.slice("file:".length);
+    const segments = normalized.split(/[\\/]+/u).filter(Boolean);
+    return segments.at(-1) ?? value;
+  }
+  return value;
+}
+
 function toneForReplay(summary: RuntimeSessionReplaySummary | null): "mint" | "rose" | "violet" | "slate" {
   if (!summary) {
     return "slate";
@@ -288,6 +300,13 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
   const hasSignatureBlocker =
     compliancePrimaryAction?.kind === "attach_case_wiki_signature" ||
     blockingReasons.includes("case_wiki_signature_missing");
+  const supportActionLabel = compliancePrimaryAction?.operatorActionLabel?.trim() || null;
+  const supportBlockingRef = formatRuntimeSupportRef(compliancePrimaryAction?.blockingRef ?? null);
+  const runtimeSupportHint = exportReady !== true
+    ? hasRawArtifactBlocker || hasSignatureBlocker
+      ? [supportActionLabel, supportBlockingRef].filter(Boolean).join(" · ") || null
+      : null
+    : null;
   const runtimeSupportCta = exportReady !== true
     ? hasRawArtifactBlocker
       ? {
@@ -1238,6 +1257,11 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
                     {item.label}
                   </Pill>
                 ))}
+                {runtimeSupportHint ? (
+                  <span className="text-[11px] leading-none text-muted-foreground/88">
+                    {runtimeSupportHint}
+                  </span>
+                ) : null}
                 <Button asChild variant="ghost" className="ml-auto h-8 px-3 text-[11.5px]">
                   <Link to={runtimeSupportCta.to}>
                     <Server className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />

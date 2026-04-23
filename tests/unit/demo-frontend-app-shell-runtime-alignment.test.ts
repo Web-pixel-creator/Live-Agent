@@ -69,6 +69,10 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(consoleStage, /const compliancePrimaryAction = complianceRemediation\?\.primaryAction \?\? null;/);
   assert.match(consoleStage, /const hasRawArtifactBlocker =/);
   assert.match(consoleStage, /const hasSignatureBlocker =/);
+  assert.match(consoleStage, /function formatRuntimeSupportRef/);
+  assert.match(consoleStage, /const runtimeSupportHint = exportReady !== true/);
+  assert.match(consoleStage, /operatorActionLabel/);
+  assert.match(consoleStage, /blockingRef/);
   assert.match(consoleStage, /id="action-queue"/);
   assert.match(consoleStage, /id="live-activity"/);
   assert.doesNotMatch(consoleStage, /SessionBoundaryPanel/);

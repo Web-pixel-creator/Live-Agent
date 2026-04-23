@@ -285,7 +285,10 @@ When the `Case Wiki` already carries a remediation draft or an unsigned
 evidence signature, that CTA becomes `Inspect raw artifact blocker`,
 `Inspect signature pending`, or `Inspect unsigned proof` and deep-links
 straight to the `Case Wiki` support section instead of a generic runtime
-landing point.
+landing point. When the blocker comes from repo-owned compliance remediation,
+the strip also shows a compact inline hint built from `operatorActionLabel`
+and `blockingRef`, so the operator can see the next safe step before opening
+the deeper support lane.
 `Simulation Lab` now also overlays the live `policy-current` snapshot from
 repo-owned governance runtime data (`/v1/governance/policy`) and the real
 template catalog (`/v1/governance/compliance-template`) before it falls back to
