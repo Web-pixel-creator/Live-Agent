@@ -6,7 +6,17 @@ import {
   RUNTIME_ARTIFACT_VIEW_PRESETS,
 } from "@/lib/runtime-artifact-viewer";
 import type { WorkspaceCase } from "@/data/workspace";
-import { ArrowRight, Copy, FileText, Link2, Timer, Workflow } from "lucide-react";
+import { buildCaseBundlePath, buildCaseEvidencePath } from "@/lib/case-artifact-links";
+import {
+  ArrowRight,
+  Copy,
+  Download,
+  ExternalLink,
+  FileText,
+  Link2,
+  Timer,
+  Workflow,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -144,11 +154,105 @@ function buildVaultCopyPayload(caseValue: WorkspaceCase, wiki: RuntimeCaseWiki |
     .join("\n");
 }
 
+function triggerDownload(filename: string, contents: string, mimeType: string) {
+  const blob = new Blob([contents], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function buildVaultHandoffLines(caseValue: WorkspaceCase, wiki: RuntimeCaseWiki | undefined): string[] {
+  if (!wiki) {
+    return [];
+  }
+  const bundlePath = buildCaseBundlePath(caseValue);
+  const evidencePath = buildCaseEvidencePath(caseValue);
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const refs = collectCaseVaultRefs(wiki);
+  const priorityQuestions = wiki.openQuestions
+    .filter((item) => item.blocking || item.priority === "high")
+    .slice(0, 3)
+    .map((item) => `- ${item.question}`);
+  const recentTrail = wiki.timeline
+    .slice(0, 3)
+    .map((item) => `- ${formatTimestamp(item.ts)} :: ${item.title}`);
+
+  return [
+    `${caseValue.ref} - ${caseValue.client}`,
+    wiki.overview.summary,
+    wiki.overview.customerGoal ? `Goal: ${wiki.overview.customerGoal}` : null,
+    wiki.overview.currentStage ? `Stage: ${wiki.overview.currentStage}` : null,
+    wiki.recommendedNextAction
+      ? `Next action: ${wiki.recommendedNextAction.title} - ${wiki.recommendedNextAction.summary}`
+      : null,
+    priorityQuestions.length > 0 ? "Blocking threads:" : null,
+    ...priorityQuestions,
+    recentTrail.length > 0 ? "Recent trail:" : null,
+    ...recentTrail,
+    refs.length > 0 ? `Source refs: ${refs.slice(0, 4).join(", ")}` : null,
+    `Bundle: ${origin}${bundlePath}`,
+    `Evidence: ${origin}${evidencePath}`,
+  ].filter((item): item is string => Boolean(item && item.trim().length > 0));
+}
+
+function buildVaultMarkdown(caseValue: WorkspaceCase, wiki: RuntimeCaseWiki | undefined): string {
+  const handoffLines = buildVaultHandoffLines(caseValue, wiki);
+  if (!wiki) {
+    return `# Case Vault Export\n\n- Ref: ${caseValue.ref}\n- Status: waiting for compiled Case Wiki\n`;
+  }
+  const refs = collectCaseVaultRefs(wiki);
+  const entities = wiki.entities
+    .slice(0, 8)
+    .map(
+      (item) =>
+        `- ${item.label} (${formatKindLabel(item.kind, "entity")}${item.role ? `, ${item.role}` : ""})`,
+    );
+  const openQuestions = wiki.openQuestions
+    .slice(0, 6)
+    .map((item) => `- ${item.question}`);
+  const timeline = wiki.timeline
+    .slice(0, 6)
+    .map((item) => `- ${formatTimestamp(item.ts)} :: ${item.title} - ${item.summary}`);
+
+  return [
+    "# Case Vault Export",
+    "",
+    "## Memory anchors",
+    `- Ref: ${caseValue.ref}`,
+    `- Client: ${caseValue.client}`,
+    `- Stage: ${wiki.overview.currentStage ?? caseValue.stage}`,
+    `- Status: ${wiki.overview.status}`,
+    `- Generated: ${formatTimestamp(wiki.generatedAt)}`,
+    `- Customer goal: ${wiki.overview.customerGoal ?? "not published"}`,
+    "",
+    "## Handoff projection",
+    ...handoffLines.map((item) => `- ${item}`),
+    "",
+    "## Linked entities",
+    ...(entities.length > 0 ? entities : ["- none published"]),
+    "",
+    "## Open threads",
+    ...(openQuestions.length > 0 ? openQuestions : ["- none published"]),
+    "",
+    "## Recent memory trail",
+    ...(timeline.length > 0 ? timeline : ["- no timeline entries published"]),
+    "",
+    "## Source refs",
+    ...(refs.length > 0 ? refs.map((item) => `- ${item}`) : ["- none published"]),
+    "",
+  ].join("\n");
+}
+
 export const CaseVaultPanel = ({ caseValue, wiki }: CaseVaultPanelProps) => {
   const runtimeProofPath = buildRuntimeArtifactViewerPath(
     RUNTIME_ARTIFACT_VIEW_PRESETS.runtimeProof,
     { caseRef: caseValue.ref },
   );
+  const bundlePath = buildCaseBundlePath(caseValue);
+  const evidencePath = buildCaseEvidencePath(caseValue);
   const refs = collectCaseVaultRefs(wiki);
   const refFamilies = summarizeRefFamilies(refs);
   const entities = wiki?.entities.slice(0, 6) ?? [];
@@ -158,6 +262,18 @@ export const CaseVaultPanel = ({ caseValue, wiki }: CaseVaultPanelProps) => {
   const nextAction = wiki?.recommendedNextAction ?? null;
   const blockingQuestion = wiki?.highlights.topBlockingQuestion ?? wiki?.openQuestions[0] ?? null;
   const copyPayload = buildVaultCopyPayload(caseValue, wiki);
+  const handoffLines = buildVaultHandoffLines(caseValue, wiki);
+  const vaultMarkdown = buildVaultMarkdown(caseValue, wiki);
+  const exportReady =
+    wiki?.operatorPreviewPack?.compliance?.enforcement?.exportReady ??
+    wiki?.compliance?.enforcement?.exportReady;
+  const exportBlocked = exportReady === false;
+  const complianceSummary =
+    wiki?.compliance?.enforcement?.summary?.trim() ||
+    wiki?.operatorPreviewPack?.remediation?.draft?.summary ||
+    (exportBlocked
+      ? "Case Vault export is blocked until repo-owned compliance enforcement clears the current raw/signing blockers."
+      : "Case Vault handoff is ready to reuse the compiled Case Wiki memory.");
 
   const handleCopyVault = async () => {
     try {
@@ -166,6 +282,36 @@ export const CaseVaultPanel = ({ caseValue, wiki }: CaseVaultPanelProps) => {
     } catch {
       toast.error("Clipboard is unavailable in this browser.");
     }
+  };
+
+  const handleCopyHandoff = async () => {
+    if (exportBlocked) {
+      toast.error(complianceSummary);
+      return;
+    }
+    if (handoffLines.length === 0) {
+      toast.error("Case Vault handoff is not hydrated yet.");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(handoffLines.join("\n"));
+      toast.success(`Copied Case Vault handoff for ${caseValue.ref}`);
+    } catch {
+      toast.error("Clipboard is unavailable in this browser.");
+    }
+  };
+
+  const handleExportMarkdown = () => {
+    if (exportBlocked) {
+      toast.error(complianceSummary);
+      return;
+    }
+    triggerDownload(
+      `${caseValue.ref.toLowerCase()}-case-vault.md`,
+      `${vaultMarkdown}\n`,
+      "text/markdown;charset=utf-8",
+    );
+    toast.success(`Export Markdown downloaded for ${caseValue.ref}`);
   };
 
   return (
@@ -196,6 +342,9 @@ export const CaseVaultPanel = ({ caseValue, wiki }: CaseVaultPanelProps) => {
             <Pill tone="slate" size="sm">
               {`${refs.length} refs`}
             </Pill>
+            <Pill tone={exportBlocked ? "rose" : "mint"} size="sm" dot>
+              {exportBlocked ? "Export blocked" : "Export ready"}
+            </Pill>
           </div>
           <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
             Secondary support view of the compiled Case Wiki as linked case memory. Use it to
@@ -210,6 +359,20 @@ export const CaseVaultPanel = ({ caseValue, wiki }: CaseVaultPanelProps) => {
               <FileText className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
               Inspect proof
             </Link>
+          </Button>
+          <Button asChild variant="ghost" className="h-9 px-3 text-[12px]">
+            <Link to={bundlePath}>
+              <ExternalLink className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
+              Open bundle
+            </Link>
+          </Button>
+          <Button variant="ghost" className="h-9 px-3 text-[12px]" onClick={handleCopyHandoff}>
+            <Copy className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
+            Copy handoff
+          </Button>
+          <Button variant="ghost" className="h-9 px-3 text-[12px]" onClick={handleExportMarkdown}>
+            <Download className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
+            Export Markdown
           </Button>
           <Button variant="ghost" className="h-9 px-3 text-[12px]" onClick={handleCopyVault}>
             <Copy className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
@@ -315,6 +478,50 @@ export const CaseVaultPanel = ({ caseValue, wiki }: CaseVaultPanelProps) => {
                   Open questions will appear here after the runtime Case Wiki hydrates.
                 </div>
               )}
+            </div>
+          </article>
+
+          <article className="rounded-[22px] border border-border/60 bg-background/65 p-4">
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <FileText className="h-3.5 w-3.5" strokeWidth={1.75} />
+              Handoff projection
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Pill tone={exportBlocked ? "rose" : "mint"} size="sm" dot>
+                {exportBlocked ? "Case Vault export blocked" : "Case Vault handoff ready"}
+              </Pill>
+              <Pill tone="slate" size="sm">
+                {`${handoffLines.length} lines`}
+              </Pill>
+            </div>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              {complianceSummary}
+            </p>
+            <div className="mt-4 rounded-2xl border border-border/50 bg-secondary/[0.18] p-4">
+              {handoffLines.length > 0 ? (
+                <ol className="space-y-2">
+                  {handoffLines.slice(0, 6).map((line, index) => (
+                    <li
+                      key={`${index}-${line}`}
+                      className="text-sm leading-relaxed text-foreground/88"
+                    >
+                      {line}
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <div className="text-sm leading-relaxed text-muted-foreground">
+                  Case Vault handoff will appear here after the compiled Case Wiki publishes.
+                </div>
+              )}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button asChild variant="ghost" className="h-8 px-3 text-[12px]">
+                <Link to={evidencePath}>
+                  <ExternalLink className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
+                  Open evidence
+                </Link>
+              </Button>
             </div>
           </article>
         </div>

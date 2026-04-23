@@ -262,7 +262,10 @@ That same support route now also includes a `Case Vault` section: a Rowboat-styl
 inspectable projection of compiled `Case Wiki` memory that keeps linked
 entities, open threads, ref families, and recent memory trail available in one
 secondary support surface without pushing that deeper memory graph back into
-the primary operator shell.
+the primary operator shell. That same `Case Vault` now also carries a
+repo-owned handoff projection plus `Copy handoff` / `Export Markdown` actions,
+and those actions reuse the same compiled compliance/export gate instead of
+leaking handoff text while `exportReady=false`.
 snapshot layer above the raw JSON dump for faster operator/judge forensics.
 Operator helper entries now match the transferred `hello-friend` shell `1:1`:
 `Live activity` opens `/app`, `Action queue` opens `/app/console`,
