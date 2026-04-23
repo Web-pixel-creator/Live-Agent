@@ -2,6 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import type { RuntimeCaseWiki, RuntimeCaseWikiQuestion } from "@/hooks/useWorkspaceRuntime";
 import { buildCaseBundlePath, buildCaseEvidencePath } from "@/lib/case-artifact-links";
+import {
+  buildRuntimeArtifactViewerPath,
+  RUNTIME_ARTIFACT_VIEW_PRESETS,
+} from "@/lib/runtime-artifact-viewer";
 import type { WorkspaceCase } from "@/data/workspace";
 import {
   ArrowRight,
@@ -86,6 +90,10 @@ function formatStatusLabel(value: string | null | undefined, fallback: string): 
 export const CaseWikiPanel = ({ caseValue, wiki }: CaseWikiPanelProps) => {
   const bundlePath = buildCaseBundlePath(caseValue);
   const evidencePath = buildCaseEvidencePath(caseValue);
+  const runtimeProofPath = buildRuntimeArtifactViewerPath(
+    RUNTIME_ARTIFACT_VIEW_PRESETS.runtimeProof,
+    { caseRef: caseValue.ref },
+  );
   const refs = collectCaseWikiRefs(wiki);
   const blockingQuestion = pickBlockingQuestion(wiki);
   const nextAction = wiki?.recommendedNextAction ?? null;
@@ -215,6 +223,12 @@ export const CaseWikiPanel = ({ caseValue, wiki }: CaseWikiPanelProps) => {
             <Link to={evidencePath}>
               <ExternalLink className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
               Open evidence
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" className="h-9 px-3 text-[12px]">
+            <Link to={runtimeProofPath}>
+              <ShieldCheck className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
+              Inspect proof
             </Link>
           </Button>
           <Button variant="ghost" className="h-9 px-3 text-[12px]" onClick={handleCopyHandoff}>

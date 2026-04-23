@@ -16,6 +16,10 @@ import {
   type RuntimeArtifactIndexEntry,
 } from "@/lib/runtime-artifact-viewer";
 
+type ArtifactViewerPanelProps = {
+  initialArtifactPath?: string | null;
+};
+
 function formatTimestamp(value: string | null | undefined): string {
   if (!value) {
     return "not published";
@@ -57,7 +61,7 @@ function categoryOrder(value: string): number {
   }
 }
 
-export const ArtifactViewerPanel = () => {
+export const ArtifactViewerPanel = ({ initialArtifactPath }: ArtifactViewerPanelProps) => {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
 
   const artifactIndexQuery = useQuery({
@@ -83,10 +87,18 @@ export const ArtifactViewerPanel = () => {
     if (!artifactEntries.length) {
       return;
     }
+    if (
+      initialArtifactPath &&
+      artifactEntries.some((entry) => entry.relativePath === initialArtifactPath) &&
+      selectedPath !== initialArtifactPath
+    ) {
+      setSelectedPath(initialArtifactPath);
+      return;
+    }
     if (!selectedPath || !artifactEntries.some((entry) => entry.relativePath === selectedPath)) {
       setSelectedPath(artifactEntries[0]?.relativePath ?? null);
     }
-  }, [artifactEntries, selectedPath]);
+  }, [artifactEntries, initialArtifactPath, selectedPath]);
 
   const selectedEntry =
     artifactEntries.find((entry) => entry.relativePath === selectedPath) ??

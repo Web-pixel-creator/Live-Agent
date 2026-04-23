@@ -251,6 +251,10 @@ JSON artifacts from `artifacts/demo-e2e`, `artifacts/runtime`, and
 inspected inside the support workspace without opening raw files manually. The
 viewer now also pins quick-view tabs for `report.json`, `manifest.json`,
 `runtime-proof-report.json`, and `badge-details.json`, with a structured
+snapshot above the raw JSON dump. `Case Wiki`, `/bundle/:id`, and
+`/evidence/:id` now deep-link into that viewer with an `artifact=` query so
+support opens on the relevant proof/report tab instead of landing on the
+generic artifact catalog first.
 snapshot layer above the raw JSON dump for faster operator/judge forensics.
 Operator helper entries now match the transferred `hello-friend` shell `1:1`:
 `Live activity` opens `/app`, `Action queue` opens `/app/console`,

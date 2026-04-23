@@ -36,6 +36,13 @@ export const PINNED_RUNTIME_ARTIFACT_PATHS = [
   "demo-e2e/badge-details.json",
 ] as const;
 
+export const RUNTIME_ARTIFACT_VIEW_PRESETS = {
+  report: "release-evidence/report.json",
+  manifest: "release-evidence/manifest.json",
+  runtimeProof: "release-evidence/runtime-proof-report.json",
+  badgeDetails: "demo-e2e/badge-details.json",
+} as const;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -380,6 +387,18 @@ export function isPinnedRuntimeArtifactPath(relativePath: string): boolean {
   return PINNED_RUNTIME_ARTIFACT_PATHS.includes(
     relativePath as (typeof PINNED_RUNTIME_ARTIFACT_PATHS)[number],
   );
+}
+
+export function buildRuntimeArtifactViewerPath(
+  relativePath: string,
+  options?: { caseRef?: string | null | undefined },
+): string {
+  const params = new URLSearchParams();
+  params.set("artifact", relativePath);
+  if (options?.caseRef && options.caseRef.trim().length > 0) {
+    params.set("ref", options.caseRef.trim());
+  }
+  return `/app/console/runtime?${params.toString()}#artifact-viewer`;
 }
 
 export function buildRuntimeArtifactStructuredView(

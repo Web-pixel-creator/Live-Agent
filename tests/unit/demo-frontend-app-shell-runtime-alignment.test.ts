@@ -35,6 +35,8 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   const artifactViewerLib = readAppShellSource("lib/runtime-artifact-viewer.ts");
   const replayRuntime = readAppShellSource("lib/runtime-session-replay.ts");
   const consolePage = readAppShellSource("pages/Console.tsx");
+  const bundlePage = readAppShellSource("pages/Bundle.tsx");
+  const evidenceDetailPage = readAppShellSource("pages/EvidenceDetail.tsx");
 
   assert.match(liveDesk, /const \{ cases, deviceNodes, addDraftCase \} = useWorkspaceRuntime\(\);/);
   assert.match(liveDesk, /existingCases=\{cases\}/);
@@ -56,12 +58,16 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(consoleRuntime, /<CaseWikiPanel caseValue=\{runtimeCase\} wiki=\{wiki\} \/>/);
   assert.match(consoleRuntime, /<SessionOpsPanel caseValue=\{runtimeCase\} wiki=\{wiki\} \/>/);
   assert.match(consoleRuntime, /<RuntimeDiagnosticsPanels caseValue=\{runtimeCase\} \/>/);
-  assert.match(consoleRuntime, /<ArtifactViewerPanel \/>/);
+  assert.match(consoleRuntime, /const initialArtifactPath = params\.get\("artifact"\);/);
+  assert.match(consoleRuntime, /<ArtifactViewerPanel initialArtifactPath=\{initialArtifactPath\} \/>/);
   assert.match(consoleRuntime, /navigate\(`\/app\/console\$\{search \? `\?\$\{search\}` : ""\}\$\{hash\}`/);
   assert.match(caseWikiPanel, /Copy handoff/);
   assert.match(caseWikiPanel, /Copy refs/);
   assert.match(caseWikiPanel, /Open bundle/);
   assert.match(caseWikiPanel, /Open evidence/);
+  assert.match(caseWikiPanel, /Inspect proof/);
+  assert.match(caseWikiPanel, /buildRuntimeArtifactViewerPath/);
+  assert.match(caseWikiPanel, /RUNTIME_ARTIFACT_VIEW_PRESETS\.runtimeProof/);
   assert.match(caseWikiPanel, /exportReady === false/);
   assert.match(caseWikiPanel, /operatorPreviewPack\?\.remediation\?\.draft/);
   assert.match(caseWikiPanel, /compliance\?\.enforcement\?\.summary/);
@@ -115,14 +121,24 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(artifactViewerPanel, /Copy JSON/);
   assert.match(artifactViewerPanel, /Quick views/);
   assert.match(artifactViewerPanel, /Structured snapshot/);
+  assert.match(artifactViewerPanel, /initialArtifactPath\?: string \| null;/);
+  assert.match(artifactViewerPanel, /entry\.relativePath === initialArtifactPath/);
   assert.match(artifactViewerLib, /export async function fetchRuntimeArtifactIndex/);
   assert.match(artifactViewerLib, /export async function fetchRuntimeArtifactDocument/);
   assert.match(artifactViewerLib, /export function summarizeRuntimeArtifact/);
   assert.match(artifactViewerLib, /export const PINNED_RUNTIME_ARTIFACT_PATHS = \[/);
+  assert.match(artifactViewerLib, /export const RUNTIME_ARTIFACT_VIEW_PRESETS = \{/);
   assert.match(artifactViewerLib, /export function isPinnedRuntimeArtifactPath/);
+  assert.match(artifactViewerLib, /export function buildRuntimeArtifactViewerPath/);
   assert.match(artifactViewerLib, /export function buildRuntimeArtifactStructuredView/);
   assert.match(artifactViewerLib, /Unified release evidence report/);
   assert.match(artifactViewerLib, /Runtime proof lanes/);
+  assert.match(bundlePage, /Inspect report/);
+  assert.match(bundlePage, /RUNTIME_ARTIFACT_VIEW_PRESETS\.report/);
+  assert.match(bundlePage, /buildRuntimeArtifactViewerPath/);
+  assert.match(evidenceDetailPage, /Inspect badge details/);
+  assert.match(evidenceDetailPage, /RUNTIME_ARTIFACT_VIEW_PRESETS\.badgeDetails/);
+  assert.match(evidenceDetailPage, /buildRuntimeArtifactViewerPath/);
 
   assert.match(consolePage, /const \{ defaultConsoleCaseRef \} = useWorkspaceRuntime\(\);/);
   assert.match(consolePage, /const \{ hash \} = useLocation\(\);/);

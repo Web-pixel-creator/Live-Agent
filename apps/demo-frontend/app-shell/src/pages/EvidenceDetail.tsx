@@ -14,6 +14,10 @@ import {
 import type { BundleEvidence } from "@/data/presentationBundles";
 import { EvidenceArtifact } from "@/components/evidence/EvidenceArtifact";
 import { usePresentationBundle } from "@/hooks/usePresentationBundles";
+import {
+  buildRuntimeArtifactViewerPath,
+  RUNTIME_ARTIFACT_VIEW_PRESETS,
+} from "@/lib/runtime-artifact-viewer";
 
 // /evidence/:id — split-view picture trail.
 // Active artifact is synced to ?a=<index> so deep-links work.
@@ -61,6 +65,10 @@ const EvidenceDetail = () => {
   const artifacts = useMemo<BundleEvidence[]>(
     () => bundle?.evidence ?? [],
     [bundle],
+  );
+  const artifactViewerPath = buildRuntimeArtifactViewerPath(
+    RUNTIME_ARTIFACT_VIEW_PRESETS.badgeDetails,
+    { caseRef: id ?? null },
   );
 
   // Keyboard ←/→
@@ -125,9 +133,18 @@ const EvidenceDetail = () => {
             <ArrowLeft className="h-3 w-3" />
             All evidence
           </Link>
-          <div className="inline-flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground/50">
-            <Eye className="h-3 w-3" strokeWidth={1.5} />
-            Picture trail
+          <div className="inline-flex items-center gap-4">
+            <Link
+              to={artifactViewerPath}
+              className="inline-flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.18em] text-muted-foreground/75 hover:text-foreground transition-colors"
+            >
+              <ArrowUpRight className="h-3 w-3" strokeWidth={1.75} />
+              Inspect badge details
+            </Link>
+            <div className="inline-flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground/50">
+              <Eye className="h-3 w-3" strokeWidth={1.5} />
+              Picture trail
+            </div>
           </div>
         </div>
       </div>

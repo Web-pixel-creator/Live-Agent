@@ -13,6 +13,10 @@ import { ArrowUpRight, Link2, Check } from "lucide-react";
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { usePresentationBundle } from "@/hooks/usePresentationBundles";
+import {
+  buildRuntimeArtifactViewerPath,
+  RUNTIME_ARTIFACT_VIEW_PRESETS,
+} from "@/lib/runtime-artifact-viewer";
 
 // Public read-only narrative of a single case. No workspace chrome (no
 // sidebar, no topbar, no command palette) — a judge lands here from a bare
@@ -26,6 +30,10 @@ const Bundle = () => {
   } = usePresentationBundle(id ?? null);
   const resolvedId = id ?? defaultBundleId;
   const [copied, setCopied] = useState(false);
+  const artifactViewerPath = buildRuntimeArtifactViewerPath(
+    RUNTIME_ARTIFACT_VIEW_PRESETS.report,
+    { caseRef: resolvedId },
+  );
 
   const handleCopyLink = async () => {
     const url = new URL(`/bundle/${resolvedId}`, window.location.origin).toString();
@@ -108,6 +116,13 @@ const Bundle = () => {
             ← Action Desk
           </Link>
           <div className="flex items-center gap-4">
+            <Link
+              to={artifactViewerPath}
+              className="group inline-flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.18em] text-muted-foreground/90 hover:text-foreground transition-colors"
+            >
+              <ArrowUpRight className="h-3 w-3" strokeWidth={1.75} />
+              <span>Inspect report</span>
+            </Link>
             <button
               type="button"
               onClick={handleCopyLink}
