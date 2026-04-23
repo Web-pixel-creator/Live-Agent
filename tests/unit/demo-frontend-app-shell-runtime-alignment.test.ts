@@ -35,6 +35,7 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   const artifactViewerPanel = readAppShellSource("components/workspace/ArtifactViewerPanel.tsx");
   const artifactViewerLib = readAppShellSource("lib/runtime-artifact-viewer.ts");
   const replayRuntime = readAppShellSource("lib/runtime-session-replay.ts");
+  const workspaceRuntime = readAppShellSource("hooks/useWorkspaceRuntime.tsx");
   const consolePage = readAppShellSource("pages/Console.tsx");
   const bundlePage = readAppShellSource("pages/Bundle.tsx");
   const evidenceDetailPage = readAppShellSource("pages/EvidenceDetail.tsx");
@@ -61,7 +62,13 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(consoleStage, /if \(replayNeedsAttention\)/);
   assert.match(consoleStage, /const runtimeSupportCta = exportReady !== true/);
   assert.match(consoleStage, /Inspect compliance blocker/);
+  assert.match(consoleStage, /Inspect raw artifact blocker/);
+  assert.match(consoleStage, /Inspect signature pending/);
   assert.match(consoleStage, /Inspect unsigned proof/);
+  assert.match(consoleStage, /const signatureStatus = wiki\?\.evidenceSignature\?\.status \?\? null;/);
+  assert.match(consoleStage, /const compliancePrimaryAction = complianceRemediation\?\.primaryAction \?\? null;/);
+  assert.match(consoleStage, /const hasRawArtifactBlocker =/);
+  assert.match(consoleStage, /const hasSignatureBlocker =/);
   assert.match(consoleStage, /id="action-queue"/);
   assert.match(consoleStage, /id="live-activity"/);
   assert.doesNotMatch(consoleStage, /SessionBoundaryPanel/);
@@ -92,6 +99,8 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(caseWikiPanel, /operatorPreviewPack\?\.remediation\?\.draft/);
   assert.match(caseWikiPanel, /compliance\?\.enforcement\?\.summary/);
   assert.match(caseWikiPanel, /evidenceSignature\?\.status/);
+  assert.match(workspaceRuntime, /blockingReasons\?: string\[\] \| null;/);
+  assert.match(workspaceRuntime, /primaryAction\?: \{/);
   assert.match(caseVaultPanel, /id="case-vault"/);
   assert.match(caseVaultPanel, /Inspectable memory projection/);
   assert.match(caseVaultPanel, /Rowboat-style/);

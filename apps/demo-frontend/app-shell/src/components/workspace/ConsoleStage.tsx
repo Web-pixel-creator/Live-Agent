@@ -228,6 +228,10 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
   const exportReady =
     wiki?.operatorPreviewPack?.compliance?.enforcement?.exportReady ??
     wiki?.compliance?.enforcement?.exportReady;
+  const complianceEnforcement = wiki?.compliance?.enforcement ?? null;
+  const complianceRemediation = complianceEnforcement?.remediation ?? null;
+  const compliancePrimaryAction = complianceRemediation?.primaryAction ?? null;
+  const blockingReasons = complianceEnforcement?.blockingReasons ?? [];
   const exportStatusLabel =
     exportReady === false
       ? "Export blocked"
@@ -236,7 +240,8 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
         : "Export waiting";
   const exportTone: "mint" | "rose" | "violet" | "slate" =
     exportReady === false ? "rose" : exportReady === true ? "mint" : "slate";
-  const proofSigned = wiki?.evidenceSignature?.status === "signed";
+  const signatureStatus = wiki?.evidenceSignature?.status ?? null;
+  const proofSigned = signatureStatus === "signed";
   const proofPublished = proofSigned || Boolean(replaySummary?.latestProofSummary);
   const proofStatusLabel = proofSigned
     ? "Proof signed"
@@ -277,16 +282,32 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
     runtimeSupportItems.push({ label: "Gate pending", tone: "rose" });
   }
   const showRuntimeSupportStrip = runtimeSupportItems.length > 0;
+  const hasRawArtifactBlocker =
+    compliancePrimaryAction?.kind === "redact_artifact" ||
+    blockingReasons.includes("raw_like_source_refs_detected");
+  const hasSignatureBlocker =
+    compliancePrimaryAction?.kind === "attach_case_wiki_signature" ||
+    blockingReasons.includes("case_wiki_signature_missing");
   const runtimeSupportCta = exportReady !== true
-    ? remediationDraft
+    ? hasRawArtifactBlocker
       ? {
-          label: "Inspect compliance blocker",
+          label: "Inspect raw artifact blocker",
           to: buildCaseRuntimeSupportPath(c, "case-wiki"),
         }
-      : {
-          label: exportReady === false ? "Inspect export block" : "Inspect export posture",
-          to: buildCaseRuntimeSupportPath(c, "session-ops"),
-        }
+      : hasSignatureBlocker
+        ? {
+            label: "Inspect signature pending",
+            to: buildCaseRuntimeSupportPath(c, "case-wiki"),
+          }
+        : remediationDraft
+          ? {
+              label: "Inspect compliance blocker",
+              to: buildCaseRuntimeSupportPath(c, "case-wiki"),
+            }
+          : {
+              label: exportReady === false ? "Inspect export block" : "Inspect export posture",
+              to: buildCaseRuntimeSupportPath(c, "session-ops"),
+            }
     : !proofPublished
       ? signatureStatus === "unsigned"
         ? {

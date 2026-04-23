@@ -131,6 +131,16 @@ export type RuntimeCaseWiki = {
       exportReady?: boolean;
       status?: string;
       summary?: string;
+      blockingReasons?: string[] | null;
+      remediation?: {
+        totalActions?: number;
+        primaryAction?: {
+          kind?: string | null;
+          blockingRef?: string | null;
+          requiredPosture?: string | null;
+          operatorActionLabel?: string | null;
+        } | null;
+      } | null;
     } | null;
   } | null;
   evidenceSignature?: {
