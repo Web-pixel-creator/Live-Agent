@@ -276,6 +276,30 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
     runtimeSupportItems.push({ label: "Gate pending", tone: "rose" });
   }
   const showRuntimeSupportStrip = runtimeSupportItems.length > 0;
+  const runtimeSupportCta = exportReady !== true
+    ? {
+        label: exportReady === false ? "Inspect export block" : "Inspect export posture",
+        to: buildCaseRuntimeSupportPath(c, "session-ops"),
+      }
+    : !proofPublished
+      ? {
+          label: "Inspect missing proof",
+          to: buildCaseRuntimeSupportPath(c, "connections"),
+        }
+      : gatePending
+        ? {
+            label: "Inspect replay gate",
+            to: buildCaseRuntimeSupportPath(c, "connections"),
+          }
+        : replayNeedsAttention
+          ? {
+              label: "Inspect replay",
+              to: buildCaseRuntimeSupportPath(c, "connections"),
+            }
+          : {
+              label: "Runtime support",
+              to: runtimeSupportPath,
+            };
 
   // List of doc names currently in `missing` state — drives the bulk bar.
   // Computed unconditionally so hook order stays stable across renders.
@@ -1183,9 +1207,9 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
                   </Pill>
                 ))}
                 <Button asChild variant="ghost" className="ml-auto h-8 px-3 text-[11.5px]">
-                  <Link to={runtimeSupportPath}>
+                  <Link to={runtimeSupportCta.to}>
                     <Server className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
-                    Runtime support
+                    {runtimeSupportCta.label}
                   </Link>
                 </Button>
               </div>

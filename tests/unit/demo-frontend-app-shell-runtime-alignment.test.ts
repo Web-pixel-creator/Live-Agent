@@ -59,6 +59,7 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(consoleStage, /if \(exportReady !== true\)/);
   assert.match(consoleStage, /if \(!proofPublished\)/);
   assert.match(consoleStage, /if \(replayNeedsAttention\)/);
+  assert.match(consoleStage, /const runtimeSupportCta = exportReady !== true/);
   assert.match(consoleStage, /id="action-queue"/);
   assert.match(consoleStage, /id="live-activity"/);
   assert.doesNotMatch(consoleStage, /SessionBoundaryPanel/);
@@ -123,6 +124,7 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(sessionBoundaryPanel, /Turn ingress:/);
   assert.match(sessionBoundaryPanel, /After refresh/);
   assert.match(sessionOpsPanel, /Operator Session Ops/);
+  assert.match(sessionOpsPanel, /id="session-ops"/);
   assert.match(sessionOpsPanel, /Export Markdown/);
   assert.match(sessionOpsPanel, /Export JSON/);
   assert.match(sessionOpsPanel, /Refresh replay/);
@@ -285,6 +287,7 @@ test("live desk, operator console, and simulation drilldowns share case-driven j
   assert.match(consoleStage, /Replay loading|Replay waiting/);
   assert.match(consoleStage, /Gate pending/);
   assert.match(consoleStage, /showRuntimeSupportStrip \? \(/);
+  assert.match(consoleStage, /Inspect export block|Inspect export posture|Inspect missing proof|Inspect replay gate|Inspect replay/);
 
   assert.match(runDetailDrawer, /import \{\s*buildCaseBundlePath,\s*buildCaseEvidencePath,\s*\} from "@\/lib\/case-artifact-links";/);
   assert.match(runDetailDrawer, /navigate\(buildCaseBundlePath\(c \?\? run\.caseRef\)\);/);
