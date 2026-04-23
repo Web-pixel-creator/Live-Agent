@@ -18,6 +18,7 @@ import { Pill } from "@/components/ui/pill";
 import type { WorkspaceCase } from "@/data/workspace";
 import { useWorkspaceRuntime, type RuntimeCaseWiki } from "@/hooks/useWorkspaceRuntime";
 import {
+  buildRuntimeArtifactIssueViewerPath,
   buildRuntimeArtifactViewerPath,
   RUNTIME_ARTIFACT_VIEW_PRESETS,
 } from "@/lib/runtime-artifact-viewer";
@@ -453,6 +454,16 @@ export const RuntimeDiagnosticsPanels = ({
     RUNTIME_ARTIFACT_VIEW_PRESETS.badgeDetails,
     { caseRef: caseValue.ref },
   );
+  const remediationArtifactPath = hasRawArtifactBlocker
+    ? buildRuntimeArtifactIssueViewerPath("raw-artifact-blocker", { caseRef: caseValue.ref })
+    : hasSignatureBlocker
+      ? buildRuntimeArtifactIssueViewerPath("signature-pending", { caseRef: caseValue.ref })
+      : buildRuntimeArtifactIssueViewerPath("export-posture", { caseRef: caseValue.ref });
+  const remediationArtifactLabel = hasRawArtifactBlocker
+    ? "Inspect blocker evidence"
+    : hasSignatureBlocker
+      ? "Inspect signature evidence"
+      : "Inspect export evidence";
 
   const refreshOperatorSummary = async () => {
     await queryClient.invalidateQueries({ queryKey: ["app-shell", "operator-summary"] });
@@ -686,6 +697,16 @@ export const RuntimeDiagnosticsPanels = ({
               Next repo-owned step: <span className="text-foreground/88">{remediationHint}</span>
             </div>
           ) : null}
+          {remediationHint ? (
+            <div className="mt-3">
+              <Button asChild variant="ghost" className="h-8 px-3 text-[12px]">
+                <Link to={remediationArtifactPath}>
+                  <ShieldCheck className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
+                  {remediationArtifactLabel}
+                </Link>
+              </Button>
+            </div>
+          ) : null}
           <div className="mt-4 rounded-2xl border border-border/50 bg-secondary/[0.2] p-4 text-sm leading-relaxed text-muted-foreground">
             {workflowOverrideActive
               ? workflowOverrideReason ?? "Workflow control-plane override is active. Clear it from this shell when the drill or recovery step is complete."
@@ -773,6 +794,16 @@ export const RuntimeDiagnosticsPanels = ({
             {remediationHint ? (
               <div className="rounded-2xl border border-border/50 bg-secondary/[0.2] p-3 text-sm leading-relaxed text-muted-foreground">
                 Next repo-owned step: <span className="text-foreground/88">{remediationHint}</span>
+              </div>
+            ) : null}
+            {remediationHint ? (
+              <div>
+                <Button asChild variant="ghost" className="h-8 px-3 text-[12px]">
+                  <Link to={remediationArtifactPath}>
+                    <ShieldCheck className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
+                    {remediationArtifactLabel}
+                  </Link>
+                </Button>
               </div>
             ) : null}
             {activeSignals.slice(0, 3).map((signal) => (

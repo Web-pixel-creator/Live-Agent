@@ -22,6 +22,7 @@ const ConsoleRuntime = () => {
   const { defaultConsoleCaseRef, getCaseByRef, getCaseWikiByRef } = useWorkspaceRuntime();
   const caseRef = params.get("ref") || defaultConsoleCaseRef || "VS-2841";
   const initialArtifactPath = params.get("artifact");
+  const initialArtifactIssue = params.get("issue");
   const caseValue = getCaseByRef(caseRef);
   const runtimeCase =
     caseValue ?? (defaultConsoleCaseRef ? getCaseByRef(defaultConsoleCaseRef) : undefined);
@@ -64,7 +65,11 @@ const ConsoleRuntime = () => {
                   <CaseVaultPanel caseValue={runtimeCase} wiki={wiki} />
                   <SessionOpsPanel caseValue={runtimeCase} wiki={wiki} />
                   <RuntimeDiagnosticsPanels caseValue={runtimeCase} wiki={wiki} />
-                  <ArtifactViewerPanel initialArtifactPath={initialArtifactPath} />
+                  <ArtifactViewerPanel
+                    initialArtifactPath={initialArtifactPath}
+                    initialArtifactIssue={initialArtifactIssue}
+                    initialCaseRef={runtimeCase.ref}
+                  />
                 </div>
               ) : (
                 <div className="flex h-full items-center justify-center px-8 py-12 text-center">

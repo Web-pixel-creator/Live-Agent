@@ -7,6 +7,7 @@ import {
   buildCaseVaultPath,
 } from "@/lib/case-artifact-links";
 import {
+  buildRuntimeArtifactIssueViewerPath,
   buildRuntimeArtifactViewerPath,
   RUNTIME_ARTIFACT_VIEW_PRESETS,
 } from "@/lib/runtime-artifact-viewer";
@@ -140,6 +141,24 @@ export const CaseWikiPanel = ({ caseValue, wiki }: CaseWikiPanelProps) => {
   const remediationHint = [remediationPrimaryAction?.operatorActionLabel?.trim(), formatRemediationRef(remediationPrimaryAction?.blockingRef ?? null)]
     .filter((item): item is string => Boolean(item && item.trim().length > 0))
     .join(" · ");
+  const remediationArtifactPath = hasRawArtifactBlocker
+    ? buildRuntimeArtifactIssueViewerPath("raw-artifact-blocker", { caseRef: caseValue.ref })
+    : hasSignatureBlocker
+      ? buildRuntimeArtifactIssueViewerPath("signature-pending", { caseRef: caseValue.ref })
+      : exportBlocked
+        ? buildRuntimeArtifactIssueViewerPath("compliance-blocker", { caseRef: caseValue.ref })
+        : !signatureReady
+          ? buildRuntimeArtifactIssueViewerPath("unsigned-proof", { caseRef: caseValue.ref })
+          : null;
+  const remediationArtifactLabel = hasRawArtifactBlocker
+    ? "Inspect blocker evidence"
+    : hasSignatureBlocker
+      ? "Inspect signature evidence"
+      : exportBlocked
+        ? "Inspect export evidence"
+        : !signatureReady
+          ? "Inspect proof evidence"
+          : null;
   const railColor = exportBlocked
     ? "bg-[hsl(var(--tint-rose-fg))]"
     : signatureReady
@@ -363,6 +382,16 @@ export const CaseWikiPanel = ({ caseValue, wiki }: CaseWikiPanelProps) => {
             {remediationHint ? (
               <div className="mt-3 rounded-2xl border border-border/50 bg-background/55 px-3 py-2 text-[12px] leading-relaxed text-muted-foreground">
                 Next repo-owned step: <span className="text-foreground/88">{remediationHint}</span>
+              </div>
+            ) : null}
+            {remediationArtifactPath && remediationArtifactLabel ? (
+              <div className="mt-3">
+                <Button asChild variant="ghost" className="h-8 px-3 text-[12px]">
+                  <Link to={remediationArtifactPath}>
+                    <ShieldCheck className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
+                    {remediationArtifactLabel}
+                  </Link>
+                </Button>
               </div>
             ) : null}
             {remediationDraft ? (

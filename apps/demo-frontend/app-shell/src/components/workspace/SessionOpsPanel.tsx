@@ -4,6 +4,7 @@ import type { WorkspaceCase } from "@/data/workspace";
 import type { RuntimeCaseWiki } from "@/hooks/useWorkspaceRuntime";
 import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
 import {
+  buildRuntimeArtifactIssueViewerPath,
   buildRuntimeArtifactViewerPath,
   RUNTIME_ARTIFACT_VIEW_PRESETS,
 } from "@/lib/runtime-artifact-viewer";
@@ -95,6 +96,20 @@ export const SessionOpsPanel = ({ caseValue, wiki }: SessionOpsPanelProps) => {
   const remediationHint = [remediationPrimaryAction?.operatorActionLabel?.trim(), formatRemediationRef(remediationPrimaryAction?.blockingRef ?? null)]
     .filter((item): item is string => Boolean(item && item.trim().length > 0))
     .join(" · ");
+  const remediationArtifactPath = hasRawArtifactBlocker
+    ? buildRuntimeArtifactIssueViewerPath("raw-artifact-blocker", { caseRef: caseValue.ref })
+    : hasSignatureBlocker
+      ? buildRuntimeArtifactIssueViewerPath("signature-pending", { caseRef: caseValue.ref })
+      : exportBlocked
+        ? buildRuntimeArtifactIssueViewerPath("compliance-blocker", { caseRef: caseValue.ref })
+        : buildRuntimeArtifactIssueViewerPath("export-posture", { caseRef: caseValue.ref });
+  const remediationArtifactLabel = hasRawArtifactBlocker
+    ? "Inspect blocker evidence"
+    : hasSignatureBlocker
+      ? "Inspect signature evidence"
+      : exportBlocked
+        ? "Inspect export evidence"
+        : "Inspect export posture";
   const exportSummary =
     wiki?.compliance?.enforcement?.summary?.trim() ||
     wiki?.operatorPreviewPack?.remediation?.draft?.summary ||
@@ -190,6 +205,14 @@ export const SessionOpsPanel = ({ caseValue, wiki }: SessionOpsPanelProps) => {
               Next repo-owned step: <span className="ml-1 text-foreground/88">{remediationHint}</span>
             </div>
           ) : null}
+          <div className="mt-3">
+            <Button asChild variant="ghost" className="h-8 px-3 text-[12px]">
+              <Link to={remediationArtifactPath}>
+                <ShieldCheck className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
+                {remediationArtifactLabel}
+              </Link>
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2">

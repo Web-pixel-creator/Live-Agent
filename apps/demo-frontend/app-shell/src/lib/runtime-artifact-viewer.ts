@@ -29,6 +29,19 @@ export type RuntimeArtifactStructuredView = {
   sections: RuntimeArtifactStructuredSection[];
 };
 
+export type RuntimeArtifactIssue =
+  | "compliance-blocker"
+  | "export-posture"
+  | "raw-artifact-blocker"
+  | "signature-pending"
+  | "unsigned-proof";
+
+type RuntimeArtifactIssueConfig = {
+  label: string;
+  summary: string;
+  relativePath: (typeof PINNED_RUNTIME_ARTIFACT_PATHS)[number];
+};
+
 export const PINNED_RUNTIME_ARTIFACT_PATHS = [
   "release-evidence/report.json",
   "release-evidence/manifest.json",
@@ -42,6 +55,39 @@ export const RUNTIME_ARTIFACT_VIEW_PRESETS = {
   runtimeProof: "release-evidence/runtime-proof-report.json",
   badgeDetails: "demo-e2e/badge-details.json",
 } as const;
+
+const RUNTIME_ARTIFACT_ISSUE_CONFIG: Record<RuntimeArtifactIssue, RuntimeArtifactIssueConfig> = {
+  "compliance-blocker": {
+    label: "Compliance blocker",
+    summary:
+      "Use the unified release report to inspect the current export posture and repo-owned blocker context.",
+    relativePath: RUNTIME_ARTIFACT_VIEW_PRESETS.report,
+  },
+  "export-posture": {
+    label: "Export posture",
+    summary:
+      "Use the manifest view to inspect release-facing export posture and proof readiness for the current case.",
+    relativePath: RUNTIME_ARTIFACT_VIEW_PRESETS.manifest,
+  },
+  "raw-artifact-blocker": {
+    label: "Raw artifact blocker",
+    summary:
+      "Use the manifest view to inspect which release evidence lane is still blocked by raw or unredacted artifact posture.",
+    relativePath: RUNTIME_ARTIFACT_VIEW_PRESETS.manifest,
+  },
+  "signature-pending": {
+    label: "Signature pending",
+    summary:
+      "Use the runtime proof report to inspect the current signing state and downstream proof readiness.",
+    relativePath: RUNTIME_ARTIFACT_VIEW_PRESETS.runtimeProof,
+  },
+  "unsigned-proof": {
+    label: "Unsigned proof",
+    summary:
+      "Use the runtime proof report to inspect missing proof publication or unsigned evidence state.",
+    relativePath: RUNTIME_ARTIFACT_VIEW_PRESETS.runtimeProof,
+  },
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -391,14 +437,43 @@ export function isPinnedRuntimeArtifactPath(relativePath: string): boolean {
 
 export function buildRuntimeArtifactViewerPath(
   relativePath: string,
-  options?: { caseRef?: string | null | undefined },
+  options?: {
+    caseRef?: string | null | undefined;
+    issue?: RuntimeArtifactIssue | null | undefined;
+  },
 ): string {
   const params = new URLSearchParams();
   params.set("artifact", relativePath);
   if (options?.caseRef && options.caseRef.trim().length > 0) {
     params.set("ref", options.caseRef.trim());
   }
+  if (options?.issue) {
+    params.set("issue", options.issue);
+  }
   return `/app/console/runtime?${params.toString()}#artifact-viewer`;
+}
+
+export function getRuntimeArtifactIssueConfig(
+  issue: string | null | undefined,
+): RuntimeArtifactIssueConfig | null {
+  if (!issue) {
+    return null;
+  }
+  return RUNTIME_ARTIFACT_ISSUE_CONFIG[issue as RuntimeArtifactIssue] ?? null;
+}
+
+export function buildRuntimeArtifactIssueViewerPath(
+  issue: RuntimeArtifactIssue,
+  options?: { caseRef?: string | null | undefined },
+): string {
+  const config = getRuntimeArtifactIssueConfig(issue);
+  return buildRuntimeArtifactViewerPath(
+    config?.relativePath ?? RUNTIME_ARTIFACT_VIEW_PRESETS.report,
+    {
+      caseRef: options?.caseRef,
+      issue,
+    },
+  );
 }
 
 export function buildRuntimeArtifactStructuredView(

@@ -297,7 +297,11 @@ the operator reaches for deeper draft/export actions.
 `Case Vault` now mirrors the same quiet remediation posture inside its
 handoff/CRM projection card, so support operators see the same `Raw artifact
 blocker` / `Signature pending` state and `Next repo-owned step` hint before
-copying handoff text or exporting Markdown.
+copying handoff text or exporting Markdown. Those support-lane remediation
+hints now also open the `Artifact Viewer` with an issue-aware `artifact=...`
+and `issue=...` query, so `Raw artifact blocker`, `Signature pending`,
+`Unsigned proof`, and export posture each land on the right proof/report lane
+instead of dropping operators into a generic debug catalog.
 `Operator Session Ops` now mirrors that same remediation posture in its export
 lane, so blocked session exports show the same `Raw artifact blocker` /
 `Signature pending` pills and `Next repo-owned step` hint before operators try

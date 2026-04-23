@@ -10,14 +10,18 @@ import {
   buildRuntimeArtifactStructuredView,
   fetchRuntimeArtifactDocument,
   fetchRuntimeArtifactIndex,
+  getRuntimeArtifactIssueConfig,
   isPinnedRuntimeArtifactPath,
   PINNED_RUNTIME_ARTIFACT_PATHS,
   summarizeRuntimeArtifact,
+  type RuntimeArtifactIssue,
   type RuntimeArtifactIndexEntry,
 } from "@/lib/runtime-artifact-viewer";
 
 type ArtifactViewerPanelProps = {
   initialArtifactPath?: string | null;
+  initialArtifactIssue?: string | null;
+  initialCaseRef?: string | null;
 };
 
 function formatTimestamp(value: string | null | undefined): string {
@@ -61,7 +65,11 @@ function categoryOrder(value: string): number {
   }
 }
 
-export const ArtifactViewerPanel = ({ initialArtifactPath }: ArtifactViewerPanelProps) => {
+export const ArtifactViewerPanel = ({
+  initialArtifactPath,
+  initialArtifactIssue,
+  initialCaseRef,
+}: ArtifactViewerPanelProps) => {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
 
   const artifactIndexQuery = useQuery({
@@ -138,6 +146,7 @@ export const ArtifactViewerPanel = ({ initialArtifactPath }: ArtifactViewerPanel
     selectedEntry,
     artifactDocumentQuery.data?.payload,
   );
+  const issueConfig = getRuntimeArtifactIssueConfig(initialArtifactIssue as RuntimeArtifactIssue | null);
 
   const copyJson = async () => {
     const raw = artifactDocumentQuery.data?.raw;
@@ -321,6 +330,11 @@ export const ArtifactViewerPanel = ({ initialArtifactPath }: ArtifactViewerPanel
                 <Pill tone="slate" size="sm">
                   {artifactSummary.count}
                 </Pill>
+                {issueConfig ? (
+                  <Pill tone="violet" size="sm">
+                    {issueConfig.label}
+                  </Pill>
+                ) : null}
               </div>
 
               <dl className="mt-4 grid gap-2 text-sm">
@@ -353,6 +367,20 @@ export const ArtifactViewerPanel = ({ initialArtifactPath }: ArtifactViewerPanel
               <div className="mt-4 rounded-2xl border border-border/50 bg-secondary/[0.2] p-4 text-sm leading-relaxed text-muted-foreground">
                 {selectedEntry.description}
               </div>
+              {issueConfig ? (
+                <div className="mt-4 rounded-2xl border border-border/50 bg-background/65 p-4 text-sm leading-relaxed text-muted-foreground">
+                  Focused by {issueConfig.label.toLowerCase()}
+                  {initialCaseRef ? (
+                    <>
+                      {" "}
+                      for <span className="font-mono text-[11px] text-foreground/88">{initialCaseRef}</span>.
+                    </>
+                  ) : (
+                    "."
+                  )}{" "}
+                  {issueConfig.summary}
+                </div>
+              ) : null}
 
               {structuredView ? (
                 <div className="mt-4 rounded-2xl border border-border/60 bg-background/65 p-4">
