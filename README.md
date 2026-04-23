@@ -289,6 +289,11 @@ landing point. When the blocker comes from repo-owned compliance remediation,
 the strip also shows a compact inline hint built from `operatorActionLabel`
 and `blockingRef`, so the operator can see the next safe step before opening
 the deeper support lane.
+The `Case Wiki` support section now mirrors that same remediation posture
+inside `Compliance & remediation`, adding quiet `Raw artifact blocker` /
+`Signature pending` pills plus a compact `Next repo-owned step` hint from
+`operatorActionLabel` and `blockingRef` so the blocker reads clearly before
+the operator reaches for deeper draft/export actions.
 `Simulation Lab` now also overlays the live `policy-current` snapshot from
 repo-owned governance runtime data (`/v1/governance/policy`) and the real
 template catalog (`/v1/governance/compliance-template`) before it falls back to

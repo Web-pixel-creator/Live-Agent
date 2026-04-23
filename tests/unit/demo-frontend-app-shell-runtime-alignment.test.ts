@@ -103,6 +103,12 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(caseWikiPanel, /operatorPreviewPack\?\.remediation\?\.draft/);
   assert.match(caseWikiPanel, /compliance\?\.enforcement\?\.summary/);
   assert.match(caseWikiPanel, /evidenceSignature\?\.status/);
+  assert.match(caseWikiPanel, /const remediationPrimaryAction = complianceEnforcement\?\.remediation\?\.primaryAction \?\? null;/);
+  assert.match(caseWikiPanel, /const remediationHint = \[/);
+  assert.match(caseWikiPanel, /formatRemediationRef/);
+  assert.match(caseWikiPanel, /Raw artifact blocker/);
+  assert.match(caseWikiPanel, /Signature pending/);
+  assert.match(caseWikiPanel, /Next repo-owned step:/);
   assert.match(workspaceRuntime, /blockingReasons\?: string\[\] \| null;/);
   assert.match(workspaceRuntime, /primaryAction\?: \{/);
   assert.match(caseVaultPanel, /id="case-vault"/);
