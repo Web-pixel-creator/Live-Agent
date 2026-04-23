@@ -294,6 +294,10 @@ inside `Compliance & remediation`, adding quiet `Raw artifact blocker` /
 `Signature pending` pills plus a compact `Next repo-owned step` hint from
 `operatorActionLabel` and `blockingRef` so the blocker reads clearly before
 the operator reaches for deeper draft/export actions.
+`Case Vault` now mirrors the same quiet remediation posture inside its
+handoff/CRM projection card, so support operators see the same `Raw artifact
+blocker` / `Signature pending` state and `Next repo-owned step` hint before
+copying handoff text or exporting Markdown.
 `Simulation Lab` now also overlays the live `policy-current` snapshot from
 repo-owned governance runtime data (`/v1/governance/policy`) and the real
 template catalog (`/v1/governance/compliance-template`) before it falls back to

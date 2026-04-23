@@ -124,6 +124,18 @@ function formatKindLabel(value: string | null | undefined, fallback: string): st
   return value.replace(/[_-]+/g, " ").trim();
 }
 
+function formatRemediationRef(value: string | null | undefined): string | null {
+  if (!value || value.trim().length === 0) {
+    return null;
+  }
+  if (value.startsWith("file:")) {
+    const normalized = value.slice("file:".length);
+    const segments = normalized.split(/[\\/]+/u).filter(Boolean);
+    return segments.at(-1) ?? value;
+  }
+  return value;
+}
+
 function buildVaultCopyPayload(caseValue: WorkspaceCase, wiki: RuntimeCaseWiki | undefined): string {
   if (!wiki) {
     return `${caseValue.ref}\nCase Vault is waiting for the first compiled Case Wiki snapshot.`;
@@ -331,7 +343,20 @@ export const CaseVaultPanel = ({ caseValue, wiki }: CaseVaultPanelProps) => {
   const exportReady =
     wiki?.operatorPreviewPack?.compliance?.enforcement?.exportReady ??
     wiki?.compliance?.enforcement?.exportReady;
+  const complianceEnforcement = wiki?.compliance?.enforcement ?? null;
+  const remediationPrimaryAction = complianceEnforcement?.remediation?.primaryAction ?? null;
   const exportBlocked = exportReady === false;
+  const hasRawArtifactBlocker =
+    remediationPrimaryAction?.kind === "redact_artifact" ||
+    remediationPrimaryAction?.kind === "replace_with_redacted_artifact" ||
+    complianceEnforcement?.blockingReasons?.some((reason) => reason === "raw_like_source_refs_detected") === true;
+  const hasSignatureBlocker =
+    remediationPrimaryAction?.kind === "attach_case_wiki_signature" ||
+    remediationPrimaryAction?.kind === "replace_with_signed_artifact" ||
+    complianceEnforcement?.blockingReasons?.some((reason) => reason === "case_wiki_signature_missing") === true;
+  const remediationHint = [remediationPrimaryAction?.operatorActionLabel?.trim(), formatRemediationRef(remediationPrimaryAction?.blockingRef ?? null)]
+    .filter((item): item is string => Boolean(item && item.trim().length > 0))
+    .join(" · ");
   const complianceSummary =
     wiki?.compliance?.enforcement?.summary?.trim() ||
     wiki?.operatorPreviewPack?.remediation?.draft?.summary ||
@@ -571,6 +596,16 @@ export const CaseVaultPanel = ({ caseValue, wiki }: CaseVaultPanelProps) => {
               <Pill tone={exportBlocked ? "rose" : "mint"} size="sm" dot>
                 {exportBlocked ? exportBlockedLabel : projectionReadyLabel}
               </Pill>
+              {hasRawArtifactBlocker ? (
+                <Pill tone="rose" size="sm">
+                  Raw artifact blocker
+                </Pill>
+              ) : null}
+              {hasSignatureBlocker ? (
+                <Pill tone="violet" size="sm">
+                  Signature pending
+                </Pill>
+              ) : null}
               <Pill tone="slate" size="sm">
                 {`${projectionLines.length} lines`}
               </Pill>
@@ -578,6 +613,11 @@ export const CaseVaultPanel = ({ caseValue, wiki }: CaseVaultPanelProps) => {
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
               {projectionSummary} {complianceSummary}
             </p>
+            {remediationHint ? (
+              <div className="mt-3 rounded-2xl border border-border/50 bg-background/55 px-3 py-2 text-[12px] leading-relaxed text-muted-foreground">
+                Next repo-owned step: <span className="text-foreground/88">{remediationHint}</span>
+              </div>
+            ) : null}
             <div className="mt-4 flex flex-wrap gap-2">
               <Button
                 type="button"

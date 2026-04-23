@@ -135,6 +135,12 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(caseVaultPanel, /Case Vault CRM prep ready/);
   assert.match(caseVaultPanel, /Case Vault CRM prep blocked/);
   assert.match(caseVaultPanel, /Inspect proof/);
+  assert.match(caseVaultPanel, /const remediationPrimaryAction = complianceEnforcement\?\.remediation\?\.primaryAction \?\? null;/);
+  assert.match(caseVaultPanel, /const remediationHint = \[/);
+  assert.match(caseVaultPanel, /formatRemediationRef/);
+  assert.match(caseVaultPanel, /Raw artifact blocker/);
+  assert.match(caseVaultPanel, /Signature pending/);
+  assert.match(caseVaultPanel, /Next repo-owned step:/);
   assert.match(sessionBoundaryPanel, /Session Boundary/);
   assert.match(sessionBoundaryPanel, /id="connections"/);
   assert.match(sessionBoundaryPanel, /fetchRuntimeSessionReplay/);
