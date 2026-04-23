@@ -77,6 +77,7 @@ export const ArtifactViewerPanel = ({
   initialCaseRef,
 }: ArtifactViewerPanelProps) => {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [showFocusedOnly, setShowFocusedOnly] = useState(false);
 
   const artifactIndexQuery = useQuery({
     queryKey: ["app-shell", "runtime-artifact-index"],
@@ -187,6 +188,14 @@ export const ArtifactViewerPanel = ({
       ...structuredView.sections.filter((section) => section.title !== focusedSectionTitle),
     ];
   }, [focusedSectionTitle, structuredView]);
+  const canShowFocusedOnly =
+    Boolean(focusedSectionTitle) && orderedStructuredSections.length > 1;
+  const visibleStructuredSections = useMemo(() => {
+    if (!showFocusedOnly || !focusedSectionTitle) {
+      return orderedStructuredSections;
+    }
+    return orderedStructuredSections.filter((section) => section.title === focusedSectionTitle);
+  }, [focusedSectionTitle, orderedStructuredSections, showFocusedOnly]);
 
   useEffect(() => {
     if (!focusedSectionTitle || !structuredView) {
@@ -201,6 +210,10 @@ export const ArtifactViewerPanel = ({
     });
     return () => window.cancelAnimationFrame(frameId);
   }, [focusedSectionTitle, selectedEntry?.relativePath, structuredView]);
+
+  useEffect(() => {
+    setShowFocusedOnly(false);
+  }, [focusedSectionTitle, selectedEntry?.relativePath]);
 
   const copyJson = async () => {
     const raw = artifactDocumentQuery.data?.raw;
@@ -479,12 +492,31 @@ export const ArtifactViewerPanel = ({
 
               {structuredView ? (
                 <div className="mt-4 rounded-2xl border border-border/60 bg-background/65 p-4">
-                  <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                    Structured snapshot
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                      Structured snapshot
+                    </div>
+                    {canShowFocusedOnly ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="h-8 rounded-xl px-3 text-[11px]"
+                        onClick={() => setShowFocusedOnly((current) => !current)}
+                      >
+                        {showFocusedOnly ? "Show all sections" : "Show focused only"}
+                      </Button>
+                    ) : null}
                   </div>
                   <div className="mt-2 text-sm text-foreground/92">{structuredView.headline}</div>
+                  {showFocusedOnly && focusedSectionTitle ? (
+                    <div className="mt-3 rounded-xl border border-primary/20 bg-secondary/[0.16] px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+                      Showing only the focused structured lane for{" "}
+                      <span className="text-foreground/88">{focusedSectionTitle}</span>. Raw JSON
+                      remains fully available below.
+                    </div>
+                  ) : null}
                   <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                    {orderedStructuredSections.map((section) => (
+                    {visibleStructuredSections.map((section) => (
                       <div
                         key={section.title}
                         id={buildRuntimeArtifactSectionAnchorId(section.title)}

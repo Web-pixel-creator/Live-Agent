@@ -320,7 +320,10 @@ summary above it. The focused subsection now also gets a stable support-lane
 anchor, so the viewer can jump directly to the relevant structured card before
 operators start reading the raw payload, and issue-aware row emphasis quietly
 marks the structured rows that matter most for that blocker inside the focused
-card itself.
+card itself. When a focused section exists, the same viewer now also offers a
+quiet `Show focused only` mode so support can temporarily collapse the
+structured snapshot to one prioritized lane while keeping the raw JSON fallback
+unchanged.
 `Operator Session Ops` now mirrors that same remediation posture in its export
 lane, so blocked session exports show the same `Raw artifact blocker` /
 `Signature pending` pills and `Next repo-owned step` hint before operators try

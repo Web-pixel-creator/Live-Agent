@@ -256,9 +256,16 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(artifactViewerPanel, /issueSummary\.headline/);
   assert.match(artifactViewerPanel, /issueSummary\.rows\.map/);
   assert.match(artifactViewerPanel, /const orderedStructuredSections = useMemo\(\(\) => \{/);
+  assert.match(artifactViewerPanel, /const \[showFocusedOnly, setShowFocusedOnly\] = useState\(false\);/);
+  assert.match(artifactViewerPanel, /const canShowFocusedOnly =/);
+  assert.match(artifactViewerPanel, /const visibleStructuredSections = useMemo\(\(\) => \{/);
   assert.match(artifactViewerPanel, /const focusSection = structuredView\.sections\.find/);
   assert.match(artifactViewerPanel, /document\.getElementById\(sectionAnchorId\)\?\.scrollIntoView/);
-  assert.match(artifactViewerPanel, /orderedStructuredSections\.map/);
+  assert.match(artifactViewerPanel, /setShowFocusedOnly\(false\);/);
+  assert.match(artifactViewerPanel, /Show focused only/);
+  assert.match(artifactViewerPanel, /Show all sections/);
+  assert.match(artifactViewerPanel, /Showing only the focused structured lane for/);
+  assert.match(artifactViewerPanel, /visibleStructuredSections\.map/);
   assert.match(artifactViewerPanel, /section\.title === focusedSectionTitle/);
   assert.match(artifactViewerPanel, /focusedRowLabels\.has\(row\.label\.trim\(\)\.toLowerCase\(\)\)/);
   assert.match(artifactViewerPanel, /focus/);
