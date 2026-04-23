@@ -55,6 +55,10 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(consoleStage, /handleOpenCaseVault/);
   assert.match(consoleStage, /label="Open Case Vault"/);
   assert.match(consoleStage, /Runtime support/);
+  assert.match(consoleStage, /const showRuntimeSupportStrip = runtimeSupportItems\.length > 0;/);
+  assert.match(consoleStage, /if \(exportReady !== true\)/);
+  assert.match(consoleStage, /if \(!proofPublished\)/);
+  assert.match(consoleStage, /if \(replayNeedsAttention\)/);
   assert.match(consoleStage, /id="action-queue"/);
   assert.match(consoleStage, /id="live-activity"/);
   assert.doesNotMatch(consoleStage, /SessionBoundaryPanel/);
@@ -280,6 +284,7 @@ test("live desk, operator console, and simulation drilldowns share case-driven j
   assert.match(consoleStage, /Proof signed|Proof published|Proof pending/);
   assert.match(consoleStage, /Replay loading|Replay waiting/);
   assert.match(consoleStage, /Gate pending/);
+  assert.match(consoleStage, /showRuntimeSupportStrip \? \(/);
 
   assert.match(runDetailDrawer, /import \{\s*buildCaseBundlePath,\s*buildCaseEvidencePath,\s*\} from "@\/lib\/case-artifact-links";/);
   assert.match(runDetailDrawer, /navigate\(buildCaseBundlePath\(c \?\? run\.caseRef\)\);/);

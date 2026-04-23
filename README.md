@@ -275,10 +275,10 @@ Operator helper entries now match the transferred `hello-friend` shell `1:1`:
 `/app/simulation`. The deeper runtime support route at `/app/console/runtime`
 remains available as a secondary/internal surface through direct links and the
 command palette.
-`/app/console` now also keeps one compact runtime-support strip under the
-approval actions (`Export`, `Proof`, `Replay`, plus `Runtime support`) so the
-main approval-first screen stays clean while repo-owned support posture remains
-visible without reopening the larger runtime cards inline.
+`/app/console` now only shows a compact runtime-support strip when repo-owned
+support posture needs attention (`Export blocked|waiting`, `Proof pending`,
+`Replay waiting`, or `Gate pending`), so the main approval-first screen stays
+clean while problem cases still expose one direct path into `/app/console/runtime`.
 `Simulation Lab` now also overlays the live `policy-current` snapshot from
 repo-owned governance runtime data (`/v1/governance/policy`) and the real
 template catalog (`/v1/governance/compliance-template`) before it falls back to

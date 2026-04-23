@@ -252,6 +252,30 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
     : formatStatusLabel(replaySummary?.replayState, "Replay waiting");
   const replayTone = replayQuery.isLoading ? "slate" : toneForReplay(replaySummary);
   const gatePending = replaySummary?.approvalGateStatus === "pending";
+  const replayNeedsAttention =
+    Boolean(sessionId) &&
+    !replayQuery.isLoading &&
+    (!replaySummary ||
+      (replaySummary.replayState !== "verified" &&
+        replaySummary.resumeReady !== true));
+  const runtimeSupportItems: Array<{
+    label: string;
+    tone: "mint" | "rose" | "violet" | "slate";
+    dot?: boolean;
+  }> = [];
+  if (exportReady !== true) {
+    runtimeSupportItems.push({ label: exportStatusLabel, tone: exportTone, dot: true });
+  }
+  if (!proofPublished) {
+    runtimeSupportItems.push({ label: proofStatusLabel, tone: proofTone, dot: true });
+  }
+  if (replayNeedsAttention) {
+    runtimeSupportItems.push({ label: replayStatusLabel, tone: replayTone, dot: true });
+  }
+  if (gatePending) {
+    runtimeSupportItems.push({ label: "Gate pending", tone: "rose" });
+  }
+  const showRuntimeSupportStrip = runtimeSupportItems.length > 0;
 
   // List of doc names currently in `missing` state — drives the bulk bar.
   // Computed unconditionally so hook order stays stable across renders.
@@ -1148,31 +1172,24 @@ export const ConsoleStage = ({ caseRef = "VS-2841" }: ConsoleStageProps) => {
               </span>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/40 pt-3">
-              <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-                Runtime support
-              </span>
-              <Pill tone={exportTone} size="sm" dot>
-                {exportStatusLabel}
-              </Pill>
-              <Pill tone={proofTone} size="sm" dot>
-                {proofStatusLabel}
-              </Pill>
-              <Pill tone={replayTone} size="sm" dot>
-                {replayStatusLabel}
-              </Pill>
-              {gatePending ? (
-                <Pill tone="rose" size="sm">
-                  Gate pending
-                </Pill>
-              ) : null}
-              <Button asChild variant="ghost" className="ml-auto h-8 px-3 text-[11.5px]">
-                <Link to={runtimeSupportPath}>
-                  <Server className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
+            {showRuntimeSupportStrip ? (
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/40 pt-3">
+                <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
                   Runtime support
-                </Link>
-              </Button>
-            </div>
+                </span>
+                {runtimeSupportItems.map((item) => (
+                  <Pill key={`${item.label}:${item.tone}`} tone={item.tone} size="sm" dot={item.dot}>
+                    {item.label}
+                  </Pill>
+                ))}
+                <Button asChild variant="ghost" className="ml-auto h-8 px-3 text-[11.5px]">
+                  <Link to={runtimeSupportPath}>
+                    <Server className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
+                    Runtime support
+                  </Link>
+                </Button>
+              </div>
+            ) : null}
           </>
           )
         ) : (
