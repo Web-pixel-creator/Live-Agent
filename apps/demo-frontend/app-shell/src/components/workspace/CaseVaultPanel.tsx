@@ -17,6 +17,7 @@ import {
   Timer,
   Workflow,
 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -30,6 +31,8 @@ type RefFamilySummary = {
   count: number;
   sample: string;
 };
+
+type CaseVaultProjectionMode = "handoff" | "crm";
 
 function formatTimestamp(value: string | null | undefined): string {
   if (!value) {
@@ -198,8 +201,62 @@ function buildVaultHandoffLines(caseValue: WorkspaceCase, wiki: RuntimeCaseWiki 
   ].filter((item): item is string => Boolean(item && item.trim().length > 0));
 }
 
-function buildVaultMarkdown(caseValue: WorkspaceCase, wiki: RuntimeCaseWiki | undefined): string {
-  const handoffLines = buildVaultHandoffLines(caseValue, wiki);
+function buildVaultCrmPrepLines(caseValue: WorkspaceCase, wiki: RuntimeCaseWiki | undefined): string[] {
+  const bundlePath = buildCaseBundlePath(caseValue);
+  const evidencePath = buildCaseEvidencePath(caseValue);
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const blockingQuestion = wiki?.highlights.topBlockingQuestion ?? wiki?.openQuestions[0] ?? null;
+  const nextAction = wiki?.recommendedNextAction ?? null;
+  const missingDocuments = caseValue.documents
+    .filter((item) => item.state !== "ok")
+    .slice(0, 4)
+    .map((item) => item.name);
+
+  if (!wiki) {
+    return [
+      `${caseValue.ref} - ${caseValue.client}`,
+      `Visa: ${caseValue.visa}`,
+      `Country: ${caseValue.country}`,
+      `Owner: ${caseValue.owner}`,
+      `Status: waiting for compiled Case Wiki`,
+      `Bundle: ${origin}${bundlePath}`,
+      `Evidence: ${origin}${evidencePath}`,
+    ];
+  }
+
+  return [
+    `${caseValue.ref} - ${caseValue.client}`,
+    `Visa: ${caseValue.visa}`,
+    `Country: ${caseValue.country}`,
+    `Owner: ${caseValue.owner}`,
+    `Stage: ${wiki.overview.currentStage ?? caseValue.stage}`,
+    `Status: ${wiki.overview.status}`,
+    wiki.overview.customerGoal ? `Goal: ${wiki.overview.customerGoal}` : null,
+    blockingQuestion ? `Current blocker: ${blockingQuestion.question}` : null,
+    nextAction ? `Next action: ${nextAction.title}` : null,
+    missingDocuments.length > 0 ? `Missing or review docs: ${missingDocuments.join(", ")}` : null,
+    `Bundle: ${origin}${bundlePath}`,
+    `Evidence: ${origin}${evidencePath}`,
+  ].filter((item): item is string => Boolean(item && item.trim().length > 0));
+}
+
+function buildVaultProjectionLines(
+  mode: CaseVaultProjectionMode,
+  caseValue: WorkspaceCase,
+  wiki: RuntimeCaseWiki | undefined,
+): string[] {
+  if (mode === "crm") {
+    return buildVaultCrmPrepLines(caseValue, wiki);
+  }
+  return buildVaultHandoffLines(caseValue, wiki);
+}
+
+function buildVaultMarkdown(
+  caseValue: WorkspaceCase,
+  wiki: RuntimeCaseWiki | undefined,
+  projectionMode: CaseVaultProjectionMode,
+): string {
+  const projectionLines = buildVaultProjectionLines(projectionMode, caseValue, wiki);
   if (!wiki) {
     return `# Case Vault Export\n\n- Ref: ${caseValue.ref}\n- Status: waiting for compiled Case Wiki\n`;
   }
@@ -228,8 +285,8 @@ function buildVaultMarkdown(caseValue: WorkspaceCase, wiki: RuntimeCaseWiki | un
     `- Generated: ${formatTimestamp(wiki.generatedAt)}`,
     `- Customer goal: ${wiki.overview.customerGoal ?? "not published"}`,
     "",
-    "## Handoff projection",
-    ...handoffLines.map((item) => `- ${item}`),
+    `## ${projectionMode === "crm" ? "CRM prep projection" : "Operator handoff projection"}`,
+    ...projectionLines.map((item) => `- ${item}`),
     "",
     "## Linked entities",
     ...(entities.length > 0 ? entities : ["- none published"]),
@@ -247,6 +304,7 @@ function buildVaultMarkdown(caseValue: WorkspaceCase, wiki: RuntimeCaseWiki | un
 }
 
 export const CaseVaultPanel = ({ caseValue, wiki }: CaseVaultPanelProps) => {
+  const [projectionMode, setProjectionMode] = useState<CaseVaultProjectionMode>("handoff");
   const runtimeProofPath = buildRuntimeArtifactViewerPath(
     RUNTIME_ARTIFACT_VIEW_PRESETS.runtimeProof,
     { caseRef: caseValue.ref },
@@ -262,8 +320,14 @@ export const CaseVaultPanel = ({ caseValue, wiki }: CaseVaultPanelProps) => {
   const nextAction = wiki?.recommendedNextAction ?? null;
   const blockingQuestion = wiki?.highlights.topBlockingQuestion ?? wiki?.openQuestions[0] ?? null;
   const copyPayload = buildVaultCopyPayload(caseValue, wiki);
-  const handoffLines = buildVaultHandoffLines(caseValue, wiki);
-  const vaultMarkdown = buildVaultMarkdown(caseValue, wiki);
+  const projectionLines = useMemo(
+    () => buildVaultProjectionLines(projectionMode, caseValue, wiki),
+    [projectionMode, caseValue, wiki],
+  );
+  const vaultMarkdown = useMemo(
+    () => buildVaultMarkdown(caseValue, wiki, projectionMode),
+    [caseValue, projectionMode, wiki],
+  );
   const exportReady =
     wiki?.operatorPreviewPack?.compliance?.enforcement?.exportReady ??
     wiki?.compliance?.enforcement?.exportReady;
@@ -274,6 +338,19 @@ export const CaseVaultPanel = ({ caseValue, wiki }: CaseVaultPanelProps) => {
     (exportBlocked
       ? "Case Vault export is blocked until repo-owned compliance enforcement clears the current raw/signing blockers."
       : "Case Vault handoff is ready to reuse the compiled Case Wiki memory.");
+  const projectionTitle =
+    projectionMode === "crm" ? "CRM prep projection" : "Operator handoff projection";
+  const projectionReadyLabel =
+    projectionMode === "crm" ? "Case Vault CRM prep ready" : "Case Vault handoff ready";
+  const exportBlockedLabel =
+    projectionMode === "crm" ? "Case Vault CRM prep blocked" : "Case Vault export blocked";
+  const projectionActionLabel = projectionMode === "crm" ? "Copy CRM prep" : "Copy handoff";
+  const projectionExportLabel =
+    projectionMode === "crm" ? "Export CRM Markdown" : "Export Markdown";
+  const projectionSummary =
+    projectionMode === "crm"
+      ? "CRM-safe summary for operator handoff, CRM update prep, and downstream status sync."
+      : "Operator-facing handoff summary built from the compiled Case Wiki memory graph.";
 
   const handleCopyVault = async () => {
     try {
@@ -289,13 +366,15 @@ export const CaseVaultPanel = ({ caseValue, wiki }: CaseVaultPanelProps) => {
       toast.error(complianceSummary);
       return;
     }
-    if (handoffLines.length === 0) {
-      toast.error("Case Vault handoff is not hydrated yet.");
+    if (projectionLines.length === 0) {
+      toast.error(`Case Vault ${projectionMode === "crm" ? "CRM prep" : "handoff"} is not hydrated yet.`);
       return;
     }
     try {
-      await navigator.clipboard.writeText(handoffLines.join("\n"));
-      toast.success(`Copied Case Vault handoff for ${caseValue.ref}`);
+      await navigator.clipboard.writeText(projectionLines.join("\n"));
+      toast.success(
+        `Copied Case Vault ${projectionMode === "crm" ? "CRM prep" : "handoff"} for ${caseValue.ref}`,
+      );
     } catch {
       toast.error("Clipboard is unavailable in this browser.");
     }
@@ -307,11 +386,13 @@ export const CaseVaultPanel = ({ caseValue, wiki }: CaseVaultPanelProps) => {
       return;
     }
     triggerDownload(
-      `${caseValue.ref.toLowerCase()}-case-vault.md`,
+      `${caseValue.ref.toLowerCase()}-case-vault-${projectionMode}.md`,
       `${vaultMarkdown}\n`,
       "text/markdown;charset=utf-8",
     );
-    toast.success(`Export Markdown downloaded for ${caseValue.ref}`);
+    toast.success(
+      `${projectionMode === "crm" ? "CRM" : "Handoff"} Markdown downloaded for ${caseValue.ref}`,
+    );
   };
 
   return (
@@ -368,11 +449,11 @@ export const CaseVaultPanel = ({ caseValue, wiki }: CaseVaultPanelProps) => {
           </Button>
           <Button variant="ghost" className="h-9 px-3 text-[12px]" onClick={handleCopyHandoff}>
             <Copy className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
-            Copy handoff
+            {projectionActionLabel}
           </Button>
           <Button variant="ghost" className="h-9 px-3 text-[12px]" onClick={handleExportMarkdown}>
             <Download className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
-            Export Markdown
+            {projectionExportLabel}
           </Button>
           <Button variant="ghost" className="h-9 px-3 text-[12px]" onClick={handleCopyVault}>
             <Copy className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
@@ -484,23 +565,41 @@ export const CaseVaultPanel = ({ caseValue, wiki }: CaseVaultPanelProps) => {
           <article className="rounded-[22px] border border-border/60 bg-background/65 p-4">
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
               <FileText className="h-3.5 w-3.5" strokeWidth={1.75} />
-              Handoff projection
+              {projectionTitle}
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Pill tone={exportBlocked ? "rose" : "mint"} size="sm" dot>
-                {exportBlocked ? "Case Vault export blocked" : "Case Vault handoff ready"}
+                {exportBlocked ? exportBlockedLabel : projectionReadyLabel}
               </Pill>
               <Pill tone="slate" size="sm">
-                {`${handoffLines.length} lines`}
+                {`${projectionLines.length} lines`}
               </Pill>
             </div>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              {complianceSummary}
+              {projectionSummary} {complianceSummary}
             </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant={projectionMode === "handoff" ? "secondary" : "ghost"}
+                className="h-8 rounded-full px-3 text-[12px]"
+                onClick={() => setProjectionMode("handoff")}
+              >
+                Operator handoff
+              </Button>
+              <Button
+                type="button"
+                variant={projectionMode === "crm" ? "secondary" : "ghost"}
+                className="h-8 rounded-full px-3 text-[12px]"
+                onClick={() => setProjectionMode("crm")}
+              >
+                CRM prep
+              </Button>
+            </div>
             <div className="mt-4 rounded-2xl border border-border/50 bg-secondary/[0.18] p-4">
-              {handoffLines.length > 0 ? (
+              {projectionLines.length > 0 ? (
                 <ol className="space-y-2">
-                  {handoffLines.slice(0, 6).map((line, index) => (
+                  {projectionLines.slice(0, 6).map((line, index) => (
                     <li
                       key={`${index}-${line}`}
                       className="text-sm leading-relaxed text-foreground/88"
@@ -511,7 +610,7 @@ export const CaseVaultPanel = ({ caseValue, wiki }: CaseVaultPanelProps) => {
                 </ol>
               ) : (
                 <div className="text-sm leading-relaxed text-muted-foreground">
-                  Case Vault handoff will appear here after the compiled Case Wiki publishes.
+                  Case Vault projection will appear here after the compiled Case Wiki publishes.
                 </div>
               )}
             </div>
