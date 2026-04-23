@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import type { WorkspaceCase } from "@/data/workspace";
-import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
+import { useWorkspaceRuntime, type RuntimeCaseWiki } from "@/hooks/useWorkspaceRuntime";
 import {
   buildRuntimeArtifactViewerPath,
   RUNTIME_ARTIFACT_VIEW_PRESETS,
@@ -26,6 +26,7 @@ import { Link } from "react-router-dom";
 
 type RuntimeDiagnosticsPanelsProps = {
   caseValue: WorkspaceCase;
+  wiki: RuntimeCaseWiki | undefined;
 };
 
 type AuthProfileSummary = {
@@ -112,6 +113,18 @@ function formatStatusLabel(value: string | null | undefined, fallback: string): 
     return fallback;
   }
   return value.replace(/[_-]+/g, " ").trim();
+}
+
+function formatRemediationRef(value: string | null | undefined): string | null {
+  if (!value || value.trim().length === 0) {
+    return null;
+  }
+  if (value.startsWith("file:")) {
+    const normalized = value.slice("file:".length);
+    const segments = normalized.split(/[\\/]+/u).filter(Boolean);
+    return segments.at(-1) ?? value;
+  }
+  return value;
 }
 
 function toneFromRuntimeStatus(
@@ -327,6 +340,7 @@ function normalizeBrowserJobs(snapshot: Record<string, unknown> | null): Browser
 
 export const RuntimeDiagnosticsPanels = ({
   caseValue,
+  wiki,
 }: RuntimeDiagnosticsPanelsProps) => {
   const queryClient = useQueryClient();
   const {
@@ -377,6 +391,19 @@ export const RuntimeDiagnosticsPanels = ({
     ? diagnostics.activeSignals.filter((item): item is Record<string, unknown> => isRecord(item))
     : [];
   const topSignal = activeSignals[0] ?? null;
+  const complianceEnforcement = wiki?.compliance?.enforcement ?? null;
+  const remediationPrimaryAction = complianceEnforcement?.remediation?.primaryAction ?? null;
+  const hasRawArtifactBlocker =
+    remediationPrimaryAction?.kind === "redact_artifact" ||
+    remediationPrimaryAction?.kind === "replace_with_redacted_artifact" ||
+    complianceEnforcement?.blockingReasons?.some((reason) => reason === "raw_like_source_refs_detected") === true;
+  const hasSignatureBlocker =
+    remediationPrimaryAction?.kind === "attach_case_wiki_signature" ||
+    remediationPrimaryAction?.kind === "replace_with_signed_artifact" ||
+    complianceEnforcement?.blockingReasons?.some((reason) => reason === "case_wiki_signature_missing") === true;
+  const remediationHint = [remediationPrimaryAction?.operatorActionLabel?.trim(), formatRemediationRef(remediationPrimaryAction?.blockingRef ?? null)]
+    .filter((item): item is string => Boolean(item && item.trim().length > 0))
+    .join(" · ");
 
   const workflowSnapshot = workflowQuery.data;
   const workflowSummary = isRecord(workflowSnapshot?.summary) ? workflowSnapshot.summary : null;
@@ -672,6 +699,16 @@ export const RuntimeDiagnosticsPanels = ({
                 <Pill tone={toneFromRuntimeStatus(toOptionalText(slo?.status))} size="sm">
                   SLO {formatStatusLabel(toOptionalText(slo?.status), "missing")}
                 </Pill>
+                {hasRawArtifactBlocker ? (
+                  <Pill tone="rose" size="sm">
+                    Raw artifact blocker
+                  </Pill>
+                ) : null}
+                {hasSignatureBlocker ? (
+                  <Pill tone="violet" size="sm">
+                    Signature pending
+                  </Pill>
+                ) : null}
               </div>
             </div>
             <Button variant="ghost" className="h-8 px-3 text-[12px]" onClick={refreshGuardrails}>
@@ -718,6 +755,11 @@ export const RuntimeDiagnosticsPanels = ({
             </div>
           </dl>
           <div className="mt-4 space-y-2">
+            {remediationHint ? (
+              <div className="rounded-2xl border border-border/50 bg-secondary/[0.2] p-3 text-sm leading-relaxed text-muted-foreground">
+                Next repo-owned step: <span className="text-foreground/88">{remediationHint}</span>
+              </div>
+            ) : null}
             {activeSignals.slice(0, 3).map((signal) => (
               <div
                 key={`${toText(signal.key)}-${toText(signal.service, "runtime")}`}

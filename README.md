@@ -302,6 +302,10 @@ copying handoff text or exporting Markdown.
 lane, so blocked session exports show the same `Raw artifact blocker` /
 `Signature pending` pills and `Next repo-owned step` hint before operators try
 to download Markdown or JSON.
+`Runtime Guardrails` on `/app/console/runtime` now mirrors that same quiet
+repo-owned remediation posture, so support operators see `Raw artifact blocker`
+ / `Signature pending` plus the same `Next repo-owned step` hint while triaging
+ runtime safety state.
 `Simulation Lab` now also overlays the live `policy-current` snapshot from
 repo-owned governance runtime data (`/v1/governance/policy`) and the real
 template catalog (`/v1/governance/compliance-template`) before it falls back to

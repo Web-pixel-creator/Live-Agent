@@ -63,7 +63,7 @@ const ConsoleRuntime = () => {
                   <CaseWikiPanel caseValue={runtimeCase} wiki={wiki} />
                   <CaseVaultPanel caseValue={runtimeCase} wiki={wiki} />
                   <SessionOpsPanel caseValue={runtimeCase} wiki={wiki} />
-                  <RuntimeDiagnosticsPanels caseValue={runtimeCase} />
+                  <RuntimeDiagnosticsPanels caseValue={runtimeCase} wiki={wiki} />
                   <ArtifactViewerPanel initialArtifactPath={initialArtifactPath} />
                 </div>
               ) : (

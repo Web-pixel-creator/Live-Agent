@@ -85,7 +85,7 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(consoleRuntime, /<CaseWikiPanel caseValue=\{runtimeCase\} wiki=\{wiki\} \/>/);
   assert.match(consoleRuntime, /<CaseVaultPanel caseValue=\{runtimeCase\} wiki=\{wiki\} \/>/);
   assert.match(consoleRuntime, /<SessionOpsPanel caseValue=\{runtimeCase\} wiki=\{wiki\} \/>/);
-  assert.match(consoleRuntime, /<RuntimeDiagnosticsPanels caseValue=\{runtimeCase\} \/>/);
+  assert.match(consoleRuntime, /<RuntimeDiagnosticsPanels caseValue=\{runtimeCase\} wiki=\{wiki\} \/>/);
   assert.match(consoleRuntime, /const initialArtifactPath = params\.get\("artifact"\);/);
   assert.match(consoleRuntime, /<ArtifactViewerPanel initialArtifactPath=\{initialArtifactPath\} \/>/);
   assert.match(consoleRuntime, /navigate\(`\/app\/console\$\{search \? `\?\$\{search\}` : ""\}\$\{hash\}`/);
@@ -195,6 +195,12 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(runtimeDiagnosticsPanels, /Clear override/);
   assert.match(runtimeDiagnosticsPanels, /Refresh guardrails/);
   assert.match(runtimeDiagnosticsPanels, /Inspect badge/);
+  assert.match(runtimeDiagnosticsPanels, /type RuntimeDiagnosticsPanelsProps = \{\s*caseValue: WorkspaceCase;\s*wiki: RuntimeCaseWiki \| undefined;/);
+  assert.match(runtimeDiagnosticsPanels, /const remediationPrimaryAction = complianceEnforcement\?\.remediation\?\.primaryAction \?\? null;/);
+  assert.match(runtimeDiagnosticsPanels, /formatRemediationRef/);
+  assert.match(runtimeDiagnosticsPanels, /Raw artifact blocker/);
+  assert.match(runtimeDiagnosticsPanels, /Signature pending/);
+  assert.match(runtimeDiagnosticsPanels, /Next repo-owned step:/);
   assert.match(runtimeDiagnosticsPanels, /Refresh doctor/);
   assert.match(runtimeDiagnosticsPanels, /Rotate next credential/);
   assert.match(runtimeDiagnosticsPanels, /Refresh workers/);
