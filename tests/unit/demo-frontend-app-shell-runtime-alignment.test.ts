@@ -163,6 +163,12 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(sessionOpsPanel, /buildSessionExportPayload/);
   assert.match(sessionOpsPanel, /buildSessionExportMarkdown/);
   assert.match(sessionOpsPanel, /case wiki export blocked/);
+  assert.match(sessionOpsPanel, /const remediationPrimaryAction = complianceEnforcement\?\.remediation\?\.primaryAction \?\? null;/);
+  assert.match(sessionOpsPanel, /const remediationHint = \[/);
+  assert.match(sessionOpsPanel, /formatRemediationRef/);
+  assert.match(sessionOpsPanel, /Raw artifact blocker/);
+  assert.match(sessionOpsPanel, /Signature pending/);
+  assert.match(sessionOpsPanel, /Next repo-owned step:/);
   assert.match(replayRuntime, /export async function fetchRuntimeSessionReplay/);
   assert.match(replayRuntime, /export function buildRuntimeSessionReplaySummary/);
   assert.match(replayRuntime, /export function buildSessionExportPayload/);

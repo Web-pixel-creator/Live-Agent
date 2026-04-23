@@ -298,6 +298,10 @@ the operator reaches for deeper draft/export actions.
 handoff/CRM projection card, so support operators see the same `Raw artifact
 blocker` / `Signature pending` state and `Next repo-owned step` hint before
 copying handoff text or exporting Markdown.
+`Operator Session Ops` now mirrors that same remediation posture in its export
+lane, so blocked session exports show the same `Raw artifact blocker` /
+`Signature pending` pills and `Next repo-owned step` hint before operators try
+to download Markdown or JSON.
 `Simulation Lab` now also overlays the live `policy-current` snapshot from
 repo-owned governance runtime data (`/v1/governance/policy`) and the real
 template catalog (`/v1/governance/compliance-template`) before it falls back to

@@ -38,6 +38,18 @@ function formatStatusLabel(value: string | null | undefined, fallback: string): 
   return value.replace(/[_-]+/g, " ").trim();
 }
 
+function formatRemediationRef(value: string | null | undefined): string | null {
+  if (!value || value.trim().length === 0) {
+    return null;
+  }
+  if (value.startsWith("file:")) {
+    const normalized = value.slice("file:".length);
+    const segments = normalized.split(/[\\/]+/u).filter(Boolean);
+    return segments.at(-1) ?? value;
+  }
+  return value;
+}
+
 function triggerDownload(filename: string, contents: string, mimeType: string) {
   const blob = new Blob([contents], { type: mimeType });
   const url = URL.createObjectURL(blob);
@@ -69,7 +81,20 @@ export const SessionOpsPanel = ({ caseValue, wiki }: SessionOpsPanelProps) => {
   const exportReady =
     wiki?.operatorPreviewPack?.compliance?.enforcement?.exportReady ??
     wiki?.compliance?.enforcement?.exportReady;
+  const complianceEnforcement = wiki?.compliance?.enforcement ?? null;
+  const remediationPrimaryAction = complianceEnforcement?.remediation?.primaryAction ?? null;
   const exportBlocked = exportReady === false;
+  const hasRawArtifactBlocker =
+    remediationPrimaryAction?.kind === "redact_artifact" ||
+    remediationPrimaryAction?.kind === "replace_with_redacted_artifact" ||
+    complianceEnforcement?.blockingReasons?.some((reason) => reason === "raw_like_source_refs_detected") === true;
+  const hasSignatureBlocker =
+    remediationPrimaryAction?.kind === "attach_case_wiki_signature" ||
+    remediationPrimaryAction?.kind === "replace_with_signed_artifact" ||
+    complianceEnforcement?.blockingReasons?.some((reason) => reason === "case_wiki_signature_missing") === true;
+  const remediationHint = [remediationPrimaryAction?.operatorActionLabel?.trim(), formatRemediationRef(remediationPrimaryAction?.blockingRef ?? null)]
+    .filter((item): item is string => Boolean(item && item.trim().length > 0))
+    .join(" · ");
   const exportSummary =
     wiki?.compliance?.enforcement?.summary?.trim() ||
     wiki?.operatorPreviewPack?.remediation?.draft?.summary ||
@@ -160,6 +185,11 @@ export const SessionOpsPanel = ({ caseValue, wiki }: SessionOpsPanelProps) => {
           <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
             {exportSummary}
           </p>
+          {remediationHint ? (
+            <div className="mt-3 inline-flex max-w-3xl rounded-2xl border border-border/50 bg-background/55 px-3 py-2 text-[12px] leading-relaxed text-muted-foreground">
+              Next repo-owned step: <span className="ml-1 text-foreground/88">{remediationHint}</span>
+            </div>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -219,11 +249,28 @@ export const SessionOpsPanel = ({ caseValue, wiki }: SessionOpsPanelProps) => {
             <div className="mt-3 text-[15px] leading-relaxed text-foreground/92">
               {exportBlocked ? "case wiki export blocked" : "session export ready"}
             </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {hasRawArtifactBlocker ? (
+                <Pill tone="rose" size="sm">
+                  Raw artifact blocker
+                </Pill>
+              ) : null}
+              {hasSignatureBlocker ? (
+                <Pill tone="violet" size="sm">
+                  Signature pending
+                </Pill>
+              ) : null}
+            </div>
             <div className="mt-2 text-sm leading-relaxed text-muted-foreground">
               {wiki?.operatorPreviewPack?.remediation?.draft?.title ??
                 wiki?.compliance?.enforcement?.status ??
                 "Repo-owned export posture is in sync with the current Case Wiki."}
             </div>
+            {remediationHint ? (
+              <div className="mt-3 rounded-2xl border border-border/50 bg-background/55 px-3 py-2 text-[12px] leading-relaxed text-muted-foreground">
+                Next repo-owned step: <span className="text-foreground/88">{remediationHint}</span>
+              </div>
+            ) : null}
           </article>
 
           <article className="rounded-[22px] border border-border/60 bg-background/65 p-4 md:col-span-2">
@@ -304,7 +351,9 @@ export const SessionOpsPanel = ({ caseValue, wiki }: SessionOpsPanelProps) => {
             </div>
             <div className="mt-3 text-xs leading-relaxed text-muted-foreground">
               {exportBlocked
-                ? exportSummary
+                ? remediationHint
+                  ? `${exportSummary} Next repo-owned step: ${remediationHint}`
+                  : exportSummary
                 : "Exports include Case Wiki, replay boundary, and runtime ingress provenance for this case."}
             </div>
           </div>
