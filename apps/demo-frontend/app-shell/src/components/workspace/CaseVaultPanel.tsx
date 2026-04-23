@@ -1,0 +1,431 @@
+import { Button } from "@/components/ui/button";
+import { Pill } from "@/components/ui/pill";
+import type { RuntimeCaseWiki } from "@/hooks/useWorkspaceRuntime";
+import {
+  buildRuntimeArtifactViewerPath,
+  RUNTIME_ARTIFACT_VIEW_PRESETS,
+} from "@/lib/runtime-artifact-viewer";
+import type { WorkspaceCase } from "@/data/workspace";
+import { ArrowRight, Copy, FileText, Link2, Timer, Workflow } from "lucide-react";
+import { Link } from "react-router-dom";
+import { toast } from "sonner";
+
+type CaseVaultPanelProps = {
+  caseValue: WorkspaceCase;
+  wiki: RuntimeCaseWiki | undefined;
+};
+
+type RefFamilySummary = {
+  family: string;
+  count: number;
+  sample: string;
+};
+
+function formatTimestamp(value: string | null | undefined): string {
+  if (!value) {
+    return "not published";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "not published";
+  }
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "UTC",
+  });
+}
+
+function collectCaseVaultRefs(wiki: RuntimeCaseWiki | undefined): string[] {
+  if (!wiki) {
+    return [];
+  }
+  const refs = new Set<string>();
+  const pushRefs = (items: string[] | null | undefined) => {
+    if (!Array.isArray(items)) {
+      return;
+    }
+    for (const item of items) {
+      if (typeof item === "string" && item.trim().length > 0) {
+        refs.add(item.trim());
+      }
+    }
+  };
+
+  pushRefs(wiki.recommendedNextAction?.sourceRefs);
+  pushRefs(wiki.highlights.topBlockingQuestion?.sourceRefs);
+  wiki.openQuestions.forEach((item) => pushRefs(item.sourceRefs));
+  wiki.timeline.forEach((item) => pushRefs(item.sourceRefs));
+  wiki.entities.forEach((item) => pushRefs(item.sourceRefs));
+  return [...refs];
+}
+
+function classifyRefFamily(ref: string): string {
+  const normalized = ref.toLowerCase();
+  if (normalized.startsWith("artifact:")) {
+    return "artifact";
+  }
+  if (normalized.startsWith("case_wiki:") || normalized.includes("case wiki")) {
+    return "case wiki";
+  }
+  if (normalized.startsWith("replay:") || normalized.includes("replay")) {
+    return "replay";
+  }
+  if (normalized.startsWith("runtime:") || normalized.includes("runtime")) {
+    return "runtime";
+  }
+  if (normalized.startsWith("session:")) {
+    return "session";
+  }
+  return "other";
+}
+
+function summarizeRefFamilies(refs: string[]): RefFamilySummary[] {
+  const groups = new Map<string, string[]>();
+  for (const ref of refs) {
+    const family = classifyRefFamily(ref);
+    const current = groups.get(family) ?? [];
+    current.push(ref);
+    groups.set(family, current);
+  }
+  return [...groups.entries()]
+    .map(([family, items]) => ({
+      family,
+      count: items.length,
+      sample: items[0] ?? family,
+    }))
+    .sort((left, right) => right.count - left.count || left.family.localeCompare(right.family));
+}
+
+function formatFamilyLabel(value: string): string {
+  return value.replace(/[_-]+/g, " ");
+}
+
+function formatKindLabel(value: string | null | undefined, fallback: string): string {
+  if (!value || value.trim().length === 0) {
+    return fallback;
+  }
+  return value.replace(/[_-]+/g, " ").trim();
+}
+
+function buildVaultCopyPayload(caseValue: WorkspaceCase, wiki: RuntimeCaseWiki | undefined): string {
+  if (!wiki) {
+    return `${caseValue.ref}\nCase Vault is waiting for the first compiled Case Wiki snapshot.`;
+  }
+  const refs = collectCaseVaultRefs(wiki);
+  const openQuestions = wiki.openQuestions.slice(0, 4).map((item) => `- ${item.question}`);
+  const entities = wiki.entities
+    .slice(0, 6)
+    .map((item) => `- ${item.label} (${formatKindLabel(item.kind, "entity")})`);
+  const recentTrail = wiki.timeline
+    .slice(0, 4)
+    .map((item) => `- ${formatTimestamp(item.ts)} :: ${item.title}`);
+
+  return [
+    `${caseValue.ref} - ${caseValue.client}`,
+    wiki.overview.summary,
+    wiki.overview.customerGoal ? `Goal: ${wiki.overview.customerGoal}` : null,
+    wiki.recommendedNextAction
+      ? `Next action: ${wiki.recommendedNextAction.title} - ${wiki.recommendedNextAction.summary}`
+      : null,
+    openQuestions.length > 0 ? "Open threads:" : null,
+    ...openQuestions,
+    entities.length > 0 ? "Linked entities:" : null,
+    ...entities,
+    recentTrail.length > 0 ? "Recent memory trail:" : null,
+    ...recentTrail,
+    refs.length > 0 ? "Source refs:" : null,
+    ...refs.slice(0, 8).map((item) => `- ${item}`),
+  ]
+    .filter((item): item is string => Boolean(item && item.trim().length > 0))
+    .join("\n");
+}
+
+export const CaseVaultPanel = ({ caseValue, wiki }: CaseVaultPanelProps) => {
+  const runtimeProofPath = buildRuntimeArtifactViewerPath(
+    RUNTIME_ARTIFACT_VIEW_PRESETS.runtimeProof,
+    { caseRef: caseValue.ref },
+  );
+  const refs = collectCaseVaultRefs(wiki);
+  const refFamilies = summarizeRefFamilies(refs);
+  const entities = wiki?.entities.slice(0, 6) ?? [];
+  const openQuestions = wiki?.openQuestions.slice(0, 4) ?? [];
+  const timeline = wiki?.timeline.slice(0, 4) ?? [];
+  const generatedAt = wiki?.generatedAt ?? null;
+  const nextAction = wiki?.recommendedNextAction ?? null;
+  const blockingQuestion = wiki?.highlights.topBlockingQuestion ?? wiki?.openQuestions[0] ?? null;
+  const copyPayload = buildVaultCopyPayload(caseValue, wiki);
+
+  const handleCopyVault = async () => {
+    try {
+      await navigator.clipboard.writeText(copyPayload);
+      toast.success(`Copied Case Vault snapshot for ${caseValue.ref}`);
+    } catch {
+      toast.error("Clipboard is unavailable in this browser.");
+    }
+  };
+
+  return (
+    <section
+      id="case-vault"
+      className="relative mt-6 -mx-8 px-8 py-6 bg-secondary/[0.03] border-y border-border/50 scroll-mt-24"
+    >
+      <span
+        aria-hidden
+        className="absolute left-0 top-0 bottom-0 w-[3px] bg-[hsl(var(--tint-violet-fg))]"
+      />
+
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <div className="text-[10px] uppercase tracking-[0.22em] text-primary mb-3">
+            Case Vault
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-serif text-[30px] leading-[1.1] tracking-tight">
+              Inspectable memory projection
+            </h2>
+            <Pill tone="violet" size="sm">
+              Rowboat-style
+            </Pill>
+            <Pill tone="slate" size="sm">
+              {`${entities.length} entities`}
+            </Pill>
+            <Pill tone="slate" size="sm">
+              {`${refs.length} refs`}
+            </Pill>
+          </div>
+          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+            Secondary support view of the compiled Case Wiki as linked case memory. Use it to
+            inspect entity threads, ref families, open questions, and recent memory trail without
+            forcing raw replay or release artifacts into the primary operator screen.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="ghost" className="h-9 px-3 text-[12px]">
+            <Link to={runtimeProofPath}>
+              <FileText className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
+              Inspect proof
+            </Link>
+          </Button>
+          <Button variant="ghost" className="h-9 px-3 text-[12px]" onClick={handleCopyVault}>
+            <Copy className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
+            Copy memory
+          </Button>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+        <div className="grid gap-4">
+          <article className="rounded-[22px] border border-border/60 bg-background/65 p-4">
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <Workflow className="h-3.5 w-3.5" strokeWidth={1.75} />
+              Memory anchors
+            </div>
+            <dl className="mt-4 grid gap-2 text-sm">
+              <div className="flex items-start justify-between gap-3">
+                <dt className="text-muted-foreground">Case</dt>
+                <dd className="text-right text-foreground/88">{caseValue.ref}</dd>
+              </div>
+              <div className="flex items-start justify-between gap-3">
+                <dt className="text-muted-foreground">Session</dt>
+                <dd className="text-right font-mono text-[11px] text-foreground/88">
+                  {wiki?.sessionId ?? "not linked"}
+                </dd>
+              </div>
+              <div className="flex items-start justify-between gap-3">
+                <dt className="text-muted-foreground">Stage</dt>
+                <dd className="text-right text-foreground/88">
+                  {wiki?.overview.currentStage ?? caseValue.stage}
+                </dd>
+              </div>
+              <div className="flex items-start justify-between gap-3">
+                <dt className="text-muted-foreground">Generated</dt>
+                <dd className="text-right font-mono text-[11px] text-foreground/88">
+                  {formatTimestamp(generatedAt)}
+                </dd>
+              </div>
+              <div className="flex items-start justify-between gap-3">
+                <dt className="text-muted-foreground">Customer goal</dt>
+                <dd className="max-w-[18rem] text-right text-foreground/88">
+                  {wiki?.overview.customerGoal ?? "Not published"}
+                </dd>
+              </div>
+            </dl>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <div className="rounded-2xl border border-border/50 bg-secondary/[0.18] p-3">
+                <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                  Top blocker
+                </div>
+                <div className="mt-2 text-sm leading-relaxed text-foreground/88">
+                  {blockingQuestion?.question ?? "No blocking question is currently published."}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-border/50 bg-secondary/[0.18] p-3">
+                <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                  Next action
+                </div>
+                <div className="mt-2 text-sm leading-relaxed text-foreground/88">
+                  {nextAction?.title ?? "No repo-owned next action is currently published."}
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article className="rounded-[22px] border border-border/60 bg-background/65 p-4">
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.75} />
+              Open threads
+            </div>
+            <div className="mt-4 space-y-3">
+              {openQuestions.length > 0 ? (
+                openQuestions.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-2xl border border-border/50 bg-secondary/[0.18] p-3"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Pill tone={item.blocking ? "rose" : "slate"} size="sm">
+                        {item.blocking ? "blocking" : "question"}
+                      </Pill>
+                      <Pill tone={item.priority === "high" ? "amber" : "slate"} size="sm">
+                        {item.priority}
+                      </Pill>
+                      {item.owner ? (
+                        <Pill tone="slate" size="sm">
+                          {item.owner}
+                        </Pill>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 text-sm leading-relaxed text-foreground/88">
+                      {item.question}
+                    </div>
+                    {item.suggestedNextStep ? (
+                      <div className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                        {item.suggestedNextStep}
+                      </div>
+                    ) : null}
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-2xl border border-border/50 bg-secondary/[0.18] p-4 text-sm leading-relaxed text-muted-foreground">
+                  Open questions will appear here after the runtime Case Wiki hydrates.
+                </div>
+              )}
+            </div>
+          </article>
+        </div>
+
+        <div className="grid gap-4">
+          <article className="rounded-[22px] border border-border/60 bg-background/65 p-4">
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <Link2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+              Evidence map
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {refFamilies.length > 0 ? (
+                refFamilies.slice(0, 4).map((item) => (
+                  <div
+                    key={item.family}
+                    className="rounded-2xl border border-border/50 bg-secondary/[0.18] p-3"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm text-foreground/88">
+                        {formatFamilyLabel(item.family)}
+                      </div>
+                      <Pill tone="slate" size="sm">
+                        {item.count}
+                      </Pill>
+                    </div>
+                    <div className="mt-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
+                      {item.sample}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="md:col-span-2 rounded-2xl border border-border/50 bg-secondary/[0.18] p-4 text-sm leading-relaxed text-muted-foreground">
+                  Source refs will appear here once compiled memory publishes linked evidence.
+                </div>
+              )}
+            </div>
+          </article>
+
+          <article className="rounded-[22px] border border-border/60 bg-background/65 p-4">
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <FileText className="h-3.5 w-3.5" strokeWidth={1.75} />
+              Linked entities
+            </div>
+            <div className="mt-4 space-y-3">
+              {entities.length > 0 ? (
+                entities.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-2xl border border-border/50 bg-secondary/[0.18] p-3"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="text-sm text-foreground/88">{item.label}</div>
+                      <Pill tone="slate" size="sm">
+                        {formatKindLabel(item.kind, "entity")}
+                      </Pill>
+                      {item.role ? (
+                        <Pill tone="violet" size="sm">
+                          {item.role}
+                        </Pill>
+                      ) : null}
+                    </div>
+                    {item.description ? (
+                      <div className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                        {item.description}
+                      </div>
+                    ) : null}
+                    <div className="mt-2 font-mono text-[11px] text-muted-foreground">
+                      {item.sourceRefs.length > 0
+                        ? `${item.sourceRefs.length} linked ref${item.sourceRefs.length === 1 ? "" : "s"}`
+                        : "No linked refs"}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-2xl border border-border/50 bg-secondary/[0.18] p-4 text-sm leading-relaxed text-muted-foreground">
+                  Linked entities are waiting for the first compiled Case Wiki snapshot.
+                </div>
+              )}
+            </div>
+          </article>
+
+          <article className="rounded-[22px] border border-border/60 bg-background/65 p-4">
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <Timer className="h-3.5 w-3.5" strokeWidth={1.75} />
+              Recent memory trail
+            </div>
+            <div className="mt-4 space-y-3">
+              {timeline.length > 0 ? (
+                timeline.map((entry) => (
+                  <div
+                    key={`${entry.ts}-${entry.title}`}
+                    className="rounded-2xl border border-border/50 bg-secondary/[0.18] p-3"
+                  >
+                    <div className="font-mono text-[10px] text-muted-foreground">
+                      {formatTimestamp(entry.ts)}
+                    </div>
+                    <div className="mt-2 text-sm text-foreground/88">{entry.title}</div>
+                    <div className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      {entry.summary}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-2xl border border-border/50 bg-secondary/[0.18] p-4 text-sm leading-relaxed text-muted-foreground">
+                  Case Vault trail is waiting for repo-owned timeline entries.
+                </div>
+              )}
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+  );
+};

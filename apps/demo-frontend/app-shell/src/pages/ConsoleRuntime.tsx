@@ -9,6 +9,7 @@ import { CommandPalette } from "@/components/workspace/CommandPalette";
 import { ShortcutsOverlay } from "@/components/workspace/ShortcutsOverlay";
 import { SessionBoundaryPanel } from "@/components/workspace/SessionBoundaryPanel";
 import { CaseWikiPanel } from "@/components/workspace/CaseWikiPanel";
+import { CaseVaultPanel } from "@/components/workspace/CaseVaultPanel";
 import { SessionOpsPanel } from "@/components/workspace/SessionOpsPanel";
 import { RuntimeDiagnosticsPanels } from "@/components/workspace/RuntimeDiagnosticsPanels";
 import { ArtifactViewerPanel } from "@/components/workspace/ArtifactViewerPanel";
@@ -60,6 +61,7 @@ const ConsoleRuntime = () => {
                 <div className="px-8 py-8">
                   <SessionBoundaryPanel caseValue={runtimeCase} wiki={wiki} />
                   <CaseWikiPanel caseValue={runtimeCase} wiki={wiki} />
+                  <CaseVaultPanel caseValue={runtimeCase} wiki={wiki} />
                   <SessionOpsPanel caseValue={runtimeCase} wiki={wiki} />
                   <RuntimeDiagnosticsPanels caseValue={runtimeCase} />
                   <ArtifactViewerPanel initialArtifactPath={initialArtifactPath} />

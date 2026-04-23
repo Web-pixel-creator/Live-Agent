@@ -94,6 +94,7 @@ export const CaseWikiPanel = ({ caseValue, wiki }: CaseWikiPanelProps) => {
     RUNTIME_ARTIFACT_VIEW_PRESETS.runtimeProof,
     { caseRef: caseValue.ref },
   );
+  const caseVaultPath = `/app/console/runtime?ref=${encodeURIComponent(caseValue.ref)}#case-vault`;
   const refs = collectCaseWikiRefs(wiki);
   const blockingQuestion = pickBlockingQuestion(wiki);
   const nextAction = wiki?.recommendedNextAction ?? null;
@@ -229,6 +230,12 @@ export const CaseWikiPanel = ({ caseValue, wiki }: CaseWikiPanelProps) => {
             <Link to={runtimeProofPath}>
               <ShieldCheck className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
               Inspect proof
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" className="h-9 px-3 text-[12px]">
+            <Link to={caseVaultPath}>
+              <Sparkles className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
+              Open Case Vault
             </Link>
           </Button>
           <Button variant="ghost" className="h-9 px-3 text-[12px]" onClick={handleCopyHandoff}>

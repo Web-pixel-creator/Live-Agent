@@ -258,6 +258,11 @@ generic artifact catalog first. The same viewer is also linked from
 `Session Boundary`, `Operator Session Ops`, and `Runtime Guardrails` cards on
 `/app/console/runtime`, so replay/export/debug inspection keeps one repo-owned
 support path instead of splitting across ad hoc debug links.
+That same support route now also includes a `Case Vault` section: a Rowboat-style
+inspectable projection of compiled `Case Wiki` memory that keeps linked
+entities, open threads, ref families, and recent memory trail available in one
+secondary support surface without pushing that deeper memory graph back into
+the primary operator shell.
 snapshot layer above the raw JSON dump for faster operator/judge forensics.
 Operator helper entries now match the transferred `hello-friend` shell `1:1`:
 `Live activity` opens `/app`, `Action queue` opens `/app/console`,
