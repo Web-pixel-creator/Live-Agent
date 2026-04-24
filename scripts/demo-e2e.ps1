@@ -27,7 +27,10 @@ param(
   [int]$ScenarioRetryBackoffMs = 900,
 
   [Parameter(Mandatory = $false)]
-  [string]$OutputPath = "artifacts/demo-e2e/summary.json"
+  [string]$OutputPath = "artifacts/demo-e2e/summary.json",
+
+  [Parameter(Mandatory = $false)]
+  [string]$RuntimeSurfaceSnapshotOutputPath = ""
 )
 
 Set-StrictMode -Version Latest
@@ -82,6 +85,28 @@ function Write-Utf8NoBomFile {
 
   $encoding = New-Object System.Text.UTF8Encoding($false)
   [System.IO.File]::WriteAllText($Path, $Content, $encoding)
+}
+
+function Write-RuntimeSurfaceSnapshotArtifact {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$OutputPath
+  )
+
+  if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+    return
+  }
+
+  Write-Step ("Capturing runtime surface snapshot to " + $OutputPath)
+  Push-Location $script:RepoRoot
+  try {
+    & node --import tsx ./scripts/runtime-surface-snapshot.mjs --output $OutputPath
+    if ($LASTEXITCODE -ne 0) {
+      throw ("Runtime surface snapshot command failed with exit code " + $LASTEXITCODE)
+    }
+  } finally {
+    Pop-Location
+  }
 }
 
 function Initialize-DemoUiExecutorSandboxSetupMarker {
@@ -6101,6 +6126,9 @@ try {
   $fatalError = $_.Exception.Message
   $overallSuccess = $false
 } finally {
+  if (-not [string]::IsNullOrWhiteSpace($RuntimeSurfaceSnapshotOutputPath)) {
+    Write-RuntimeSurfaceSnapshotArtifact -OutputPath $RuntimeSurfaceSnapshotOutputPath
+  }
   if ((-not $SkipServiceStart) -and (-not $KeepServices)) {
     Stop-ManagedServices
   } elseif ($KeepServices) {

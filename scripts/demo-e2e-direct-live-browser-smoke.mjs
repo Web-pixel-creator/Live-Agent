@@ -3,6 +3,19 @@ import { dirname, resolve } from "node:path";
 import { chromium } from "playwright";
 
 const DIRECT_LIVE_PROOF_MESSAGE = "Reply with a short greeting for direct live latency proof.";
+let smokeProgress = {
+  stage: "not_started",
+  updatedAt: null,
+};
+
+function markSmokeStage(stage, details = {}) {
+  smokeProgress = {
+    ...smokeProgress,
+    ...details,
+    stage,
+    updatedAt: new Date().toISOString(),
+  };
+}
 
 function parseArgs(argv) {
   const options = {
@@ -96,6 +109,17 @@ function toOptionalNonNegativeInt(value) {
     }
   }
   return null;
+}
+
+function buildSmokeFrontendUrl(frontendBaseUrl, options = {}) {
+  const url = new URL(frontendBaseUrl);
+  const preferLegacySurface = options.preferLegacySurface === true;
+  if (preferLegacySurface) {
+    url.pathname = "/legacy";
+  }
+  url.searchParams.set("livePreferredMode", "direct_live");
+  url.searchParams.set("debugLive", "true");
+  return url;
 }
 
 async function ensureParentDir(pathLike) {
@@ -360,6 +384,53 @@ async function waitForFrontendRuntimeReady(page, timeoutMs) {
   );
 }
 
+async function waitForLegacyCompatibleLiveControls(page, timeoutMs) {
+  try {
+    await page.waitForFunction(
+      () =>
+        document.querySelector("#connectBtn") instanceof HTMLButtonElement &&
+        document.querySelector("#sessionId") instanceof HTMLInputElement &&
+        document.querySelector("#userId") instanceof HTMLInputElement &&
+        document.querySelector("#intent") instanceof HTMLSelectElement,
+      null,
+      { timeout: timeoutMs },
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function openCompatibleFrontendSurface(page, frontendBaseUrl, timeoutMs) {
+  const primaryUrl = buildSmokeFrontendUrl(frontendBaseUrl, { preferLegacySurface: false });
+  await page.goto(primaryUrl.toString(), {
+    waitUntil: "domcontentloaded",
+    timeout: timeoutMs,
+  });
+
+  if (await waitForLegacyCompatibleLiveControls(page, Math.min(timeoutMs, 5000))) {
+    return {
+      surface: "primary",
+      pageUrl: page.url(),
+    };
+  }
+
+  const legacyUrl = buildSmokeFrontendUrl(frontendBaseUrl, { preferLegacySurface: true });
+  await page.goto(legacyUrl.toString(), {
+    waitUntil: "domcontentloaded",
+    timeout: timeoutMs,
+  });
+
+  if (await waitForLegacyCompatibleLiveControls(page, timeoutMs)) {
+    return {
+      surface: "legacy",
+      pageUrl: page.url(),
+    };
+  }
+
+  throw new Error("frontend live controls were unavailable on both primary and /legacy surfaces");
+}
+
 async function triggerFrontendButtonClick(page, selector, timeoutMs) {
   const locator = page.locator(selector).first();
   await locator.waitFor({ state: "attached", timeout: timeoutMs });
@@ -569,6 +640,11 @@ async function run() {
     throw new Error("--sessionId is required");
   }
 
+  markSmokeStage("capabilities_probe", {
+    frontendBaseUrl: options.frontendBaseUrl,
+    apiBaseUrl: options.apiBaseUrl,
+    sessionId: options.sessionId,
+  });
   const generatedAt = new Date().toISOString();
   const capabilitiesResponse = await fetchJson(`${options.apiBaseUrl.replace(/\/+$/g, "")}/v1/runtime/live/capabilities`, {
     method: "GET",
@@ -605,6 +681,7 @@ async function run() {
     return;
   }
 
+  markSmokeStage("browser_launch");
   const browser = await chromium.launch({ headless: !options.headed });
   const context = await browser.newContext({
     viewport: {
@@ -617,21 +694,22 @@ async function run() {
   const smokeStartedAt = Date.now();
 
   try {
-    const forcedUrl = new URL(options.frontendBaseUrl);
-    forcedUrl.searchParams.set("livePreferredMode", "direct_live");
-    forcedUrl.searchParams.set("debugLive", "true");
-
-    await page.goto(forcedUrl.toString(), {
-      waitUntil: "domcontentloaded",
-      timeout: options.timeoutMs,
+    markSmokeStage("open_frontend_surface");
+    const frontendSurface = await openCompatibleFrontendSurface(page, options.frontendBaseUrl, options.timeoutMs);
+    markSmokeStage("wait_frontend_runtime_ready", {
+      frontendSurface: frontendSurface.surface,
+      frontendPageUrl: frontendSurface.pageUrl,
     });
     await waitForFrontendRuntimeReady(page, options.timeoutMs);
+    markSmokeStage("prepare_connect_controls");
     await ensureVoiceTrayConnectSurface(page, options.timeoutMs);
     await setFrontendSelectValue(page, "#intent", "conversation", options.timeoutMs);
     await setFrontendInputValue(page, "#sessionId", options.sessionId, options.timeoutMs);
     await setFrontendInputValue(page, "#userId", options.userId, options.timeoutMs);
+    markSmokeStage("click_connect");
     const connectClickPath = await triggerFrontendButtonClick(page, "#connectBtn", options.timeoutMs);
 
+    markSmokeStage("wait_connection_terminal_state");
     await page.waitForFunction(
       () => {
         const connection = document.querySelector("#connectionStatus")?.textContent?.trim().toLowerCase() ?? "";
@@ -647,6 +725,7 @@ async function run() {
       { timeout: options.timeoutMs },
     );
 
+    markSmokeStage("send_service_item");
     const serviceItemRequest = await sendDirectLiveServiceItem(page, options.timeoutMs);
     await page.waitForTimeout(2000);
 
@@ -657,6 +736,8 @@ async function run() {
       runId: await readText(page, "#runId"),
       actualSessionId: await readFrontendInputValue(page, "#sessionId", options.timeoutMs),
       actualUserId: await readFrontendInputValue(page, "#userId", options.timeoutMs),
+      frontendSurface: frontendSurface.surface,
+      frontendPageUrl: frontendSurface.pageUrl,
       connectClickPath,
       serviceItemPrompt: serviceItemRequest.prompt,
       serviceItemSendClickPath: serviceItemRequest.sendClickPath,
@@ -666,11 +747,18 @@ async function run() {
 
     const replaySessionId = toOptionalString(ui.actualSessionId) ?? options.sessionId;
     const remainingPollBudgetMs = Math.max(5000, options.timeoutMs - (Date.now() - smokeStartedAt));
+    markSmokeStage("poll_session_replay", {
+      replaySessionId,
+      remainingPollBudgetMs,
+    });
     const replayResult = await pollSessionReplay(
       options.apiBaseUrl,
       replaySessionId,
       remainingPollBudgetMs,
     );
+    markSmokeStage("poll_case_wiki", {
+      replaySessionId,
+    });
     const caseWikiResult = await pollCaseWiki(
       options.apiBaseUrl,
       replaySessionId,
@@ -712,6 +800,7 @@ async function run() {
       userId: options.userId,
       runtimeStatus,
       runtimeDiagnostics,
+      progress: smokeProgress,
       ui,
       replay: {
         selectedSessionId: replaySessionId,
@@ -769,6 +858,7 @@ run().catch(async (error) => {
     userId: null,
     runtimeStatus: null,
     runtimeDiagnostics: null,
+    progress: smokeProgress,
     ui: null,
     replay: {
       selectedSessionId: null,

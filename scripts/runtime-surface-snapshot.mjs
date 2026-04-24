@@ -60,7 +60,7 @@ function toBaseUrl(value, fallback) {
   return candidate.replace(/\/+$/, "");
 }
 
-async function probeJsonWithTimeout(url, timeoutMs) {
+async function probeJsonWithTimeout(url, timeoutMs, headers = {}) {
   const controller = new AbortController();
   const startedAt = Date.now();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -68,7 +68,10 @@ async function probeJsonWithTimeout(url, timeoutMs) {
     const response = await fetch(url, {
       method: "GET",
       signal: controller.signal,
-      headers: { Accept: "application/json" },
+      headers: {
+        Accept: "application/json",
+        ...headers,
+      },
     });
     const checkedAt = new Date().toISOString();
     const latencyMs = Date.now() - startedAt;
@@ -230,8 +233,49 @@ async function collectDeviceNodes(env) {
 }
 
 async function collectRecentEvents(env) {
-  const limit = Math.max(20, Math.min(500, Number(env.RUNTIME_SURFACE_EVENT_LIMIT ?? 120) || 120));
+  const limit = Math.max(20, Math.min(500, Number(env.RUNTIME_SURFACE_EVENT_LIMIT ?? 500) || 500));
   return listRecentEvents(limit);
+}
+
+async function collectLiveRuntimeSurfaceReadiness(env) {
+  const apiBaseUrl = toBaseUrl(env.API_BASE_URL, "http://localhost:8081");
+  const eventLimit = Math.max(20, Math.min(500, Number(env.RUNTIME_SURFACE_EVENT_LIMIT ?? 500) || 500));
+  const probe = await probeJsonWithTimeout(
+    `${apiBaseUrl}/v1/runtime/surface/readiness?eventLimit=${eventLimit}`,
+    4500,
+    { "x-operator-role": "viewer" },
+  );
+
+  if (!probe.ok) {
+    return {
+      readiness: null,
+      warning: {
+        source: "runtime_surface_readiness_api",
+        message: probe.message ?? "runtime surface readiness probe failed",
+        type: probe.type ?? "network_error",
+        statusCode: probe.statusCode ?? null,
+      },
+    };
+  }
+
+  const payload = isRecord(probe.payload) ? probe.payload : null;
+  const readiness = payload && isRecord(payload.data) ? payload.data : null;
+  if (!readiness) {
+    return {
+      readiness: null,
+      warning: {
+        source: "runtime_surface_readiness_api",
+        message: "runtime surface readiness payload missing data",
+        type: "invalid_payload",
+        statusCode: probe.statusCode ?? null,
+      },
+    };
+  }
+
+  return {
+    readiness,
+    warning: null,
+  };
 }
 
 async function main() {
@@ -244,8 +288,25 @@ async function main() {
   let services = [];
   let deviceNodes = [];
   let recentEvents = [];
+  let readiness = null;
 
   if (!offline) {
+    try {
+      const liveReadiness = await collectLiveRuntimeSurfaceReadiness(process.env);
+      readiness = liveReadiness.readiness;
+      if (liveReadiness.warning) {
+        collectionWarnings.push(liveReadiness.warning);
+      }
+    } catch (error) {
+      collectionWarnings.push({
+        source: "runtime_surface_readiness_api",
+        message: error instanceof Error ? error.message : String(error),
+      });
+      readiness = null;
+    }
+  }
+
+  if (!offline && !readiness) {
     try {
       services = await collectOperatorServices(process.env);
     } catch (error) {
@@ -279,13 +340,15 @@ async function main() {
     env: process.env,
     cwd,
   });
-  const readiness = await buildRuntimeSurfaceReadinessSnapshot({
-    env: process.env,
-    cwd,
-    services,
-    deviceNodes,
-    events: recentEvents,
-  });
+  if (!readiness) {
+    readiness = await buildRuntimeSurfaceReadinessSnapshot({
+      env: process.env,
+      cwd,
+      services,
+      deviceNodes,
+      events: recentEvents,
+    });
+  }
 
   const snapshot = {
     generatedAt: new Date().toISOString(),

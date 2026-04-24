@@ -73,6 +73,10 @@ test("release-readiness keeps provider env out of nested unit tests while preser
   assert.match(source, /case_wiki\.evidence_signature: validated=/);
   assert.match(source, /case_wiki\.routing_context: validated=/);
   assert.match(source, /case_wiki\.context_adoption: validated=/);
+  assert.match(
+    source,
+    /-RuntimeSurfaceSnapshotOutputPath \.\/artifacts\/runtime\/runtime-surface-snapshot\.json/,
+  );
   assert.match(source, /-IncludeFrontend/);
   assert.match(source, /--allowUiExecutorRuntimeFallback true/);
   assert.match(source, /--allowedTranslationProviders fallback,gemini,google_translate/);

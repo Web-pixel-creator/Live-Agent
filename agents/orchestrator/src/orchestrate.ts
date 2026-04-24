@@ -82,6 +82,36 @@ function buildRoutingEventMetadata(routing?: RoutingEventMetadata | null): Recor
   };
 }
 
+function buildWorkflowRoutingContextState(
+  routing?: RoutingEventMetadata | null,
+  route?: string | null,
+): NonNullable<ReturnType<typeof getOrchestratorWorkflowExecutionState>["latestCaseWikiRoutingContext"]> | null {
+  if (!routing || routing.contextSource !== "case_wiki") {
+    return null;
+  }
+  return {
+    observed: true,
+    updatedAt: new Date().toISOString(),
+    contextSource: routing.contextSource,
+    ingressSource: routing.contextIngressSource,
+    focusId: routing.contextFocusId,
+    blocker: routing.contextBlocker,
+    nextAction: routing.contextNextAction,
+    route: route ?? routing.route ?? null,
+    mode: routing.mode,
+    requestedIntent: routing.requestedIntent,
+    routedIntent: routing.routedIntent,
+  };
+}
+
+function buildWorkflowRoutingContextPatch(
+  routing?: RoutingEventMetadata | null,
+  route?: string | null,
+): Pick<ReturnType<typeof getOrchestratorWorkflowExecutionState>, "latestCaseWikiRoutingContext"> | Record<string, never> {
+  const latestCaseWikiRoutingContext = buildWorkflowRoutingContextState(routing, route);
+  return latestCaseWikiRoutingContext ? { latestCaseWikiRoutingContext } : {};
+}
+
 async function persistWorkflowStageTransition(params: {
   request: OrchestratorRequest;
   taskId: string | null;
@@ -102,6 +132,7 @@ async function persistWorkflowStageTransition(params: {
     intent: params.request.payload.intent,
     route: params.route,
     reason: params.reason,
+    ...buildWorkflowRoutingContextPatch(params.routing, params.route),
   });
   await persistEvent(
     createEnvelope({
@@ -1082,6 +1113,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
           error.retryDecision.classification === "continuation"
             ? "route awaiting retry"
             : "route failed",
+        ...buildWorkflowRoutingContextPatch(routing, route),
       });
       await persistTaskStatus({
         request: normalizedRequest,
@@ -1161,6 +1193,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
             error.retryDecision.classification === "continuation"
               ? "delegated route awaiting retry"
               : "delegated route failed",
+          ...buildWorkflowRoutingContextPatch(routing, delegatedRoute),
         });
         await persistTaskStatus({
           request: normalizedRequest,

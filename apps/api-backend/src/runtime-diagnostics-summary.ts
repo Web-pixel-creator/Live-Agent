@@ -262,6 +262,28 @@ function buildLatestCaseWikiRoutingContext(events: readonly EventListItem[]): Re
   };
 }
 
+function normalizeLatestCaseWikiRoutingContext(
+  value: unknown,
+): Record<string, unknown> | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const observed = toBoolean(value.observed) ?? false;
+  return {
+    observed,
+    updatedAt: toNonEmptyString(value.updatedAt),
+    contextSource: toNonEmptyString(value.contextSource),
+    ingressSource: normalizeCaseWikiIngressSource(value.ingressSource),
+    focusId: toNonEmptyString(value.focusId),
+    blocker: toNonEmptyString(value.blocker),
+    nextAction: toNonEmptyString(value.nextAction),
+    route: toNonEmptyString(value.route),
+    mode: toNonEmptyString(value.mode),
+    requestedIntent: toNonEmptyString(value.requestedIntent),
+    routedIntent: toNonEmptyString(value.routedIntent),
+  };
+}
+
 function normalizeServiceMetrics(service: Record<string, unknown> | null): Record<string, unknown> | null {
   return service && isRecord(service.metrics) ? service.metrics : null;
 }
@@ -451,7 +473,7 @@ export function buildRuntimeDiagnosticsSummary(params: {
   const skillsRuntimeSummary = params.skillsRuntimeSummary ?? null;
   const operatorTraceSummary = params.operatorTraceSummary ?? null;
   const signals: RuntimeSignal[] = [];
-  const latestCaseWikiRoutingContext = buildLatestCaseWikiRoutingContext(params.events ?? []);
+  const latestCaseWikiRoutingContextFromEvents = buildLatestCaseWikiRoutingContext(params.events ?? []);
   const slo = buildRuntimeSloSummary({
     services,
     events: params.events ?? [],
@@ -520,6 +542,10 @@ export function buildRuntimeDiagnosticsSummary(params: {
     orchestratorWorkflow && isRecord(orchestratorWorkflow.workflowState) ? orchestratorWorkflow.workflowState : null;
   const orchestratorAssistiveRouter =
     orchestratorWorkflow && isRecord(orchestratorWorkflow.assistiveRouter) ? orchestratorWorkflow.assistiveRouter : null;
+  const latestCaseWikiRoutingContext = toBoolean(latestCaseWikiRoutingContextFromEvents.observed) === true
+    ? latestCaseWikiRoutingContextFromEvents
+    : normalizeLatestCaseWikiRoutingContext(orchestratorWorkflowState?.latestCaseWikiRoutingContext) ??
+      latestCaseWikiRoutingContextFromEvents;
   const uiExecutorSandbox = uiExecutor && isRecord(uiExecutor.sandbox) ? uiExecutor.sandbox : null;
   const uiExecutorBrowserWorkers = uiExecutor && isRecord(uiExecutor.browserWorkers) ? uiExecutor.browserWorkers : null;
   const uiExecutorBrowserWorkerQueue =

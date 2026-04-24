@@ -9204,11 +9204,22 @@ function isLegacyCompatibilityRoute() {
   return pathname === "/legacy" || pathname === "/legacy/";
 }
 
+function isLegacyDirectLiveProofRoute() {
+  if (!isLegacyCompatibilityRoute() || typeof window === "undefined" || !window.location) {
+    return false;
+  }
+  const params = new URLSearchParams(window.location.search);
+  return params.get("debugLive") === "true" || params.get("livePreferredMode") === "direct_live";
+}
+
 function shouldRenderLegacyCompatibilitySurface(surfaceId) {
   if (!isLegacyCompatibilityRoute()) {
     return true;
   }
   const normalizedSurfaceId = typeof surfaceId === "string" ? surfaceId.trim() : "";
+  if (normalizedSurfaceId === "live-negotiator" && isLegacyDirectLiveProofRoute()) {
+    return true;
+  }
   return LEGACY_VISIBLE_TAB_PANEL_IDS.has(normalizedSurfaceId);
 }
 

@@ -63,6 +63,7 @@ test("runtime surface snapshot script stays aligned across package and docs", ()
     'mode: offline ? "offline" : "live"',
     'buildRuntimeSurfaceInventorySnapshot',
     'buildRuntimeSurfaceReadinessSnapshot',
+    "/v1/runtime/surface/readiness",
     "listRecentEvents",
     "events: recentEvents",
     "artifacts/runtime/runtime-surface-snapshot.json",
@@ -73,6 +74,7 @@ test("runtime surface snapshot script stays aligned across package and docs", ()
   assert.match(readme, /npm run runtime:surface:snapshot/);
   assert.match(readme, /artifacts\/runtime\/runtime-surface-snapshot\.json/);
   assert.match(readme, /offline true/);
+  assert.match(readme, /verify:release[^.\n]+artifacts\/runtime\/runtime-surface-snapshot\.json/);
   assert.match(architecture, /runtime-surface-snapshot\.mjs/);
   assert.match(architecture, /artifacts\/runtime\/runtime-surface-snapshot\.json/);
   assert.match(operatorGuide, /npm run runtime:surface:snapshot/);

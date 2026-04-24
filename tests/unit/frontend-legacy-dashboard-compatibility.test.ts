@@ -34,7 +34,10 @@ test("legacy demo frontend is framed as a compatibility dashboard with a path ba
     'const LEGACY_VISIBLE_TAB_PANEL_IDS = new Set(["operator", "device-nodes"]);',
     'button.hidden = !isAllowed;',
     'panel.hidden = !isAllowed;',
+    'function isLegacyDirectLiveProofRoute() {',
+    'params.get("debugLive") === "true" || params.get("livePreferredMode") === "direct_live"',
     'function shouldRenderLegacyCompatibilitySurface(surfaceId) {',
+    'if (normalizedSurfaceId === "live-negotiator" && isLegacyDirectLiveProofRoute()) {',
     'function openPrimaryActionDeskRoute(pathname = "/app") {',
     'const shouldBindLegacyLiveSurface = shouldRenderLegacyCompatibilitySurface("live-negotiator");',
     'const shouldBindLegacyStorySurface = shouldRenderLegacyCompatibilitySurface("storyteller");',
@@ -52,8 +55,10 @@ test("legacy demo frontend is framed as a compatibility dashboard with a path ba
   assert.ok(readme.includes("defaults to `Operator Console`"));
   assert.ok(readme.includes("hidden live/story panels no longer running their legacy"));
   assert.ok(readme.includes("compatibility-only controls in the background"));
+  assert.ok(readme.includes("direct-live proof query explicitly opts the legacy live bindings back in"));
   assert.ok(readme.includes("redirect operators back into `/app`"));
   assert.ok(localDevelopment.includes("defaults to `Operator Console` + `Device Nodes` fallback tabs"));
   assert.ok(localDevelopment.includes("no longer keeps the hidden legacy live/simulation render loops or compatibility-only control bindings active"));
+  assert.ok(localDevelopment.includes("direct-live proof query opts those live bindings back in"));
   assert.ok(localDevelopment.includes("bounces any remaining quick-start actions that need those primary surfaces into `/app`"));
 });

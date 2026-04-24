@@ -120,6 +120,19 @@ export type OrchestratorWorkflowExecutionState = {
   route: string | null;
   reason: string | null;
   updatedAt: string | null;
+  latestCaseWikiRoutingContext: {
+    observed: boolean;
+    updatedAt: string | null;
+    contextSource: string | null;
+    ingressSource: string | null;
+    focusId: string | null;
+    blocker: string | null;
+    nextAction: string | null;
+    route: string | null;
+    mode: string | null;
+    requestedIntent: string | null;
+    routedIntent: string | null;
+  } | null;
   bookingState: OrchestratorBookingState | null;
   handoffState: OrchestratorHandoffState | null;
   followUpState: OrchestratorFollowUpState | null;
@@ -306,6 +319,7 @@ let workflowExecutionState: OrchestratorWorkflowExecutionState = {
   route: null,
   reason: null,
   updatedAt: null,
+  latestCaseWikiRoutingContext: null,
   bookingState: null,
   handoffState: null,
   followUpState: null,
@@ -834,6 +848,9 @@ function cloneWorkflowExecutionState(
 ): OrchestratorWorkflowExecutionState {
   return {
     ...state,
+    latestCaseWikiRoutingContext: state.latestCaseWikiRoutingContext
+      ? { ...state.latestCaseWikiRoutingContext }
+      : null,
   };
 }
 
@@ -849,6 +866,7 @@ function defaultWorkflowExecutionState(): OrchestratorWorkflowExecutionState {
     route: null,
     reason: null,
     updatedAt: null,
+    latestCaseWikiRoutingContext: null,
     bookingState: null,
     handoffState: null,
     followUpState: null,
@@ -870,6 +888,7 @@ export function setOrchestratorWorkflowExecutionState(params: {
   route?: string | null;
   reason?: string | null;
   updatedAt?: string | null;
+  latestCaseWikiRoutingContext?: OrchestratorWorkflowExecutionState["latestCaseWikiRoutingContext"];
   bookingState?: OrchestratorBookingState | null;
   handoffState?: OrchestratorHandoffState | null;
   followUpState?: OrchestratorFollowUpState | null;
@@ -885,6 +904,10 @@ export function setOrchestratorWorkflowExecutionState(params: {
     route: toNonEmptyString(params.route) ?? workflowExecutionState.route,
     reason: toNonEmptyString(params.reason) ?? workflowExecutionState.reason,
     updatedAt: toNonEmptyString(params.updatedAt) ?? new Date().toISOString(),
+    latestCaseWikiRoutingContext:
+      params.latestCaseWikiRoutingContext === undefined
+        ? workflowExecutionState.latestCaseWikiRoutingContext
+        : params.latestCaseWikiRoutingContext,
     bookingState: params.bookingState === undefined ? workflowExecutionState.bookingState : params.bookingState,
     handoffState: params.handoffState === undefined ? workflowExecutionState.handoffState : params.handoffState,
     followUpState: params.followUpState === undefined ? workflowExecutionState.followUpState : params.followUpState,

@@ -666,9 +666,9 @@ if ((-not $SkipDemoE2E) -and (-not $SkipDemoRun)) {
     ")"
   )
   $demoCommand = if ($runFastDemo) {
-    "npm run demo:e2e:fast -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec $scenarioRetryArgs $serviceRestartArgs $frontendArgs"
+    "npm run demo:e2e:fast -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec $scenarioRetryArgs $serviceRestartArgs $frontendArgs -RuntimeSurfaceSnapshotOutputPath ./artifacts/runtime/runtime-surface-snapshot.json"
   } else {
-    "npm run demo:e2e -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec $scenarioRetryArgs $serviceRestartArgs $frontendArgs"
+    "npm run demo:e2e -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec $scenarioRetryArgs $serviceRestartArgs $frontendArgs -RuntimeSurfaceSnapshotOutputPath ./artifacts/runtime/runtime-surface-snapshot.json"
   }
   Run-StepWithRetry "Run demo e2e" $demoCommand $EffectiveDemoRunMaxAttempts $DemoRunRetryBackoffMs
 }
