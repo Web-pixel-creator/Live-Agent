@@ -89,7 +89,12 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(consoleRuntime, /const initialArtifactPath = params\.get\("artifact"\);/);
   assert.match(consoleRuntime, /const initialArtifactIssue = params\.get\("issue"\);/);
   assert.match(consoleRuntime, /const initialArtifactSection = params\.get\("section"\);/);
-  assert.match(consoleRuntime, /<ArtifactViewerPanel[\s\S]*initialArtifactPath=\{initialArtifactPath\}[\s\S]*initialArtifactIssue=\{initialArtifactIssue\}[\s\S]*initialArtifactSection=\{initialArtifactSection\}[\s\S]*initialCaseRef=\{runtimeCase\.ref\}[\s\S]*\/>/);
+  assert.match(consoleRuntime, /const initialFocusedOnly = params\.get\("focusedOnly"\) === "1";/);
+  assert.match(consoleRuntime, /const handleFocusedOnlyChange = \(enabled: boolean\) => \{/);
+  assert.match(consoleRuntime, /const nextParams = new URLSearchParams\(params\);/);
+  assert.match(consoleRuntime, /nextParams\.set\("focusedOnly", "1"\);/);
+  assert.match(consoleRuntime, /nextParams\.delete\("focusedOnly"\);/);
+  assert.match(consoleRuntime, /<ArtifactViewerPanel[\s\S]*initialArtifactPath=\{initialArtifactPath\}[\s\S]*initialArtifactIssue=\{initialArtifactIssue\}[\s\S]*initialArtifactSection=\{initialArtifactSection\}[\s\S]*initialCaseRef=\{runtimeCase\.ref\}[\s\S]*initialFocusedOnly=\{initialFocusedOnly\}[\s\S]*onFocusedOnlyChange=\{handleFocusedOnlyChange\}[\s\S]*\/>/);
   assert.match(consoleRuntime, /navigate\(`\/app\/console\$\{search \? `\?\$\{search\}` : ""\}\$\{hash\}`/);
   assert.match(caseWikiPanel, /Copy handoff/);
   assert.match(caseWikiPanel, /Copy refs/);
@@ -240,6 +245,8 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(artifactViewerPanel, /initialArtifactIssue\?: string \| null;/);
   assert.match(artifactViewerPanel, /initialArtifactSection\?: string \| null;/);
   assert.match(artifactViewerPanel, /initialCaseRef\?: string \| null;/);
+  assert.match(artifactViewerPanel, /initialFocusedOnly\?: boolean;/);
+  assert.match(artifactViewerPanel, /onFocusedOnlyChange\?: \(enabled: boolean\) => void;/);
   assert.match(artifactViewerPanel, /buildRuntimeArtifactSectionAnchorId/);
   assert.match(artifactViewerPanel, /getRuntimeArtifactIssueConfig/);
   assert.match(artifactViewerPanel, /getRuntimeArtifactIssueFocusRowLabels/);
@@ -261,7 +268,9 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(artifactViewerPanel, /const visibleStructuredSections = useMemo\(\(\) => \{/);
   assert.match(artifactViewerPanel, /const focusSection = structuredView\.sections\.find/);
   assert.match(artifactViewerPanel, /document\.getElementById\(sectionAnchorId\)\?\.scrollIntoView/);
-  assert.match(artifactViewerPanel, /setShowFocusedOnly\(false\);/);
+  assert.match(artifactViewerPanel, /setShowFocusedOnly\(initialFocusedOnly && canShowFocusedOnly\);/);
+  assert.match(artifactViewerPanel, /const toggleFocusedOnly = \(\) => \{/);
+  assert.match(artifactViewerPanel, /onFocusedOnlyChange\?\.\(nextValue\);/);
   assert.match(artifactViewerPanel, /Show focused only/);
   assert.match(artifactViewerPanel, /Show all sections/);
   assert.match(artifactViewerPanel, /Showing only the focused structured lane for/);
@@ -286,8 +295,10 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(artifactViewerLib, /export function isPinnedRuntimeArtifactPath/);
   assert.match(artifactViewerLib, /export function buildRuntimeArtifactViewerPath/);
   assert.match(artifactViewerLib, /section\?: string \| null \| undefined;/);
+  assert.match(artifactViewerLib, /focusedOnly\?: boolean \| null \| undefined;/);
   assert.match(artifactViewerLib, /params\.set\("issue", options\.issue\);/);
   assert.match(artifactViewerLib, /params\.set\("section", options\.section\.trim\(\)\);/);
+  assert.match(artifactViewerLib, /params\.set\("focusedOnly", "1"\);/);
   assert.match(artifactViewerLib, /export function buildRuntimeArtifactSectionAnchorId/);
   assert.match(artifactViewerLib, /export function getRuntimeArtifactIssueConfig/);
   assert.match(artifactViewerLib, /focusSectionTitle:/);

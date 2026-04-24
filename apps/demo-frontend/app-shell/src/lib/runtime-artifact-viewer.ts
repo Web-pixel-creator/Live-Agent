@@ -535,6 +535,7 @@ export function buildRuntimeArtifactViewerPath(
     caseRef?: string | null | undefined;
     issue?: RuntimeArtifactIssue | null | undefined;
     section?: string | null | undefined;
+    focusedOnly?: boolean | null | undefined;
   },
 ): string {
   const params = new URLSearchParams();
@@ -547,6 +548,9 @@ export function buildRuntimeArtifactViewerPath(
   }
   if (options?.section && options.section.trim().length > 0) {
     params.set("section", options.section.trim());
+  }
+  if (options?.focusedOnly) {
+    params.set("focusedOnly", "1");
   }
   return `/app/console/runtime?${params.toString()}#artifact-viewer`;
 }
@@ -607,7 +611,7 @@ export function buildRuntimeArtifactIssueSummary(
 
 export function buildRuntimeArtifactIssueViewerPath(
   issue: RuntimeArtifactIssue,
-  options?: { caseRef?: string | null | undefined },
+  options?: { caseRef?: string | null | undefined; focusedOnly?: boolean | null | undefined },
 ): string {
   const config = getRuntimeArtifactIssueConfig(issue);
   return buildRuntimeArtifactViewerPath(
@@ -616,6 +620,7 @@ export function buildRuntimeArtifactIssueViewerPath(
       caseRef: options?.caseRef,
       issue,
       section: config?.focusSectionTitle ?? null,
+      focusedOnly: options?.focusedOnly,
     },
   );
 }

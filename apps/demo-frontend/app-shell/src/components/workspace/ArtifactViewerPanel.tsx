@@ -27,6 +27,8 @@ type ArtifactViewerPanelProps = {
   initialArtifactIssue?: string | null;
   initialArtifactSection?: string | null;
   initialCaseRef?: string | null;
+  initialFocusedOnly?: boolean;
+  onFocusedOnlyChange?: (enabled: boolean) => void;
 };
 
 function formatTimestamp(value: string | null | undefined): string {
@@ -75,6 +77,8 @@ export const ArtifactViewerPanel = ({
   initialArtifactIssue,
   initialArtifactSection,
   initialCaseRef,
+  initialFocusedOnly = false,
+  onFocusedOnlyChange,
 }: ArtifactViewerPanelProps) => {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [showFocusedOnly, setShowFocusedOnly] = useState(false);
@@ -212,8 +216,14 @@ export const ArtifactViewerPanel = ({
   }, [focusedSectionTitle, selectedEntry?.relativePath, structuredView]);
 
   useEffect(() => {
-    setShowFocusedOnly(false);
-  }, [focusedSectionTitle, selectedEntry?.relativePath]);
+    setShowFocusedOnly(initialFocusedOnly && canShowFocusedOnly);
+  }, [canShowFocusedOnly, focusedSectionTitle, initialFocusedOnly, selectedEntry?.relativePath]);
+
+  const toggleFocusedOnly = () => {
+    const nextValue = !showFocusedOnly;
+    setShowFocusedOnly(nextValue);
+    onFocusedOnlyChange?.(nextValue);
+  };
 
   const copyJson = async () => {
     const raw = artifactDocumentQuery.data?.raw;
@@ -501,7 +511,7 @@ export const ArtifactViewerPanel = ({
                         type="button"
                         variant="ghost"
                         className="h-8 rounded-xl px-3 text-[11px]"
-                        onClick={() => setShowFocusedOnly((current) => !current)}
+                        onClick={toggleFocusedOnly}
                       >
                         {showFocusedOnly ? "Show all sections" : "Show focused only"}
                       </Button>

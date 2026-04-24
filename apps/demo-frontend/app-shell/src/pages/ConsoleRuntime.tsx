@@ -24,10 +24,22 @@ const ConsoleRuntime = () => {
   const initialArtifactPath = params.get("artifact");
   const initialArtifactIssue = params.get("issue");
   const initialArtifactSection = params.get("section");
+  const initialFocusedOnly = params.get("focusedOnly") === "1";
   const caseValue = getCaseByRef(caseRef);
   const runtimeCase =
     caseValue ?? (defaultConsoleCaseRef ? getCaseByRef(defaultConsoleCaseRef) : undefined);
   const wiki = getCaseWikiByRef(runtimeCase?.caseId ?? runtimeCase?.sessionId ?? caseRef);
+
+  const handleFocusedOnlyChange = (enabled: boolean) => {
+    const nextParams = new URLSearchParams(params);
+    if (enabled) {
+      nextParams.set("focusedOnly", "1");
+    } else {
+      nextParams.delete("focusedOnly");
+    }
+    const search = nextParams.toString();
+    navigate(`/app/console/runtime${search ? `?${search}` : ""}${hash}`, { replace: true });
+  };
 
   useEffect(() => {
     if (!["#live-activity", "#action-queue"].includes(hash)) {
@@ -71,6 +83,8 @@ const ConsoleRuntime = () => {
                     initialArtifactIssue={initialArtifactIssue}
                     initialArtifactSection={initialArtifactSection}
                     initialCaseRef={runtimeCase.ref}
+                    initialFocusedOnly={initialFocusedOnly}
+                    onFocusedOnlyChange={handleFocusedOnlyChange}
                   />
                 </div>
               ) : (
