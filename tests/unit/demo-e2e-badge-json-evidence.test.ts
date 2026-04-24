@@ -191,18 +191,18 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
         browserWorkerRecoveryCheckpointReadyCleared: true,
         browserWorkerRecoverySummary: "healed 2 stale grounding refs; resumed 1 checkpoint.",
         browserWorkerRecoveryValidated: true,
-        navigatorVisaFlowsTotal: 3,
-        navigatorVisaFlowsSucceeded: 3,
+        navigatorVisaFlowsTotal: 4,
+        navigatorVisaFlowsSucceeded: 4,
         navigatorVisaFlowsSuccessRate: 1,
-        navigatorVisaFlowsPersistentSessionCount: 3,
-        navigatorVisaFlowsReplayBundleCount: 3,
-        navigatorVisaFlowsVerifiedCount: 3,
-        navigatorVisaFlowsStaleRecoveryObservedCount: 3,
-        navigatorVisaFlowsHealedRecoveryObservedCount: 3,
-        navigatorVisaFlowsResumedCheckpointCount: 3,
-        navigatorVisaFlowsCheckpointReadyClearedCount: 3,
-        navigatorVisaFlowsScenarioNames: ["reminder", "handoff", "escalation"],
-        navigatorVisaFlowsSummary: "3/3 visa flows passed; persistent=3; verified=3; staleRecovery=3; resumed=3.",
+        navigatorVisaFlowsPersistentSessionCount: 4,
+        navigatorVisaFlowsReplayBundleCount: 4,
+        navigatorVisaFlowsVerifiedCount: 4,
+        navigatorVisaFlowsStaleRecoveryObservedCount: 4,
+        navigatorVisaFlowsHealedRecoveryObservedCount: 4,
+        navigatorVisaFlowsResumedCheckpointCount: 4,
+        navigatorVisaFlowsCheckpointReadyClearedCount: 4,
+        navigatorVisaFlowsScenarioNames: ["booking", "reminder", "handoff", "escalation"],
+        navigatorVisaFlowsSummary: "4/4 visa flows passed; persistent=4; verified=4; staleRecovery=4; resumed=4.",
         navigatorVisaFlowsValidated: true,
         operatorTurnTruncationSummaryValidated: true,
         operatorTurnTruncationExpectedEventSeen: true,
@@ -648,20 +648,20 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.equal(navigatorVisaFlows.status, "pass");
   assert.equal(navigatorVisaFlows.validated, true);
   assert.equal(navigatorVisaFlows.observed, true);
-  assert.equal(navigatorVisaFlows.totalFlows, 3);
-  assert.equal(navigatorVisaFlows.succeededFlows, 3);
+  assert.equal(navigatorVisaFlows.totalFlows, 4);
+  assert.equal(navigatorVisaFlows.succeededFlows, 4);
   assert.equal(navigatorVisaFlows.successRate, 1);
-  assert.equal(navigatorVisaFlows.persistentSessionCount, 3);
-  assert.equal(navigatorVisaFlows.replayBundleCount, 3);
-  assert.equal(navigatorVisaFlows.verifiedCount, 3);
-  assert.equal(navigatorVisaFlows.staleRecoveryObservedCount, 3);
-  assert.equal(navigatorVisaFlows.healedRecoveryObservedCount, 3);
-  assert.equal(navigatorVisaFlows.resumedCheckpointCount, 3);
-  assert.equal(navigatorVisaFlows.checkpointReadyClearedCount, 3);
-  assert.deepEqual(navigatorVisaFlows.scenarioNames, ["reminder", "handoff", "escalation"]);
+  assert.equal(navigatorVisaFlows.persistentSessionCount, 4);
+  assert.equal(navigatorVisaFlows.replayBundleCount, 4);
+  assert.equal(navigatorVisaFlows.verifiedCount, 4);
+  assert.equal(navigatorVisaFlows.staleRecoveryObservedCount, 4);
+  assert.equal(navigatorVisaFlows.healedRecoveryObservedCount, 4);
+  assert.equal(navigatorVisaFlows.resumedCheckpointCount, 4);
+  assert.equal(navigatorVisaFlows.checkpointReadyClearedCount, 4);
+  assert.deepEqual(navigatorVisaFlows.scenarioNames, ["booking", "reminder", "handoff", "escalation"]);
   assert.equal(
     navigatorVisaFlows.summary,
-    "3/3 visa flows passed; persistent=3; verified=3; staleRecovery=3; resumed=3.",
+    "4/4 visa flows passed; persistent=4; verified=4; staleRecovery=4; resumed=4.",
   );
   assert.equal(runtimeGuardrailsSignalPaths.totalPaths, 3);
   assert.equal(runtimeGuardrailsSignalPaths.lifecycleSummary, "active=3");

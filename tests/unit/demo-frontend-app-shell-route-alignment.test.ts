@@ -26,6 +26,12 @@ test("demo frontend server redirects root to /app and keeps legacy on /legacy", 
   assert.match(source, /function isAppShellDocumentRoute\(urlPath: string\): boolean/);
   assert.match(source, /function isAppShellAssetRoute\(urlPath: string\): boolean/);
   assert.match(source, /const debugArtifactCatalog = \[/);
+  assert.match(source, /label: "Action Desk KPI report"/);
+  assert.match(source, /relativePath: "release-evidence\/action-desk-kpi-report\.json"/);
+  assert.match(source, /label: "Consultation booking proof"/);
+  assert.match(source, /relativePath: "release-evidence\/consultation-booking-proof\.json"/);
+  assert.match(source, /label: "Consultation booking approved artifact"/);
+  assert.match(source, /relativePath: "demo-e2e\/consultation-booking-approved\.json"/);
   assert.match(source, /function resolveDebugArtifactPath\(requestPath: string\): string \| null/);
   assert.match(source, /req\.method === "GET" && \(req\.url === "\/" \|\| req\.url\?\.startsWith\("\/\?"\)\)/);
   assert.match(source, /res\.setHeader\("Location", `\/app\$\{query\}`\);/);

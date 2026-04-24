@@ -53,6 +53,8 @@ export const PINNED_RUNTIME_ARTIFACT_PATHS = [
   "release-evidence/report.json",
   "release-evidence/manifest.json",
   "release-evidence/runtime-proof-report.json",
+  "release-evidence/action-desk-kpi-report.json",
+  "release-evidence/consultation-booking-proof.json",
   "demo-e2e/badge-details.json",
 ] as const;
 
@@ -60,6 +62,8 @@ export const RUNTIME_ARTIFACT_VIEW_PRESETS = {
   report: "release-evidence/report.json",
   manifest: "release-evidence/manifest.json",
   runtimeProof: "release-evidence/runtime-proof-report.json",
+  actionDeskKpi: "release-evidence/action-desk-kpi-report.json",
+  consultationBookingProof: "release-evidence/consultation-booking-proof.json",
   badgeDetails: "demo-e2e/badge-details.json",
 } as const;
 
@@ -303,6 +307,129 @@ function buildRuntimeProofStructuredView(payload: Record<string, unknown>): Runt
           pickRow("Total flows", navigator?.totalFlows),
           pickRow("Success rate", navigator?.successRate),
           pickRow("Resumed checkpoints", navigator?.resumedCheckpointCount),
+        ],
+      },
+    ],
+  };
+}
+
+function buildActionDeskKpiStructuredView(payload: Record<string, unknown>): RuntimeArtifactStructuredView {
+  const summary = asRecord(payload.summary);
+  const metrics = asRecord(payload.metrics);
+  const operatorMinutesSaved = asRecord(metrics?.operatorMinutesSaved);
+  const workflowRecords = asArray(payload.workflows).filter(isRecord);
+  const pilotGaps = asArray(payload.pilotGaps)
+    .map((item) => asString(item))
+    .filter((item): item is string => item !== null);
+  const findWorkflow = (id: string) =>
+    workflowRecords.find((workflow) => asString(workflow.id) === id);
+
+  return {
+    headline: "Action Desk workflow KPI proof",
+    sections: [
+      {
+        title: "Workflow proof",
+        rows: [
+          pickRow("Status", payload.status),
+          pickRow("Total workflows", summary?.totalWorkflows),
+          pickRow("Proof ready", summary?.proofReadyWorkflows),
+          pickRow("Connector gaps", summary?.needsConnectorCount),
+          pickRow("Evidence gaps", summary?.needsEvidenceCount),
+          pickRow("Headline", summary?.headline),
+        ],
+      },
+      {
+        title: "Buyer outcomes",
+        rows: [
+          pickRow("Lead qualification", findWorkflow("lead_qualification")?.status),
+          pickRow("Consultation booking", findWorkflow("consultation_booking")?.status),
+          pickRow("Missing-document follow-up", findWorkflow("missing_document_follow_up")?.status),
+          pickRow("CRM handoff", findWorkflow("crm_handoff")?.status),
+        ],
+      },
+      {
+        title: "Buyer metrics",
+        rows: [
+          pickRow("Navigator success rate", metrics?.navigatorVisaFlowSuccessRate),
+          pickRow("Verified flows", metrics?.navigatorVisaVerifiedCount),
+          pickRow("Case Wiki adoption rate", metrics?.caseWikiAdoptionRate),
+          pickRow("Operator minutes saved", operatorMinutesSaved?.status),
+          pickRow("Pilot baseline required", operatorMinutesSaved?.baselineRequired),
+        ],
+      },
+      {
+        title: "Pilot gaps",
+        rows: [
+          pickRow("Gap count", pilotGaps.length),
+          pickRow("First gap", pilotGaps[0] ?? "none"),
+          pickRow("All gaps", pilotGaps.length > 0 ? pilotGaps.join(", ") : "none"),
+        ],
+      },
+    ],
+  };
+}
+
+function buildConsultationBookingProofStructuredView(
+  payload: Record<string, unknown>,
+): RuntimeArtifactStructuredView {
+  const repoOwnedWorkflow = asRecord(payload.repoOwnedWorkflow);
+  const calendarConnector = asRecord(payload.calendarConnector);
+  const nextGaps = asArray(payload.nextGaps)
+    .map((item) => asString(item))
+    .filter((item): item is string => item !== null);
+  const scenarioNames = asArray(repoOwnedWorkflow?.scenarioNames)
+    .map((item) => asString(item))
+    .filter((item): item is string => item !== null);
+  const managedSkillPermissions = asArray(calendarConnector?.managedSkillPermissions)
+    .map((item) => asString(item))
+    .filter((item): item is string => item !== null);
+
+  return {
+    headline: "Consultation booking proof posture",
+    sections: [
+      {
+        title: "Booking proof",
+        rows: [
+          pickRow("Status", payload.status),
+          pickRow("Staged ready", payload.stagedReady),
+          pickRow("Proof ready", payload.proofReady),
+          pickRow("Summary", payload.summary),
+        ],
+      },
+      {
+        title: "Repo-owned workflow",
+        rows: [
+          pickRow("Persona present", repoOwnedWorkflow?.personaPresent),
+          pickRow("Recipe present", repoOwnedWorkflow?.recipePresent),
+          pickRow("Playbook present", repoOwnedWorkflow?.playbookPresent),
+          pickRow("Approval boundary", repoOwnedWorkflow?.playbookHasApprovalBoundary),
+          pickRow("Success metrics", repoOwnedWorkflow?.playbookHasSuccessMetrics),
+          pickRow("Booking scenario observed", repoOwnedWorkflow?.bookingScenarioObserved),
+          pickRow("Reminder context observed", repoOwnedWorkflow?.stagedReminderContextObserved),
+          pickRow("Scenario names", scenarioNames.length > 0 ? scenarioNames.join(", ") : "none"),
+        ],
+      },
+      {
+        title: "Calendar connector",
+        rows: [
+          pickRow("Calendar skill present", calendarConnector?.calendarSkillPresent),
+          pickRow("Approval boundary", calendarConnector?.calendarSkillHasApprovalBoundary),
+          pickRow("Managed skill sample", calendarConnector?.managedSkillSamplePresent),
+          pickRow("Signing input sample", calendarConnector?.signingInputSamplePresent),
+          pickRow(
+            "Managed permissions",
+            managedSkillPermissions.length > 0 ? managedSkillPermissions.join(", ") : "none",
+          ),
+          pickRow("Writeback observed", calendarConnector?.writebackObserved),
+          pickRow("Writeback evidence", calendarConnector?.writebackEvidencePath ?? "n/a"),
+        ],
+      },
+      {
+        title: "Next gaps",
+        rows: [
+          pickRow("Gap count", nextGaps.length),
+          pickRow("First gap", nextGaps[0] ?? "none"),
+          pickRow("All gaps", nextGaps.length > 0 ? nextGaps.join(", ") : "none"),
         ],
       },
     ],
@@ -639,6 +766,10 @@ export function buildRuntimeArtifactStructuredView(
       return buildManifestStructuredView(payload);
     case "release-evidence/runtime-proof-report.json":
       return buildRuntimeProofStructuredView(payload);
+    case "release-evidence/action-desk-kpi-report.json":
+      return buildActionDeskKpiStructuredView(payload);
+    case "release-evidence/consultation-booking-proof.json":
+      return buildConsultationBookingProofStructuredView(payload);
     case "demo-e2e/badge-details.json":
       return buildBadgeDetailsStructuredView(payload);
     default:

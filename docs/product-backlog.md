@@ -223,6 +223,14 @@ new speculative breadth.
 4. `proof: publish workflow KPI report`
    - Summarize qualification, booking, document chase, and CRM/handoff evidence
      in one operator-friendly report.
+   - Current support slice publishes `action-desk-kpi-report.json` / `.md`
+     from deterministic release evidence and now also publishes
+     `consultation-booking-proof.json` / `.md`, keeping staged booking
+     readiness visible. The current support slice now also publishes
+     `consultation-booking-approved.json` from the deterministic booking flow,
+     so consultation booking can reach approval-safe repo-owned proof before a
+     later calendar writeback lane is added. Operator-minutes-saved stays an
+     explicit pilot-baseline gap.
    - Keep provider portfolio and self-improvement as deferred lanes until the
      wedge proof train is green.
 

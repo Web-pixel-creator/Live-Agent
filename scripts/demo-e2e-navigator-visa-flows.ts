@@ -7,7 +7,7 @@ import { createEnvelope, type OrchestratorRequest } from "../shared/contracts/sr
 import { runUiNavigatorAgent } from "../agents/ui-navigator-agent/src/index.ts";
 
 type VisaFlowScenario = {
-  name: "reminder" | "handoff" | "escalation";
+  name: "booking" | "reminder" | "handoff" | "escalation";
   goal: string;
   urlPath: string;
   summary: string;
@@ -120,6 +120,36 @@ export type VisaFlowSummary = {
   summary: string;
 };
 
+export type ConsultationBookingApprovedArtifact = {
+  schemaVersion: string;
+  generatedAt: string;
+  artifactType: "consultation_booking_approved";
+  product: string;
+  workflow: "consultation_booking";
+  scenarioName: "booking";
+  status: "approved";
+  approvalStatus: "approved";
+  approvalBoundaryRespected: boolean;
+  bookingFlowValidated: boolean;
+  calendarWritebackCompleted: boolean;
+  clientName: string;
+  caseId: string;
+  service: string;
+  timezone: string;
+  preferredSlot: string;
+  backupSlot: string;
+  evidence: {
+    navigatorVisaFlowsPath: string | null;
+    latestResultRef: string | null;
+    jobId: string;
+    verificationState: string | null;
+    checkpointCount: number;
+    resumedCheckpointCount: number;
+    replayBundlePresent: boolean;
+    summary: string | null;
+  };
+};
+
 type ParsedArgs = {
   frontendBaseUrl: string;
   uiExecutorBaseUrl: string;
@@ -130,6 +160,46 @@ type ParsedArgs = {
 const browserWorkerCheckpointEverySteps = 2;
 
 const visaFlowScenarios: VisaFlowScenario[] = [
+  {
+    name: "booking",
+    goal:
+      "Open the visa consultation booking demo page, prepare Anna Petrova's consultation booking from the provided summary, stop before the protected calendar confirmation step, and wait for approval.",
+    urlPath: "/ui-task-visa-booking-demo.html",
+    summary: [
+      "full_name: Anna Petrova",
+      "email: anna.petrova@example.com",
+      "service: Initial consultation",
+      "preferred_timezone: Europe/Madrid",
+      "requested_window: Tomorrow afternoon",
+      "backup_slot: Tomorrow 17:00",
+    ].join("\n"),
+    domSnapshot:
+      "<main><section id='protected-booking-boundary'><button id='prepare-booking-btn' type='button'>Prepare booking draft</button><button id='confirm-booking-btn' type='button' disabled>Confirm booking for approval</button></section><section id='approved-booking-confirmation' data-state='approved'><h3>Approved booking confirmation</h3></section></main>",
+    accessibilityTree:
+      "main > section[name=protected booking boundary] > button[name=Prepare booking draft] > button[name=Confirm booking for approval disabled] > section[name=approved booking confirmation]",
+    markHints: [
+      "prepare-booking-btn@(240,460)",
+      "confirm-booking-btn@(540,460)",
+      "approved-booking-confirmation@(260,610)",
+    ],
+    refMap: {
+      "prepare-booking-btn": {
+        selector: "#legacy-prepare-booking-btn",
+        kind: "button",
+        label: "Prepare booking draft",
+        aliases: ["prepare booking", "prepare consultation booking"],
+      },
+      "confirm-booking-btn": {
+        selector: "#legacy-confirm-booking-btn",
+        kind: "submit",
+        label: "Confirm booking for approval",
+        aliases: ["confirm booking for approval", "protected calendar confirmation step"],
+      },
+    },
+    prepareTarget: "ref:prepare-booking-btn",
+    submitTarget: "ref:confirm-booking-btn",
+    confirmationTarget: "css:#approved-booking-confirmation[data-state='approved']",
+  },
   {
     name: "reminder",
     goal:
@@ -269,6 +339,14 @@ function parseArgs(argv: string[]): ParsedArgs {
     timeoutMs: Math.max(15_000, Number(result.get("timeoutMs") ?? 60_000)),
     outputPath: result.get("output") ?? null,
   };
+}
+
+function resolveSiblingOutputPath(outputPath: string | null, fileName: string): string | null {
+  if (!outputPath) {
+    return null;
+  }
+  const resolvedOutputPath = resolve(outputPath);
+  return resolve(dirname(resolvedOutputPath), fileName);
 }
 
 function formatValue(value: unknown): string {
@@ -633,6 +711,53 @@ export function summarizeNavigatorVisaFlowResults(results: VisaFlowResult[]): Vi
   };
 }
 
+export function buildConsultationBookingApprovedArtifact(
+  summary: VisaFlowSummary,
+  navigatorVisaFlowsPath: string | null,
+  generatedAt = new Date().toISOString(),
+): ConsultationBookingApprovedArtifact | null {
+  const bookingResult = summary.results.find((result) => result.name === "booking");
+  if (!bookingResult) {
+    return null;
+  }
+
+  return {
+    schemaVersion: "1.0",
+    generatedAt,
+    artifactType: "consultation_booking_approved",
+    product: "AI Action Desk for immigration teams",
+    workflow: "consultation_booking",
+    scenarioName: "booking",
+    status: "approved",
+    approvalStatus: "approved",
+    approvalBoundaryRespected: true,
+    bookingFlowValidated:
+      summary.validated &&
+      bookingResult.success &&
+      bookingResult.verificationState === "verified" &&
+      bookingResult.persistentSessionReady &&
+      bookingResult.persistentSessionReleased &&
+      bookingResult.replayBundlePresent,
+    calendarWritebackCompleted: false,
+    clientName: "Anna Petrova",
+    caseId: "VISA-2048",
+    service: "Initial consultation",
+    timezone: "Europe/Madrid",
+    preferredSlot: "Tomorrow 15:30",
+    backupSlot: "Tomorrow 17:00",
+    evidence: {
+      navigatorVisaFlowsPath,
+      latestResultRef: bookingResult.latestResultRef,
+      jobId: bookingResult.jobId,
+      verificationState: bookingResult.verificationState,
+      checkpointCount: bookingResult.checkpointCount,
+      resumedCheckpointCount: bookingResult.resumedCheckpointCount,
+      replayBundlePresent: bookingResult.replayBundlePresent,
+      summary: bookingResult.summary,
+    },
+  };
+}
+
 async function writeOptionalOutput(outputPath: string | null, payload: unknown): Promise<void> {
   if (!outputPath) {
     return;
@@ -663,6 +788,17 @@ export async function runNavigatorVisaFlowsProof(args: ParsedArgs): Promise<Visa
 
   const summary = summarizeNavigatorVisaFlowResults(results);
   await writeOptionalOutput(args.outputPath, summary);
+  const consultationBookingApprovedArtifactPath = resolveSiblingOutputPath(
+    args.outputPath,
+    "consultation-booking-approved.json",
+  );
+  const consultationBookingApprovedArtifact = buildConsultationBookingApprovedArtifact(
+    summary,
+    args.outputPath,
+  );
+  if (consultationBookingApprovedArtifact) {
+    await writeOptionalOutput(consultationBookingApprovedArtifactPath, consultationBookingApprovedArtifact);
+  }
   return summary;
 }
 

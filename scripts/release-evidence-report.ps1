@@ -7,6 +7,10 @@ param(
   [string]$OutputManifestMarkdownPath = "artifacts/release-evidence/manifest.md",
   [string]$OutputRuntimeProofJsonPath = "",
   [string]$OutputRuntimeProofMarkdownPath = "",
+  [string]$OutputActionDeskKpiJsonPath = "",
+  [string]$OutputActionDeskKpiMarkdownPath = "",
+  [string]$OutputConsultationBookingProofJsonPath = "",
+  [string]$OutputConsultationBookingProofMarkdownPath = "",
   [string]$RuntimeSurfaceSnapshotPath = "artifacts/runtime/runtime-surface-snapshot.json",
   [int]$HostedDirectLiveProofMaxAgeHours = 24
 )
@@ -264,6 +268,162 @@ function New-ProviderUsagePrimaryEntry {
     selectedProvider = $selectedProvider
     selectedModel   = $selectedModel
     selectionReason = $selectionReason
+  }
+}
+
+function New-ActionDeskWorkflowKpiReport {
+  param(
+    [Parameter(Mandatory = $true)]
+    [object]$Report,
+    [Parameter(Mandatory = $true)]
+    [string]$GeneratedAt,
+    [Parameter(Mandatory = $true)]
+    [string]$BadgeDetailsPath,
+    [Parameter(Mandatory = $true)]
+    [string]$ReleaseEvidenceReportJsonPath,
+    [Parameter(Mandatory = $true)]
+    [string]$ReleaseEvidenceManifestJsonPath,
+    [Parameter(Mandatory = $true)]
+    [string]$RuntimeProofReportJsonPath,
+    [Parameter(Mandatory = $true)]
+    [string]$NavigatorVisaFlowsPath
+  )
+
+  $scenarioNames = @()
+  foreach ($scenarioName in @($Report.navigatorVisaFlows.scenarioNames)) {
+    $normalizedScenarioName = ([string]$scenarioName).Trim().ToLowerInvariant()
+    if (-not [string]::IsNullOrWhiteSpace($normalizedScenarioName)) {
+      $scenarioNames += $normalizedScenarioName
+    }
+  }
+
+  $leadQualificationReady =
+    $Report.caseWikiRoutingContext.status -eq "pass" -and
+    $Report.caseWikiRoutingContext.observed -eq $true -and
+    [string]$Report.caseWikiRoutingContext.contextSource -eq "case_wiki" -and
+    -not [string]::IsNullOrWhiteSpace([string]$Report.caseWikiRoutingContext.nextAction)
+
+  $consultationBookingProof = $Report.consultationBookingProof
+  $consultationBookingProofStatus = Get-StatusValueOrDefault -Value $consultationBookingProof.status -DefaultValue "unavailable"
+  $consultationBookingReady = $consultationBookingProofStatus -eq "proof_ready"
+  $consultationBookingStagedReady = $consultationBookingProof.stagedReady -eq $true
+  $consultationBookingCalendarWritebackObserved = $consultationBookingProof.calendarConnector.writebackObserved -eq $true
+  $consultationBookingApprovedArtifactObserved = $consultationBookingProof.calendarConnector.approvedBookingArtifactObserved -eq $true
+  $consultationBookingScenarioObserved = $consultationBookingProof.repoOwnedWorkflow.bookingScenarioObserved -eq $true
+  $consultationBookingNextGap = if (@($consultationBookingProof.nextGaps).Count -gt 0) {
+    @($consultationBookingProof.nextGaps) -join ", "
+  } else {
+    "Add Calendar-backed booking proof or an approved booking artifact before claiming this outcome."
+  }
+
+  $missingDocumentFollowUpReady =
+    $Report.navigatorVisaFlows.status -eq "pass" -and
+    ($scenarioNames -contains "reminder") -and
+    $Report.caseWikiGatewayHydration.observed -eq $true -and
+    -not [string]::IsNullOrWhiteSpace([string]$Report.caseWikiGatewayHydration.blocker)
+
+  $crmHandoffReady =
+    $Report.navigatorVisaFlows.status -eq "pass" -and
+    ($scenarioNames -contains "handoff") -and
+    ($scenarioNames -contains "escalation") -and
+    $Report.browserWorkerRecovery.status -eq "pass"
+
+  $workflows = @(
+    [ordered]@{
+      id              = "lead_qualification"
+      label           = "Lead qualification"
+      status          = $(if ($leadQualificationReady) { "proof_ready" } else { "needs_evidence" })
+      buyerOutcome    = "Lead has a compiled Case Wiki focus, blocker, and next operator action."
+      proofSignal     = "caseWikiRoutingContext"
+      evidenceRefs    = @("release-evidence/report.json#caseWikiRoutingContext")
+      nextGap         = $(if ($leadQualificationReady) { $null } else { "Publish a passing Case Wiki routing context with a non-empty next action." })
+    },
+    [ordered]@{
+      id              = "consultation_booking"
+      label           = "Consultation booking"
+      status          = $(if ($consultationBookingReady) { "proof_ready" } else { "needs_connector" })
+      buyerOutcome    = "Consultation slot is prepared or booked with approval-safe evidence."
+      proofSignal     = "consultationBookingProof"
+      evidenceRefs    = @("release-evidence/consultation-booking-proof.json", "configs/skills.catalog.json#consultation-booking")
+      nextGap         = $(if ($consultationBookingReady) { $null } else { $consultationBookingNextGap })
+    },
+    [ordered]@{
+      id              = "missing_document_follow_up"
+      label           = "Missing-document follow-up"
+      status          = $(if ($missingDocumentFollowUpReady) { "proof_ready" } else { "needs_evidence" })
+      buyerOutcome    = "Missing-document follow-up is prepared, verified, and replay-backed."
+      proofSignal     = "navigatorVisaFlows.reminder"
+      evidenceRefs    = @("demo-e2e/navigator-visa-flows.json#reminder", "release-evidence/report.json#caseWikiGatewayHydration")
+      nextGap         = $(if ($missingDocumentFollowUpReady) { $null } else { "Restore reminder flow proof plus Case Wiki blocker hydration." })
+    },
+    [ordered]@{
+      id              = "crm_handoff"
+      label           = "CRM prep and human handoff"
+      status          = $(if ($crmHandoffReady) { "proof_ready" } else { "needs_evidence" })
+      buyerOutcome    = "CRM/human handoff is prepared behind a protected approval boundary."
+      proofSignal     = "navigatorVisaFlows.handoff_escalation"
+      evidenceRefs    = @("demo-e2e/navigator-visa-flows.json#handoff", "demo-e2e/navigator-visa-flows.json#escalation")
+      nextGap         = $(if ($crmHandoffReady) { $null } else { "Restore handoff/escalation browser-worker proof and approval boundary evidence." })
+    }
+  )
+
+  $proofReadyCount = @($workflows | Where-Object { $_.status -eq "proof_ready" }).Count
+  $needsConnectorCount = @($workflows | Where-Object { $_.status -eq "needs_connector" }).Count
+  $needsEvidenceCount = @($workflows | Where-Object { $_.status -eq "needs_evidence" }).Count
+  $status = if ($proofReadyCount -eq $workflows.Count) {
+    "pilot_ready"
+  } elseif ($proofReadyCount -ge 3) {
+    "partial"
+  } else {
+    "needs_evidence"
+  }
+
+  return [ordered]@{
+    schemaVersion = "1.0"
+    generatedAt   = $GeneratedAt
+    product       = "AI Action Desk for immigration teams"
+    status        = $status
+    summary       = [ordered]@{
+      totalWorkflows       = $workflows.Count
+      proofReadyWorkflows  = $proofReadyCount
+      needsConnectorCount  = $needsConnectorCount
+      needsEvidenceCount   = $needsEvidenceCount
+      headline             = ("workflow_proof=" + $proofReadyCount + "/" + $workflows.Count + "; connector_gaps=" + $needsConnectorCount + "; evidence_gaps=" + $needsEvidenceCount)
+    }
+    metrics       = [ordered]@{
+      leadQualificationProofReady      = $leadQualificationReady
+      consultationBookingProofReady    = $consultationBookingReady
+      consultationBookingProofStatus   = $consultationBookingProofStatus
+      consultationBookingStagedReady   = $consultationBookingStagedReady
+      consultationBookingCalendarWritebackObserved = $consultationBookingCalendarWritebackObserved
+      consultationBookingApprovedArtifactObserved = $consultationBookingApprovedArtifactObserved
+      consultationBookingScenarioObserved = $consultationBookingScenarioObserved
+      missingDocumentFollowUpProofReady = $missingDocumentFollowUpReady
+      crmHandoffProofReady             = $crmHandoffReady
+      navigatorVisaFlowSuccessRate     = $Report.navigatorVisaFlows.successRate
+      navigatorVisaVerifiedCount       = $Report.navigatorVisaFlows.verifiedCount
+      caseWikiAdoptionRate             = $Report.caseWikiContextAdoption.caseWikiRate
+      operatorMinutesSaved             = [ordered]@{
+        observed         = $false
+        valueMinutes     = $null
+        status           = "needs_pilot_baseline"
+        baselineRequired = $true
+        summary          = "Requires pilot before/after baseline; this report only claims repo-owned proof coverage."
+      }
+    }
+    workflows     = $workflows
+    pilotGaps     = (@(
+      $(if (-not $consultationBookingReady) { "calendar_booking_connector_proof" } else { $null }),
+      "real_crm_writeback_with_approval",
+      "pilot_baseline_for_operator_minutes_saved"
+    ) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+    source        = [ordered]@{
+      badgeDetailsPath                = $BadgeDetailsPath
+      releaseEvidenceReportJsonPath   = $ReleaseEvidenceReportJsonPath
+      releaseEvidenceManifestJsonPath = $ReleaseEvidenceManifestJsonPath
+      runtimeProofReportJsonPath      = $RuntimeProofReportJsonPath
+      navigatorVisaFlowsPath          = $NavigatorVisaFlowsPath
+    }
   }
 }
 
@@ -1127,6 +1287,191 @@ function Read-JsonIfExists {
   }
 }
 
+function Test-TextFileContains {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Path,
+    [Parameter(Mandatory = $true)]
+    [string]$Pattern
+  )
+
+  if (-not (Test-Path $Path)) {
+    return $false
+  }
+
+  return ((Get-Content $Path -Raw) -match $Pattern)
+}
+
+function New-ConsultationBookingProofReport {
+  param(
+    [Parameter(Mandatory = $true)]
+    [object]$Report,
+    [Parameter(Mandatory = $true)]
+    [string]$GeneratedAt,
+    [Parameter(Mandatory = $true)]
+    [string]$RepoRootPath,
+    [Parameter(Mandatory = $true)]
+    [string]$NavigatorVisaFlowsPath
+  )
+
+  $skillsCatalogPath = Join-Path $RepoRootPath "configs/skills.catalog.json"
+  $consultationBookingPlaybookPath = Join-Path $RepoRootPath "skills/bundled/consultation-booking/SKILL.md"
+  $calendarAssistantPath = Join-Path $RepoRootPath "skills/workspace/calendar-assistant/SKILL.md"
+  $managedSkillUpsertSamplePath = Join-Path $RepoRootPath "skills/workspace/calendar-assistant/managed-skill-upsert.sample.json"
+  $managedSkillSigningInputSamplePath = Join-Path $RepoRootPath "skills/workspace/calendar-assistant/managed-skill-signing-input.sample.json"
+
+  $skillsCatalog = Read-JsonIfExists -Path $skillsCatalogPath
+  $managedSkillUpsertSample = Read-JsonIfExists -Path $managedSkillUpsertSamplePath
+  $managedSkillSigningInputSample = Read-JsonIfExists -Path $managedSkillSigningInputSamplePath
+  $consultationBookingApprovedArtifactPath = Join-Path (Split-Path -Parent $NavigatorVisaFlowsPath) "consultation-booking-approved.json"
+  $consultationBookingApprovedArtifact = Read-JsonIfExists -Path $consultationBookingApprovedArtifactPath
+
+  $consultationBookingPersona = $null
+  $consultationBookingRecipe = $null
+  if ($skillsCatalog.parsed -eq $true) {
+    $consultationBookingPersona = @($skillsCatalog.value.personas) |
+      Where-Object { [string]$_.id -eq "consultation-booking" } |
+      Select-Object -First 1
+    $consultationBookingRecipe = @($skillsCatalog.value.recipes) |
+      Where-Object { [string]$_.id -eq "consultation-booking-flow" } |
+      Select-Object -First 1
+  }
+
+  $managedSkillPermissions = @()
+  if ($managedSkillUpsertSample.parsed -eq $true -and $null -ne $managedSkillUpsertSample.value.pluginManifest) {
+    foreach ($permission in @($managedSkillUpsertSample.value.pluginManifest.permissions)) {
+      if (-not [string]::IsNullOrWhiteSpace([string]$permission)) {
+        $managedSkillPermissions += [string]$permission
+      }
+    }
+  }
+
+  $scenarioNames = @()
+  foreach ($scenarioName in @($Report.navigatorVisaFlows.scenarioNames)) {
+    $normalizedScenarioName = ([string]$scenarioName).Trim().ToLowerInvariant()
+    if (-not [string]::IsNullOrWhiteSpace($normalizedScenarioName)) {
+      $scenarioNames += $normalizedScenarioName
+    }
+  }
+
+  $personaPresent = $null -ne $consultationBookingPersona
+  $recipePresent = $null -ne $consultationBookingRecipe
+  $playbookPresent = Test-Path $consultationBookingPlaybookPath
+  $playbookHasApprovalBoundary =
+    (Test-TextFileContains -Path $consultationBookingPlaybookPath -Pattern "Approval Boundary") -and
+    (Test-TextFileContains -Path $consultationBookingPlaybookPath -Pattern "approval before")
+  $playbookHasSuccessMetrics =
+    (Test-TextFileContains -Path $consultationBookingPlaybookPath -Pattern "Success Metrics") -and
+    (Test-TextFileContains -Path $consultationBookingPlaybookPath -Pattern "Two viable time slots")
+  $calendarSkillPresent = Test-Path $calendarAssistantPath
+  $calendarSkillHasApprovalBoundary =
+    (Test-TextFileContains -Path $calendarAssistantPath -Pattern "approval before action") -or
+    (Test-TextFileContains -Path $calendarAssistantPath -Pattern "ask for approval")
+  $managedSkillSamplePresent = $managedSkillUpsertSample.present -eq $true -and $managedSkillUpsertSample.parsed -eq $true
+  $signingInputSamplePresent = $managedSkillSigningInputSample.present -eq $true -and $managedSkillSigningInputSample.parsed -eq $true
+  $permissionsIncludeUiExecute = $managedSkillPermissions -contains "ui.execute"
+  $permissionsIncludeOperatorActions = $managedSkillPermissions -contains "operator.actions"
+  $bookingScenarioObserved = ($scenarioNames -contains "booking") -or ($scenarioNames -contains "consultation")
+  $stagedReminderContextObserved = $Report.navigatorVisaFlows.status -eq "pass" -and ($scenarioNames -contains "reminder")
+  $calendarWritebackObserved = $false
+  $approvedBookingArtifactObserved =
+    $consultationBookingApprovedArtifact.present -eq $true -and
+    $consultationBookingApprovedArtifact.parsed -eq $true -and
+    [string]$consultationBookingApprovedArtifact.value.artifactType -eq "consultation_booking_approved" -and
+    [string]$consultationBookingApprovedArtifact.value.workflow -eq "consultation_booking" -and
+    [string]$consultationBookingApprovedArtifact.value.scenarioName -eq "booking" -and
+    [string]$consultationBookingApprovedArtifact.value.status -eq "approved" -and
+    [string]$consultationBookingApprovedArtifact.value.approvalStatus -eq "approved" -and
+    $consultationBookingApprovedArtifact.value.approvalBoundaryRespected -eq $true -and
+    $consultationBookingApprovedArtifact.value.bookingFlowValidated -eq $true
+  $connectorProofObserved = $calendarWritebackObserved -or $approvedBookingArtifactObserved
+
+  $repoOwnedWorkflowConfigured =
+    $personaPresent -and
+    $recipePresent -and
+    $playbookPresent -and
+    $playbookHasApprovalBoundary -and
+    $playbookHasSuccessMetrics
+  $calendarConnectorConfigured =
+    $calendarSkillPresent -and
+    $calendarSkillHasApprovalBoundary -and
+    $managedSkillSamplePresent -and
+    $signingInputSamplePresent -and
+    $permissionsIncludeUiExecute -and
+    $permissionsIncludeOperatorActions
+  $proofReady = $repoOwnedWorkflowConfigured -and $calendarConnectorConfigured -and $bookingScenarioObserved -and $connectorProofObserved
+  $stagedReady = $repoOwnedWorkflowConfigured -and $calendarConnectorConfigured -and $stagedReminderContextObserved
+  $status = if ($proofReady) {
+    "proof_ready"
+  } elseif ($stagedReady) {
+    "staged_ready"
+  } elseif (-not $repoOwnedWorkflowConfigured) {
+    "needs_evidence"
+  } else {
+    "needs_connector"
+  }
+
+  $nextGaps = @()
+  if (-not $bookingScenarioObserved) {
+    $nextGaps += "add_booking_navigator_flow_fixture"
+  }
+  if (-not $connectorProofObserved) {
+    $nextGaps += "calendar_writeback_or_approved_booking_artifact"
+  }
+  if (-not $calendarConnectorConfigured) {
+    $nextGaps += "managed_calendar_skill_connector_proof"
+  }
+  if (-not $repoOwnedWorkflowConfigured) {
+    $nextGaps += "consultation_booking_playbook_alignment"
+  }
+
+  return [ordered]@{
+    schemaVersion     = "1.0"
+    generatedAt       = $GeneratedAt
+    product           = "AI Action Desk for immigration teams"
+    status            = $status
+    stagedReady       = $stagedReady
+    proofReady        = $proofReady
+    summary           = ("status=" + $status + "; stagedReady=" + [string]$stagedReady + "; bookingScenarioObserved=" + [string]$bookingScenarioObserved + "; calendarWritebackObserved=" + [string]$calendarWritebackObserved + "; approvedBookingArtifactObserved=" + [string]$approvedBookingArtifactObserved)
+    repoOwnedWorkflow = [ordered]@{
+      personaPresent                = $personaPresent
+      personaId                     = $(if ($personaPresent) { [string]$consultationBookingPersona.id } else { $null })
+      recipePresent                 = $recipePresent
+      recipeId                      = $(if ($recipePresent) { [string]$consultationBookingRecipe.id } else { $null })
+      playbookPresent               = $playbookPresent
+      playbookHasApprovalBoundary   = $playbookHasApprovalBoundary
+      playbookHasSuccessMetrics     = $playbookHasSuccessMetrics
+      bookingScenarioObserved       = $bookingScenarioObserved
+      stagedReminderContextObserved = $stagedReminderContextObserved
+      scenarioNames                 = $scenarioNames
+    }
+    calendarConnector = [ordered]@{
+      calendarSkillPresent              = $calendarSkillPresent
+      calendarSkillHasApprovalBoundary  = $calendarSkillHasApprovalBoundary
+      managedSkillSamplePresent         = $managedSkillSamplePresent
+      signingInputSamplePresent         = $signingInputSamplePresent
+      managedSkillPermissions           = $managedSkillPermissions
+      permissionsIncludeUiExecute       = $permissionsIncludeUiExecute
+      permissionsIncludeOperatorActions = $permissionsIncludeOperatorActions
+      connectorProofObserved            = $connectorProofObserved
+      writebackObserved                 = $calendarWritebackObserved
+      writebackEvidencePath             = $null
+      approvedBookingArtifactObserved   = $approvedBookingArtifactObserved
+      approvedBookingArtifactPath       = $(if ($approvedBookingArtifactObserved) { $consultationBookingApprovedArtifactPath } else { $null })
+    }
+    nextGaps         = $nextGaps
+    source           = [ordered]@{
+      skillsCatalogPath                   = "configs/skills.catalog.json"
+      consultationBookingPlaybookPath     = "skills/bundled/consultation-booking/SKILL.md"
+      calendarAssistantPath               = "skills/workspace/calendar-assistant/SKILL.md"
+      managedSkillUpsertSamplePath        = "skills/workspace/calendar-assistant/managed-skill-upsert.sample.json"
+      managedSkillSigningInputSamplePath  = "skills/workspace/calendar-assistant/managed-skill-signing-input.sample.json"
+      consultationBookingApprovedArtifactPath = $consultationBookingApprovedArtifactPath
+      navigatorVisaFlowsPath              = $NavigatorVisaFlowsPath
+    }
+  }
+}
+
 $resolvedBadgeDetailsPath = [System.IO.Path]::GetFullPath($BadgeDetailsPath)
 $resolvedOutputJsonPath = [System.IO.Path]::GetFullPath($OutputJsonPath)
 $resolvedOutputMarkdownPath = [System.IO.Path]::GetFullPath($OutputMarkdownPath)
@@ -1142,7 +1487,28 @@ $resolvedOutputRuntimeProofMarkdownPath = if ([string]::IsNullOrWhiteSpace($Outp
 } else {
   [System.IO.Path]::GetFullPath($OutputRuntimeProofMarkdownPath)
 }
+$resolvedOutputActionDeskKpiJsonPath = if ([string]::IsNullOrWhiteSpace($OutputActionDeskKpiJsonPath)) {
+  [System.IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $resolvedOutputJsonPath) "action-desk-kpi-report.json"))
+} else {
+  [System.IO.Path]::GetFullPath($OutputActionDeskKpiJsonPath)
+}
+$resolvedOutputActionDeskKpiMarkdownPath = if ([string]::IsNullOrWhiteSpace($OutputActionDeskKpiMarkdownPath)) {
+  [System.IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $resolvedOutputMarkdownPath) "action-desk-kpi-report.md"))
+} else {
+  [System.IO.Path]::GetFullPath($OutputActionDeskKpiMarkdownPath)
+}
+$resolvedOutputConsultationBookingProofJsonPath = if ([string]::IsNullOrWhiteSpace($OutputConsultationBookingProofJsonPath)) {
+  [System.IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $resolvedOutputJsonPath) "consultation-booking-proof.json"))
+} else {
+  [System.IO.Path]::GetFullPath($OutputConsultationBookingProofJsonPath)
+}
+$resolvedOutputConsultationBookingProofMarkdownPath = if ([string]::IsNullOrWhiteSpace($OutputConsultationBookingProofMarkdownPath)) {
+  [System.IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $resolvedOutputMarkdownPath) "consultation-booking-proof.md"))
+} else {
+  [System.IO.Path]::GetFullPath($OutputConsultationBookingProofMarkdownPath)
+}
 $resolvedRuntimeSurfaceSnapshotPath = [System.IO.Path]::GetFullPath($RuntimeSurfaceSnapshotPath)
+$resolvedRepoRootPath = [System.IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot))
 $reportGeneratedAtUtc = [DateTimeOffset]::UtcNow
 $reportGeneratedAt = $reportGeneratedAtUtc.ToString("o")
 
@@ -1150,6 +1516,7 @@ $resolvedDemoSummaryPath = [System.IO.Path]::GetFullPath("artifacts/demo-e2e/sum
 $resolvedDemoPolicyPath = [System.IO.Path]::GetFullPath("artifacts/demo-e2e/policy-check.json")
 $resolvedDemoBadgePath = [System.IO.Path]::GetFullPath("artifacts/demo-e2e/badge.json")
 $resolvedNavigatorVisaFlowsPath = [System.IO.Path]::GetFullPath("artifacts/demo-e2e/navigator-visa-flows.json")
+$resolvedConsultationBookingApprovedArtifactPath = [System.IO.Path]::GetFullPath("artifacts/demo-e2e/consultation-booking-approved.json")
 $resolvedPerfSummaryPath = [System.IO.Path]::GetFullPath("artifacts/perf-load/summary.json")
 $resolvedPerfPolicyPath = [System.IO.Path]::GetFullPath("artifacts/perf-load/policy-check.json")
 $resolvedDirectLiveProofJsonPath = [System.IO.Path]::GetFullPath("artifacts/deploy/direct-live-proof.json")
@@ -1735,8 +2102,134 @@ if ($report.caseWikiCompliance.observed -eq $true) {
   }
 }
 
+$report["consultationBookingProof"] = New-ConsultationBookingProofReport `
+  -Report $report `
+  -GeneratedAt $report.generatedAt `
+  -RepoRootPath $resolvedRepoRootPath `
+  -NavigatorVisaFlowsPath $resolvedNavigatorVisaFlowsPath
+
+$report["actionDeskWorkflowKpi"] = New-ActionDeskWorkflowKpiReport `
+  -Report $report `
+  -GeneratedAt $report.generatedAt `
+  -BadgeDetailsPath $resolvedBadgeDetailsPath `
+  -ReleaseEvidenceReportJsonPath $resolvedOutputJsonPath `
+  -ReleaseEvidenceManifestJsonPath $resolvedOutputManifestJsonPath `
+  -RuntimeProofReportJsonPath $resolvedOutputRuntimeProofJsonPath `
+  -NavigatorVisaFlowsPath $resolvedNavigatorVisaFlowsPath
+
+$consultationBookingProofJson = $report.consultationBookingProof | ConvertTo-Json -Depth 10
+Write-Utf8NoBomFile -Path $resolvedOutputConsultationBookingProofJsonPath -Content $consultationBookingProofJson
+
+$consultationBookingNextGaps = @($report.consultationBookingProof.nextGaps)
+$consultationBookingProofMarkdown = @(
+  "# Consultation Booking Proof Report",
+  "",
+  "- Product: $($report.consultationBookingProof.product)",
+  "- Generated at: $($report.consultationBookingProof.generatedAt)",
+  "- Status: $($report.consultationBookingProof.status)",
+  "- Staged ready: $($report.consultationBookingProof.stagedReady)",
+  "- Proof ready: $($report.consultationBookingProof.proofReady)",
+  "- Summary: $($report.consultationBookingProof.summary)",
+  "",
+  "## Repo-Owned Workflow",
+  "",
+  "| Signal | Value |",
+  "|---|---|",
+  "| personaPresent | $($report.consultationBookingProof.repoOwnedWorkflow.personaPresent) |",
+  "| recipePresent | $($report.consultationBookingProof.repoOwnedWorkflow.recipePresent) |",
+  "| playbookPresent | $($report.consultationBookingProof.repoOwnedWorkflow.playbookPresent) |",
+  "| playbookHasApprovalBoundary | $($report.consultationBookingProof.repoOwnedWorkflow.playbookHasApprovalBoundary) |",
+  "| playbookHasSuccessMetrics | $($report.consultationBookingProof.repoOwnedWorkflow.playbookHasSuccessMetrics) |",
+  "| bookingScenarioObserved | $($report.consultationBookingProof.repoOwnedWorkflow.bookingScenarioObserved) |",
+  "| stagedReminderContextObserved | $($report.consultationBookingProof.repoOwnedWorkflow.stagedReminderContextObserved) |",
+  "| scenarioNames | $(if (@($report.consultationBookingProof.repoOwnedWorkflow.scenarioNames).Count -eq 0) { "(none)" } else { (@($report.consultationBookingProof.repoOwnedWorkflow.scenarioNames) -join ", ") }) |",
+  "",
+  "## Calendar Connector",
+  "",
+  "| Signal | Value |",
+  "|---|---|",
+  "| calendarSkillPresent | $($report.consultationBookingProof.calendarConnector.calendarSkillPresent) |",
+  "| calendarSkillHasApprovalBoundary | $($report.consultationBookingProof.calendarConnector.calendarSkillHasApprovalBoundary) |",
+  "| managedSkillSamplePresent | $($report.consultationBookingProof.calendarConnector.managedSkillSamplePresent) |",
+  "| signingInputSamplePresent | $($report.consultationBookingProof.calendarConnector.signingInputSamplePresent) |",
+  "| managedSkillPermissions | $(if (@($report.consultationBookingProof.calendarConnector.managedSkillPermissions).Count -eq 0) { "(none)" } else { (@($report.consultationBookingProof.calendarConnector.managedSkillPermissions) -join ", ") }) |",
+  "| permissionsIncludeUiExecute | $($report.consultationBookingProof.calendarConnector.permissionsIncludeUiExecute) |",
+  "| permissionsIncludeOperatorActions | $($report.consultationBookingProof.calendarConnector.permissionsIncludeOperatorActions) |",
+  "| connectorProofObserved | $($report.consultationBookingProof.calendarConnector.connectorProofObserved) |",
+  "| writebackObserved | $($report.consultationBookingProof.calendarConnector.writebackObserved) |",
+  "| writebackEvidencePath | $(if ([string]::IsNullOrWhiteSpace([string]$report.consultationBookingProof.calendarConnector.writebackEvidencePath)) { "n/a" } else { [string]$report.consultationBookingProof.calendarConnector.writebackEvidencePath }) |",
+  "| approvedBookingArtifactObserved | $($report.consultationBookingProof.calendarConnector.approvedBookingArtifactObserved) |",
+  "| approvedBookingArtifactPath | $(if ([string]::IsNullOrWhiteSpace([string]$report.consultationBookingProof.calendarConnector.approvedBookingArtifactPath)) { "n/a" } else { [string]$report.consultationBookingProof.calendarConnector.approvedBookingArtifactPath }) |",
+  "",
+  "## Next Gaps",
+  ""
+)
+if ($consultationBookingNextGaps.Count -eq 0) {
+  $consultationBookingProofMarkdown += "- none"
+} else {
+  foreach ($gap in $consultationBookingNextGaps) {
+    $consultationBookingProofMarkdown += "- $gap"
+  }
+}
+Write-Utf8NoBomFile -Path $resolvedOutputConsultationBookingProofMarkdownPath -Content ($consultationBookingProofMarkdown -join "`n")
+
 $json = $report | ConvertTo-Json -Depth 10
 Write-Utf8NoBomFile -Path $resolvedOutputJsonPath -Content $json
+
+$actionDeskKpiJson = $report.actionDeskWorkflowKpi | ConvertTo-Json -Depth 10
+Write-Utf8NoBomFile -Path $resolvedOutputActionDeskKpiJsonPath -Content $actionDeskKpiJson
+
+$actionDeskWorkflowRows = @()
+foreach ($workflow in @($report.actionDeskWorkflowKpi.workflows)) {
+  $workflowNextGap = if ([string]::IsNullOrWhiteSpace([string]$workflow.nextGap)) { "none" } else { [string]$workflow.nextGap }
+  $actionDeskWorkflowRows += "| $($workflow.id) | $($workflow.status) | $($workflow.proofSignal) | $workflowNextGap |"
+}
+$actionDeskPilotGaps = @($report.actionDeskWorkflowKpi.pilotGaps)
+$actionDeskKpiMarkdown = @(
+  "# Action Desk Workflow KPI Report",
+  "",
+  "- Product: $($report.actionDeskWorkflowKpi.product)",
+  "- Generated at: $($report.actionDeskWorkflowKpi.generatedAt)",
+  "- Status: $($report.actionDeskWorkflowKpi.status)",
+  "- Summary: $($report.actionDeskWorkflowKpi.summary.headline)",
+  "",
+  "## Workflow Evidence",
+  "",
+  "| Workflow | Status | Proof signal | Next gap |",
+  "|---|---|---|---|"
+)
+$actionDeskKpiMarkdown += $actionDeskWorkflowRows
+$actionDeskKpiMarkdown += @(
+  "",
+  "## Buyer Metrics",
+  "",
+  "| Metric | Value |",
+  "|---|---|",
+  "| leadQualificationProofReady | $($report.actionDeskWorkflowKpi.metrics.leadQualificationProofReady) |",
+  "| consultationBookingProofReady | $($report.actionDeskWorkflowKpi.metrics.consultationBookingProofReady) |",
+  "| consultationBookingProofStatus | $($report.actionDeskWorkflowKpi.metrics.consultationBookingProofStatus) |",
+  "| consultationBookingStagedReady | $($report.actionDeskWorkflowKpi.metrics.consultationBookingStagedReady) |",
+  "| consultationBookingCalendarWritebackObserved | $($report.actionDeskWorkflowKpi.metrics.consultationBookingCalendarWritebackObserved) |",
+  "| consultationBookingApprovedArtifactObserved | $($report.actionDeskWorkflowKpi.metrics.consultationBookingApprovedArtifactObserved) |",
+  "| consultationBookingScenarioObserved | $($report.actionDeskWorkflowKpi.metrics.consultationBookingScenarioObserved) |",
+  "| missingDocumentFollowUpProofReady | $($report.actionDeskWorkflowKpi.metrics.missingDocumentFollowUpProofReady) |",
+  "| crmHandoffProofReady | $($report.actionDeskWorkflowKpi.metrics.crmHandoffProofReady) |",
+  "| navigatorVisaFlowSuccessRate | $(if ($null -eq $report.actionDeskWorkflowKpi.metrics.navigatorVisaFlowSuccessRate) { "n/a" } else { [string]$report.actionDeskWorkflowKpi.metrics.navigatorVisaFlowSuccessRate }) |",
+  "| navigatorVisaVerifiedCount | $($report.actionDeskWorkflowKpi.metrics.navigatorVisaVerifiedCount) |",
+  "| caseWikiAdoptionRate | $(if ($null -eq $report.actionDeskWorkflowKpi.metrics.caseWikiAdoptionRate) { "n/a" } else { [string]$report.actionDeskWorkflowKpi.metrics.caseWikiAdoptionRate }) |",
+  "| operatorMinutesSaved | $($report.actionDeskWorkflowKpi.metrics.operatorMinutesSaved.status) |",
+  "",
+  "## Pilot Gaps",
+  ""
+)
+if ($actionDeskPilotGaps.Count -eq 0) {
+  $actionDeskKpiMarkdown += "- none"
+} else {
+  foreach ($gap in $actionDeskPilotGaps) {
+    $actionDeskKpiMarkdown += "- $gap"
+  }
+}
+Write-Utf8NoBomFile -Path $resolvedOutputActionDeskKpiMarkdownPath -Content ($actionDeskKpiMarkdown -join "`n")
 
 $runtimeProofDirectLiveStatus = Get-AggregateEvidenceStatus -Statuses @(
   $report.statuses.hostedDirectLiveProofStatus
@@ -2276,6 +2769,27 @@ $markdown = @(
   "- scenarioNames: $(if (@($report.navigatorVisaFlows.scenarioNames).Count -eq 0) { "(none)" } else { (@($report.navigatorVisaFlows.scenarioNames) -join ", ") })",
   "- summary: $(if ([string]::IsNullOrWhiteSpace([string]$report.navigatorVisaFlows.summary)) { "n/a" } else { [string]$report.navigatorVisaFlows.summary })",
   "",
+  "## Consultation Booking Proof",
+  "",
+  "- status: $($report.consultationBookingProof.status)",
+  "- stagedReady: $($report.consultationBookingProof.stagedReady)",
+  "- proofReady: $($report.consultationBookingProof.proofReady)",
+  "- bookingScenarioObserved: $($report.consultationBookingProof.repoOwnedWorkflow.bookingScenarioObserved)",
+  "- stagedReminderContextObserved: $($report.consultationBookingProof.repoOwnedWorkflow.stagedReminderContextObserved)",
+  "- calendarWritebackObserved: $($report.consultationBookingProof.calendarConnector.writebackObserved)",
+  "- approvedBookingArtifactObserved: $($report.consultationBookingProof.calendarConnector.approvedBookingArtifactObserved)",
+  "- nextGaps: $(if (@($report.consultationBookingProof.nextGaps).Count -eq 0) { "(none)" } else { (@($report.consultationBookingProof.nextGaps) -join ", ") })",
+  "",
+  "## Action Desk Workflow KPI",
+  "",
+  "- status: $($report.actionDeskWorkflowKpi.status)",
+  "- summary: $($report.actionDeskWorkflowKpi.summary.headline)",
+  "- proofReadyWorkflows: $($report.actionDeskWorkflowKpi.summary.proofReadyWorkflows)/$($report.actionDeskWorkflowKpi.summary.totalWorkflows)",
+  "- needsConnectorCount: $($report.actionDeskWorkflowKpi.summary.needsConnectorCount)",
+  "- needsEvidenceCount: $($report.actionDeskWorkflowKpi.summary.needsEvidenceCount)",
+  "- operatorMinutesSaved: $($report.actionDeskWorkflowKpi.metrics.operatorMinutesSaved.status)",
+  "- pilotGaps: $(if (@($report.actionDeskWorkflowKpi.pilotGaps).Count -eq 0) { "(none)" } else { (@($report.actionDeskWorkflowKpi.pilotGaps) -join ", ") })",
+  "",
   "## Secondary Provider Usage",
   "",
   "- status: $($report.providerUsage.status)",
@@ -2317,6 +2831,7 @@ $artifactEntries = @(
   (New-ArtifactEntry -Id "demo.badge" -Category "demo" -Label "Demo badge JSON" -Path $resolvedDemoBadgePath -Required $true -Present (Test-Path $resolvedDemoBadgePath)),
   (New-ArtifactEntry -Id "demo.badgeDetails" -Category "demo" -Label "Demo badge-details JSON" -Path $resolvedBadgeDetailsPath -Required $true -Present (Test-Path $resolvedBadgeDetailsPath)),
   (New-ArtifactEntry -Id "demo.navigatorVisaFlows" -Category "demo" -Label "Demo navigator visa flows JSON" -Path $resolvedNavigatorVisaFlowsPath -Required $false -Present (Test-Path $resolvedNavigatorVisaFlowsPath)),
+  (New-ArtifactEntry -Id "demo.consultationBookingApproved" -Category "demo" -Label "Demo consultation booking approved artifact JSON" -Path $resolvedConsultationBookingApprovedArtifactPath -Required $false -Present (Test-Path $resolvedConsultationBookingApprovedArtifactPath)),
   (New-ArtifactEntry -Id "runtime.runtimeSurfaceSnapshot" -Category "runtime" -Label "Runtime surface snapshot JSON" -Path $resolvedRuntimeSurfaceSnapshotPath -Required $false -Present (Test-Path $resolvedRuntimeSurfaceSnapshotPath)),
   (New-ArtifactEntry -Id "perf.summary" -Category "perf" -Label "Perf summary JSON" -Path $resolvedPerfSummaryPath -Required $false -Present (Test-Path $resolvedPerfSummaryPath)),
   (New-ArtifactEntry -Id "perf.policy" -Category "perf" -Label "Perf policy-check JSON" -Path $resolvedPerfPolicyPath -Required $false -Present (Test-Path $resolvedPerfPolicyPath)),
@@ -2327,6 +2842,10 @@ $artifactEntries = @(
   (New-ArtifactEntry -Id "release.reportMarkdown" -Category "release_evidence" -Label "Release evidence report Markdown" -Path $resolvedOutputMarkdownPath -Required $true -Present (Test-Path $resolvedOutputMarkdownPath)),
   (New-ArtifactEntry -Id "release.runtimeProofReportJson" -Category "release_evidence" -Label "Runtime proof report JSON" -Path $resolvedOutputRuntimeProofJsonPath -Required $true -Present (Test-Path $resolvedOutputRuntimeProofJsonPath)),
   (New-ArtifactEntry -Id "release.runtimeProofReportMarkdown" -Category "release_evidence" -Label "Runtime proof report Markdown" -Path $resolvedOutputRuntimeProofMarkdownPath -Required $true -Present (Test-Path $resolvedOutputRuntimeProofMarkdownPath)),
+  (New-ArtifactEntry -Id "release.actionDeskKpiReportJson" -Category "release_evidence" -Label "Action Desk KPI report JSON" -Path $resolvedOutputActionDeskKpiJsonPath -Required $true -Present (Test-Path $resolvedOutputActionDeskKpiJsonPath)),
+  (New-ArtifactEntry -Id "release.actionDeskKpiReportMarkdown" -Category "release_evidence" -Label "Action Desk KPI report Markdown" -Path $resolvedOutputActionDeskKpiMarkdownPath -Required $true -Present (Test-Path $resolvedOutputActionDeskKpiMarkdownPath)),
+  (New-ArtifactEntry -Id "release.consultationBookingProofJson" -Category "release_evidence" -Label "Consultation booking proof JSON" -Path $resolvedOutputConsultationBookingProofJsonPath -Required $true -Present (Test-Path $resolvedOutputConsultationBookingProofJsonPath)),
+  (New-ArtifactEntry -Id "release.consultationBookingProofMarkdown" -Category "release_evidence" -Label "Consultation booking proof Markdown" -Path $resolvedOutputConsultationBookingProofMarkdownPath -Required $true -Present (Test-Path $resolvedOutputConsultationBookingProofMarkdownPath)),
   (New-ArtifactEntry -Id "release.manifestJson" -Category "release_evidence" -Label "Release evidence manifest JSON" -Path $resolvedOutputManifestJsonPath -Required $true -Present $true),
   (New-ArtifactEntry -Id "release.manifestMarkdown" -Category "release_evidence" -Label "Release evidence manifest Markdown" -Path $resolvedOutputManifestMarkdownPath -Required $true -Present $true),
   (New-ArtifactEntry -Id "release.submissionRefreshStatusJson" -Category "release_evidence" -Label "Submission refresh status JSON" -Path $resolvedSubmissionRefreshStatusPath -Required $false -Present (Test-Path $resolvedSubmissionRefreshStatusPath)),
@@ -2345,6 +2864,10 @@ $manifest = [ordered]@{
     reportMarkdownPath        = $resolvedOutputMarkdownPath
     runtimeProofReportJsonPath = $resolvedOutputRuntimeProofJsonPath
     runtimeProofReportMarkdownPath = $resolvedOutputRuntimeProofMarkdownPath
+    actionDeskKpiReportJsonPath = $resolvedOutputActionDeskKpiJsonPath
+    actionDeskKpiReportMarkdownPath = $resolvedOutputActionDeskKpiMarkdownPath
+    consultationBookingProofJsonPath = $resolvedOutputConsultationBookingProofJsonPath
+    consultationBookingProofMarkdownPath = $resolvedOutputConsultationBookingProofMarkdownPath
   }
   inventory     = [ordered]@{
     total           = $artifactEntries.Count
@@ -2362,6 +2885,40 @@ $manifest = [ordered]@{
     directLiveStatus     = $runtimeProof.summary.laneStatuses.directLive
     caseWikiStatus       = $runtimeProof.summary.laneStatuses.caseWiki
     navigatorStatus      = $runtimeProof.summary.laneStatuses.navigator
+  }
+  actionDeskWorkflowKpi = [ordered]@{
+    status               = $report.actionDeskWorkflowKpi.status
+    totalWorkflows       = $report.actionDeskWorkflowKpi.summary.totalWorkflows
+    proofReadyWorkflows  = $report.actionDeskWorkflowKpi.summary.proofReadyWorkflows
+    needsConnectorCount  = $report.actionDeskWorkflowKpi.summary.needsConnectorCount
+    needsEvidenceCount   = $report.actionDeskWorkflowKpi.summary.needsEvidenceCount
+    headline             = $report.actionDeskWorkflowKpi.summary.headline
+    leadQualificationProofReady = $report.actionDeskWorkflowKpi.metrics.leadQualificationProofReady
+    consultationBookingProofReady = $report.actionDeskWorkflowKpi.metrics.consultationBookingProofReady
+    consultationBookingProofStatus = $report.actionDeskWorkflowKpi.metrics.consultationBookingProofStatus
+    consultationBookingStagedReady = $report.actionDeskWorkflowKpi.metrics.consultationBookingStagedReady
+    consultationBookingCalendarWritebackObserved = $report.actionDeskWorkflowKpi.metrics.consultationBookingCalendarWritebackObserved
+    consultationBookingApprovedArtifactObserved = $report.actionDeskWorkflowKpi.metrics.consultationBookingApprovedArtifactObserved
+    consultationBookingScenarioObserved = $report.actionDeskWorkflowKpi.metrics.consultationBookingScenarioObserved
+    missingDocumentFollowUpProofReady = $report.actionDeskWorkflowKpi.metrics.missingDocumentFollowUpProofReady
+    crmHandoffProofReady = $report.actionDeskWorkflowKpi.metrics.crmHandoffProofReady
+    navigatorVisaFlowSuccessRate = $report.actionDeskWorkflowKpi.metrics.navigatorVisaFlowSuccessRate
+    caseWikiAdoptionRate = $report.actionDeskWorkflowKpi.metrics.caseWikiAdoptionRate
+    operatorMinutesSavedStatus = $report.actionDeskWorkflowKpi.metrics.operatorMinutesSaved.status
+    pilotGaps            = @($report.actionDeskWorkflowKpi.pilotGaps)
+  }
+  consultationBookingProof = [ordered]@{
+    status                          = $report.consultationBookingProof.status
+    stagedReady                     = $report.consultationBookingProof.stagedReady
+    proofReady                      = $report.consultationBookingProof.proofReady
+    bookingScenarioObserved         = $report.consultationBookingProof.repoOwnedWorkflow.bookingScenarioObserved
+    stagedReminderContextObserved   = $report.consultationBookingProof.repoOwnedWorkflow.stagedReminderContextObserved
+    calendarSkillPresent            = $report.consultationBookingProof.calendarConnector.calendarSkillPresent
+    managedSkillSamplePresent       = $report.consultationBookingProof.calendarConnector.managedSkillSamplePresent
+    connectorProofObserved          = $report.consultationBookingProof.calendarConnector.connectorProofObserved
+    calendarWritebackObserved       = $report.consultationBookingProof.calendarConnector.writebackObserved
+    approvedBookingArtifactObserved = $report.consultationBookingProof.calendarConnector.approvedBookingArtifactObserved
+    nextGaps                        = @($report.consultationBookingProof.nextGaps)
   }
   hostedDirectLiveProof = [ordered]@{
     status                  = $report.hostedDirectLiveProof.status
@@ -2620,6 +3177,45 @@ $manifestMarkdown = @(
   "| navigatorStatus | $($manifest.runtimeProof.navigatorStatus) |",
   "| overallSummary | $($manifest.runtimeProof.overallSummary) |",
   "",
+  "## Action Desk Workflow KPI",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.actionDeskWorkflowKpi.status) |",
+  "| totalWorkflows | $($manifest.actionDeskWorkflowKpi.totalWorkflows) |",
+  "| proofReadyWorkflows | $($manifest.actionDeskWorkflowKpi.proofReadyWorkflows) |",
+  "| needsConnectorCount | $($manifest.actionDeskWorkflowKpi.needsConnectorCount) |",
+  "| needsEvidenceCount | $($manifest.actionDeskWorkflowKpi.needsEvidenceCount) |",
+  "| leadQualificationProofReady | $($manifest.actionDeskWorkflowKpi.leadQualificationProofReady) |",
+  "| consultationBookingProofReady | $($manifest.actionDeskWorkflowKpi.consultationBookingProofReady) |",
+  "| consultationBookingProofStatus | $($manifest.actionDeskWorkflowKpi.consultationBookingProofStatus) |",
+  "| consultationBookingStagedReady | $($manifest.actionDeskWorkflowKpi.consultationBookingStagedReady) |",
+  "| consultationBookingCalendarWritebackObserved | $($manifest.actionDeskWorkflowKpi.consultationBookingCalendarWritebackObserved) |",
+  "| consultationBookingApprovedArtifactObserved | $($manifest.actionDeskWorkflowKpi.consultationBookingApprovedArtifactObserved) |",
+  "| consultationBookingScenarioObserved | $($manifest.actionDeskWorkflowKpi.consultationBookingScenarioObserved) |",
+  "| missingDocumentFollowUpProofReady | $($manifest.actionDeskWorkflowKpi.missingDocumentFollowUpProofReady) |",
+  "| crmHandoffProofReady | $($manifest.actionDeskWorkflowKpi.crmHandoffProofReady) |",
+  "| navigatorVisaFlowSuccessRate | $(if ($null -eq $manifest.actionDeskWorkflowKpi.navigatorVisaFlowSuccessRate) { "n/a" } else { [string]$manifest.actionDeskWorkflowKpi.navigatorVisaFlowSuccessRate }) |",
+  "| caseWikiAdoptionRate | $(if ($null -eq $manifest.actionDeskWorkflowKpi.caseWikiAdoptionRate) { "n/a" } else { [string]$manifest.actionDeskWorkflowKpi.caseWikiAdoptionRate }) |",
+  "| operatorMinutesSavedStatus | $($manifest.actionDeskWorkflowKpi.operatorMinutesSavedStatus) |",
+  "| pilotGaps | $(if (@($manifest.actionDeskWorkflowKpi.pilotGaps).Count -eq 0) { "(none)" } else { (@($manifest.actionDeskWorkflowKpi.pilotGaps) -join ", ") }) |",
+  "",
+  "## Consultation Booking Proof",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.consultationBookingProof.status) |",
+  "| stagedReady | $($manifest.consultationBookingProof.stagedReady) |",
+  "| proofReady | $($manifest.consultationBookingProof.proofReady) |",
+  "| bookingScenarioObserved | $($manifest.consultationBookingProof.bookingScenarioObserved) |",
+  "| stagedReminderContextObserved | $($manifest.consultationBookingProof.stagedReminderContextObserved) |",
+  "| calendarSkillPresent | $($manifest.consultationBookingProof.calendarSkillPresent) |",
+  "| managedSkillSamplePresent | $($manifest.consultationBookingProof.managedSkillSamplePresent) |",
+  "| connectorProofObserved | $($manifest.consultationBookingProof.connectorProofObserved) |",
+  "| calendarWritebackObserved | $($manifest.consultationBookingProof.calendarWritebackObserved) |",
+  "| approvedBookingArtifactObserved | $($manifest.consultationBookingProof.approvedBookingArtifactObserved) |",
+  "| nextGaps | $(if (@($manifest.consultationBookingProof.nextGaps).Count -eq 0) { "(none)" } else { (@($manifest.consultationBookingProof.nextGaps) -join ", ") }) |",
+  "",
   "## Case Wiki Evidence Signature",
   "",
   "| Field | Value |",
@@ -2853,5 +3449,9 @@ Write-Host ("[release-evidence-report] JSON: " + $resolvedOutputJsonPath)
 Write-Host ("[release-evidence-report] Markdown: " + $resolvedOutputMarkdownPath)
 Write-Host ("[release-evidence-report] Runtime Proof JSON: " + $resolvedOutputRuntimeProofJsonPath)
 Write-Host ("[release-evidence-report] Runtime Proof Markdown: " + $resolvedOutputRuntimeProofMarkdownPath)
+Write-Host ("[release-evidence-report] Action Desk KPI JSON: " + $resolvedOutputActionDeskKpiJsonPath)
+Write-Host ("[release-evidence-report] Action Desk KPI Markdown: " + $resolvedOutputActionDeskKpiMarkdownPath)
+Write-Host ("[release-evidence-report] Consultation Booking Proof JSON: " + $resolvedOutputConsultationBookingProofJsonPath)
+Write-Host ("[release-evidence-report] Consultation Booking Proof Markdown: " + $resolvedOutputConsultationBookingProofMarkdownPath)
 Write-Host ("[release-evidence-report] Manifest JSON: " + $resolvedOutputManifestJsonPath)
 Write-Host ("[release-evidence-report] Manifest Markdown: " + $resolvedOutputManifestMarkdownPath)

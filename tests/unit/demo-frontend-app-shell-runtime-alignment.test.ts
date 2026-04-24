@@ -316,6 +316,15 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
   assert.match(artifactViewerLib, /export function buildRuntimeArtifactStructuredView/);
   assert.match(artifactViewerLib, /Unified release evidence report/);
   assert.match(artifactViewerLib, /Runtime proof lanes/);
+  assert.match(artifactViewerLib, /release-evidence\/action-desk-kpi-report\.json/);
+  assert.match(artifactViewerLib, /release-evidence\/consultation-booking-proof\.json/);
+  assert.match(artifactViewerLib, /RUNTIME_ARTIFACT_VIEW_PRESETS = \{[\s\S]*actionDeskKpi:/);
+  assert.match(artifactViewerLib, /RUNTIME_ARTIFACT_VIEW_PRESETS = \{[\s\S]*consultationBookingProof:/);
+  assert.match(artifactViewerLib, /function buildActionDeskKpiStructuredView/);
+  assert.match(artifactViewerLib, /Action Desk workflow KPI proof/);
+  assert.match(artifactViewerLib, /function buildConsultationBookingProofStructuredView/);
+  assert.match(artifactViewerLib, /Consultation booking proof posture/);
+  assert.match(artifactViewerLib, /Calendar connector/);
   assert.match(bundlePage, /Inspect report/);
   assert.match(bundlePage, /RUNTIME_ARTIFACT_VIEW_PRESETS\.report/);
   assert.match(bundlePage, /buildRuntimeArtifactViewerPath/);

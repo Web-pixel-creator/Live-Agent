@@ -65,6 +65,18 @@ const debugArtifactCatalog = [
   },
   {
     category: "release-evidence",
+    label: "Action Desk KPI report",
+    description: "Workflow KPI proof for lead qualification, booking, document follow-up, and CRM handoff readiness.",
+    relativePath: "release-evidence/action-desk-kpi-report.json",
+  },
+  {
+    category: "release-evidence",
+    label: "Consultation booking proof",
+    description: "Support-only proof posture for consultation booking playbook, staged fixture readiness, and calendar writeback gaps.",
+    relativePath: "release-evidence/consultation-booking-proof.json",
+  },
+  {
+    category: "release-evidence",
     label: "Submission refresh status",
     description: "Judge-facing refresh status for the current submission pack.",
     relativePath: "release-evidence/submission-refresh-status.json",
@@ -104,6 +116,12 @@ const debugArtifactCatalog = [
     label: "Navigator visa flows",
     description: "Browser-worker and replay evidence for visa flow reliability checks.",
     relativePath: "demo-e2e/navigator-visa-flows.json",
+  },
+  {
+    category: "demo-e2e",
+    label: "Consultation booking approved artifact",
+    description: "Approval-safe booking artifact derived from the deterministic booking flow.",
+    relativePath: "demo-e2e/consultation-booking-approved.json",
   },
   {
     category: "demo-e2e",

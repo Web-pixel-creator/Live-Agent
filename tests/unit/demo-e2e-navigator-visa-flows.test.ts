@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import test from "node:test";
 
 import {
+  buildConsultationBookingApprovedArtifact,
   summarizeNavigatorVisaFlowResults,
   type VisaFlowResult,
 } from "../../scripts/demo-e2e-navigator-visa-flows.ts";
@@ -46,26 +47,28 @@ function createResult(
 
 test("navigator visa flow summary validates when all flows carry persistent replay-backed recovery proof", () => {
   const summary = summarizeNavigatorVisaFlowResults([
+    createResult("booking"),
     createResult("reminder"),
     createResult("handoff"),
     createResult("escalation"),
   ]);
 
   assert.equal(summary.validated, true);
-  assert.equal(summary.totalFlows, 3);
-  assert.equal(summary.succeededFlows, 3);
+  assert.equal(summary.totalFlows, 4);
+  assert.equal(summary.succeededFlows, 4);
   assert.equal(summary.successRate, 1);
-  assert.equal(summary.persistentSessionCount, 3);
-  assert.equal(summary.replayBundleCount, 3);
-  assert.equal(summary.verifiedCount, 3);
-  assert.equal(summary.staleRecoveryObservedCount, 3);
-  assert.equal(summary.healedRecoveryObservedCount, 3);
-  assert.equal(summary.resumedCheckpointCount, 3);
-  assert.deepEqual(summary.scenarioNames, ["reminder", "handoff", "escalation"]);
+  assert.equal(summary.persistentSessionCount, 4);
+  assert.equal(summary.replayBundleCount, 4);
+  assert.equal(summary.verifiedCount, 4);
+  assert.equal(summary.staleRecoveryObservedCount, 4);
+  assert.equal(summary.healedRecoveryObservedCount, 4);
+  assert.equal(summary.resumedCheckpointCount, 4);
+  assert.deepEqual(summary.scenarioNames, ["booking", "reminder", "handoff", "escalation"]);
 });
 
 test("navigator visa flow summary drops validation when one flow misses replay-backed recovery guarantees", () => {
   const summary = summarizeNavigatorVisaFlowResults([
+    createResult("booking"),
     createResult("reminder"),
     createResult("handoff", {
       success: false,
@@ -80,15 +83,15 @@ test("navigator visa flow summary drops validation when one flow misses replay-b
   ]);
 
   assert.equal(summary.validated, false);
-  assert.equal(summary.totalFlows, 3);
-  assert.equal(summary.succeededFlows, 2);
-  assert.equal(summary.successRate, 0.666667);
-  assert.equal(summary.persistentSessionCount, 2);
-  assert.equal(summary.replayBundleCount, 2);
-  assert.equal(summary.verifiedCount, 2);
-  assert.equal(summary.staleRecoveryObservedCount, 2);
-  assert.equal(summary.healedRecoveryObservedCount, 2);
-  assert.equal(summary.resumedCheckpointCount, 2);
+  assert.equal(summary.totalFlows, 4);
+  assert.equal(summary.succeededFlows, 3);
+  assert.equal(summary.successRate, 0.75);
+  assert.equal(summary.persistentSessionCount, 3);
+  assert.equal(summary.replayBundleCount, 3);
+  assert.equal(summary.verifiedCount, 3);
+  assert.equal(summary.staleRecoveryObservedCount, 3);
+  assert.equal(summary.healedRecoveryObservedCount, 3);
+  assert.equal(summary.resumedCheckpointCount, 3);
 });
 
 test("navigator visa proof pins visa approval keywords so demo-e2e stays deterministic across local env files", () => {
@@ -99,4 +102,39 @@ test("navigator visa proof pins visa approval keywords so demo-e2e stays determi
 
   assert.match(source, /UI_NAVIGATOR_APPROVAL_KEYWORDS/);
   assert.match(source, /visa,relocation,immigration,work permit,residency/);
+});
+
+test("navigator visa flows emit a deterministic consultation booking approval artifact from the booking scenario", () => {
+  const summary = summarizeNavigatorVisaFlowResults([
+    createResult("booking", {
+      latestResultRef: "ui://browser-jobs/job-booking/result-completed",
+      jobId: "job-booking",
+      checkpointCount: 1,
+      resumedCheckpointCount: 1,
+      summary: "healed 1 stale grounding ref; resumed 1 checkpoint.",
+    }),
+    createResult("reminder"),
+    createResult("handoff"),
+    createResult("escalation"),
+  ]);
+
+  const artifact = buildConsultationBookingApprovedArtifact(
+    summary,
+    "artifacts/demo-e2e/navigator-visa-flows.json",
+    "2026-04-24T00:00:00.000Z",
+  );
+
+  assert.ok(artifact);
+  assert.equal(artifact?.artifactType, "consultation_booking_approved");
+  assert.equal(artifact?.workflow, "consultation_booking");
+  assert.equal(artifact?.scenarioName, "booking");
+  assert.equal(artifact?.status, "approved");
+  assert.equal(artifact?.approvalStatus, "approved");
+  assert.equal(artifact?.approvalBoundaryRespected, true);
+  assert.equal(artifact?.bookingFlowValidated, true);
+  assert.equal(artifact?.calendarWritebackCompleted, false);
+  assert.equal(artifact?.preferredSlot, "Tomorrow 15:30");
+  assert.equal(artifact?.backupSlot, "Tomorrow 17:00");
+  assert.equal(artifact?.evidence.navigatorVisaFlowsPath, "artifacts/demo-e2e/navigator-visa-flows.json");
+  assert.equal(artifact?.evidence.latestResultRef, "ui://browser-jobs/job-booking/result-completed");
 });

@@ -23,9 +23,118 @@ function resolvePowerShellBinary(): string | null {
 const powershellBin = resolvePowerShellBinary();
 const skipIfNoPowerShell = powershellBin ? false : "PowerShell binary is not available";
 
+type ActionDeskWorkflowKpiReport = {
+  product?: string;
+  status?: string;
+  summary?: {
+    totalWorkflows?: number;
+    proofReadyWorkflows?: number;
+    needsConnectorCount?: number;
+    needsEvidenceCount?: number;
+    headline?: string;
+  };
+  metrics?: {
+    leadQualificationProofReady?: boolean;
+    consultationBookingProofReady?: boolean;
+    consultationBookingProofStatus?: string;
+    consultationBookingStagedReady?: boolean;
+    consultationBookingCalendarWritebackObserved?: boolean;
+    consultationBookingApprovedArtifactObserved?: boolean;
+    consultationBookingScenarioObserved?: boolean;
+    missingDocumentFollowUpProofReady?: boolean;
+    crmHandoffProofReady?: boolean;
+    navigatorVisaFlowSuccessRate?: number | null;
+    navigatorVisaVerifiedCount?: number;
+    caseWikiAdoptionRate?: number | null;
+    operatorMinutesSaved?: {
+      observed?: boolean;
+      valueMinutes?: number | null;
+      status?: string;
+      baselineRequired?: boolean;
+    };
+  };
+  workflows?: Array<{
+    id?: string;
+    status?: string;
+    proofSignal?: string;
+    nextGap?: string | null;
+  }>;
+  pilotGaps?: string[];
+};
+
+type ConsultationBookingProofReport = {
+  status?: string;
+  stagedReady?: boolean;
+  proofReady?: boolean;
+  summary?: string;
+  repoOwnedWorkflow?: {
+    personaPresent?: boolean;
+    recipePresent?: boolean;
+    playbookPresent?: boolean;
+    playbookHasApprovalBoundary?: boolean;
+    playbookHasSuccessMetrics?: boolean;
+    bookingScenarioObserved?: boolean;
+    stagedReminderContextObserved?: boolean;
+    scenarioNames?: string[];
+  };
+  calendarConnector?: {
+    calendarSkillPresent?: boolean;
+    calendarSkillHasApprovalBoundary?: boolean;
+    managedSkillSamplePresent?: boolean;
+    signingInputSamplePresent?: boolean;
+    managedSkillPermissions?: string[];
+    permissionsIncludeUiExecute?: boolean;
+    permissionsIncludeOperatorActions?: boolean;
+    connectorProofObserved?: boolean;
+    writebackObserved?: boolean;
+    approvedBookingArtifactObserved?: boolean;
+    approvedBookingArtifactPath?: string | null;
+  };
+  nextGaps?: string[];
+};
+
+type ActionDeskWorkflowKpiManifest = {
+  status?: string;
+  totalWorkflows?: number;
+  proofReadyWorkflows?: number;
+  needsConnectorCount?: number;
+  needsEvidenceCount?: number;
+  leadQualificationProofReady?: boolean;
+  consultationBookingProofReady?: boolean;
+  consultationBookingProofStatus?: string;
+  consultationBookingStagedReady?: boolean;
+  consultationBookingCalendarWritebackObserved?: boolean;
+  consultationBookingApprovedArtifactObserved?: boolean;
+  consultationBookingScenarioObserved?: boolean;
+  missingDocumentFollowUpProofReady?: boolean;
+  crmHandoffProofReady?: boolean;
+  navigatorVisaFlowSuccessRate?: number | null;
+  caseWikiAdoptionRate?: number | null;
+  operatorMinutesSavedStatus?: string;
+  pilotGaps?: string[];
+};
+
+type ConsultationBookingProofManifest = {
+  status?: string;
+  stagedReady?: boolean;
+  proofReady?: boolean;
+  bookingScenarioObserved?: boolean;
+  stagedReminderContextObserved?: boolean;
+  calendarSkillPresent?: boolean;
+  managedSkillSamplePresent?: boolean;
+  connectorProofObserved?: boolean;
+  calendarWritebackObserved?: boolean;
+  approvedBookingArtifactObserved?: boolean;
+  nextGaps?: string[];
+};
+
 function writeJson(path: string, value: unknown) {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, JSON.stringify(value, null, 2), "utf8");
+}
+
+function findActionDeskWorkflow(report: ActionDeskWorkflowKpiReport, id: string) {
+  return report.workflows?.find((workflow) => workflow.id === id);
 }
 
 function createPassingCaseWikiComplianceEvidence(
@@ -74,11 +183,26 @@ test(
   () => {
     const tempRoot = mkdtempSync(join(tmpdir(), "release-evidence-report-hosted-proof-"));
     const badgeDetailsPath = join(tempRoot, "artifacts", "demo-e2e", "badge-details.json");
+    const approvedBookingArtifactPath = join(tempRoot, "artifacts", "demo-e2e", "consultation-booking-approved.json");
     const directLiveProofPath = join(tempRoot, "artifacts", "deploy", "direct-live-proof.json");
     const outputJsonPath = join(tempRoot, "artifacts", "release-evidence", "report.json");
     const outputMarkdownPath = join(tempRoot, "artifacts", "release-evidence", "report.md");
     const outputRuntimeProofJsonPath = join(tempRoot, "artifacts", "release-evidence", "runtime-proof-report.json");
     const outputRuntimeProofMarkdownPath = join(tempRoot, "artifacts", "release-evidence", "runtime-proof-report.md");
+    const outputActionDeskKpiJsonPath = join(tempRoot, "artifacts", "release-evidence", "action-desk-kpi-report.json");
+    const outputActionDeskKpiMarkdownPath = join(tempRoot, "artifacts", "release-evidence", "action-desk-kpi-report.md");
+    const outputConsultationBookingProofJsonPath = join(
+      tempRoot,
+      "artifacts",
+      "release-evidence",
+      "consultation-booking-proof.json",
+    );
+    const outputConsultationBookingProofMarkdownPath = join(
+      tempRoot,
+      "artifacts",
+      "release-evidence",
+      "consultation-booking-proof.md",
+    );
     const outputManifestJsonPath = join(tempRoot, "artifacts", "release-evidence", "manifest.json");
     const outputManifestMarkdownPath = join(tempRoot, "artifacts", "release-evidence", "manifest.md");
 
@@ -213,18 +337,18 @@ test(
           status: "pass",
           validated: true,
           observed: true,
-          totalFlows: 3,
-          succeededFlows: 3,
+          totalFlows: 4,
+          succeededFlows: 4,
           successRate: 1,
-          persistentSessionCount: 3,
-          replayBundleCount: 3,
-          verifiedCount: 3,
-          staleRecoveryObservedCount: 3,
-          healedRecoveryObservedCount: 3,
-          resumedCheckpointCount: 3,
-          checkpointReadyClearedCount: 3,
-          scenarioNames: ["reminder", "handoff", "escalation"],
-          summary: "3/3 visa flows passed; persistent=3; verified=3; staleRecovery=3; resumed=3.",
+          persistentSessionCount: 4,
+          replayBundleCount: 4,
+          verifiedCount: 4,
+          staleRecoveryObservedCount: 4,
+          healedRecoveryObservedCount: 4,
+          resumedCheckpointCount: 4,
+          checkpointReadyClearedCount: 4,
+          scenarioNames: ["booking", "reminder", "handoff", "escalation"],
+          summary: "4/4 visa flows passed; persistent=4; verified=4; staleRecovery=4; resumed=4.",
         },
       },
       providerUsage: {
@@ -232,6 +356,36 @@ test(
         validated: true,
         activeSecondaryProviders: 0,
         entries: [],
+      },
+    });
+
+    writeJson(approvedBookingArtifactPath, {
+      schemaVersion: "1.0",
+      generatedAt: "2026-04-24T00:00:00.000Z",
+      artifactType: "consultation_booking_approved",
+      product: "AI Action Desk for immigration teams",
+      workflow: "consultation_booking",
+      scenarioName: "booking",
+      status: "approved",
+      approvalStatus: "approved",
+      approvalBoundaryRespected: true,
+      bookingFlowValidated: true,
+      calendarWritebackCompleted: false,
+      clientName: "Anna Petrova",
+      caseId: "VISA-2048",
+      service: "Initial consultation",
+      timezone: "Europe/Madrid",
+      preferredSlot: "Tomorrow 15:30",
+      backupSlot: "Tomorrow 17:00",
+      evidence: {
+        navigatorVisaFlowsPath: "artifacts/demo-e2e/navigator-visa-flows.json",
+        latestResultRef: "ui://browser-jobs/job-booking/result-completed",
+        jobId: "job-booking",
+        verificationState: "verified",
+        checkpointCount: 1,
+        resumedCheckpointCount: 1,
+        replayBundlePresent: true,
+        summary: "healed 1 stale grounding ref; resumed 1 checkpoint.",
       },
     });
 
@@ -292,6 +446,14 @@ test(
         outputJsonPath,
         "-OutputMarkdownPath",
         outputMarkdownPath,
+        "-OutputActionDeskKpiJsonPath",
+        outputActionDeskKpiJsonPath,
+        "-OutputActionDeskKpiMarkdownPath",
+        outputActionDeskKpiMarkdownPath,
+        "-OutputConsultationBookingProofJsonPath",
+        outputConsultationBookingProofJsonPath,
+        "-OutputConsultationBookingProofMarkdownPath",
+        outputConsultationBookingProofMarkdownPath,
         "-OutputManifestJsonPath",
         outputManifestJsonPath,
         "-OutputManifestMarkdownPath",
@@ -436,6 +598,8 @@ test(
         scenarioNames?: string[];
         summary?: string | null;
       };
+      actionDeskWorkflowKpi: ActionDeskWorkflowKpiReport;
+      consultationBookingProof: ConsultationBookingProofReport;
     };
     assert.equal(report.statuses.hostedDirectLiveProofStatus, "pass");
     assert.equal(report.statuses.caseWikiRoutingContextStatus, "pass");
@@ -537,21 +701,78 @@ test(
     assert.equal(report.navigatorVisaFlows.status, "pass");
     assert.equal(report.navigatorVisaFlows.validated, true);
     assert.equal(report.navigatorVisaFlows.observed, true);
-    assert.equal(report.navigatorVisaFlows.totalFlows, 3);
-    assert.equal(report.navigatorVisaFlows.succeededFlows, 3);
+    assert.equal(report.navigatorVisaFlows.totalFlows, 4);
+    assert.equal(report.navigatorVisaFlows.succeededFlows, 4);
     assert.equal(report.navigatorVisaFlows.successRate, 1);
-    assert.equal(report.navigatorVisaFlows.persistentSessionCount, 3);
-    assert.equal(report.navigatorVisaFlows.replayBundleCount, 3);
-    assert.equal(report.navigatorVisaFlows.verifiedCount, 3);
-    assert.equal(report.navigatorVisaFlows.staleRecoveryObservedCount, 3);
-    assert.equal(report.navigatorVisaFlows.healedRecoveryObservedCount, 3);
-    assert.equal(report.navigatorVisaFlows.resumedCheckpointCount, 3);
-    assert.equal(report.navigatorVisaFlows.checkpointReadyClearedCount, 3);
-    assert.deepEqual(report.navigatorVisaFlows.scenarioNames, ["reminder", "handoff", "escalation"]);
+    assert.equal(report.navigatorVisaFlows.persistentSessionCount, 4);
+    assert.equal(report.navigatorVisaFlows.replayBundleCount, 4);
+    assert.equal(report.navigatorVisaFlows.verifiedCount, 4);
+    assert.equal(report.navigatorVisaFlows.staleRecoveryObservedCount, 4);
+    assert.equal(report.navigatorVisaFlows.healedRecoveryObservedCount, 4);
+    assert.equal(report.navigatorVisaFlows.resumedCheckpointCount, 4);
+    assert.equal(report.navigatorVisaFlows.checkpointReadyClearedCount, 4);
+    assert.deepEqual(report.navigatorVisaFlows.scenarioNames, ["booking", "reminder", "handoff", "escalation"]);
     assert.equal(
       report.navigatorVisaFlows.summary,
-      "3/3 visa flows passed; persistent=3; verified=3; staleRecovery=3; resumed=3.",
+      "4/4 visa flows passed; persistent=4; verified=4; staleRecovery=4; resumed=4.",
     );
+    assert.equal(report.consultationBookingProof.status, "proof_ready");
+    assert.equal(report.consultationBookingProof.stagedReady, true);
+    assert.equal(report.consultationBookingProof.proofReady, true);
+    assert.equal(report.consultationBookingProof.repoOwnedWorkflow?.personaPresent, true);
+    assert.equal(report.consultationBookingProof.repoOwnedWorkflow?.recipePresent, true);
+    assert.equal(report.consultationBookingProof.repoOwnedWorkflow?.playbookHasApprovalBoundary, true);
+    assert.equal(report.consultationBookingProof.repoOwnedWorkflow?.playbookHasSuccessMetrics, true);
+    assert.equal(report.consultationBookingProof.repoOwnedWorkflow?.bookingScenarioObserved, true);
+    assert.equal(report.consultationBookingProof.repoOwnedWorkflow?.stagedReminderContextObserved, true);
+    assert.deepEqual(report.consultationBookingProof.repoOwnedWorkflow?.scenarioNames, [
+      "booking",
+      "reminder",
+      "handoff",
+      "escalation",
+    ]);
+    assert.equal(report.consultationBookingProof.calendarConnector?.calendarSkillPresent, true);
+    assert.equal(report.consultationBookingProof.calendarConnector?.calendarSkillHasApprovalBoundary, true);
+    assert.equal(report.consultationBookingProof.calendarConnector?.managedSkillSamplePresent, true);
+    assert.equal(report.consultationBookingProof.calendarConnector?.signingInputSamplePresent, true);
+    assert.deepEqual(report.consultationBookingProof.calendarConnector?.managedSkillPermissions, [
+      "ui.execute",
+      "operator.actions",
+    ]);
+    assert.equal(report.consultationBookingProof.calendarConnector?.connectorProofObserved, true);
+    assert.equal(report.consultationBookingProof.calendarConnector?.writebackObserved, false);
+    assert.equal(report.consultationBookingProof.calendarConnector?.approvedBookingArtifactObserved, true);
+    assert.equal(report.consultationBookingProof.calendarConnector?.approvedBookingArtifactPath, approvedBookingArtifactPath);
+    assert.equal(report.consultationBookingProof.nextGaps?.length ?? 0, 0);
+    assert.equal(report.actionDeskWorkflowKpi.product, "AI Action Desk for immigration teams");
+    assert.equal(report.actionDeskWorkflowKpi.status, "pilot_ready");
+    assert.equal(report.actionDeskWorkflowKpi.summary?.totalWorkflows, 4);
+    assert.equal(report.actionDeskWorkflowKpi.summary?.proofReadyWorkflows, 4);
+    assert.equal(report.actionDeskWorkflowKpi.summary?.needsConnectorCount, 0);
+    assert.equal(report.actionDeskWorkflowKpi.summary?.needsEvidenceCount, 0);
+    assert.equal(report.actionDeskWorkflowKpi.metrics?.leadQualificationProofReady, true);
+    assert.equal(report.actionDeskWorkflowKpi.metrics?.consultationBookingProofReady, true);
+    assert.equal(report.actionDeskWorkflowKpi.metrics?.consultationBookingProofStatus, "proof_ready");
+    assert.equal(report.actionDeskWorkflowKpi.metrics?.consultationBookingStagedReady, true);
+    assert.equal(report.actionDeskWorkflowKpi.metrics?.consultationBookingCalendarWritebackObserved, false);
+    assert.equal(report.actionDeskWorkflowKpi.metrics?.consultationBookingApprovedArtifactObserved, true);
+    assert.equal(report.actionDeskWorkflowKpi.metrics?.consultationBookingScenarioObserved, true);
+    assert.equal(report.actionDeskWorkflowKpi.metrics?.missingDocumentFollowUpProofReady, true);
+    assert.equal(report.actionDeskWorkflowKpi.metrics?.crmHandoffProofReady, true);
+    assert.equal(report.actionDeskWorkflowKpi.metrics?.navigatorVisaFlowSuccessRate, 1);
+    assert.equal(report.actionDeskWorkflowKpi.metrics?.navigatorVisaVerifiedCount, 4);
+    assert.equal(report.actionDeskWorkflowKpi.metrics?.caseWikiAdoptionRate, 0.952381);
+    assert.equal(report.actionDeskWorkflowKpi.metrics?.operatorMinutesSaved?.observed, false);
+    assert.equal(report.actionDeskWorkflowKpi.metrics?.operatorMinutesSaved?.status, "needs_pilot_baseline");
+    assert.equal(report.actionDeskWorkflowKpi.metrics?.operatorMinutesSaved?.baselineRequired, true);
+    assert.equal(findActionDeskWorkflow(report.actionDeskWorkflowKpi, "lead_qualification")?.status, "proof_ready");
+    assert.equal(findActionDeskWorkflow(report.actionDeskWorkflowKpi, "consultation_booking")?.status, "proof_ready");
+    assert.equal(
+      findActionDeskWorkflow(report.actionDeskWorkflowKpi, "missing_document_follow_up")?.status,
+      "proof_ready",
+    );
+    assert.equal(findActionDeskWorkflow(report.actionDeskWorkflowKpi, "crm_handoff")?.status, "proof_ready");
+    assert.ok(!report.actionDeskWorkflowKpi.pilotGaps?.includes("calendar_booking_connector_proof"));
 
     const manifest = JSON.parse(readFileSync(outputManifestJsonPath, "utf8")) as {
       criticalEvidenceStatuses: {
@@ -693,6 +914,8 @@ test(
         caseWikiStatus?: string;
         navigatorStatus?: string;
       };
+      actionDeskWorkflowKpi: ActionDeskWorkflowKpiManifest;
+      consultationBookingProof: ConsultationBookingProofManifest;
     };
     assert.equal(manifest.criticalEvidenceStatuses.hostedDirectLiveProofStatus, "pass");
     assert.equal(manifest.criticalEvidenceStatuses.caseWikiRoutingContextStatus, "pass");
@@ -792,20 +1015,20 @@ test(
     assert.equal(manifest.navigatorVisaFlows.status, "pass");
     assert.equal(manifest.navigatorVisaFlows.validated, true);
     assert.equal(manifest.navigatorVisaFlows.observed, true);
-    assert.equal(manifest.navigatorVisaFlows.totalFlows, 3);
-    assert.equal(manifest.navigatorVisaFlows.succeededFlows, 3);
+    assert.equal(manifest.navigatorVisaFlows.totalFlows, 4);
+    assert.equal(manifest.navigatorVisaFlows.succeededFlows, 4);
     assert.equal(manifest.navigatorVisaFlows.successRate, 1);
-    assert.equal(manifest.navigatorVisaFlows.persistentSessionCount, 3);
-    assert.equal(manifest.navigatorVisaFlows.replayBundleCount, 3);
-    assert.equal(manifest.navigatorVisaFlows.verifiedCount, 3);
-    assert.equal(manifest.navigatorVisaFlows.staleRecoveryObservedCount, 3);
-    assert.equal(manifest.navigatorVisaFlows.healedRecoveryObservedCount, 3);
-    assert.equal(manifest.navigatorVisaFlows.resumedCheckpointCount, 3);
-    assert.equal(manifest.navigatorVisaFlows.checkpointReadyClearedCount, 3);
-    assert.deepEqual(manifest.navigatorVisaFlows.scenarioNames, ["reminder", "handoff", "escalation"]);
+    assert.equal(manifest.navigatorVisaFlows.persistentSessionCount, 4);
+    assert.equal(manifest.navigatorVisaFlows.replayBundleCount, 4);
+    assert.equal(manifest.navigatorVisaFlows.verifiedCount, 4);
+    assert.equal(manifest.navigatorVisaFlows.staleRecoveryObservedCount, 4);
+    assert.equal(manifest.navigatorVisaFlows.healedRecoveryObservedCount, 4);
+    assert.equal(manifest.navigatorVisaFlows.resumedCheckpointCount, 4);
+    assert.equal(manifest.navigatorVisaFlows.checkpointReadyClearedCount, 4);
+    assert.deepEqual(manifest.navigatorVisaFlows.scenarioNames, ["booking", "reminder", "handoff", "escalation"]);
     assert.equal(
       manifest.navigatorVisaFlows.summary,
-      "3/3 visa flows passed; persistent=3; verified=3; staleRecovery=3; resumed=3.",
+      "4/4 visa flows passed; persistent=4; verified=4; staleRecovery=4; resumed=4.",
     );
     assert.equal(
       manifest.artifacts.find((entry) => entry.id === "deploy.directLiveProofJson")?.present,
@@ -819,6 +1042,26 @@ test(
       manifest.artifacts.find((entry) => entry.id === "release.runtimeProofReportMarkdown")?.present,
       true,
     );
+    assert.equal(
+      manifest.artifacts.find((entry) => entry.id === "release.actionDeskKpiReportJson")?.present,
+      true,
+    );
+    assert.equal(
+      manifest.artifacts.find((entry) => entry.id === "release.actionDeskKpiReportMarkdown")?.present,
+      true,
+    );
+    assert.equal(
+      manifest.artifacts.find((entry) => entry.id === "demo.consultationBookingApproved")?.present,
+      true,
+    );
+    assert.equal(
+      manifest.artifacts.find((entry) => entry.id === "release.consultationBookingProofJson")?.present,
+      true,
+    );
+    assert.equal(
+      manifest.artifacts.find((entry) => entry.id === "release.consultationBookingProofMarkdown")?.present,
+      true,
+    );
     assert.equal(manifest.runtimeProof.status, "pass");
     assert.equal(manifest.runtimeProof.readyForOperatorDemo, true);
     assert.equal(manifest.runtimeProof.passedLanes, 3);
@@ -827,6 +1070,35 @@ test(
     assert.equal(manifest.runtimeProof.directLiveStatus, "pass");
     assert.equal(manifest.runtimeProof.caseWikiStatus, "pass");
     assert.equal(manifest.runtimeProof.navigatorStatus, "pass");
+    assert.equal(manifest.actionDeskWorkflowKpi.status, "pilot_ready");
+    assert.equal(manifest.actionDeskWorkflowKpi.totalWorkflows, 4);
+    assert.equal(manifest.actionDeskWorkflowKpi.proofReadyWorkflows, 4);
+    assert.equal(manifest.actionDeskWorkflowKpi.needsConnectorCount, 0);
+    assert.equal(manifest.actionDeskWorkflowKpi.needsEvidenceCount, 0);
+    assert.equal(manifest.actionDeskWorkflowKpi.leadQualificationProofReady, true);
+    assert.equal(manifest.actionDeskWorkflowKpi.consultationBookingProofReady, true);
+    assert.equal(manifest.actionDeskWorkflowKpi.consultationBookingProofStatus, "proof_ready");
+    assert.equal(manifest.actionDeskWorkflowKpi.consultationBookingStagedReady, true);
+    assert.equal(manifest.actionDeskWorkflowKpi.consultationBookingCalendarWritebackObserved, false);
+    assert.equal(manifest.actionDeskWorkflowKpi.consultationBookingApprovedArtifactObserved, true);
+    assert.equal(manifest.actionDeskWorkflowKpi.consultationBookingScenarioObserved, true);
+    assert.equal(manifest.actionDeskWorkflowKpi.missingDocumentFollowUpProofReady, true);
+    assert.equal(manifest.actionDeskWorkflowKpi.crmHandoffProofReady, true);
+    assert.equal(manifest.actionDeskWorkflowKpi.navigatorVisaFlowSuccessRate, 1);
+    assert.equal(manifest.actionDeskWorkflowKpi.caseWikiAdoptionRate, 0.952381);
+    assert.equal(manifest.actionDeskWorkflowKpi.operatorMinutesSavedStatus, "needs_pilot_baseline");
+    assert.ok(!manifest.actionDeskWorkflowKpi.pilotGaps?.includes("calendar_booking_connector_proof"));
+    assert.equal(manifest.consultationBookingProof.status, "proof_ready");
+    assert.equal(manifest.consultationBookingProof.stagedReady, true);
+    assert.equal(manifest.consultationBookingProof.proofReady, true);
+    assert.equal(manifest.consultationBookingProof.bookingScenarioObserved, true);
+    assert.equal(manifest.consultationBookingProof.stagedReminderContextObserved, true);
+    assert.equal(manifest.consultationBookingProof.calendarSkillPresent, true);
+    assert.equal(manifest.consultationBookingProof.managedSkillSamplePresent, true);
+    assert.equal(manifest.consultationBookingProof.connectorProofObserved, true);
+    assert.equal(manifest.consultationBookingProof.calendarWritebackObserved, false);
+    assert.equal(manifest.consultationBookingProof.approvedBookingArtifactObserved, true);
+    assert.equal(manifest.consultationBookingProof.nextGaps?.length ?? 0, 0);
 
     const runtimeProof = JSON.parse(readFileSync(outputRuntimeProofJsonPath, "utf8")) as {
       status?: string;
@@ -893,11 +1165,37 @@ test(
     assert.equal(runtimeProof.lanes?.caseWiki?.nextAction, "Request passport scan");
     assert.equal(runtimeProof.lanes?.caseWiki?.caseWikiRate, 0.952381);
     assert.equal(runtimeProof.lanes?.navigator?.status, "pass");
-    assert.equal(runtimeProof.lanes?.navigator?.totalFlows, 3);
-    assert.equal(runtimeProof.lanes?.navigator?.succeededFlows, 3);
+    assert.equal(runtimeProof.lanes?.navigator?.totalFlows, 4);
+    assert.equal(runtimeProof.lanes?.navigator?.succeededFlows, 4);
     assert.equal(runtimeProof.lanes?.navigator?.successRate, 1);
-    assert.deepEqual(runtimeProof.lanes?.navigator?.scenarioNames, ["reminder", "handoff", "escalation"]);
+    assert.deepEqual(runtimeProof.lanes?.navigator?.scenarioNames, ["booking", "reminder", "handoff", "escalation"]);
     assert.deepEqual(runtimeProof.blockers, []);
+
+    const actionDeskKpi = JSON.parse(readFileSync(outputActionDeskKpiJsonPath, "utf8")) as ActionDeskWorkflowKpiReport;
+    assert.equal(actionDeskKpi.product, "AI Action Desk for immigration teams");
+    assert.equal(actionDeskKpi.status, "pilot_ready");
+    assert.equal(actionDeskKpi.summary?.totalWorkflows, 4);
+    assert.equal(actionDeskKpi.summary?.proofReadyWorkflows, 4);
+    assert.equal(actionDeskKpi.summary?.needsConnectorCount, 0);
+    assert.equal(actionDeskKpi.metrics?.operatorMinutesSaved?.status, "needs_pilot_baseline");
+    assert.equal(actionDeskKpi.metrics?.consultationBookingProofReady, true);
+    assert.equal(actionDeskKpi.metrics?.consultationBookingProofStatus, "proof_ready");
+    assert.equal(actionDeskKpi.metrics?.consultationBookingApprovedArtifactObserved, true);
+    assert.equal(findActionDeskWorkflow(actionDeskKpi, "consultation_booking")?.status, "proof_ready");
+    assert.ok(!actionDeskKpi.pilotGaps?.includes("calendar_booking_connector_proof"));
+
+    const consultationBookingProof = JSON.parse(
+      readFileSync(outputConsultationBookingProofJsonPath, "utf8"),
+    ) as ConsultationBookingProofReport;
+    assert.equal(consultationBookingProof.status, "proof_ready");
+    assert.equal(consultationBookingProof.stagedReady, true);
+    assert.equal(consultationBookingProof.proofReady, true);
+    assert.equal(consultationBookingProof.repoOwnedWorkflow?.bookingScenarioObserved, true);
+    assert.equal(consultationBookingProof.calendarConnector?.connectorProofObserved, true);
+    assert.equal(consultationBookingProof.calendarConnector?.writebackObserved, false);
+    assert.equal(consultationBookingProof.calendarConnector?.approvedBookingArtifactObserved, true);
+    assert.equal(consultationBookingProof.calendarConnector?.approvedBookingArtifactPath, approvedBookingArtifactPath);
+    assert.equal(consultationBookingProof.nextGaps?.length ?? 0, 0);
 
     const reportMarkdown = readFileSync(outputMarkdownPath, "utf8");
     assert.match(reportMarkdown, /## Hosted Direct-Live Proof Snapshot/);
@@ -920,11 +1218,19 @@ test(
     assert.match(reportMarkdown, /## Browser Worker Recovery Snapshot/);
     assert.match(reportMarkdown, /- resumedCheckpointCount: 1/);
     assert.match(reportMarkdown, /## Navigator Visa Flows Snapshot/);
-    assert.match(reportMarkdown, /- totalFlows: 3/);
-    assert.match(reportMarkdown, /- scenarioNames: reminder, handoff, escalation/);
+    assert.match(reportMarkdown, /- totalFlows: 4/);
+    assert.match(reportMarkdown, /- scenarioNames: booking, reminder, handoff, escalation/);
+    assert.match(reportMarkdown, /## Consultation Booking Proof/);
+    assert.match(reportMarkdown, /- status: proof_ready/);
+    assert.match(reportMarkdown, /- calendarWritebackObserved: False/i);
+    assert.match(reportMarkdown, /- approvedBookingArtifactObserved: True/i);
+    assert.match(reportMarkdown, /## Action Desk Workflow KPI/);
+    assert.match(reportMarkdown, /- proofReadyWorkflows: 4\/4/);
 
     const manifestMarkdown = readFileSync(outputManifestMarkdownPath, "utf8");
     const runtimeProofMarkdown = readFileSync(outputRuntimeProofMarkdownPath, "utf8");
+    const actionDeskKpiMarkdown = readFileSync(outputActionDeskKpiMarkdownPath, "utf8");
+    const consultationBookingProofMarkdown = readFileSync(outputConsultationBookingProofMarkdownPath, "utf8");
     assert.match(runtimeProofMarkdown, /# Runtime Proof Report/);
     assert.match(runtimeProofMarkdown, /- Overall status: pass/);
     assert.match(runtimeProofMarkdown, /\| direct_live \| pass \|/);
@@ -937,8 +1243,20 @@ test(
     assert.match(runtimeProofMarkdown, /- routingIngressSource: preserved_input_case_wiki/);
     assert.match(runtimeProofMarkdown, /- gatewayHydrationIngressSource: gateway_hydrated_case_wiki/);
     assert.match(runtimeProofMarkdown, /## Navigator Proof/);
-    assert.match(runtimeProofMarkdown, /- totalFlows: 3/);
+    assert.match(runtimeProofMarkdown, /- totalFlows: 4/);
     assert.match(runtimeProofMarkdown, /## Blockers/);
+    assert.match(manifestMarkdown, /## Action Desk Workflow KPI/);
+    assert.match(manifestMarkdown, /\| proofReadyWorkflows \| 4 \|/);
+    assert.match(manifestMarkdown, /## Consultation Booking Proof/);
+    assert.match(manifestMarkdown, /\| status \| proof_ready \|/);
+    assert.match(actionDeskKpiMarkdown, /# Action Desk Workflow KPI Report/);
+    assert.match(actionDeskKpiMarkdown, /\| consultation_booking \| proof_ready \| consultationBookingProof \|/);
+    assert.match(actionDeskKpiMarkdown, /\| consultationBookingProofStatus \| proof_ready \|/);
+    assert.match(actionDeskKpiMarkdown, /\| operatorMinutesSaved \| needs_pilot_baseline \|/);
+    assert.match(consultationBookingProofMarkdown, /# Consultation Booking Proof Report/);
+    assert.match(consultationBookingProofMarkdown, /- Status: proof_ready/);
+    assert.match(consultationBookingProofMarkdown, /## Calendar Connector/);
+    assert.match(consultationBookingProofMarkdown, /\| approvedBookingArtifactObserved \| True \|/);
     assert.match(runtimeProofMarkdown, /- none/);
     assert.match(manifestMarkdown, /## Hosted Direct-Live Proof/);
     assert.match(manifestMarkdown, /## Runtime Proof Report/);
@@ -961,7 +1279,7 @@ test(
     assert.match(manifestMarkdown, /\| resumedCheckpointCount \| 1 \|/);
     assert.match(manifestMarkdown, /\| navigatorVisaFlows \| pass \|/);
     assert.match(manifestMarkdown, /## Navigator Visa Flows/);
-    assert.match(manifestMarkdown, /\| totalFlows \| 3 \|/);
+    assert.match(manifestMarkdown, /\| totalFlows \| 4 \|/);
   },
 );
 
