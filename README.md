@@ -31,10 +31,58 @@ Current commercial focus:
 - `missing-document follow-up`
 - `CRM prep and human handoff`
 
+Seven-minute product path:
+
+- open `/app` and click `Start 7-minute demo`
+- or open `/app?demo=visa-intake` directly
+- review `Case Outcome Summary`
+- approve the protected missing-document follow-up
+- open the per-case evidence or presentation bundle
+- keep runtime, replay, signing, and raw artifact detail in support surfaces
+
+Live Desk also exposes four productized playbook templates:
+
+- `Visa lead qualification`
+- `Missing-document follow-up`
+- `Consultation booking prep`
+- `CRM handoff summary`
+
+Each card previews `Outcome`, `Approval`, `Evidence`, and `Deliverable` so the
+first scan explains the workflow before the operator opens deeper support
+surfaces.
+
+Selecting a template opens an inline detail panel with `Sample input`,
+`Approval policy`, `Evidence output`, and `CRM fields`. The focused detail can
+also be deep-linked with `/app?playbook=<lane-id>`.
+
+The same panel now renders a real `Payload preview`, `Surface path`, and
+`Copy payload` action using the current case record plus available Case Wiki
+state.
+
+The detail panel also opens an `Open export drawer` action. `CRM handoff
+summary` uses a `CRM payload drawer`, while `Consultation booking prep` uses a
+`Consultation handoff drawer`; both drawers provide `Human-readable` and `JSON`
+modes, a review checklist, and a canonical surface jump back to `Case Vault` or
+`Presentation bundle`.
+
+See `docs/getting-started-7-min.md` and
+`docs/quality-simplification-plan.md`.
+
+Local-services expansion spec:
+
+- `docs/local-services-action-desk-spec.md` is the canonical plan for the next
+  market-test wedge: one `AI Dispatcher for local service businesses`, with
+  HVAC/AC repair, plumbing, electrical, and cleaning as P0 service workflows.
+- restaurants stay as a secondary demo path until local services has real pilot
+  signal.
+- immigration remains the trust-heavy proof surface for approval, evidence,
+  replay, and operator-safe handoff.
+
 What we are not building now:
 
 - a general AI platform for every workflow
-- new verticals before immigration wedge proof
+- disconnected vertical products before a single local-services dispatcher path
+  is understandable in seven minutes
 - autonomous legal advice or final eligibility decisions
 - broad browser automation beyond narrow operator-safe admin actions
 - voice/video richness as the main reason to buy
@@ -91,6 +139,7 @@ Priority decision filter:
 
 - Architecture: `docs/architecture.md`
 - Product Master Plan: `docs/product-master-plan.md`
+- Local Services Action Desk Spec: `docs/local-services-action-desk-spec.md`
 - Product Backlog: `docs/product-backlog.md`
 - Startup Wedge 90 Days: `docs/startup-wedge-90-day-plan.md`
 - Visa Sales Demo Package: `docs/visa-sales-demo-package.md`

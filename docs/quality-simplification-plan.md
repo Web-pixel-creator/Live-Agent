@@ -1,0 +1,173 @@
+# Quality Simplification Plan
+
+This document records the implementation plan for making `AI Action Desk`
+understandable and useful within seven minutes.
+
+Use it together with `AGENTS.md`, `README.md`, and
+`docs/product-master-plan.md`. If this document conflicts with the master plan,
+follow the master plan.
+
+## Goal
+
+A new immigration operator, agency owner, or evaluator should understand the
+product and see a complete case outcome in seven minutes:
+
+1. open the Action Desk,
+2. start the visa-intake demo path,
+3. review lead qualification,
+4. review missing-document follow-up,
+5. review consultation readiness,
+6. review CRM or human handoff,
+7. open the evidence bundle.
+
+The product promise is not a general multimodal agent platform. The product
+promise is:
+
+`AI Action Desk for immigration teams`
+
+The next commercial-expansion plan is intentionally separate:
+`docs/local-services-action-desk-spec.md`. That document is the source of truth
+for the local-services dispatcher wedge and should prevent scattered notes about
+HVAC, plumbing, cleaning, restaurants, hotels, and dentistry from cluttering the
+seven-minute immigration path.
+
+## Success Criteria
+
+The seven-minute path is successful when:
+
+1. the first screen reads as an immigration operator desk,
+2. one primary case path is visible without runtime setup,
+3. lead qualification, document chase, booking, CRM handoff, approval, and
+   evidence are visible as one workflow,
+4. runtime, replay, signing, diagnostics, and raw artifacts stay available in
+   support surfaces instead of dominating the first scan,
+5. the demo can be completed without provider credentials,
+6. docs explain the product before release machinery.
+
+## Implementation Order
+
+### P0 - Seven-Minute Product Path
+
+Add a dedicated demo posture:
+
+`/app?demo=visa-intake`
+
+It should use the existing workspace case model and show one guided immigration
+case path:
+
+1. `Lead qualification`
+2. `Missing documents`
+3. `Consultation`
+4. `CRM handoff`
+5. `Human approval`
+6. `Evidence bundle`
+
+The path should avoid creating a separate mock universe when existing case,
+console, bundle, evidence, and Case Vault surfaces can be reused.
+
+### P0 - First-Screen Simplification
+
+Keep `/app` product-first:
+
+1. active cases,
+2. next operator action,
+3. document and approval status,
+4. clear links to console, bundle, evidence, and Case Vault.
+
+Move deeper runtime details to:
+
+1. `/app/console`,
+2. `/app/console/runtime`,
+3. `/bundle/:id`,
+4. `/evidence/:id`.
+
+### P0 - Outcome Summary
+
+Every product demo should end with a compact `Case Outcome Summary`:
+
+1. qualified lead,
+2. missing documents requested,
+3. consultation ready,
+4. CRM handoff prepared,
+5. approval required or completed,
+6. evidence bundle available.
+
+### P0 - Docs Simplification
+
+Create or update:
+
+1. `README.md` product-first introduction,
+2. `docs/getting-started-7-min.md`,
+3. `docs/operator-guide.md` seven-minute demo note,
+4. `docs/evidence-and-trust.md` for replay, signing, and release detail.
+
+### P1 - Templates
+
+Add reusable immigration playbook templates:
+
+1. `Visa Lead Qualification`,
+2. `Missing Document Follow-up`,
+3. `Consultation Booking Prep`,
+4. `CRM Handoff Summary`.
+
+Each template should include:
+
+1. sample input,
+2. expected outcome,
+3. approval policy,
+4. evidence output,
+5. CRM fields.
+
+Current shell note:
+
+The first pass should live in the main `/app` shell as productized launch cards,
+not as a separate builder. Use existing runtime cases and support surfaces so
+the templates stay grounded in the same case, approval, bundle, evidence, and
+Case Vault flows. Each card should preview `Outcome`, `Approval`, `Evidence`,
+and `Deliverable` before the operator opens the lane. The selected lane should
+also expose `Sample input`, `Approval policy`, `Evidence output`, and `CRM
+fields` inline, with a deep-linkable `?playbook=` state. The same panel should
+show a repo-owned `Payload preview`, the canonical `Surface path`, and a
+`Copy payload` action derived from the active case and available Case Wiki.
+It should also provide an `Open export drawer` action so the CRM and
+consultation lanes have an integration-ready review surface before any external
+connector exists: `CRM payload drawer` for the Case Vault route and
+`Consultation handoff drawer` for the Presentation Bundle route. Both drawers
+should expose `Human-readable` and `JSON` modes plus an operator checklist.
+
+### P1 - Integrations
+
+Prioritize integrations that close the current wedge:
+
+1. Google Calendar or Calendly,
+2. HubSpot or Airtable CRM,
+3. Gmail draft or send with approval,
+4. document upload,
+5. Telegram or WhatsApp intake.
+
+## Non-Goals For This Cycle
+
+Do not move these into the critical path:
+
+1. disconnected vertical products before the local-services dispatcher spec has
+   a complete seven-minute path and pilot signal,
+2. broad model-portfolio work,
+3. Storyteller as the main product surface,
+4. generic browser-agent positioning,
+5. marketplace work before first repeatable playbooks,
+6. autonomous legal advice or filing.
+
+## Validation
+
+For UI and docs changes:
+
+```bash
+npm run test:unit
+npm run build
+```
+
+For release-impacting evidence or artifact changes:
+
+```bash
+npm run verify:release
+```

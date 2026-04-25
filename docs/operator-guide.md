@@ -17,11 +17,31 @@ Product framing for operators:
 ## Access Points
 
 1. Frontend: `http://localhost:3000/app`
-2. API summary: `GET /v1/operator/summary`
-3. Operator queue: `GET /v1/operator/queue`
-4. Operator actions: `POST /v1/operator/actions`
-5. Runtime drill catalog: `GET /v1/runtime/fault-profiles`
-6. Runtime drill execution: `POST /v1/runtime/fault-profiles/execute` (`x-operator-role: admin`, use `dryRun=true` before live activation when possible)
+2. Seven-minute visa-intake path: `http://localhost:3000/app?demo=visa-intake`
+3. API summary: `GET /v1/operator/summary`
+4. Operator queue: `GET /v1/operator/queue`
+5. Operator actions: `POST /v1/operator/actions`
+6. Runtime drill catalog: `GET /v1/runtime/fault-profiles`
+7. Runtime drill execution: `POST /v1/runtime/fault-profiles/execute` (`x-operator-role: admin`, use `dryRun=true` before live activation when possible)
+
+Seven-minute demo note: use `/app?demo=visa-intake` when the goal is to show
+product value before runtime depth, or open `/app` and click `Start 7-minute
+demo`. The path keeps the primary shell in Live Desk, lifts `Case Outcome
+Summary` for `VS-2841`, and links directly to the approval, presentation
+bundle, evidence bundle, and Case Vault surfaces. The same Live Desk header now
+also exposes four playbook templates for the current wedge: `Visa lead
+qualification`, `Missing-document follow-up`, `Consultation booking prep`, and
+`CRM handoff summary`. Each card previews `Outcome`, `Approval`, `Evidence`,
+and `Deliverable` so the operator can explain the lane before opening it.
+Selecting a card opens an inline detail panel with `Sample input`, `Approval
+policy`, `Evidence output`, and `CRM fields`; the same focused lane can be
+shared with `/app?playbook=<lane-id>`. That panel now also carries a real
+`Payload preview`, `Surface path`, and `Copy payload` action for the selected
+handoff lane. Use `Open export drawer` when the operator needs an
+integration-ready review surface: `CRM handoff summary` opens a `CRM payload
+drawer`, `Consultation booking prep` opens a `Consultation handoff drawer`, and
+both drawers switch between `Human-readable` and `JSON` modes before jumping to
+the canonical `Case Vault` or `Presentation bundle` surface.
 
 `GET /v1/operator/queue` is the repo-owned operator queue built from compiled Case Wiki snapshots. `GET /v1/operator/summary` now also includes the same snapshot at `data.operatorQueue`, so the main summary refresh can hydrate queue cards and `Active Queue` without a second fetch. The frontend should prefer this backend snapshot for remediation, approval, runtime, incident, and compliance-enforcement jumps; local queue inference remains only as a fallback when the route is unavailable or stale.
 

@@ -8,6 +8,8 @@ Companion execution backlog:
 
 - `docs/product-backlog.md`
 - `docs/startup-wedge-90-day-plan.md`
+- `docs/quality-simplification-plan.md`
+- `docs/local-services-action-desk-spec.md`
 
 ## Source of Truth
 
@@ -64,6 +66,13 @@ Why this wedge:
 Adjacent markets such as admissions, medical tourism, or broader cross-border
 service teams are later expansion paths, not the current product center.
 
+The next practical commercial expansion candidate is documented separately in
+`docs/local-services-action-desk-spec.md`: one `AI Dispatcher for local service
+businesses`, starting with HVAC/AC repair, plumbing, electrical, and cleaning.
+That expansion must stay one dispatcher product, not a collection of unrelated
+vertical products. Restaurants can be a secondary demo path, but should not
+displace the local-services wedge before pilot signal exists.
+
 ## Product Shape
 
 The product should be explained as one system:
@@ -91,6 +100,11 @@ The market promise should stay narrow:
 
 If a feature does not improve one of those three playbooks or the two closing
 actions, it should not be on the critical path for the next product cycle.
+
+The primary `/app` playbook layer should turn those workflows into
+operator-ready exports before adding external connectors: `CRM payload drawer`
+for the Case Vault route, `Consultation handoff drawer` for the Presentation
+Bundle route, and explicit `Human-readable` / `JSON` modes for review.
 
 ## Execution Boundaries
 
