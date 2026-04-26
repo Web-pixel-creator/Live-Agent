@@ -1895,17 +1895,17 @@ const LocalServicesDispatchDemoPanel = ({
     {
       label: "Audience from outreach list",
       value: selectedTemplate.detail.pilotKit.outreachWizard.audience,
-      status: "Selected",
+      status: selectedOutreachProspect ? "Selected" : "Needs selection",
     },
     {
       label: "Message/test preview",
       value: selectedTemplate.detail.pilotKit.outreachWizard.testMessage,
-      status: "Review",
+      status: currentPilotStatus === "draft_ready" ? "Preview complete" : "Review",
     },
     {
       label: "Operator confirmation",
       value: selectedTemplate.detail.pilotKit.outreachWizard.confirmationGate,
-      status: "Manual approval",
+      status: currentPilotStatus === "draft_ready" ? "Draft ready" : "Manual approval",
     },
   ];
   const allPilotProspects = useMemo(
@@ -1995,6 +1995,7 @@ const LocalServicesDispatchDemoPanel = ({
       },
     }));
   };
+  const recordReadyForManualOutreach = () => updatePilotWorkspaceStatus("draft_ready");
 
   const updatePilotMetricStatus = (status: LocalServicePilotMetricStatus) => {
     setPilotWorkspaceState((prev) => ({
@@ -2591,6 +2592,16 @@ const LocalServicesDispatchDemoPanel = ({
                         no outbound send
                       </span>
                     </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                        Wizard progress
+                      </span>
+                      <span className="inline-flex rounded-[5px] bg-[hsl(var(--tint-mint)/0.12)] px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.22)]">
+                        {currentPilotStatus === "draft_ready"
+                          ? "Ready for manual outreach recorded"
+                          : "Awaiting operator confirmation"}
+                      </span>
+                    </div>
                     <ol className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
                       {pilotWizardSteps.map((step, index) => (
                         <li key={step.label} className="rounded-md bg-card/30 px-3 py-2.5">
@@ -2764,6 +2775,20 @@ const LocalServicesDispatchDemoPanel = ({
                               <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
                               Open confirmation summary
                             </Button>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Button
+                              size="sm"
+                              variant={currentPilotStatus === "draft_ready" ? "secondary" : "default"}
+                              onClick={recordReadyForManualOutreach}
+                              className="h-8"
+                            >
+                              <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                              Record ready for manual outreach
+                            </Button>
+                            <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 text-[10px] text-muted-foreground">
+                              Local status only, no send
+                            </span>
                           </div>
                           <div className="mt-3 grid gap-2 sm:grid-cols-2">
                             <div className="rounded-md border border-border/50 bg-background/35 px-3 py-2">
@@ -2958,6 +2983,8 @@ const LocalServicesDispatchDemoPanel = ({
         mode={pilotOperatorConfirmationMode}
         onModeChange={setPilotOperatorConfirmationMode}
         onCopy={onCopyText}
+        readyRecorded={currentPilotStatus === "draft_ready"}
+        onRecordReady={recordReadyForManualOutreach}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
       />
@@ -3123,6 +3150,8 @@ const LocalServicePilotWorkspaceExportDrawer = ({
   mode,
   onModeChange,
   onCopy,
+  readyRecorded,
+  onRecordReady,
   onOpenScorecard,
   onOpenExecutionPack,
 }: {
@@ -3132,6 +3161,8 @@ const LocalServicePilotWorkspaceExportDrawer = ({
   mode: PlaybookExportMode;
   onModeChange: (mode: PlaybookExportMode) => void;
   onCopy: (text: string, label: string) => void;
+  readyRecorded: boolean;
+  onRecordReady: () => void;
   onOpenScorecard: () => void;
   onOpenExecutionPack: () => void;
 }) => {
@@ -3212,6 +3243,15 @@ const LocalServicePilotWorkspaceExportDrawer = ({
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant={readyRecorded ? "secondary" : "default"}
+                  onClick={onRecordReady}
+                  className="h-8"
+                >
+                  <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Record ready for manual outreach
+                </Button>
                 <Button size="sm" variant="secondary" onClick={onOpenExecutionPack} className="h-8">
                   <FileText className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
                   Open outreach execution pack

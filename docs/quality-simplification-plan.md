@@ -61,6 +61,9 @@ creating an external send.
 The `Operator confirmation` step now opens an `Operator confirmation summary`
 with `Ready for manual outreach`, selected company, channel, exact message,
 approval checklist, and `Copy confirmation summary`.
+The wizard now includes `Wizard progress` and `Record ready for manual outreach`;
+that action sets the selected company to `Draft ready` in browser-local state
+and shows `Ready for manual outreach recorded`, still with no outbound send.
 It now continues into `Pilot scorecard action`: select a company from the
 repo-owned outreach list, review the message, and `Record scorecard draft` as a
 demo-session `Not contacted` entry. This gives the operator a real next action

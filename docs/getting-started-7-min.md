@@ -60,6 +60,9 @@ happens.
 `Operator confirmation` now opens an `Operator confirmation summary` with
 `Ready for manual outreach`, selected company, channel, exact message, approval
 checklist, and `Copy confirmation summary`.
+The wizard also shows `Wizard progress`; `Record ready for manual outreach`
+sets the selected company to `Draft ready` in browser-local state and displays
+`Ready for manual outreach recorded` without sending anything.
 That wizard now includes a `Pilot scorecard action`: select `AC MASTER`,
 `Santexniki.uz`, `Service-Pro`, or another lane-specific candidate from the
 repo-owned outreach list, review the test message, and `Record scorecard draft`

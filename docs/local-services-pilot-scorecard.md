@@ -60,8 +60,9 @@ Use it to:
 
 1. select a company from the repo-owned outreach list
 2. review the `Test message preview`
-3. click `Record scorecard draft`
-4. keep the company as `Not contacted` until a human performs real outreach
+3. open `Operator confirmation summary`
+4. click `Record ready for manual outreach` to mark `Draft ready` locally
+5. keep real outreach manual-only until a human sends the message outside the shell
 
 This shell action is intentionally local to the demo session. It does not send a
 message, update CRM, or change this Markdown file automatically.
