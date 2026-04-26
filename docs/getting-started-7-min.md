@@ -54,6 +54,9 @@ The same block now includes a 4-step `Pilot outreach wizard` that walks the
 operator through `Offer preview`, `Audience from outreach list`,
 `Message/test preview`, and `Operator confirmation` before any real outreach
 happens.
+`Message/test preview` now opens a `Preview / Test message modal` with
+`Human-readable` / `JSON` modes, the exact `Copy test message` action, and
+`Copy test message preview`; the preview does not send outreach.
 That wizard now includes a `Pilot scorecard action`: select `AC MASTER`,
 `Santexniki.uz`, `Service-Pro`, or another lane-specific candidate from the
 repo-owned outreach list, review the test message, and `Record scorecard draft`

@@ -201,8 +201,10 @@ Allowed reply statuses:
    - `Open handoff drawer` for master/operator handoff.
 6. Show `Human-readable` first, then `JSON` only if the prospect asks about CRM
    or spreadsheet export.
-7. Show `Pilot readiness`, `Pilot metrics`, and `Open metrics tracker`.
-8. End with one question: "Would this save missed requests or manager time if we
+7. Show `Pilot readiness`, open the `Preview / Test message modal`, and explain
+   that `Copy test message` is still manual-only and sends nothing.
+8. Show `Pilot metrics` and `Open metrics tracker`.
+9. End with one question: "Would this save missed requests or manager time if we
    tested it for 14 days?"
 
 ## After Each Contact

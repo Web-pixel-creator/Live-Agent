@@ -431,6 +431,19 @@ type LocalServicePilotWorkspaceExport = {
   checklist: string[];
 };
 
+type LocalServicePilotMessagePreview = {
+  title: string;
+  description: string;
+  modeLabel: string;
+  copyPreviewLabel: string;
+  copyMessageLabel: string;
+  messageText: string;
+  humanText: string;
+  jsonText: string;
+  rows: { label: string; value: string }[];
+  checklist: string[];
+};
+
 type LocalServiceOutreachProspect = {
   id: string;
   company: string;
@@ -1088,6 +1101,94 @@ function buildLocalServicePilotMetricsTrackerExport(
   };
 }
 
+function buildLocalServicePilotMessagePreview(
+  template: LocalServiceDemoTemplate,
+  prospect: LocalServiceOutreachProspect | undefined,
+  status: LocalServicePilotStatus,
+): LocalServicePilotMessagePreview {
+  const statusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[status];
+  const wizard = template.detail.pilotKit.outreachWizard;
+  const company = prospect?.company ?? "No prospect selected";
+  const segment = prospect?.segment ?? "unknown";
+  const messageText = wizard.testMessage;
+  const humanLines = [
+    `Preview / Test message modal: ${template.title}`,
+    `Selected company: ${company}`,
+    `Segment: ${segment}`,
+    `Current scorecard state: ${statusLabel}`,
+    "",
+    "Audience:",
+    wizard.audience,
+    "",
+    "Test message:",
+    messageText,
+    "",
+    "Operator confirmation:",
+    wizard.confirmationGate,
+    "",
+    "Execution rule: this preview does not send outreach, write CRM, or update the pilot scorecard.",
+    "Operator action: copy only after manual review, send manually in the approved channel, then log the outcome.",
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_test_message_preview",
+      export_kind: "operator_review_preview",
+      service_id: template.id,
+      service_ref: template.ref,
+      service_title: template.title,
+      prospect: prospect
+        ? {
+            id: prospect.id,
+            company: prospect.company,
+            segment: prospect.segment,
+            channel_fit: prospect.channelFit,
+            why_now: prospect.whyNow,
+            scorecard_focus: prospect.scorecardFocus,
+            next_step: prospect.nextStep,
+          }
+        : null,
+      current_status: status,
+      current_status_label: statusLabel,
+      audience: wizard.audience,
+      test_message: messageText,
+      confirmation_gate: wizard.confirmationGate,
+      guardrails: [
+        "manual_confirmation_required_before_outreach",
+        "no_outbound_message_sent",
+        "no_crm_write",
+        "manual_scorecard_sync_required",
+      ],
+    },
+    null,
+    2,
+  );
+
+  return {
+    title: "Preview / Test message modal",
+    description:
+      "Review the exact first-contact message, selected company, audience fit, and approval gate before any manual outreach.",
+    modeLabel: "Message preview mode",
+    copyPreviewLabel: "Copy test message preview",
+    copyMessageLabel: "Copy test message",
+    messageText,
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: [
+      { label: "Service", value: `${template.ref} - ${template.title}` },
+      { label: "Selected company", value: company },
+      { label: "Segment", value: segment },
+      { label: "Current status", value: statusLabel },
+      { label: "Guardrail", value: "No outbound message sent; manual confirmation required" },
+    ],
+    checklist: [
+      "Confirm the company matches the selected local-services lane.",
+      "Review the message wording and remove anything that sounds like an automated blast.",
+      "Send manually only after the operator approves the exact message and channel.",
+      "Log the result in the pilot scorecard after the manual contact.",
+    ],
+  };
+}
+
 const LOCAL_SERVICE_DEMO_TEMPLATES: LocalServiceDemoTemplate[] = [
   {
     id: "ac-repair-dispatch",
@@ -1680,6 +1781,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [pilotWorkspaceExportMode, setPilotWorkspaceExportMode] = useState<PlaybookExportMode>("human");
   const [pilotMetricsTrackerOpen, setPilotMetricsTrackerOpen] = useState(false);
   const [pilotMetricsTrackerMode, setPilotMetricsTrackerMode] = useState<PlaybookExportMode>("human");
+  const [pilotMessagePreviewOpen, setPilotMessagePreviewOpen] = useState(false);
+  const [pilotMessagePreviewMode, setPilotMessagePreviewMode] = useState<PlaybookExportMode>("human");
   const outreachProspects = selectedTemplate.detail.pilotKit.outreachWizard.prospects;
   const selectedOutreachProspectId =
     pilotWorkspaceState.selectedProspectByService[selectedTemplate.id] ?? outreachProspects[0]?.id ?? "";
@@ -1758,6 +1861,10 @@ const LocalServicesDispatchDemoPanel = ({
   const pilotMetricsTrackerExport = useMemo(
     () => buildLocalServicePilotMetricsTrackerExport(selectedTemplate, currentMetricStatus),
     [currentMetricStatus, selectedTemplate],
+  );
+  const pilotMessagePreview = useMemo(
+    () => buildLocalServicePilotMessagePreview(selectedTemplate, selectedOutreachProspect, currentPilotStatus),
+    [currentPilotStatus, selectedOutreachProspect, selectedTemplate],
   );
   const nextManualBatch = pilotFunnelRows
     .filter((item) => item.status !== "reply_received" && item.status !== "rejected_for_now")
@@ -2502,8 +2609,24 @@ const LocalServicesDispatchDemoPanel = ({
 
                       <div className="space-y-3">
                         <div className="rounded-md bg-card/25 px-3 py-2.5">
-                          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                            Test message preview
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                                Test message preview
+                              </div>
+                              <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                                Open the preview modal before any manual first contact.
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => setPilotMessagePreviewOpen(true)}
+                              className="h-8"
+                            >
+                              <MessageSquareText className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                              Open preview modal
+                            </Button>
                           </div>
                           <p className="mt-2 text-[12px] leading-relaxed text-foreground">
                             {selectedTemplate.detail.pilotKit.outreachWizard.testMessage}
@@ -2677,6 +2800,16 @@ const LocalServicesDispatchDemoPanel = ({
         exportView={pilotMetricsTrackerExport}
         mode={pilotMetricsTrackerMode}
         onModeChange={setPilotMetricsTrackerMode}
+        onCopy={onCopyText}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+        onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
+      />
+      <LocalServicePilotMessagePreviewSheet
+        open={pilotMessagePreviewOpen}
+        onOpenChange={setPilotMessagePreviewOpen}
+        preview={pilotMessagePreview}
+        mode={pilotMessagePreviewMode}
+        onModeChange={setPilotMessagePreviewMode}
         onCopy={onCopyText}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
@@ -2972,6 +3105,175 @@ const LocalServicePilotWorkspaceExportDrawer = ({
               </Button>
             </div>
             <pre className="max-h-[42vh] overflow-auto rounded-md border border-border/60 bg-card/30 px-3 py-3 font-mono text-[11px] leading-relaxed text-foreground">
+              {renderedText}
+            </pre>
+          </section>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+};
+
+const LocalServicePilotMessagePreviewSheet = ({
+  open,
+  onOpenChange,
+  preview,
+  mode,
+  onModeChange,
+  onCopy,
+  onOpenScorecard,
+  onOpenExecutionPack,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  preview: LocalServicePilotMessagePreview;
+  mode: PlaybookExportMode;
+  onModeChange: (mode: PlaybookExportMode) => void;
+  onCopy: (text: string, label: string) => void;
+  onOpenScorecard: () => void;
+  onOpenExecutionPack: () => void;
+}) => {
+  const renderedText = mode === "human" ? preview.humanText : preview.jsonText;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col gap-0 p-0">
+        <SheetHeader className="px-7 py-5 border-b border-border/70 space-y-2.5 text-left">
+          <div className="flex items-center gap-2">
+            <MessageSquareText className="h-3.5 w-3.5 text-muted-foreground/70" strokeWidth={1.75} />
+            <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground/80">
+              Test message preview
+            </span>
+          </div>
+          <SheetTitle className="font-serif text-[22px] tracking-tight leading-[1.2]">
+            {preview.title}
+          </SheetTitle>
+          <SheetDescription className="text-[12.5px] text-muted-foreground/85 leading-relaxed">
+            {preview.description}
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="flex-1 min-h-0 overflow-auto">
+          <section className="px-7 pt-6 pb-5 border-b border-border/50 space-y-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  {preview.modeLabel}
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Inspect the message in human-readable or JSON form before operator approval.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant={mode === "human" ? "default" : "secondary"}
+                  onClick={() => onModeChange("human")}
+                  className="h-8"
+                >
+                  Human-readable
+                </Button>
+                <Button
+                  size="sm"
+                  variant={mode === "json" ? "default" : "secondary"}
+                  onClick={() => onModeChange("json")}
+                  className="h-8"
+                >
+                  JSON
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              {preview.rows.map((row) => (
+                <div key={row.label} className="rounded-md border border-border/60 bg-card/30 px-3 py-2.5">
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+                    {row.label}
+                  </div>
+                  <div className="mt-1 break-words text-[12px] leading-relaxed text-foreground">
+                    {row.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="px-7 py-5 border-b border-border/50 space-y-3">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  Manual approval checklist
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  The preview is safe to inspect and copy; real outreach still happens outside this shell.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="secondary" onClick={onOpenExecutionPack} className="h-8">
+                  <FileText className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Open outreach execution pack
+                </Button>
+                <Button size="sm" variant="secondary" onClick={onOpenScorecard} className="h-8">
+                  <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Open pilot scorecard
+                </Button>
+              </div>
+            </div>
+            <ul className="space-y-2 text-[12.5px] leading-relaxed text-foreground">
+              {preview.checklist.map((item) => (
+                <li key={item} className="flex gap-2">
+                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="px-7 py-5 border-b border-border/50 space-y-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  Exact test message
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Copying this text does not send it. Operator sends manually after confirmation.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => onCopy(preview.messageText, preview.copyMessageLabel)}
+                className="h-8"
+              >
+                <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                {preview.copyMessageLabel}
+              </Button>
+            </div>
+            <div className="rounded-md border border-border/60 bg-card/30 px-3 py-3 text-[12.5px] leading-relaxed text-foreground">
+              {preview.messageText}
+            </div>
+          </section>
+
+          <section className="px-7 py-5 space-y-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  {mode === "human" ? "Human-readable preview" : "JSON preview payload"}
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Copy this reviewed preview into the execution pack or scorecard notes if useful.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => onCopy(renderedText, preview.copyPreviewLabel)}
+                className="h-8"
+              >
+                <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                {preview.copyPreviewLabel}
+              </Button>
+            </div>
+            <pre className="max-h-[36vh] overflow-auto rounded-md border border-border/60 bg-card/30 px-3 py-3 font-mono text-[11px] leading-relaxed text-foreground">
               {renderedText}
             </pre>
           </section>

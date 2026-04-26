@@ -63,6 +63,10 @@ It also carries a 4-step `Pilot outreach wizard` with `Offer preview`,
 `Audience from outreach list`, `Message/test preview`, and
 `Operator confirmation` so the pilot can be prepared without implying an
 autonomous send.
+The `Message/test preview` step opens a `Preview / Test message modal` with
+`Human-readable` / `JSON` modes, the exact `Copy test message` action, and
+`Copy test message preview`; the operator still sends manually only after
+approval.
 The wizard now has an operator-local `Pilot scorecard action`: choose a
 lane-specific company from the outreach list, inspect the `Test message preview`,
 and `Record scorecard draft` as `Not contacted`. This records demo-session

@@ -91,6 +91,10 @@ Local-services expansion spec:
   `Offer preview` -> `Audience from outreach list` -> `Message/test preview` ->
   `Operator confirmation`. It is now rendered as a 4-step outreach wizard and
   remains an operator-approved planning surface, not an autonomous send path.
+- `Message/test preview` now opens a `Preview / Test message modal` with
+  `Human-readable` / `JSON` modes, the exact `Copy test message` action, and
+  `Copy test message preview`; it is still a review artifact and does not send
+  outreach.
 - the wizard now supports an operator-local `Pilot scorecard action`: choose a
   company from the repo-owned outreach list, review the test message, and
   `Record scorecard draft` as `Not contacted` / demo-session evidence before

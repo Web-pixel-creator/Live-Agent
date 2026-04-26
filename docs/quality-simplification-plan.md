@@ -54,6 +54,10 @@ The same block now includes a 4-step `Pilot outreach wizard` with
 `Offer preview`, `Audience from outreach list`, `Message/test preview`, and
 `Operator confirmation`, keeping first outreach preparation inside the shell
 while real sends remain outside the autonomous path.
+The `Message/test preview` step now opens a `Preview / Test message modal` with
+`Human-readable` / `JSON` modes, `Copy test message`, and
+`Copy test message preview`, so the operator can inspect the exact text without
+creating an external send.
 It now continues into `Pilot scorecard action`: select a company from the
 repo-owned outreach list, review the message, and `Record scorecard draft` as a
 demo-session `Not contacted` entry. This gives the operator a real next action
