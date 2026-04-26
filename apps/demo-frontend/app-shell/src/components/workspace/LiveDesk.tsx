@@ -416,6 +416,17 @@ type LocalServiceDispatchExport = {
   checklist: string[];
 };
 
+type LocalServicePilotWorkspaceExport = {
+  title: string;
+  description: string;
+  modeLabel: string;
+  copyLabel: string;
+  humanText: string;
+  jsonText: string;
+  rows: { label: string; value: string }[];
+  checklist: string[];
+};
+
 type LocalServiceOutreachProspect = {
   id: string;
   company: string;
@@ -483,6 +494,16 @@ type LocalServiceDemoTemplate = {
   payload: Record<string, boolean | number | string | string[]>;
   evidencePath: string;
   bundlePath: string;
+};
+
+type LocalServicePilotFunnelRow = {
+  key: string;
+  serviceId: string;
+  serviceTitle: string;
+  tone: "violet" | "rose" | "amber" | "mint" | "slate";
+  prospect: LocalServiceOutreachProspect;
+  status: LocalServicePilotStatus;
+  statusLabel: string;
 };
 
 const LOCAL_SERVICES_PILOT_OFFER_PATH = "/workspace-docs/local-services-pilot-offer.md";
@@ -835,6 +856,114 @@ function buildLocalServiceDispatchExport(
     humanText: humanLines.join("\n"),
     jsonText,
     rows,
+    checklist,
+  };
+}
+
+function buildLocalServicePilotWorkspaceExport(
+  rows: LocalServicePilotFunnelRow[],
+  counts: Record<LocalServicePilotStatus, number>,
+): LocalServicePilotWorkspaceExport {
+  const nextManualBatch = rows
+    .filter((row) => row.status !== "reply_received" && row.status !== "rejected_for_now")
+    .slice(0, 4);
+  const statusSummary = LOCAL_SERVICE_PILOT_STATUS_ORDER.map(
+    (status) => `${LOCAL_SERVICE_PILOT_STATUS_LABELS[status]}=${counts[status]}`,
+  ).join("; ");
+  const candidateLines = rows.map(
+    (row) =>
+      `- ${row.prospect.company} (${row.serviceTitle}, ${row.prospect.segment}) -> ${row.statusLabel}; next: ${row.prospect.nextStep}`,
+  );
+  const nextBatchLines =
+    nextManualBatch.length > 0
+      ? nextManualBatch.map((row) => `- ${row.prospect.company} (${row.serviceTitle}) -> ${row.statusLabel}`)
+      : ["- none"];
+  const humanLines = [
+    "Pilot workspace export drawer: Local services mini-funnel",
+    "Export scope: browser-local planning state",
+    `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
+    `All candidates: ${rows.length}`,
+    `Status summary: ${statusSummary}`,
+    "",
+    "Next manual batch:",
+    ...nextBatchLines,
+    "",
+    "Candidates:",
+    ...candidateLines,
+    "",
+    "Manual execution rule: this export does not send messages, update CRM, or modify Markdown scorecards automatically.",
+    "Operator action: review the state, then manually sync the selected notes into the pilot scorecard or CRM.",
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_pilot_workspace",
+      export_kind: "browser_local_planning_state",
+      storage_key: LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY,
+      all_candidates: rows.length,
+      status_counts: Object.fromEntries(
+        LOCAL_SERVICE_PILOT_STATUS_ORDER.map((status) => [status, counts[status]]),
+      ),
+      status_labels: LOCAL_SERVICE_PILOT_STATUS_LABELS,
+      next_manual_batch: nextManualBatch.map((row) => ({
+        key: row.key,
+        service_id: row.serviceId,
+        service_title: row.serviceTitle,
+        company: row.prospect.company,
+        segment: row.prospect.segment,
+        status: row.status,
+        status_label: row.statusLabel,
+        next_step: row.prospect.nextStep,
+      })),
+      candidates: rows.map((row) => ({
+        key: row.key,
+        service_id: row.serviceId,
+        service_title: row.serviceTitle,
+        prospect_id: row.prospect.id,
+        company: row.prospect.company,
+        segment: row.prospect.segment,
+        channel_fit: row.prospect.channelFit,
+        why_now: row.prospect.whyNow,
+        scorecard_focus: row.prospect.scorecardFocus,
+        next_step: row.prospect.nextStep,
+        status: row.status,
+        status_label: row.statusLabel,
+      })),
+      guardrails: [
+        "operator_review_required_before_copy",
+        "no_outbound_message_sent",
+        "no_crm_write",
+        "manual_scorecard_sync_required",
+      ],
+    },
+    null,
+    2,
+  );
+  const rowsSummary = [
+    { label: "All candidates", value: String(rows.length) },
+    { label: "Storage", value: LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY },
+    { label: "Status summary", value: statusSummary },
+    {
+      label: "Next manual batch",
+      value: nextManualBatch.map((row) => `${row.prospect.company} / ${row.serviceTitle}`).join(", ") || "none",
+    },
+    { label: "Guardrail", value: "No outbound message, no CRM write, manual scorecard sync only" },
+  ];
+  const checklist = [
+    "Confirm the browser-local statuses match the operator's latest manual outreach notes.",
+    "Review the next manual batch before copying the export.",
+    "Manually sync useful notes into the pilot scorecard or CRM after review.",
+    "Do not treat this export as proof that outreach was sent.",
+  ];
+
+  return {
+    title: "Pilot workspace export drawer",
+    description:
+      "Export the local-services pilot mini-funnel as a reviewed operator note or JSON payload. It stays browser-local and does not send messages or write CRM.",
+    modeLabel: "Pilot export mode",
+    copyLabel: "Copy pilot workspace export",
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: rowsSummary,
     checklist,
   };
 }
@@ -1408,6 +1537,7 @@ const LocalServicesDispatchDemoPanel = ({
   onSelectService,
   onClose,
   onCopyPayload,
+  onCopyText,
   onOpenDispatchDrawer,
   onOpenPath,
 }: {
@@ -1415,6 +1545,7 @@ const LocalServicesDispatchDemoPanel = ({
   onSelectService: (id: string) => void;
   onClose: () => void;
   onCopyPayload: (template: LocalServiceDemoTemplate) => void;
+  onCopyText: (text: string, label: string) => void;
   onOpenDispatchDrawer: (kind?: LocalServiceExportKind) => void;
   onOpenPath: (path: string) => void;
 }) => {
@@ -1425,6 +1556,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [pilotWorkspaceState, setPilotWorkspaceState] = useState<LocalServicePilotWorkspaceState>(() =>
     readLocalServicePilotWorkspaceState(),
   );
+  const [pilotWorkspaceExportOpen, setPilotWorkspaceExportOpen] = useState(false);
+  const [pilotWorkspaceExportMode, setPilotWorkspaceExportMode] = useState<PlaybookExportMode>("human");
   const outreachProspects = selectedTemplate.detail.pilotKit.outreachWizard.prospects;
   const selectedOutreachProspectId =
     pilotWorkspaceState.selectedProspectByService[selectedTemplate.id] ?? outreachProspects[0]?.id ?? "";
@@ -1471,6 +1604,10 @@ const LocalServicesDispatchDemoPanel = ({
         };
       }),
     [allPilotProspects, pilotWorkspaceState.statusByProspectKey],
+  );
+  const pilotWorkspaceExport = useMemo(
+    () => buildLocalServicePilotWorkspaceExport(pilotFunnelRows, pilotFunnelCounts),
+    [pilotFunnelCounts, pilotFunnelRows],
   );
   const nextManualBatch = pilotFunnelRows
     .filter((item) => item.status !== "reply_received" && item.status !== "rejected_for_now")
@@ -1640,6 +1777,17 @@ const LocalServicesDispatchDemoPanel = ({
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  setPilotWorkspaceExportMode("human");
+                  setPilotWorkspaceExportOpen(true);
+                }}
+                className="h-7"
+              >
+                Open pilot export
+              </Button>
               <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
                 {allPilotProspects.length} candidates
               </span>
@@ -2270,6 +2418,15 @@ const LocalServicesDispatchDemoPanel = ({
           </div>
         </section>
       </div>
+      <LocalServicePilotWorkspaceExportDrawer
+        open={pilotWorkspaceExportOpen}
+        onOpenChange={setPilotWorkspaceExportOpen}
+        exportView={pilotWorkspaceExport}
+        mode={pilotWorkspaceExportMode}
+        onModeChange={setPilotWorkspaceExportMode}
+        onCopy={onCopyText}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+      />
     </section>
   );
 };
@@ -2420,6 +2577,142 @@ const LocalServiceDispatchDrawer = ({
             </section>
           </div>
         )}
+      </SheetContent>
+    </Sheet>
+  );
+};
+
+const LocalServicePilotWorkspaceExportDrawer = ({
+  open,
+  onOpenChange,
+  exportView,
+  mode,
+  onModeChange,
+  onCopy,
+  onOpenScorecard,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  exportView: LocalServicePilotWorkspaceExport;
+  mode: PlaybookExportMode;
+  onModeChange: (mode: PlaybookExportMode) => void;
+  onCopy: (text: string, label: string) => void;
+  onOpenScorecard: () => void;
+}) => {
+  const renderedText = mode === "human" ? exportView.humanText : exportView.jsonText;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col gap-0 p-0">
+        <SheetHeader className="px-7 py-5 border-b border-border/70 space-y-2.5 text-left">
+          <div className="flex items-center gap-2">
+            <BriefcaseBusiness className="h-3.5 w-3.5 text-muted-foreground/70" strokeWidth={1.75} />
+            <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground/80">
+              Pilot workspace export
+            </span>
+          </div>
+          <SheetTitle className="font-serif text-[22px] tracking-tight leading-[1.2]">
+            {exportView.title}
+          </SheetTitle>
+          <SheetDescription className="text-[12.5px] text-muted-foreground/85 leading-relaxed">
+            {exportView.description}
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="flex-1 min-h-0 overflow-auto">
+          <section className="px-7 pt-6 pb-5 border-b border-border/50 space-y-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  {exportView.modeLabel}
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Switch between the operator-readable funnel note and the JSON payload for manual CRM or scorecard sync.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant={mode === "human" ? "default" : "secondary"}
+                  onClick={() => onModeChange("human")}
+                  className="h-8"
+                >
+                  Human-readable
+                </Button>
+                <Button
+                  size="sm"
+                  variant={mode === "json" ? "default" : "secondary"}
+                  onClick={() => onModeChange("json")}
+                  className="h-8"
+                >
+                  JSON
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              {exportView.rows.map((row) => (
+                <div key={row.label} className="rounded-md border border-border/60 bg-card/30 px-3 py-2.5">
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+                    {row.label}
+                  </div>
+                  <div className="mt-1 break-words text-[12px] leading-relaxed text-foreground">
+                    {row.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="px-7 py-5 border-b border-border/50 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  Operator review checklist
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  This export is a planning artifact only: no outbound message, no CRM write, no scorecard mutation.
+                </p>
+              </div>
+              <Button size="sm" variant="secondary" onClick={onOpenScorecard} className="h-8">
+                <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                Open pilot scorecard
+              </Button>
+            </div>
+            <ul className="space-y-2 text-[12.5px] leading-relaxed text-foreground">
+              {exportView.checklist.map((item) => (
+                <li key={item} className="flex gap-2">
+                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="px-7 py-5 space-y-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  {mode === "human" ? "Human-readable pilot export" : "JSON pilot payload"}
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Copy only after the operator confirms this browser-local state is current.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => onCopy(renderedText, exportView.copyLabel)}
+                className="h-8"
+              >
+                <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                {exportView.copyLabel}
+              </Button>
+            </div>
+            <pre className="max-h-[42vh] overflow-auto rounded-md border border-border/60 bg-card/30 px-3 py-3 font-mono text-[11px] leading-relaxed text-foreground">
+              {renderedText}
+            </pre>
+          </section>
+        </div>
       </SheetContent>
     </Sheet>
   );
@@ -3510,6 +3803,21 @@ export const LiveDesk = () => {
     }
   };
 
+  const copyLocalServicePilotWorkspaceExport = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: `${label} copied`,
+        description: "Browser-local pilot workspace export",
+      });
+    } catch {
+      toast({
+        title: "Copy failed",
+        description: "Clipboard is unavailable in this browser.",
+      });
+    }
+  };
+
   const openActiveLocalServiceBundle = () => {
     setLocalServiceDispatchDrawerOpen(false);
     navigate(activeLocalServiceTemplate.bundlePath);
@@ -4125,6 +4433,7 @@ export const LiveDesk = () => {
           }
           onClose={closeLocalServicesDispatchDemo}
           onCopyPayload={copyLocalServiceDispatchPayload}
+          onCopyText={copyLocalServicePilotWorkspaceExport}
           onOpenDispatchDrawer={openActiveLocalServiceDispatchDrawer}
           onOpenPath={openLocalServiceDemoPath}
         />

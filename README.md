@@ -102,6 +102,9 @@ Local-services expansion spec:
 - the demo also shows a `Pilot funnel summary` across all outreach candidates:
   `All candidates`, per-status counts, and a `Next manual batch` list that jumps
   the operator back to the relevant service/company pair.
+- the funnel summary now opens a `Pilot workspace export drawer` with
+  `Human-readable` and `JSON` modes plus `Copy pilot workspace export`; it is a
+  browser-local planning artifact and does not send outreach or write CRM.
 - `Pilot readiness` now links to repo-owned pilot artifacts at
   `/workspace-docs/local-services-pilot-offer.md` and
   `/workspace-docs/local-services-demo-script.md`.

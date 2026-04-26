@@ -517,6 +517,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /All candidates/);
   assert.match(liveDesk, /Next manual batch/);
   assert.match(liveDesk, /Manual execution rule/);
+  assert.match(liveDesk, /Open pilot export/);
+  assert.match(liveDesk, /Pilot workspace export drawer/);
+  assert.match(liveDesk, /Copy pilot workspace export/);
+  assert.match(liveDesk, /no_crm_write/);
   assert.match(liveDesk, /browser-local/);
   assert.match(liveDesk, /Pilot scorecard action/);
   assert.match(liveDesk, /Selected company/);
@@ -689,6 +693,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Pilot funnel summary/);
   assert.match(readme, /All candidates/);
   assert.match(readme, /Next manual batch/);
+  assert.match(readme, /Pilot workspace export drawer/);
+  assert.match(readme, /Copy pilot workspace export/);
   assert.match(readme, /\/workspace-docs\/local-services-pilot-offer\.md/);
   assert.match(readme, /\/workspace-docs\/local-services-demo-script\.md/);
   assert.match(readme, /\/workspace-docs\/local-services-outreach-list\.md/);
@@ -736,6 +742,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /All candidates/);
   assert.match(localDevelopment, /Next manual batch/);
   assert.match(localDevelopment, /Manual execution rule/);
+  assert.match(localDevelopment, /Open pilot export/);
   assert.match(localDevelopment, /No outbound message sent/);
   assert.match(localDevelopment, /Open offer doc/);
   assert.match(localDevelopment, /Open demo script/);
@@ -780,6 +787,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Pilot funnel summary/);
   assert.match(operatorGuide, /All candidates/);
   assert.match(operatorGuide, /Next manual batch/);
+  assert.match(operatorGuide, /Pilot workspace export drawer/);
+  assert.match(operatorGuide, /Copy pilot workspace export/);
   assert.match(operatorGuide, /Open offer doc/);
   assert.match(operatorGuide, /Open demo script/);
   assert.match(operatorGuide, /Open outreach list/);
@@ -818,6 +827,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /Pilot funnel summary/);
   assert.match(simplificationPlan, /All candidates/);
   assert.match(simplificationPlan, /Next manual batch/);
+  assert.match(simplificationPlan, /Open pilot export/);
+  assert.match(simplificationPlan, /Pilot workspace export\s+drawer/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-pilot-offer\.md/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-demo-script\.md/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-outreach-list\.md/);
@@ -865,6 +876,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /Pilot funnel summary/);
   assert.match(gettingStarted, /All candidates/);
   assert.match(gettingStarted, /Next manual batch/);
+  assert.match(gettingStarted, /Open pilot export/);
+  assert.match(gettingStarted, /Copy pilot workspace export/);
   assert.match(gettingStarted, /Open offer doc/);
   assert.match(gettingStarted, /Open demo script/);
   assert.match(gettingStarted, /Open outreach list/);
@@ -906,6 +919,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /All candidates/);
   assert.match(localServicesSpec, /Next manual batch/);
   assert.match(localServicesSpec, /Manual execution rule/);
+  assert.match(localServicesSpec, /Open pilot export/);
+  assert.match(localServicesSpec, /Pilot workspace export drawer/);
+  assert.match(localServicesSpec, /Copy pilot workspace export/);
   assert.match(localServicesSpec, /No outbound message sent/);
   assert.match(localServicesSpec, /no real\s+outreach is sent autonomously/);
   assert.match(localServicesSpec, /\/workspace-docs\/local-services-pilot-offer\.md/);
@@ -958,6 +974,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotScorecard, /All candidates/);
   assert.match(pilotScorecard, /Next manual batch/);
   assert.match(pilotScorecard, /manual execution rule/);
+  assert.match(pilotScorecard, /Open pilot export/);
+  assert.match(pilotScorecard, /Pilot workspace export drawer/);
+  assert.match(pilotScorecard, /Copy pilot workspace export/);
   assert.match(pilotScorecard, /does not send a\s+message/);
   assert.match(pilotScorecard, /14-Day Pilot Scorecard/);
   assert.match(pilotScorecard, /Pilot Exit Rules/);

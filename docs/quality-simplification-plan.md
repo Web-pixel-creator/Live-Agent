@@ -65,6 +65,10 @@ candidate and the operator-only statuses `Draft ready`, `Contacted manually`,
 The same shell now adds `Pilot funnel summary` with `All candidates`,
 per-status counts, and `Next manual batch`, which turns the first pilot from a
 single selected account into a small visible funnel without adding CRM scope.
+That funnel now has `Open pilot export`, which opens a `Pilot workspace export
+drawer` with `Human-readable` / `JSON` modes and `Copy pilot workspace export`.
+The export is intentionally manual-only: no outbound message, no CRM write, and
+no Markdown scorecard mutation.
 That same block should link to repo-owned pilot artifacts through
 `/workspace-docs/local-services-pilot-offer.md` and
 `/workspace-docs/local-services-demo-script.md`.

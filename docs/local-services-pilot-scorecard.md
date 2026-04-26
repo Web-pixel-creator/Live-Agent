@@ -83,6 +83,12 @@ outreach list. Use it to see:
 3. `Next manual batch`
 4. the current manual execution rule
 
+`Open pilot export` opens the `Pilot workspace export drawer`. Use
+`Human-readable` when manually updating this scorecard and `JSON` when pasting
+into CRM or a spreadsheet. `Copy pilot workspace export` copies the reviewed
+snapshot only; it does not send a message, update CRM, or mutate this Markdown
+file automatically.
+
 ## Discovery Call Notes
 
 Copy this block per company.

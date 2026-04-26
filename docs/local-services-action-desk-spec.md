@@ -601,6 +601,10 @@ The shell now also exposes a `Pilot funnel summary` across every outreach
 candidate. It shows `All candidates`, per-status counts, and `Next manual batch`
 so the operator can move through the first pilot list without treating the demo
 as a CRM or autonomous outreach tool.
+The same funnel now opens a `Pilot workspace export drawer` through
+`Open pilot export`. The drawer has `Human-readable` and `JSON` modes, exposes
+`Copy pilot workspace export`, and carries explicit guardrails: no outbound
+message, no CRM write, and manual scorecard sync only.
 The shell now also opens repo-owned pilot artifacts through
 `/workspace-docs/local-services-pilot-offer.md` and
 `/workspace-docs/local-services-demo-script.md`.
@@ -641,7 +645,9 @@ It now also opens the execution documents
    and outreach status. Done in shell demo through `localStorage`.
 8. Add a shell-level pilot funnel summary with per-status counts and a next
    manual batch. Done in shell demo.
-9. Track pilot metrics:
+9. Add a shell-level pilot workspace export drawer with human-readable and JSON
+   modes. Done in shell demo; no external send or CRM write happens.
+10. Track pilot metrics:
    - inbound requests,
    - missed-call recovery,
    - response time,
@@ -663,11 +669,13 @@ Current shell readiness for P3:
    visible in the shell-level wizard.
 5. `Pilot funnel summary`, `All candidates`, per-status counts, `Next manual
    batch`, and `Manual execution rule` are visible in the shell.
-6. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
+6. `Open pilot export`, `Pilot workspace export drawer`, `Human-readable`,
+   `JSON`, and `Copy pilot workspace export` are visible in the shell.
+7. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
    artifact documents from the same local frontend server.
-7. `Open outreach list` and `Open pilot scorecard` resolve to the repo-owned
+8. `Open outreach list` and `Open pilot scorecard` resolve to the repo-owned
    pilot execution documents from the same local frontend server.
-8. Actual external execution still remains outside the shell: recorded video,
+9. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path

@@ -75,6 +75,11 @@ operator notes: `Draft ready`, `Contacted manually`, `Reply received`, and
 The `Pilot funnel summary` shows `All candidates`, per-status counts, and
 `Next manual batch` so the operator can plan who to contact next without opening
 the Markdown scorecard first.
+Use `Open pilot export` when the operator needs one reviewed snapshot of the
+mini-funnel. The `Pilot workspace export drawer` switches between
+`Human-readable` and `JSON`, exposes `Copy pilot workspace export`, and remains
+manual-only: no outbound message, no CRM write, and no Markdown scorecard
+mutation.
 Use `Open offer doc` and `Open demo script` when the operator needs the pilot
 artifact layer instead of the inline summary.
 Use `Open outreach list` and `Open pilot scorecard` when the conversation moves
