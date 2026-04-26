@@ -203,15 +203,20 @@ Allowed reply statuses:
    or spreadsheet export.
 7. Show `Pilot readiness`, open the `Preview / Test message modal`, and explain
    that `Copy test message` is still manual-only and sends nothing.
-8. Open `Operator confirmation summary`, show `Ready for manual outreach`, and
+8. Open `Agent setup / training state` and `Open setup checklist`, then show
+   `Business profile`, `Knowledge sources`, `Agent behavior`,
+   `Test call/message`, `Ready for test call/message`, `Training cards`, and
+   `Copy setup brief`. Explain that it is setup evidence only and makes
+   `No channel activation`.
+9. Open `Operator confirmation summary`, show `Ready for manual outreach`, and
    explain that it is a final human approval state, not an autonomous send.
-9. Click `Record ready for manual outreach` only to mark `Draft ready` locally;
+10. Click `Record ready for manual outreach` only to mark `Draft ready` locally;
    explain that it does not send outreach or write CRM.
-10. Open `Ask AI about pilot` to show `Suggested questions`, `Best candidate`,
+11. Open `Ask AI about pilot` to show `Suggested questions`, `Best candidate`,
    `Bottleneck`, `Next message`, and `Copy analyst brief`; explain that this is
    deterministic internal planning and makes `No external LLM call`.
-11. Show `Pilot metrics` and `Open metrics tracker`.
-12. End with one question: "Would this save missed requests or manager time if we
+12. Show `Pilot metrics` and `Open metrics tracker`.
+13. End with one question: "Would this save missed requests or manager time if we
    tested it for 14 days?"
 
 ## After Each Contact

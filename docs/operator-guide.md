@@ -59,6 +59,13 @@ normalized into the same job-card payload instead of creating a second workflow.
 The same panel now carries `Pilot readiness`, including `One-page offer`,
 `90-second demo script`, `Outreach focus`, a `Launch checklist`, and tracked
 `Pilot metrics` for the first local-services pilot.
+`Pilot readiness` now also carries `Agent setup / training state`, which gives
+the operator a 7-minute setup path before any live channel is connected:
+`Business profile`, `Knowledge sources`, `Agent behavior`, `Test call/message`,
+and `Ready for test call/message`. `Open setup checklist` opens a reviewed
+setup sheet with `Training cards`, `Copy setup brief`, and
+`local_services_agent_setup_training`. This is setup evidence only: no phone,
+Telegram, WhatsApp, CRM, analytics, or billing integration is activated.
 It also carries a 4-step `Pilot outreach wizard` with `Offer preview`,
 `Audience from outreach list`, `Message/test preview`, and
 `Operator confirmation` so the pilot can be prepared without implying an

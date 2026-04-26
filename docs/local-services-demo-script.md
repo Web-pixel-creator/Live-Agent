@@ -81,12 +81,19 @@ Point at:
 1. `One-page offer`
 2. `90-second demo script`
 3. `Launch checklist`
-4. `Pilot metrics`
-5. `Open metrics tracker`
+4. `Agent setup / training state`
+5. `Open setup checklist`
+6. `Business profile`
+7. `Knowledge sources`
+8. `Agent behavior`
+9. `Test call/message`
+10. `Ready for test call/message`
+11. `Pilot metrics`
+12. `Open metrics tracker`
 
 Say:
 
-`This makes the product sales-ready as well: we can explain the offer, launch steps, and pilot metrics without leaving the shell, then copy the reviewed metrics tracker manually into the scorecard.`
+`This makes the product sales-ready as well: we can explain the offer, show the 7-minute setup path, review business profile, knowledge sources, behavior, and test call readiness, then copy the reviewed setup or metrics brief manually. Nothing here activates phone, Telegram, WhatsApp, CRM, analytics, or billing.`
 
 Optional second click if the prospect is construction-adjacent: open
 `Measurement visit booking` and point at the no-final-price approval rule.

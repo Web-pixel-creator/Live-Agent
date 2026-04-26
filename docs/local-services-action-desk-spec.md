@@ -582,6 +582,15 @@ The selected card now also exposes `Pilot readiness`, `One-page offer`,
 `90-second demo script`, `Outreach focus`, a `Launch checklist`, and tracked
 `Pilot metrics` so the team can explain the pilot contract in the shell before
 external outreach.
+The same readiness block now exposes `Agent setup / training state`. It gives
+the operator a 7-minute setup path before any live channel is connected:
+`Business profile`, `Knowledge sources`, `Agent behavior`, `Test call/message`,
+and `Ready for test call/message`. `Open setup checklist` opens a reviewed
+setup sheet with `Training cards`, `Copy setup brief`, and
+`local_services_agent_setup_training`. This is a deterministic setup artifact
+only: no phone number is provisioned, no Telegram/WhatsApp channel is connected,
+and no CRM, analytics, or billing integration is activated. The shell labels
+this guardrail as `No channel activation`.
 The same block now includes a `Pilot outreach wizard` that mirrors the useful
 campaign-builder pattern from the reviewed AI receptionist references:
 `Offer preview` -> `Audience from outreach list` -> `Message/test preview` ->
@@ -702,49 +711,56 @@ pilot export surfaces.
 13. Add a shell-level `AI analyst` / `Ask AI about pilot` sheet. Done in shell
     demo as a deterministic operator-assist layer with no external LLM call and
     no autonomous outreach.
+14. Add a shell-level `Agent setup / training state` sheet. Done in shell demo
+    as a deterministic 7-minute setup checklist with no integration activation.
 
 Current shell readiness for P3:
 
 1. `Pilot readiness` block is present in the demo shell.
 2. `One-page offer`, `90-second demo script`, `Outreach focus`, `Launch checklist`,
    and `Pilot metrics` are visible for each local-services lane.
-3. 4-step `Pilot outreach wizard`, `Offer preview`,
+3. `Agent setup / training state`, `Open setup checklist`, `Business profile`,
+   `Knowledge sources`, `Agent behavior`, `Test call/message`,
+   `Ready for test call/message`, `Training cards`, `Copy setup brief`,
+   `local_services_agent_setup_training`, and `No channel activation` are
+   visible as the 7-minute setup layer before live-channel work.
+4. 4-step `Pilot outreach wizard`, `Offer preview`,
    `Audience from outreach list`, `Message/test preview`, and
    `Operator confirmation` are visible for each local-services lane.
-4. `Preview / Test message modal`, `Copy test message`,
+5. `Preview / Test message modal`, `Copy test message`,
    `Copy test message preview`, `local_services_test_message_preview`, and
    `manual_confirmation_required_before_outreach` are present for the
    `Message/test preview` step.
-5. `Operator confirmation summary`, `Ready for manual outreach`,
+6. `Operator confirmation summary`, `Ready for manual outreach`,
    `Copy confirmation summary`, `local_services_operator_confirmation`, and
    `ready_for_manual_outreach` are present for the `Operator confirmation` step.
-6. `Wizard progress`, `Record ready for manual outreach`,
+7. `Wizard progress`, `Record ready for manual outreach`,
    `Ready for manual outreach recorded`, and `Draft ready` are wired as a
    browser-local state transition for the selected company.
-7. `AI analyst`, `Ask AI about pilot`, `Suggested questions`, `Best candidate`,
+8. `AI analyst`, `Ask AI about pilot`, `Suggested questions`, `Best candidate`,
    `Bottleneck`, `Next message`, `Copy analyst brief`,
    `local_services_pilot_ai_analyst`, and `No external LLM call` are visible as
    a deterministic operator-assist layer over the selected pilot lane.
-8. `Pilot scorecard action`, `Selected company`, `Record scorecard draft`,
+9. `Pilot scorecard action`, `Selected company`, `Record scorecard draft`,
    `Pilot workspace state`, `Saved in this browser`, `Contacted manually`,
    `Reply received`, `Rejected for now`, and `No outbound message sent` are
    visible in the shell-level wizard.
-9. `Pilot funnel summary`, `All candidates`, per-status counts, `Next manual
+10. `Pilot funnel summary`, `All candidates`, per-status counts, `Next manual
    batch`, and `Manual execution rule` are visible in the shell.
-10. `Open pilot export`, `Pilot workspace export drawer`, `Human-readable`,
+11. `Open pilot export`, `Pilot workspace export drawer`, `Human-readable`,
    `JSON`, and `Copy pilot workspace export` are visible in the shell.
-11. `Open metrics tracker`, `Pilot metrics tracker`, `Human-readable`, `JSON`,
+12. `Open metrics tracker`, `Pilot metrics tracker`, `Human-readable`, `JSON`,
    and `Copy pilot metrics tracker` are visible in the shell.
-12. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
+13. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
    artifact documents from the same local frontend server.
-13. `Open outreach list`, `Open outreach execution pack`, and
+14. `Open outreach list`, `Open outreach execution pack`, and
    `Open pilot scorecard` resolve to the repo-owned pilot execution documents
    from the same local frontend server.
-14. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
+15. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
    14-day pilot runbook from the same local frontend server.
-15. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
+16. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
    repo-owned first-contact execution pack from the same local frontend server.
-16. Actual external execution still remains outside the shell: recorded video,
+17. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path

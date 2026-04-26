@@ -469,6 +469,19 @@ type LocalServicePilotAnalystBrief = {
   guardrails: string[];
 };
 
+type LocalServiceAgentSetupBrief = {
+  title: string;
+  description: string;
+  modeLabel: string;
+  copyLabel: string;
+  humanText: string;
+  jsonText: string;
+  rows: { label: string; value: string }[];
+  setupSteps: { label: string; value: string; status: string }[];
+  trainingCards: { label: string; value: string }[];
+  guardrails: string[];
+};
+
 type LocalServiceOutreachProspect = {
   id: string;
   company: string;
@@ -1400,6 +1413,112 @@ function buildLocalServicePilotAnalystBrief(
   };
 }
 
+function buildLocalServiceAgentSetupBrief(template: LocalServiceDemoTemplate): LocalServiceAgentSetupBrief {
+  const setupSteps = [
+    {
+      label: "Business profile",
+      value: `${template.title}, ${template.channel}, service ref ${template.ref}`,
+      status: "Ready",
+    },
+    {
+      label: "Knowledge sources",
+      value: `${template.detail.phoneIntake.length} intake prompts, ${template.detail.estimateInputs.length} estimate inputs, ${template.detail.approvalPolicy.length} approval rules`,
+      status: "Loaded",
+    },
+    {
+      label: "Agent behavior",
+      value: "Collect facts first, prepare the job card, and keep price, slot, and dispatch behind operator approval.",
+      status: "Gated",
+    },
+    {
+      label: "Test call/message",
+      value: `Use sample call plus Telegram replay: ${template.detail.telegramIntake.normalizedFields.join(", ")}`,
+      status: "Ready to test",
+    },
+    {
+      label: "Ready",
+      value: "Pilot can start only after owner/operator confirms setup and sends the first test manually.",
+      status: "Operator review",
+    },
+  ];
+  const trainingCards = [
+    {
+      label: "Business profile",
+      value: `Service lane: ${template.title}; channel: ${template.channel}; offer: ${template.detail.pilotKit.offerSummary}`,
+    },
+    {
+      label: "Knowledge sources",
+      value: [
+        ...template.detail.phoneIntake.slice(0, 2),
+        ...template.detail.estimateInputs.slice(0, 2),
+        ...template.detail.approvalPolicy.slice(0, 1),
+      ].join(" | "),
+    },
+    {
+      label: "Agent behavior",
+      value: "Ask district, issue/scope, preferred time, media availability, and callback details before drafting any customer or master handoff.",
+    },
+    {
+      label: "Test call/message",
+      value: `${template.detail.sampleInput} Telegram fallback: ${template.detail.telegramIntake.inboundMessage}`,
+    },
+  ];
+  const guardrails = [
+    "No phone number is provisioned from this setup view.",
+    "No Telegram, WhatsApp, CRM, analytics, or billing integration is activated.",
+    "No customer-facing message is sent by the product shell.",
+    "Operator must approve the setup before the first live pilot test.",
+  ];
+  const humanLines = [
+    `Agent setup / training state: ${template.title}`,
+    `Service ref: ${template.ref}`,
+    `Channel: ${template.channel}`,
+    "",
+    "7-minute setup:",
+    ...setupSteps.map((step, index) => `${index + 1}. ${step.label} [${step.status}] - ${step.value}`),
+    "",
+    "Training cards:",
+    ...trainingCards.flatMap((card) => [`${card.label}:`, card.value, ""]),
+    "Guardrails:",
+    ...guardrails.map((item) => `- ${item}`),
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_agent_setup_training",
+      export_kind: "deterministic_setup_checklist",
+      service_id: template.id,
+      service_ref: template.ref,
+      service_title: template.title,
+      channel: template.channel,
+      setup_steps: setupSteps,
+      training_cards: trainingCards,
+      guardrails,
+    },
+    null,
+    2,
+  );
+
+  return {
+    title: "Agent setup / training state",
+    description:
+      "A 7-minute setup checklist for business profile, knowledge sources, agent behavior, and test call/message readiness.",
+    modeLabel: "Setup brief mode",
+    copyLabel: "Copy setup brief",
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: [
+      { label: "Setup posture", value: "Ready for test call/message" },
+      { label: "Business profile", value: `${template.ref} - ${template.title}` },
+      { label: "Knowledge sources", value: "Phone intake, estimate inputs, approval policy, Telegram replay" },
+      { label: "Agent behavior", value: "Collect, normalize, draft, then wait for operator approval" },
+      { label: "Guardrail", value: "No integration activation; no autonomous send" },
+    ],
+    setupSteps,
+    trainingCards,
+    guardrails,
+  };
+}
+
 const LOCAL_SERVICE_DEMO_TEMPLATES: LocalServiceDemoTemplate[] = [
   {
     id: "ac-repair-dispatch",
@@ -1998,6 +2117,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [pilotOperatorConfirmationMode, setPilotOperatorConfirmationMode] = useState<PlaybookExportMode>("human");
   const [pilotAnalystOpen, setPilotAnalystOpen] = useState(false);
   const [pilotAnalystMode, setPilotAnalystMode] = useState<PlaybookExportMode>("human");
+  const [agentSetupOpen, setAgentSetupOpen] = useState(false);
+  const [agentSetupMode, setAgentSetupMode] = useState<PlaybookExportMode>("human");
   const outreachProspects = selectedTemplate.detail.pilotKit.outreachWizard.prospects;
   const selectedOutreachProspectId =
     pilotWorkspaceState.selectedProspectByService[selectedTemplate.id] ?? outreachProspects[0]?.id ?? "";
@@ -2095,6 +2216,7 @@ const LocalServicesDispatchDemoPanel = ({
       ),
     [currentPilotStatus, pilotFunnelCounts, selectedOutreachProspect, selectedTemplate],
   );
+  const agentSetupBrief = useMemo(() => buildLocalServiceAgentSetupBrief(selectedTemplate), [selectedTemplate]);
   const nextManualBatch = pilotFunnelRows
     .filter((item) => item.status !== "reply_received" && item.status !== "rejected_for_now")
     .slice(0, 4);
@@ -2628,6 +2750,65 @@ const LocalServicesDispatchDemoPanel = ({
                       </li>
                     ))}
                   </ul>
+                </div>
+                <div className="mt-3 rounded-md border border-border/50 bg-card/25 px-3 py-3">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                        <UserRoundCog className="h-3.5 w-3.5" strokeWidth={1.8} />
+                        Agent setup / training state
+                      </div>
+                      <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                        7-minute setup path before any live channel is connected.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="inline-flex rounded-[5px] bg-[hsl(var(--tint-mint)/0.12)] px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.22)]">
+                        Ready for test call/message
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => {
+                          setAgentSetupMode("human");
+                          setAgentSetupOpen(true);
+                        }}
+                        className="h-8"
+                      >
+                        <UserRoundCog className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                        Open setup checklist
+                      </Button>
+                    </div>
+                  </div>
+                  <ol className="mt-3 grid gap-2 md:grid-cols-5">
+                    {agentSetupBrief.setupSteps.map((step, index) => (
+                      <li key={step.label} className="rounded-md bg-background/35 px-3 py-2.5">
+                        <div className="flex items-start gap-2">
+                          <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] bg-[hsl(var(--tint-mint)/0.12)] font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.22)]">
+                            {index + 1}
+                          </span>
+                          <div className="min-w-0">
+                            <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                              {step.label}
+                            </div>
+                            <div className="mt-0.5 font-mono text-[10px] text-muted-foreground/70">
+                              {step.status}
+                            </div>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {["Business profile", "Knowledge sources", "Agent behavior", "Test call/message", "No channel activation"].map((item) => (
+                      <span
+                        key={item}
+                        className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 text-[10px] text-muted-foreground"
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
                 </div>
                 <div className="mt-3">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -3179,6 +3360,16 @@ const LocalServicesDispatchDemoPanel = ({
         onOpenPreview={() => setPilotMessagePreviewOpen(true)}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
+      />
+      <LocalServiceAgentSetupSheet
+        open={agentSetupOpen}
+        onOpenChange={setAgentSetupOpen}
+        brief={agentSetupBrief}
+        mode={agentSetupMode}
+        onModeChange={setAgentSetupMode}
+        onCopy={onCopyText}
+        onOpenOffer={() => onOpenPath(LOCAL_SERVICES_PILOT_OFFER_PATH)}
+        onOpenDemoScript={() => onOpenPath(LOCAL_SERVICES_DEMO_SCRIPT_PATH)}
       />
     </section>
   );
@@ -3985,6 +4176,186 @@ const LocalServicePilotAnalystSheet = ({
                 </div>
                 <p className="mt-1 text-[12.5px] text-muted-foreground">
                   Copy only as an internal planning note; it is not customer-facing outreach.
+                </p>
+              </div>
+              <Button size="sm" onClick={() => onCopy(renderedText, brief.copyLabel)} className="h-8">
+                <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                {brief.copyLabel}
+              </Button>
+            </div>
+            <pre className="max-h-[36vh] overflow-auto rounded-md border border-border/60 bg-card/30 px-3 py-3 font-mono text-[11px] leading-relaxed text-foreground">
+              {renderedText}
+            </pre>
+          </section>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+};
+
+const LocalServiceAgentSetupSheet = ({
+  open,
+  onOpenChange,
+  brief,
+  mode,
+  onModeChange,
+  onCopy,
+  onOpenOffer,
+  onOpenDemoScript,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  brief: LocalServiceAgentSetupBrief;
+  mode: PlaybookExportMode;
+  onModeChange: (mode: PlaybookExportMode) => void;
+  onCopy: (text: string, label: string) => void;
+  onOpenOffer: () => void;
+  onOpenDemoScript: () => void;
+}) => {
+  const renderedText = mode === "human" ? brief.humanText : brief.jsonText;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col gap-0 p-0">
+        <SheetHeader className="px-7 py-5 border-b border-border/70 space-y-2.5 text-left">
+          <div className="flex items-center gap-2">
+            <UserRoundCog className="h-3.5 w-3.5 text-muted-foreground/70" strokeWidth={1.75} />
+            <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground/80">
+              Agent setup
+            </span>
+          </div>
+          <SheetTitle className="font-serif text-[22px] tracking-tight leading-[1.2]">
+            {brief.title}
+          </SheetTitle>
+          <SheetDescription className="text-[12.5px] text-muted-foreground/85 leading-relaxed">
+            {brief.description}
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="flex-1 min-h-0 overflow-auto">
+          <section className="px-7 pt-6 pb-5 border-b border-border/50 space-y-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  {brief.modeLabel}
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Review setup in human-readable or JSON form before a pilot test.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant={mode === "human" ? "default" : "secondary"}
+                  onClick={() => onModeChange("human")}
+                  className="h-8"
+                >
+                  Human-readable
+                </Button>
+                <Button
+                  size="sm"
+                  variant={mode === "json" ? "default" : "secondary"}
+                  onClick={() => onModeChange("json")}
+                  className="h-8"
+                >
+                  JSON
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              {brief.rows.map((row) => (
+                <div key={row.label} className="rounded-md border border-border/60 bg-card/30 px-3 py-2.5">
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+                    {row.label}
+                  </div>
+                  <div className="mt-1 break-words text-[12px] leading-relaxed text-foreground">
+                    {row.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="px-7 py-5 border-b border-border/50 space-y-3">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  7-minute setup
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Business profile to ready state, without activating live channels.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="secondary" onClick={onOpenOffer} className="h-8">
+                  <FileText className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Open offer doc
+                </Button>
+                <Button size="sm" variant="secondary" onClick={onOpenDemoScript} className="h-8">
+                  <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Open demo script
+                </Button>
+              </div>
+            </div>
+            <ol className="grid gap-2">
+              {brief.setupSteps.map((step, index) => (
+                <li key={step.label} className="rounded-md border border-border/60 bg-card/30 px-3 py-3">
+                  <div className="flex items-start gap-3">
+                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-[5px] bg-[hsl(var(--tint-mint)/0.12)] font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.22)]">
+                      {index + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[12px] font-semibold text-foreground">{step.label}</span>
+                        <span className="rounded-[5px] bg-secondary/45 px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
+                          {step.status}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">{step.value}</p>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <section className="px-7 py-5 border-b border-border/50 space-y-3">
+            <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+              Training cards
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {brief.trainingCards.map((card) => (
+                <div key={card.label} className="rounded-md border border-border/60 bg-card/30 px-3 py-3">
+                  <div className="text-[12px] font-semibold text-foreground">{card.label}</div>
+                  <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">{card.value}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="px-7 py-5 border-b border-border/50 space-y-3">
+            <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+              Guardrails
+            </div>
+            <ul className="space-y-2 text-[12.5px] leading-relaxed text-foreground">
+              {brief.guardrails.map((item) => (
+                <li key={item} className="flex gap-2">
+                  <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="px-7 py-5 space-y-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  {mode === "human" ? "Human-readable setup brief" : "JSON setup payload"}
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Copy as an internal setup note only; this does not activate integrations.
                 </p>
               </div>
               <Button size="sm" onClick={() => onCopy(renderedText, brief.copyLabel)} className="h-8">

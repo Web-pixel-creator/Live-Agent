@@ -51,7 +51,12 @@ Do not use the pilot to build:
    - Santexniki.uz
    - Service-Pro
 4. For each account, create a scorecard row before outreach.
-5. Use the shell `Pilot outreach wizard` and `Preview / Test message modal` to
+5. Open `Agent setup / training state` and `Open setup checklist` for the
+   selected lane. Confirm `Business profile`, `Knowledge sources`,
+   `Agent behavior`, `Test call/message`, and `Ready for test call/message`.
+   Treat `Copy setup brief` as internal setup evidence only; it does not
+   activate phone, Telegram, WhatsApp, CRM, analytics, or billing.
+6. Use the shell `Pilot outreach wizard` and `Preview / Test message modal` to
    inspect the exact message. Open `Operator confirmation summary` and confirm
    `Ready for manual outreach`. Click `Record ready for manual outreach` to set
    the browser-local status to `Draft ready`, then keep real outreach outside
@@ -59,7 +64,7 @@ Do not use the pilot to build:
    Use `Ask AI about pilot` only as an internal deterministic analyst brief for
    `Suggested questions`, `Best candidate`, `Bottleneck`, and `Next message`;
    it does not call an external LLM, send outreach, or write CRM.
-6. Open `Open metrics tracker` for the selected lane and mark `Baseline
+7. Open `Open metrics tracker` for the selected lane and mark `Baseline
    captured` only after real baseline data or owner estimates are collected.
 
 ## Day Zero: Outreach

@@ -59,16 +59,19 @@ has a `Pilot scorecard action` inside the `Pilot outreach wizard`.
 Use it to:
 
 1. select a company from the repo-owned outreach list
-2. review the `Test message preview`
-3. open `Operator confirmation summary`
-4. click `Record ready for manual outreach` to mark `Draft ready` locally
-5. open `Ask AI about pilot` if the operator needs `Suggested questions`,
+2. open `Agent setup / training state` and `Open setup checklist`
+3. confirm `Business profile`, `Knowledge sources`, `Agent behavior`,
+   `Test call/message`, and `Ready for test call/message`
+4. review the `Test message preview`
+5. open `Operator confirmation summary`
+6. click `Record ready for manual outreach` to mark `Draft ready` locally
+7. open `Ask AI about pilot` if the operator needs `Suggested questions`,
    `Best candidate`, `Bottleneck`, or `Next message`
-6. keep real outreach manual-only until a human sends the message outside the shell
+8. keep real outreach manual-only until a human sends the message outside the shell
 
 This shell action is intentionally local to the demo session. It does not send a
-message, update CRM, call an external LLM, or change this Markdown file
-automatically.
+message, activate phone or Telegram, update CRM, call an external LLM, or change
+this Markdown file automatically.
 
 The current shell persists this browser-local workspace state under
 `liveDesk:localServicesPilotWorkspace:v1`.

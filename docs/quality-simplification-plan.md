@@ -44,6 +44,12 @@ the same job-card contract as phone intake. It now also includes `Pilot readines
 `One-page offer`, `90-second demo script`, `Outreach focus`, a `Launch checklist`,
 and tracked `Pilot metrics` so the first Tashkent pilot can be explained
 without leaving `/app`.
+The same block now includes `Agent setup / training state`, a 7-minute setup
+path for `Business profile`, `Knowledge sources`, `Agent behavior`,
+`Test call/message`, and `Ready for test call/message`. `Open setup checklist`
+opens `Training cards`, `Copy setup brief`, and
+`local_services_agent_setup_training` as a deterministic setup artifact; it
+does not activate phone, Telegram, WhatsApp, CRM, analytics, or billing.
 The shell now includes a fourth P0 demo card, `Measurement visit booking`, for
 windows, doors, ceilings, blinds, and fit-out requests. This is the approved
 construction-adjacent expansion because it is still a dispatcher workflow:

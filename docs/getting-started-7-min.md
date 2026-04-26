@@ -50,6 +50,12 @@ payload.
 It now also includes `Pilot readiness` with a `One-page offer`, `90-second demo script`,
 `Outreach focus`, a `Launch checklist`, and tracked `Pilot metrics` for the
 first Tashkent pilot.
+`Pilot readiness` now includes `Agent setup / training state`: a 7-minute setup
+path for `Business profile`, `Knowledge sources`, `Agent behavior`,
+`Test call/message`, and `Ready for test call/message`. `Open setup checklist`
+opens a reviewed setup sheet with `Training cards`, `Copy setup brief`, and
+`local_services_agent_setup_training`; it does not activate phone, Telegram,
+WhatsApp, CRM, analytics, or billing integrations.
 The same block now includes a 4-step `Pilot outreach wizard` that walks the
 operator through `Offer preview`, `Audience from outreach list`,
 `Message/test preview`, and `Operator confirmation` before any real outreach

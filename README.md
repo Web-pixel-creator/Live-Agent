@@ -87,6 +87,12 @@ Local-services expansion spec:
 - the same panel now also exposes `Pilot readiness` with a `One-page offer`,
   `90-second demo script`, `Outreach focus`, a `Launch checklist`, and tracked
   `Pilot metrics`.
+- `Pilot readiness` now includes `Agent setup / training state`: a 7-minute
+  setup path for `Business profile`, `Knowledge sources`, `Agent behavior`,
+  `Test call/message`, and `Ready for test call/message`. `Open setup checklist`
+  opens a reviewed setup sheet with `Training cards`, `Copy setup brief`, and
+  `local_services_agent_setup_training`; it does not activate phone, Telegram,
+  WhatsApp, CRM, analytics, or billing integrations.
 - `Pilot readiness` now also includes a `Pilot outreach wizard`:
   `Offer preview` -> `Audience from outreach list` -> `Message/test preview` ->
   `Operator confirmation`. It is now rendered as a 4-step outreach wizard and
