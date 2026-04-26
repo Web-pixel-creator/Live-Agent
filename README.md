@@ -101,6 +101,11 @@ Local-services expansion spec:
 - the wizard now shows `Wizard progress`; `Record ready for manual outreach`
   changes the browser-local scorecard state to `Draft ready` and shows
   `Ready for manual outreach recorded` without sending outreach or writing CRM.
+- the same wizard now includes `AI analyst` / `Ask AI about pilot`: a
+  deterministic operator-assist sheet with `Suggested questions`,
+  `Best candidate`, `Bottleneck`, `Next message`, `Copy analyst brief`, and
+  `local_services_pilot_ai_analyst`; it makes no external LLM call and does not
+  send outreach.
 - the wizard now supports an operator-local `Pilot scorecard action`: choose a
   company from the repo-owned outreach list, review the test message, and
   `Record scorecard draft` as `Not contacted` / demo-session evidence before

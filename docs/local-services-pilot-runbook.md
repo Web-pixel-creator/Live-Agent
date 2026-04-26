@@ -56,6 +56,9 @@ Do not use the pilot to build:
    `Ready for manual outreach`. Click `Record ready for manual outreach` to set
    the browser-local status to `Draft ready`, then keep real outreach outside
    the shell until a human sends the message manually.
+   Use `Ask AI about pilot` only as an internal deterministic analyst brief for
+   `Suggested questions`, `Best candidate`, `Bottleneck`, and `Next message`;
+   it does not call an external LLM, send outreach, or write CRM.
 6. Open `Open metrics tracker` for the selected lane and mark `Baseline
    captured` only after real baseline data or owner estimates are collected.
 

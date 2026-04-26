@@ -63,6 +63,11 @@ checklist, and `Copy confirmation summary`.
 The wizard also shows `Wizard progress`; `Record ready for manual outreach`
 sets the selected company to `Draft ready` in browser-local state and displays
 `Ready for manual outreach recorded` without sending anything.
+The same wizard includes `AI analyst` / `Ask AI about pilot`, a deterministic
+operator-assist sheet with `Suggested questions`, `Best candidate`,
+`Bottleneck`, `Next message`, `Copy analyst brief`, and
+`local_services_pilot_ai_analyst`; it makes no external LLM call and does not
+send outreach.
 That wizard now includes a `Pilot scorecard action`: select `AC MASTER`,
 `Santexniki.uz`, `Service-Pro`, or another lane-specific candidate from the
 repo-owned outreach list, review the test message, and `Record scorecard draft`

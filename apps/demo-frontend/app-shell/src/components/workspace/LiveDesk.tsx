@@ -457,6 +457,18 @@ type LocalServicePilotConfirmationSummary = {
   checklist: string[];
 };
 
+type LocalServicePilotAnalystBrief = {
+  title: string;
+  description: string;
+  modeLabel: string;
+  copyLabel: string;
+  humanText: string;
+  jsonText: string;
+  rows: { label: string; value: string }[];
+  suggestedQuestions: { question: string; answer: string; action: string }[];
+  guardrails: string[];
+};
+
 type LocalServiceOutreachProspect = {
   id: string;
   company: string;
@@ -1280,6 +1292,114 @@ function buildLocalServicePilotConfirmationSummary(
   };
 }
 
+function buildLocalServicePilotAnalystBrief(
+  template: LocalServiceDemoTemplate,
+  prospect: LocalServiceOutreachProspect | undefined,
+  status: LocalServicePilotStatus,
+  counts: Record<LocalServicePilotStatus, number>,
+): LocalServicePilotAnalystBrief {
+  const wizard = template.detail.pilotKit.outreachWizard;
+  const company = prospect?.company ?? "No prospect selected";
+  const segment = prospect?.segment ?? "unknown";
+  const statusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[status];
+  const nextActionByStatus: Record<LocalServicePilotStatus, string> = {
+    not_contacted: "Open the preview modal, confirm the exact message, then record ready for manual outreach.",
+    draft_ready: "Send manually outside the shell and immediately log contacted manually in the scorecard.",
+    contacted_manually: "Wait for reply, then log reply received or rejected for now before adding another follow-up.",
+    reply_received: "Book the 7-minute demo and capture the next objection in the pilot scorecard.",
+    rejected_for_now: "Move this lane to the next candidate and keep the rejected reason for the weekly review.",
+  };
+  const bottleneckByStatus: Record<LocalServicePilotStatus, string> = {
+    not_contacted: "The bottleneck is operator confirmation: the message exists, but the company is not ready to contact yet.",
+    draft_ready: "The bottleneck is execution outside the product: the draft is ready, but no manual contact is logged.",
+    contacted_manually: "The bottleneck is reply tracking: the outreach happened, but no reply outcome is recorded.",
+    reply_received: "The bottleneck is conversion: reply exists, but the demo and objection notes must be closed.",
+    rejected_for_now: "The bottleneck is candidate quality: move to the next account instead of overworking this one.",
+  };
+  const suggestedQuestions = [
+    {
+      question: "Who is the best candidate for this pilot?",
+      answer: `${company} is the current best candidate for ${template.title} because ${prospect?.whyNow ?? template.statusNote}`,
+      action: prospect?.nextStep ?? "Select a company from the outreach list before contacting anyone.",
+    },
+    {
+      question: "Where is the bottleneck?",
+      answer: bottleneckByStatus[status],
+      action: nextActionByStatus[status],
+    },
+    {
+      question: "What should we say next?",
+      answer: wizard.testMessage,
+      action: "Use the Preview / Test message modal first, then send manually only after operator confirmation.",
+    },
+    {
+      question: "What should the operator check?",
+      answer: `${prospect?.scorecardFocus ?? "Company fit, channel fit, and owner availability"} before any outreach.`,
+      action: "Keep the no-send guardrail: copy notes only, then update local scorecard state after the human action.",
+    },
+  ];
+  const guardrails = [
+    "No external LLM call is made from this analyst brief.",
+    "No outbound message is sent.",
+    "No CRM write or scorecard sync happens automatically.",
+    "Operator must confirm the company, channel, message, and manual next step.",
+  ];
+  const humanLines = [
+    `Ask AI about pilot: ${template.title}`,
+    `Selected company: ${company}`,
+    `Segment: ${segment}`,
+    `Current scorecard state: ${statusLabel}`,
+    `Funnel snapshot: ${counts.not_contacted} not contacted, ${counts.draft_ready} draft ready, ${counts.contacted_manually} contacted manually, ${counts.reply_received} replies, ${counts.rejected_for_now} rejected.`,
+    "",
+    "Suggested questions:",
+    ...suggestedQuestions.flatMap((item) => [
+      `Q: ${item.question}`,
+      `A: ${item.answer}`,
+      `Action: ${item.action}`,
+      "",
+    ]),
+    "Guardrails:",
+    ...guardrails.map((item) => `- ${item}`),
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_pilot_ai_analyst",
+      export_kind: "deterministic_operator_assist",
+      service_id: template.id,
+      service_ref: template.ref,
+      service_title: template.title,
+      selected_company: company,
+      selected_segment: segment,
+      current_status: status,
+      current_status_label: statusLabel,
+      funnel_counts: counts,
+      suggested_questions: suggestedQuestions,
+      guardrails,
+    },
+    null,
+    2,
+  );
+
+  return {
+    title: "Ask AI about pilot",
+    description:
+      "Short suggested questions for the operator over the selected lane, company, scorecard state, and pilot funnel.",
+    modeLabel: "Analyst brief mode",
+    copyLabel: "Copy analyst brief",
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: [
+      { label: "Service", value: `${template.ref} - ${template.title}` },
+      { label: "Selected company", value: company },
+      { label: "Current status", value: statusLabel },
+      { label: "Next operator action", value: nextActionByStatus[status] },
+      { label: "Guardrail", value: "Deterministic brief only; no send and no external LLM call" },
+    ],
+    suggestedQuestions,
+    guardrails,
+  };
+}
+
 const LOCAL_SERVICE_DEMO_TEMPLATES: LocalServiceDemoTemplate[] = [
   {
     id: "ac-repair-dispatch",
@@ -1876,6 +1996,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [pilotMessagePreviewMode, setPilotMessagePreviewMode] = useState<PlaybookExportMode>("human");
   const [pilotOperatorConfirmationOpen, setPilotOperatorConfirmationOpen] = useState(false);
   const [pilotOperatorConfirmationMode, setPilotOperatorConfirmationMode] = useState<PlaybookExportMode>("human");
+  const [pilotAnalystOpen, setPilotAnalystOpen] = useState(false);
+  const [pilotAnalystMode, setPilotAnalystMode] = useState<PlaybookExportMode>("human");
   const outreachProspects = selectedTemplate.detail.pilotKit.outreachWizard.prospects;
   const selectedOutreachProspectId =
     pilotWorkspaceState.selectedProspectByService[selectedTemplate.id] ?? outreachProspects[0]?.id ?? "";
@@ -1962,6 +2084,16 @@ const LocalServicesDispatchDemoPanel = ({
   const pilotOperatorConfirmation = useMemo(
     () => buildLocalServicePilotConfirmationSummary(selectedTemplate, selectedOutreachProspect),
     [selectedOutreachProspect, selectedTemplate],
+  );
+  const pilotAnalystBrief = useMemo(
+    () =>
+      buildLocalServicePilotAnalystBrief(
+        selectedTemplate,
+        selectedOutreachProspect,
+        currentPilotStatus,
+        pilotFunnelCounts,
+      ),
+    [currentPilotStatus, pilotFunnelCounts, selectedOutreachProspect, selectedTemplate],
   );
   const nextManualBatch = pilotFunnelRows
     .filter((item) => item.status !== "reply_received" && item.status !== "rejected_for_now")
@@ -2811,6 +2943,53 @@ const LocalServicesDispatchDemoPanel = ({
                         </div>
 
                         <div className="rounded-md bg-card/25 px-3 py-2.5">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                                AI analyst
+                              </div>
+                              <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                                Suggested questions over the selected company, funnel state, and next manual step.
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => {
+                                setPilotAnalystMode("human");
+                                setPilotAnalystOpen(true);
+                              }}
+                              className="h-8"
+                            >
+                              <Sparkles className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                              Ask AI about pilot
+                            </Button>
+                          </div>
+                          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                            {pilotAnalystBrief.rows.slice(1, 5).map((row) => (
+                              <div key={row.label} className="rounded-md border border-border/50 bg-background/35 px-3 py-2">
+                                <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                                  {row.label}
+                                </div>
+                                <div className="mt-1 text-[12px] leading-relaxed text-foreground">
+                                  {row.value}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {["Best candidate", "Bottleneck", "Next message", "No external LLM call"].map((item) => (
+                              <span
+                                key={item}
+                                className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 text-[10px] text-muted-foreground"
+                              >
+                                {item}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="rounded-md bg-card/25 px-3 py-2.5">
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                               <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
@@ -2953,6 +3132,8 @@ const LocalServicesDispatchDemoPanel = ({
         mode={pilotWorkspaceExportMode}
         onModeChange={setPilotWorkspaceExportMode}
         onCopy={onCopyText}
+        readyRecorded={currentPilotStatus === "draft_ready"}
+        onRecordReady={recordReadyForManualOutreach}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
       />
@@ -2985,6 +3166,17 @@ const LocalServicesDispatchDemoPanel = ({
         onCopy={onCopyText}
         readyRecorded={currentPilotStatus === "draft_ready"}
         onRecordReady={recordReadyForManualOutreach}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+        onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
+      />
+      <LocalServicePilotAnalystSheet
+        open={pilotAnalystOpen}
+        onOpenChange={setPilotAnalystOpen}
+        brief={pilotAnalystBrief}
+        mode={pilotAnalystMode}
+        onModeChange={setPilotAnalystMode}
+        onCopy={onCopyText}
+        onOpenPreview={() => setPilotMessagePreviewOpen(true)}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
       />
@@ -3161,8 +3353,8 @@ const LocalServicePilotWorkspaceExportDrawer = ({
   mode: PlaybookExportMode;
   onModeChange: (mode: PlaybookExportMode) => void;
   onCopy: (text: string, label: string) => void;
-  readyRecorded: boolean;
-  onRecordReady: () => void;
+  readyRecorded?: boolean;
+  onRecordReady?: () => void;
   onOpenScorecard: () => void;
   onOpenExecutionPack: () => void;
 }) => {
@@ -3243,15 +3435,17 @@ const LocalServicePilotWorkspaceExportDrawer = ({
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant={readyRecorded ? "secondary" : "default"}
-                  onClick={onRecordReady}
-                  className="h-8"
-                >
-                  <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
-                  Record ready for manual outreach
-                </Button>
+                {onRecordReady ? (
+                  <Button
+                    size="sm"
+                    variant={readyRecorded ? "secondary" : "default"}
+                    onClick={onRecordReady}
+                    className="h-8"
+                  >
+                    <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                    Record ready for manual outreach
+                  </Button>
+                ) : null}
                 <Button size="sm" variant="secondary" onClick={onOpenExecutionPack} className="h-8">
                   <FileText className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
                   Open outreach execution pack
@@ -3477,6 +3671,8 @@ const LocalServicePilotOperatorConfirmationSheet = ({
   mode,
   onModeChange,
   onCopy,
+  readyRecorded,
+  onRecordReady,
   onOpenScorecard,
   onOpenExecutionPack,
 }: {
@@ -3486,6 +3682,8 @@ const LocalServicePilotOperatorConfirmationSheet = ({
   mode: PlaybookExportMode;
   onModeChange: (mode: PlaybookExportMode) => void;
   onCopy: (text: string, label: string) => void;
+  readyRecorded: boolean;
+  onRecordReady: () => void;
   onOpenScorecard: () => void;
   onOpenExecutionPack: () => void;
 }) => {
@@ -3569,6 +3767,15 @@ const LocalServicePilotOperatorConfirmationSheet = ({
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant={readyRecorded ? "secondary" : "default"}
+                  onClick={onRecordReady}
+                  className="h-8"
+                >
+                  <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Record ready for manual outreach
+                </Button>
                 <Button size="sm" variant="secondary" onClick={onOpenExecutionPack} className="h-8">
                   <FileText className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
                   Open outreach execution pack
@@ -3620,6 +3827,169 @@ const LocalServicePilotOperatorConfirmationSheet = ({
               >
                 <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
                 {confirmation.copyLabel}
+              </Button>
+            </div>
+            <pre className="max-h-[36vh] overflow-auto rounded-md border border-border/60 bg-card/30 px-3 py-3 font-mono text-[11px] leading-relaxed text-foreground">
+              {renderedText}
+            </pre>
+          </section>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+};
+
+const LocalServicePilotAnalystSheet = ({
+  open,
+  onOpenChange,
+  brief,
+  mode,
+  onModeChange,
+  onCopy,
+  onOpenPreview,
+  onOpenScorecard,
+  onOpenExecutionPack,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  brief: LocalServicePilotAnalystBrief;
+  mode: PlaybookExportMode;
+  onModeChange: (mode: PlaybookExportMode) => void;
+  onCopy: (text: string, label: string) => void;
+  onOpenPreview: () => void;
+  onOpenScorecard: () => void;
+  onOpenExecutionPack: () => void;
+}) => {
+  const renderedText = mode === "human" ? brief.humanText : brief.jsonText;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col gap-0 p-0">
+        <SheetHeader className="px-7 py-5 border-b border-border/70 space-y-2.5 text-left">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-3.5 w-3.5 text-muted-foreground/70" strokeWidth={1.75} />
+            <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground/80">
+              AI analyst
+            </span>
+          </div>
+          <SheetTitle className="font-serif text-[22px] tracking-tight leading-[1.2]">
+            {brief.title}
+          </SheetTitle>
+          <SheetDescription className="text-[12.5px] text-muted-foreground/85 leading-relaxed">
+            {brief.description}
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="flex-1 min-h-0 overflow-auto">
+          <section className="px-7 pt-6 pb-5 border-b border-border/50 space-y-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  {brief.modeLabel}
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  This is a deterministic operator assist view, not a live model call.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant={mode === "human" ? "default" : "secondary"}
+                  onClick={() => onModeChange("human")}
+                  className="h-8"
+                >
+                  Human-readable
+                </Button>
+                <Button
+                  size="sm"
+                  variant={mode === "json" ? "default" : "secondary"}
+                  onClick={() => onModeChange("json")}
+                  className="h-8"
+                >
+                  JSON
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              {brief.rows.map((row) => (
+                <div key={row.label} className="rounded-md border border-border/60 bg-card/30 px-3 py-2.5">
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+                    {row.label}
+                  </div>
+                  <div className="mt-1 break-words text-[12px] leading-relaxed text-foreground">
+                    {row.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="px-7 py-5 border-b border-border/50 space-y-3">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  Suggested questions
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Short operator prompts for the selected lane, company, and funnel state.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="secondary" onClick={onOpenPreview} className="h-8">
+                  <MessageSquareText className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Open preview modal
+                </Button>
+                <Button size="sm" variant="secondary" onClick={onOpenExecutionPack} className="h-8">
+                  <FileText className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Open outreach execution pack
+                </Button>
+                <Button size="sm" variant="secondary" onClick={onOpenScorecard} className="h-8">
+                  <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Open pilot scorecard
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {brief.suggestedQuestions.map((item) => (
+                <div key={item.question} className="rounded-md border border-border/60 bg-card/30 px-3 py-3">
+                  <div className="text-[12px] font-semibold text-foreground">{item.question}</div>
+                  <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">{item.answer}</p>
+                  <div className="mt-2 rounded-[5px] bg-secondary/45 px-2 py-1 text-[10px] text-muted-foreground">
+                    Action: {item.action}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="px-7 py-5 border-b border-border/50 space-y-3">
+            <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+              Guardrails
+            </div>
+            <ul className="space-y-2 text-[12.5px] leading-relaxed text-foreground">
+              {brief.guardrails.map((item) => (
+                <li key={item} className="flex gap-2">
+                  <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="px-7 py-5 space-y-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  {mode === "human" ? "Human-readable analyst brief" : "JSON analyst payload"}
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Copy only as an internal planning note; it is not customer-facing outreach.
+                </p>
+              </div>
+              <Button size="sm" onClick={() => onCopy(renderedText, brief.copyLabel)} className="h-8">
+                <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                {brief.copyLabel}
               </Button>
             </div>
             <pre className="max-h-[36vh] overflow-auto rounded-md border border-border/60 bg-card/30 px-3 py-3 font-mono text-[11px] leading-relaxed text-foreground">

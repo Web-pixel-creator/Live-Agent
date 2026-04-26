@@ -73,6 +73,11 @@ checklist, and `Copy confirmation summary`.
 The wizard now shows `Wizard progress`; `Record ready for manual outreach`
 sets only the browser-local scorecard state to `Draft ready` and changes the
 wizard status to `Ready for manual outreach recorded`.
+The same wizard now exposes `AI analyst` / `Ask AI about pilot`, which opens a
+deterministic analyst sheet with `Suggested questions`, `Best candidate`,
+`Bottleneck`, `Next message`, `Copy analyst brief`, and
+`local_services_pilot_ai_analyst`. It is an internal planning note only: no
+external LLM call, no outbound send, and no CRM write.
 The wizard now has an operator-local `Pilot scorecard action`: choose a
 lane-specific company from the outreach list, inspect the `Test message preview`,
 and `Record scorecard draft` as `Not contacted`. This records demo-session

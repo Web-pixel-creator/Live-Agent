@@ -602,6 +602,12 @@ The wizard now exposes `Wizard progress`; `Record ready for manual outreach`
 sets the selected company to `Draft ready` in browser-local state and shows
 `Ready for manual outreach recorded`. This is still a local state transition
 only: no external outreach, no CRM write, and no Markdown scorecard mutation.
+The wizard now also exposes `AI analyst` / `Ask AI about pilot`. It opens a
+deterministic operator-assist sheet with `Suggested questions`, `Best candidate`,
+`Bottleneck`, `Next message`, `Copy analyst brief`, and
+`local_services_pilot_ai_analyst`. This deliberately borrows the useful
+dashboard "Ask AI" pattern while keeping the product safe: no external LLM call,
+no autonomous send, no CRM write, and no automatic scorecard sync.
 The wizard now continues into a shell-level `Pilot scorecard action`: the
 operator selects a company from the repo-owned outreach list, inspects the test
 message, and clicks `Record scorecard draft`. The draft is intentionally local
@@ -693,6 +699,9 @@ pilot export surfaces.
     `docs/local-services-pilot-runbook.md`.
 12. Add a first manual outreach execution pack. Done as a repo-owned doc:
     `docs/local-services-outreach-execution-pack.md`.
+13. Add a shell-level `AI analyst` / `Ask AI about pilot` sheet. Done in shell
+    demo as a deterministic operator-assist layer with no external LLM call and
+    no autonomous outreach.
 
 Current shell readiness for P3:
 
@@ -712,26 +721,30 @@ Current shell readiness for P3:
 6. `Wizard progress`, `Record ready for manual outreach`,
    `Ready for manual outreach recorded`, and `Draft ready` are wired as a
    browser-local state transition for the selected company.
-7. `Pilot scorecard action`, `Selected company`, `Record scorecard draft`,
+7. `AI analyst`, `Ask AI about pilot`, `Suggested questions`, `Best candidate`,
+   `Bottleneck`, `Next message`, `Copy analyst brief`,
+   `local_services_pilot_ai_analyst`, and `No external LLM call` are visible as
+   a deterministic operator-assist layer over the selected pilot lane.
+8. `Pilot scorecard action`, `Selected company`, `Record scorecard draft`,
    `Pilot workspace state`, `Saved in this browser`, `Contacted manually`,
    `Reply received`, `Rejected for now`, and `No outbound message sent` are
    visible in the shell-level wizard.
-8. `Pilot funnel summary`, `All candidates`, per-status counts, `Next manual
+9. `Pilot funnel summary`, `All candidates`, per-status counts, `Next manual
    batch`, and `Manual execution rule` are visible in the shell.
-9. `Open pilot export`, `Pilot workspace export drawer`, `Human-readable`,
+10. `Open pilot export`, `Pilot workspace export drawer`, `Human-readable`,
    `JSON`, and `Copy pilot workspace export` are visible in the shell.
-10. `Open metrics tracker`, `Pilot metrics tracker`, `Human-readable`, `JSON`,
+11. `Open metrics tracker`, `Pilot metrics tracker`, `Human-readable`, `JSON`,
    and `Copy pilot metrics tracker` are visible in the shell.
-11. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
+12. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
    artifact documents from the same local frontend server.
-12. `Open outreach list`, `Open outreach execution pack`, and
+13. `Open outreach list`, `Open outreach execution pack`, and
    `Open pilot scorecard` resolve to the repo-owned pilot execution documents
    from the same local frontend server.
-13. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
+14. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
    14-day pilot runbook from the same local frontend server.
-14. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
+15. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
    repo-owned first-contact execution pack from the same local frontend server.
-15. Actual external execution still remains outside the shell: recorded video,
+16. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path

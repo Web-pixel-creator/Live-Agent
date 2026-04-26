@@ -207,8 +207,11 @@ Allowed reply statuses:
    explain that it is a final human approval state, not an autonomous send.
 9. Click `Record ready for manual outreach` only to mark `Draft ready` locally;
    explain that it does not send outreach or write CRM.
-10. Show `Pilot metrics` and `Open metrics tracker`.
-11. End with one question: "Would this save missed requests or manager time if we
+10. Open `Ask AI about pilot` to show `Suggested questions`, `Best candidate`,
+   `Bottleneck`, `Next message`, and `Copy analyst brief`; explain that this is
+   deterministic internal planning and makes `No external LLM call`.
+11. Show `Pilot metrics` and `Open metrics tracker`.
+12. End with one question: "Would this save missed requests or manager time if we
    tested it for 14 days?"
 
 ## After Each Contact

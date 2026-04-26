@@ -51,7 +51,9 @@ operationally mature already:
 
 The demo shell can now select these accounts in the `Pilot outreach wizard`,
 open the `Preview / Test message modal`, review `Operator confirmation summary`,
-click `Record ready for manual outreach`, and produce a local `Scorecard draft`.
+click `Record ready for manual outreach`, open `Ask AI about pilot` for
+`Suggested questions`, `Best candidate`, `Bottleneck`, and `Next message`, and
+produce a local `Scorecard draft`.
 Treat that as preparation only: no real message is sent and the company remains
 manual-only until a human operator performs outreach.
 Use `docs/local-services-outreach-execution-pack.md` before first contact for
