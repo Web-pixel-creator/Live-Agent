@@ -59,8 +59,8 @@ normalized into the same job-card payload instead of creating a second workflow.
 The same panel now carries `Pilot readiness`, including `One-page offer`,
 `90-second demo script`, `Outreach focus`, a `Launch checklist`, and tracked
 `Pilot metrics` for the first local-services pilot.
-It also carries a `Pilot outreach wizard` with `Offer preview`,
-`Audience from outreach list`, `Test message preview`, and
+It also carries a 4-step `Pilot outreach wizard` with `Offer preview`,
+`Audience from outreach list`, `Message/test preview`, and
 `Operator confirmation` so the pilot can be prepared without implying an
 autonomous send.
 The wizard now has an operator-local `Pilot scorecard action`: choose a

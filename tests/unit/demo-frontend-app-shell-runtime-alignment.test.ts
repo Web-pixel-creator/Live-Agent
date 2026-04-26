@@ -501,11 +501,14 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Open outreach list/);
   assert.match(liveDesk, /Open outreach execution pack/);
   assert.match(liveDesk, /Open pilot scorecard/);
+  assert.match(liveDesk, /4-step outreach wizard/);
   assert.match(liveDesk, /Pilot outreach wizard/);
   assert.match(liveDesk, /Offer preview/);
   assert.match(liveDesk, /Audience from outreach list/);
+  assert.match(liveDesk, /Message\/test preview/);
   assert.match(liveDesk, /Test message preview/);
   assert.match(liveDesk, /Operator confirmation/);
+  assert.match(liveDesk, /no outbound send/);
   assert.match(liveDesk, /operator-approved/);
   assert.match(liveDesk, /type LocalServiceOutreachProspect = \{/);
   assert.match(liveDesk, /type LocalServicePilotWorkspaceState = \{/);
@@ -696,7 +699,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Pilot metrics/);
   assert.match(readme, /Pilot outreach wizard/);
   assert.match(readme, /Audience from outreach list/);
-  assert.match(readme, /Test message preview/);
+  assert.match(readme, /Message\/test preview/);
   assert.match(readme, /Operator confirmation/);
   assert.match(readme, /Pilot scorecard action/);
   assert.match(readme, /Record scorecard draft/);
@@ -747,8 +750,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /Launch checklist/);
   assert.match(localDevelopment, /Pilot metrics/);
   assert.match(localDevelopment, /Pilot outreach wizard/);
+  assert.match(localDevelopment, /4-step/);
   assert.match(localDevelopment, /Audience from outreach list/);
-  assert.match(localDevelopment, /Test message preview/);
+  assert.match(localDevelopment, /Message\/test preview/);
   assert.match(localDevelopment, /Operator confirmation/);
   assert.match(localDevelopment, /Pilot scorecard action/);
   assert.match(localDevelopment, /Selected company/);
@@ -798,8 +802,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Launch checklist/);
   assert.match(operatorGuide, /Pilot metrics/);
   assert.match(operatorGuide, /Pilot outreach wizard/);
+  assert.match(operatorGuide, /4-step/);
   assert.match(operatorGuide, /Audience from outreach list/);
-  assert.match(operatorGuide, /Test message preview/);
+  assert.match(operatorGuide, /Message\/test preview/);
   assert.match(operatorGuide, /Operator confirmation/);
   assert.match(operatorGuide, /Pilot scorecard action/);
   assert.match(operatorGuide, /Record scorecard draft/);
@@ -844,8 +849,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /Launch checklist/);
   assert.match(simplificationPlan, /Pilot metrics/);
   assert.match(simplificationPlan, /Pilot outreach wizard/);
+  assert.match(simplificationPlan, /4-step/);
   assert.match(simplificationPlan, /Audience from outreach list/);
-  assert.match(simplificationPlan, /Test message preview/);
+  assert.match(simplificationPlan, /Message\/test preview/);
   assert.match(simplificationPlan, /Operator confirmation/);
   assert.match(simplificationPlan, /Pilot scorecard action/);
   assert.match(simplificationPlan, /Record scorecard draft/);
@@ -895,8 +901,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /Launch checklist/);
   assert.match(gettingStarted, /Pilot metrics/);
   assert.match(gettingStarted, /Pilot outreach wizard/);
+  assert.match(gettingStarted, /4-step/);
   assert.match(gettingStarted, /Audience from outreach list/);
-  assert.match(gettingStarted, /Test message preview/);
+  assert.match(gettingStarted, /Message\/test preview/);
   assert.match(gettingStarted, /Operator confirmation/);
   assert.match(gettingStarted, /Pilot scorecard action/);
   assert.match(gettingStarted, /AC MASTER/);
@@ -943,8 +950,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /Launch checklist/);
   assert.match(localServicesSpec, /Pilot metrics/);
   assert.match(localServicesSpec, /Pilot outreach wizard/);
+  assert.match(localServicesSpec, /4-step/);
   assert.match(localServicesSpec, /Audience from outreach list/);
-  assert.match(localServicesSpec, /Test message preview/);
+  assert.match(localServicesSpec, /Message\/test preview/);
   assert.match(localServicesSpec, /Operator confirmation/);
   assert.match(localServicesSpec, /Pilot scorecard action/);
   assert.match(localServicesSpec, /Record scorecard draft/);

@@ -1690,6 +1690,28 @@ const LocalServicesDispatchDemoPanel = ({
   const currentPilotStatusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[currentPilotStatus];
   const currentMetricStatus = pilotWorkspaceState.metricStatusByService[selectedTemplate.id] ?? "not_started";
   const currentMetricStatusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[currentMetricStatus];
+  const pilotWizardSteps = [
+    {
+      label: "Offer preview",
+      value: selectedTemplate.detail.pilotKit.offerSummary,
+      status: "Ready",
+    },
+    {
+      label: "Audience from outreach list",
+      value: selectedTemplate.detail.pilotKit.outreachWizard.audience,
+      status: "Selected",
+    },
+    {
+      label: "Message/test preview",
+      value: selectedTemplate.detail.pilotKit.outreachWizard.testMessage,
+      status: "Review",
+    },
+    {
+      label: "Operator confirmation",
+      value: selectedTemplate.detail.pilotKit.outreachWizard.confirmationGate,
+      status: "Manual approval",
+    },
+  ];
   const allPilotProspects = useMemo(
     () =>
       LOCAL_SERVICE_DEMO_TEMPLATES.flatMap((template) =>
@@ -2351,32 +2373,40 @@ const LocalServicesDispatchDemoPanel = ({
                       operator-approved
                     </span>
                   </div>
-                  <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-                    {[
-                      {
-                        label: "1. Offer preview",
-                        value: selectedTemplate.detail.pilotKit.offerSummary,
-                      },
-                      {
-                        label: "2. Audience from outreach list",
-                        value: selectedTemplate.detail.pilotKit.outreachWizard.audience,
-                      },
-                      {
-                        label: "3. Test message preview",
-                        value: selectedTemplate.detail.pilotKit.outreachWizard.testMessage,
-                      },
-                      {
-                        label: "4. Operator confirmation",
-                        value: selectedTemplate.detail.pilotKit.outreachWizard.confirmationGate,
-                      },
-                    ].map((step) => (
-                      <div key={step.label} className="rounded-md bg-background/40 px-3 py-2.5">
+                  <div className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-3">
+                    <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                      <div>
                         <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                          {step.label}
+                          4-step outreach wizard
                         </div>
-                        <p className="mt-2 text-[12px] leading-relaxed text-foreground">{step.value}</p>
+                        <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                          Prepare the first contact in order, then stop for human confirmation before outreach.
+                        </p>
                       </div>
-                    ))}
+                      <span className="inline-flex w-fit rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                        no outbound send
+                      </span>
+                    </div>
+                    <ol className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                      {pilotWizardSteps.map((step, index) => (
+                        <li key={step.label} className="rounded-md bg-card/30 px-3 py-2.5">
+                          <div className="flex items-start gap-2">
+                            <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] bg-[hsl(var(--tint-violet)/0.14)] font-mono text-[10px] text-[hsl(var(--tint-violet-fg))] ring-1 ring-inset ring-[hsl(var(--tint-violet)/0.24)]">
+                              {index + 1}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                                {step.label}
+                              </div>
+                              <div className="mt-0.5 font-mono text-[10px] text-muted-foreground/70">
+                                {step.status}
+                              </div>
+                            </div>
+                          </div>
+                          <p className="mt-2 text-[12px] leading-relaxed text-foreground">{step.value}</p>
+                        </li>
+                      ))}
+                    </ol>
                   </div>
                   <div className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-3">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">

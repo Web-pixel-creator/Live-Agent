@@ -50,9 +50,10 @@ payload.
 It now also includes `Pilot readiness` with a `One-page offer`, `90-second demo script`,
 `Outreach focus`, a `Launch checklist`, and tracked `Pilot metrics` for the
 first Tashkent pilot.
-The same block now includes a `Pilot outreach wizard` that walks the operator
-through `Offer preview`, `Audience from outreach list`, `Test message preview`,
-and `Operator confirmation` before any real outreach happens.
+The same block now includes a 4-step `Pilot outreach wizard` that walks the
+operator through `Offer preview`, `Audience from outreach list`,
+`Message/test preview`, and `Operator confirmation` before any real outreach
+happens.
 That wizard now includes a `Pilot scorecard action`: select `AC MASTER`,
 `Santexniki.uz`, `Service-Pro`, or another lane-specific candidate from the
 repo-owned outreach list, review the test message, and `Record scorecard draft`

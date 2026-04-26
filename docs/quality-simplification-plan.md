@@ -50,8 +50,8 @@ construction-adjacent expansion because it is still a dispatcher workflow:
 collect scope, district, photos, approximate sizes, and a manager-approved
 measurer slot. Construction-material stock, delivery, payment, and substitution
 rules remain outside P0.
-The same block now includes a `Pilot outreach wizard` with `Offer preview`,
-`Audience from outreach list`, `Test message preview`, and
+The same block now includes a 4-step `Pilot outreach wizard` with
+`Offer preview`, `Audience from outreach list`, `Message/test preview`, and
 `Operator confirmation`, keeping first outreach preparation inside the shell
 while real sends remain outside the autonomous path.
 It now continues into `Pilot scorecard action`: select a company from the

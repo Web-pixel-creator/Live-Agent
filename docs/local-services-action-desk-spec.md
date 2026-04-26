@@ -584,7 +584,7 @@ The selected card now also exposes `Pilot readiness`, `One-page offer`,
 external outreach.
 The same block now includes a `Pilot outreach wizard` that mirrors the useful
 campaign-builder pattern from the reviewed AI receptionist references:
-`Offer preview` -> `Audience from outreach list` -> `Test message preview` ->
+`Offer preview` -> `Audience from outreach list` -> `Message/test preview` ->
 `Operator confirmation`. This is a planning and review surface only; no real
 outreach is sent autonomously.
 The wizard now continues into a shell-level `Pilot scorecard action`: the
@@ -684,9 +684,9 @@ Current shell readiness for P3:
 1. `Pilot readiness` block is present in the demo shell.
 2. `One-page offer`, `90-second demo script`, `Outreach focus`, `Launch checklist`,
    and `Pilot metrics` are visible for each local-services lane.
-3. `Pilot outreach wizard`, `Offer preview`, `Audience from outreach list`,
-   `Test message preview`, and `Operator confirmation` are visible for each
-   local-services lane.
+3. 4-step `Pilot outreach wizard`, `Offer preview`,
+   `Audience from outreach list`, `Message/test preview`, and
+   `Operator confirmation` are visible for each local-services lane.
 4. `Pilot scorecard action`, `Selected company`, `Record scorecard draft`,
    `Pilot workspace state`, `Saved in this browser`, `Contacted manually`,
    `Reply received`, `Rejected for now`, and `No outbound message sent` are
