@@ -80,6 +80,10 @@ That same block should link to repo-owned pilot artifacts through
 The next execution layer should also stay repo-owned through
 `/workspace-docs/local-services-outreach-list.md` and
 `/workspace-docs/local-services-pilot-scorecard.md`.
+The real execution checklist now lives in `docs/local-services-pilot-runbook.md`
+and is served at `/workspace-docs/local-services-pilot-runbook.md`. It should
+remain outside the app shell until real pilots prove which actions deserve
+product UI.
 
 ## Success Criteria
 

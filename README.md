@@ -115,6 +115,9 @@ Local-services expansion spec:
 - the same support layer now also links to
   `/workspace-docs/local-services-outreach-list.md` and
   `/workspace-docs/local-services-pilot-scorecard.md` for pilot execution.
+- real pilot execution is now guided by `docs/local-services-pilot-runbook.md`;
+  it defines day-minus-one prep, manual outreach, discovery calls, pilot setup,
+  daily metrics, week-one review, week-two review, and the evidence pack.
 - restaurants stay as a secondary demo path until local services has real pilot
   signal.
 - construction-material quote and delivery stays out of P0; the first
@@ -185,6 +188,7 @@ Priority decision filter:
 - Architecture: `docs/architecture.md`
 - Product Master Plan: `docs/product-master-plan.md`
 - Local Services Action Desk Spec: `docs/local-services-action-desk-spec.md`
+- Local Services Pilot Runbook: `docs/local-services-pilot-runbook.md`
 - Product Backlog: `docs/product-backlog.md`
 - Startup Wedge 90 Days: `docs/startup-wedge-90-day-plan.md`
 - Visa Sales Demo Package: `docs/visa-sales-demo-package.md`

@@ -616,6 +616,11 @@ The shell now also opens repo-owned pilot artifacts through
 It now also opens the execution documents
 `/workspace-docs/local-services-outreach-list.md` and
 `/workspace-docs/local-services-pilot-scorecard.md`.
+The real 14-day pilot execution sequence now lives in
+`docs/local-services-pilot-runbook.md` and is served locally at
+`/workspace-docs/local-services-pilot-runbook.md`. It stays outside the product
+shell because live outreach, replies, customer data handling, and pilot evidence
+are manual operator work.
 
 ### P1 - Operator-Ready Payloads
 
@@ -660,6 +665,8 @@ It now also opens the execution documents
    - bookings,
    - manual operator edits,
    - customer no-show or cancellation.
+11. Add a real pilot execution runbook. Done as a repo-owned doc:
+    `docs/local-services-pilot-runbook.md`.
 
 Current shell readiness for P3:
 
@@ -683,7 +690,9 @@ Current shell readiness for P3:
    artifact documents from the same local frontend server.
 9. `Open outreach list` and `Open pilot scorecard` resolve to the repo-owned
    pilot execution documents from the same local frontend server.
-10. Actual external execution still remains outside the shell: recorded video,
+10. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
+   14-day pilot runbook from the same local frontend server.
+11. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path

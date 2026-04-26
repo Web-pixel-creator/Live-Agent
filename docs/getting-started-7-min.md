@@ -73,6 +73,9 @@ Use `Open offer doc` and `Open demo script` to open the repo-owned pilot
 artifacts without leaving the local frontend server.
 Use `Open outreach list` and `Open pilot scorecard` when you move from demo
 story to actual pilot execution.
+Use `docs/local-services-pilot-runbook.md` for the manual 14-day pilot sequence
+after a company agrees to test. It covers outreach, discovery, setup, daily
+metrics, reviews, and the evidence pack.
 
 The AI assistant can talk to the customer by phone, but P0 booking and dispatch
 remain operator-approved.

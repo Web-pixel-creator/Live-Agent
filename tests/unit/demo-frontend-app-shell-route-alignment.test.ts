@@ -32,6 +32,7 @@ test("demo frontend server redirects root to /app and keeps legacy on /legacy", 
   assert.match(source, /"local-services-demo-script\.md"/);
   assert.match(source, /"local-services-outreach-list\.md"/);
   assert.match(source, /"local-services-pilot-scorecard\.md"/);
+  assert.match(source, /"local-services-pilot-runbook\.md"/);
   assert.match(source, /label: "Action Desk KPI report"/);
   assert.match(source, /relativePath: "release-evidence\/action-desk-kpi-report\.json"/);
   assert.match(source, /label: "Consultation booking proof"/);

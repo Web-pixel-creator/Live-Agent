@@ -89,6 +89,11 @@ Use `Open offer doc` and `Open demo script` when the operator needs the pilot
 artifact layer instead of the inline summary.
 Use `Open outreach list` and `Open pilot scorecard` when the conversation moves
 from positioning into real pilot execution.
+Use `docs/local-services-pilot-runbook.md` for the actual 14-day operating
+sequence: day-minus-one prep, manual outreach, discovery call, pilot setup,
+daily metric capture, week-one review, week-two review, and evidence pack. It
+is intentionally outside the product shell because real outreach and customer
+data handling stay manual and operator-owned.
 The measurement lane is the only construction-adjacent P0 lane: it captures
 windows, doors, ceilings, fit-out, photos, approximate sizes, and a manager-
 approved measurer slot. Material quote/delivery desks remain later work.

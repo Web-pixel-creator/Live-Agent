@@ -463,6 +463,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   const demoScript = readRepoSource("docs/local-services-demo-script.md");
   const outreachList = readRepoSource("docs/local-services-outreach-list.md");
   const pilotScorecard = readRepoSource("docs/local-services-pilot-scorecard.md");
+  const pilotRunbook = readRepoSource("docs/local-services-pilot-runbook.md");
 
   assert.match(liveDesk, /const visaIntakeDemo = searchParams\.get\("demo"\) === "visa-intake";/);
   assert.match(liveDesk, /const localServicesDispatchDemo = searchParams\.get\("demo"\) === "local-services-dispatch";/);
@@ -713,6 +714,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /\/workspace-docs\/local-services-demo-script\.md/);
   assert.match(readme, /\/workspace-docs\/local-services-outreach-list\.md/);
   assert.match(readme, /\/workspace-docs\/local-services-pilot-scorecard\.md/);
+  assert.match(readme, /docs\/local-services-pilot-runbook\.md/);
   assert.match(readme, /Start 7-minute demo/);
   assert.match(readme, /Live Desk also exposes four productized playbook templates/);
   assert.match(readme, /Outcome`, `Approval`, `Evidence`, and `Deliverable/);
@@ -765,6 +767,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /Open pilot scorecard/);
   assert.match(localDevelopment, /http:\/\/localhost:3000\/workspace-docs\/local-services-pilot-offer\.md/);
   assert.match(localDevelopment, /http:\/\/localhost:3000\/workspace-docs\/local-services-demo-script\.md/);
+  assert.match(localDevelopment, /http:\/\/localhost:3000\/workspace-docs\/local-services-pilot-runbook\.md/);
   assert.match(localDevelopment, /Start 7-minute demo/);
   assert.match(localDevelopment, /Visa lead qualification/);
   assert.match(localDevelopment, /Each template card previews `Outcome`, `Approval`, `Evidence`, and `Deliverable`/);
@@ -810,6 +813,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Open demo script/);
   assert.match(operatorGuide, /Open outreach list/);
   assert.match(operatorGuide, /Open pilot scorecard/);
+  assert.match(operatorGuide, /docs\/local-services-pilot-runbook\.md/);
+  assert.match(operatorGuide, /14-day operating\s+sequence/);
   assert.match(operatorGuide, /Each card previews `Outcome`, `Approval`, `Evidence`,/);
   assert.match(operatorGuide, /inline detail panel with `Sample input`, `Approval\s+policy`, `Evidence output`, and `CRM fields`/);
   assert.match(operatorGuide, /`Payload preview`, `Surface path`, and `Copy payload` action/);
@@ -851,6 +856,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-demo-script\.md/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-outreach-list\.md/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-pilot-scorecard\.md/);
+  assert.match(simplificationPlan, /\/workspace-docs\/local-services-pilot-runbook\.md/);
   assert.match(simplificationPlan, /productized launch cards/);
   assert.match(simplificationPlan, /Each card should preview `Outcome`, `Approval`, `Evidence`,/);
   assert.match(simplificationPlan, /The selected lane should\s+also expose `Sample input`, `Approval policy`, `Evidence output`, and `CRM\s+fields` inline/);
@@ -902,6 +908,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /Open demo script/);
   assert.match(gettingStarted, /Open outreach list/);
   assert.match(gettingStarted, /Open pilot scorecard/);
+  assert.match(gettingStarted, /docs\/local-services-pilot-runbook\.md/);
   assert.match(gettingStarted, /Playbook templates/);
   assert.match(gettingStarted, /Each card previews `Outcome`, `Approval`, `Evidence`, and `Deliverable`/);
   assert.match(gettingStarted, /Selecting a card opens the inline detail panel with `Sample input`, `Approval policy`,\s+`Evidence output`, and `CRM fields`/);
@@ -950,6 +957,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /\/workspace-docs\/local-services-demo-script\.md/);
   assert.match(localServicesSpec, /\/workspace-docs\/local-services-outreach-list\.md/);
   assert.match(localServicesSpec, /\/workspace-docs\/local-services-pilot-scorecard\.md/);
+  assert.match(localServicesSpec, /\/workspace-docs\/local-services-pilot-runbook\.md/);
   assert.match(localServicesSpec, /Actual external execution still remains outside the shell/);
   assert.match(localServicesSpec, /same approval-gated job-card payload/);
   assert.match(localServicesSpec, /operator-approved action/);
@@ -1005,6 +1013,18 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotScorecard, /does not send a\s+message/);
   assert.match(pilotScorecard, /14-Day Pilot Scorecard/);
   assert.match(pilotScorecard, /Pilot Exit Rules/);
+  assert.match(pilotScorecard, /docs\/local-services-pilot-runbook\.md/);
+  assert.match(pilotRunbook, /# Local Services Pilot Runbook/);
+  assert.match(pilotRunbook, /Day Minus One: Prepare/);
+  assert.match(pilotRunbook, /Day Zero: Outreach/);
+  assert.match(pilotRunbook, /Discovery Call/);
+  assert.match(pilotRunbook, /Pilot Setup/);
+  assert.match(pilotRunbook, /Daily Operating Loop/);
+  assert.match(pilotRunbook, /Week One Review/);
+  assert.match(pilotRunbook, /Week Two Review/);
+  assert.match(pilotRunbook, /Evidence Pack/);
+  assert.match(pilotRunbook, /The shell must not send messages/);
+  assert.match(pilotRunbook, /Do not store private customer data in public docs/);
 });
 
 test("simulation lab prefers runtime governance metadata for the live policy snapshot", () => {

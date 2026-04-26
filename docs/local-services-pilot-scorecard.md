@@ -1,6 +1,9 @@
 # Local Services Pilot Scorecard
 
 Use this document to score the first outreach conversations and early pilots.
+Use `docs/local-services-pilot-runbook.md` for the operating sequence that
+decides when to create rows, when to contact manually, and when to continue or
+stop the pilot.
 
 The point is not to collect vanity notes. The point is to decide quickly:
 
