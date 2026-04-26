@@ -1,6 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
   Plus,
   Search,
   ChevronDown,
@@ -17,6 +24,19 @@ import {
   User,
   Star,
   Flame,
+  CalendarCheck,
+  ClipboardCheck,
+  BriefcaseBusiness,
+  MessageSquareText,
+  ShieldCheck,
+  Copy,
+  PhoneCall,
+  Wrench,
+  Wind,
+  Sparkles,
+  Ruler,
+  MapPin,
+  Send,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -44,7 +64,7 @@ import {
 import { useVipCases } from "@/hooks/useVipCases";
 import { useToast } from "@/hooks/use-toast";
 import { NewCaseSheet } from "./NewCaseSheet";
-import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
+import { type RuntimeCaseWiki, useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
 import {
   buildCaseBundlePath,
   buildCaseEvidencePath,
@@ -140,15 +160,2828 @@ const shortAge = (iso: string | undefined, now: number): string | null => {
   return `${days}d`;
 };
 
+const SevenMinuteVisaIntakePanel = ({
+  caseValue,
+  onClose,
+  onOpenConsole,
+  onOpenBundle,
+  onOpenEvidence,
+  onOpenCaseVault,
+}: {
+  caseValue: WorkspaceCase;
+  onClose: () => void;
+  onOpenConsole: () => void;
+  onOpenBundle: () => void;
+  onOpenEvidence: () => void;
+  onOpenCaseVault: () => void;
+}) => {
+  const missingDocs = caseValue.documents.filter((doc) => doc.state === "missing");
+  const reviewDocs = caseValue.documents.filter((doc) => doc.state === "review");
+  const completedDocs = caseValue.documents.filter((doc) => doc.state === "ok");
+  const signals = caseValue.approval?.signals ?? [];
+  const outcomeItems = [
+    { label: "Lead qualified", value: `${caseValue.visa} · ${caseValue.country}`, tone: "violet", Icon: ClipboardCheck },
+    { label: "Missing docs", value: `${missingDocs.length} requested`, tone: "amber", Icon: FileText },
+    { label: "Consultation", value: "Ready from timeline", tone: "mint", Icon: CalendarCheck },
+    { label: "CRM handoff", value: "Prepared in Console", tone: "slate", Icon: BriefcaseBusiness },
+    { label: "Approval", value: caseValue.approval ? "Required before send" : "No blocker", tone: caseValue.approval ? "rose" : "mint", Icon: ShieldCheck },
+    { label: "Evidence", value: "Bundle available", tone: "violet", Icon: Camera },
+  ] as const;
+
+  return (
+    <section
+      aria-label="Seven-minute visa intake demo"
+      className="mx-8 mb-5 rounded-md border border-border/70 bg-card/35 overflow-hidden shadow-[0_18px_40px_-28px_rgba(0,0,0,0.65)]"
+    >
+      <div className="px-5 py-4 border-b border-border/60 flex items-start gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="inline-flex h-5 items-center px-2 rounded-[5px] bg-[hsl(var(--tint-violet)/0.14)] text-[10px] font-mono uppercase tracking-[0.12em] text-[hsl(var(--tint-violet-fg))] ring-1 ring-inset ring-[hsl(var(--tint-violet)/0.24)]">
+              7-minute path
+            </span>
+            <span className="font-mono text-[11px] text-muted-foreground">{caseValue.ref}</span>
+          </div>
+          <h2 className="font-serif text-[22px] leading-tight tracking-tight text-foreground">
+            Visa intake from lead to evidence.
+          </h2>
+          <p className="mt-1.5 text-[12.5px] text-muted-foreground leading-relaxed max-w-3xl">
+            {caseValue.client} · {caseValue.stage}. Review the outcome, approve the protected
+            follow-up, then open the proof surface.
+          </p>
+        </div>
+        <div className="hidden lg:grid grid-cols-3 gap-2 min-w-[360px]">
+          {[
+            ["Client", caseValue.client],
+            ["Owner", caseValue.owner],
+            ["SLA", caseValue.sla],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-md border border-border/50 bg-secondary/20 px-3 py-2">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+                {label}
+              </div>
+              <div className="mt-1 font-mono text-[11px] text-foreground truncate">{value}</div>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-smooth"
+          aria-label="Close visa intake demo panel"
+        >
+          <X className="h-3.5 w-3.5" strokeWidth={1.75} />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-0">
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-2.5">
+            {outcomeItems.map(({ label, value, tone, Icon }) => (
+              <div
+                key={label}
+                className="rounded-md border border-border/50 bg-background/35 px-3 py-3 min-h-[86px]"
+              >
+                <div className="flex items-center gap-1.5">
+                  <Icon
+                    className="h-3.5 w-3.5"
+                    strokeWidth={1.8}
+                    style={{ color: `hsl(var(--tint-${tone}-fg))` }}
+                  />
+                  <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/75">
+                    {label}
+                  </span>
+                </div>
+                <div className="mt-2 text-[12px] leading-snug text-foreground">{value}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-4">
+            <div className="rounded-md border border-border/50 bg-secondary/15 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <MessageSquareText className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.75} />
+                <h3 className="text-[12px] font-semibold text-foreground">Next operator action</h3>
+              </div>
+              <p className="text-[12.5px] leading-relaxed text-muted-foreground">
+                {caseValue.approval?.headline.prefix}
+                <span className="text-foreground">{caseValue.approval?.headline.emphasis}</span>
+                {caseValue.approval?.headline.suffix}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {signals.map((signal) => (
+                  <Pill key={signal.label} tone={signal.tone} size="sm">
+                    {signal.label}
+                  </Pill>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-md border border-border/50 bg-secondary/15 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <FileText className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.75} />
+                <h3 className="text-[12px] font-semibold text-foreground">Document posture</h3>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-md bg-background/35 px-2 py-2">
+                  <div className="font-mono text-[15px] text-[hsl(var(--tint-mint-fg))]">
+                    {completedDocs.length}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">ready</div>
+                </div>
+                <div className="rounded-md bg-background/35 px-2 py-2">
+                  <div className="font-mono text-[15px] text-[hsl(var(--tint-amber-fg))]">
+                    {reviewDocs.length}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">review</div>
+                </div>
+                <div className="rounded-md bg-background/35 px-2 py-2">
+                  <div className="font-mono text-[15px] text-[hsl(var(--tint-rose-fg))]">
+                    {missingDocs.length}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">missing</div>
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {missingDocs.slice(0, 4).map((doc) => (
+                  <Pill key={doc.name} tone="amber" size="sm">
+                    {doc.name}
+                  </Pill>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside className="border-t xl:border-t-0 xl:border-l border-border/60 p-5 bg-background/30">
+          <h3 className="text-[12px] font-semibold text-foreground">Case Outcome Summary</h3>
+          <div className="mt-3 space-y-2">
+            {[
+              ["Qualification", "Good-fit lead captured"],
+              ["Documents", `${missingDocs.length} missing · ${reviewDocs.length} review`],
+              ["Booking", "Consultation path ready"],
+              ["Handoff", "Console has CRM-ready packet"],
+              ["Control", caseValue.approval ? "Human approval required" : "No pending approval"],
+            ].map(([label, value]) => (
+              <div key={label} className="flex items-center justify-between gap-3 text-[11.5px]">
+                <span className="text-muted-foreground">{label}</span>
+                <span className="text-foreground text-right">{value}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-2">
+            <Button
+              size="sm"
+              onClick={onOpenConsole}
+              className="h-8 justify-start bg-foreground text-background hover:bg-foreground/90"
+            >
+              <ShieldCheck className="mr-2 h-3.5 w-3.5" strokeWidth={2} />
+              Review approval
+            </Button>
+            <Button size="sm" variant="secondary" onClick={onOpenBundle} className="h-8 justify-start">
+              <FileText className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
+              Presentation bundle
+            </Button>
+            <Button size="sm" variant="secondary" onClick={onOpenEvidence} className="h-8 justify-start">
+              <Camera className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
+              Evidence bundle
+            </Button>
+            <Button size="sm" variant="ghost" onClick={onOpenCaseVault} className="h-8 justify-start">
+              <Server className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
+              Case Vault
+            </Button>
+          </div>
+        </aside>
+      </div>
+    </section>
+  );
+};
+
+type PlaybookTemplate = {
+  id: string;
+  title: string;
+  summary: string;
+  statusNote: string;
+  highlights: { label: string; value: string }[];
+  detail: {
+    sampleInput: string;
+    approvalPolicy: string[];
+    evidenceOutput: string[];
+    crmFields: string[];
+  };
+  tone: "violet" | "rose" | "amber" | "mint" | "slate";
+  Icon: typeof ClipboardCheck;
+  caseValue: WorkspaceCase;
+  primaryLabel: string;
+  secondaryLabel: string;
+  onPrimary: () => void;
+  onSecondary: () => void;
+};
+
+type PlaybookPayloadPreview = {
+  surfaceLabel: string;
+  surfacePath: string;
+  payload: Record<string, boolean | number | string | string[]>;
+};
+
+type PlaybookExportMode = "human" | "json";
+type LocalServiceExportKind = "dispatch" | "customer" | "handoff";
+
+type PlaybookOperatorExport = {
+  title: string;
+  description: string;
+  modeLabel: string;
+  copyLabel: string;
+  surfaceActionLabel: string;
+  humanText: string;
+  jsonText: string;
+  rows: { label: string; value: string }[];
+  checklist: string[];
+};
+
+type LocalServicePayloadPreview = {
+  surfaceLabel: string;
+  surfacePath: string;
+  payload: Record<string, boolean | number | string | string[]>;
+};
+
+type LocalServiceDispatchExport = {
+  title: string;
+  description: string;
+  modeLabel: string;
+  copyLabel: string;
+  surfaceActionLabel: string;
+  humanText: string;
+  jsonText: string;
+  rows: { label: string; value: string }[];
+  checklist: string[];
+};
+
+type LocalServiceOutreachProspect = {
+  id: string;
+  company: string;
+  segment: string;
+  channelFit: string;
+  whyNow: string;
+  scorecardFocus: string;
+  nextStep: string;
+};
+
+type LocalServicePilotStatus =
+  | "not_contacted"
+  | "draft_ready"
+  | "contacted_manually"
+  | "reply_received"
+  | "rejected_for_now";
+
+type LocalServicePilotWorkspaceState = {
+  selectedProspectByService: Record<string, string>;
+  statusByProspectKey: Record<string, LocalServicePilotStatus>;
+};
+
+type LocalServiceDemoTemplate = {
+  id: string;
+  title: string;
+  ref: string;
+  summary: string;
+  statusNote: string;
+  channel: string;
+  tone: "violet" | "rose" | "amber" | "mint" | "slate";
+  Icon: typeof ClipboardCheck;
+  highlights: { label: string; value: string }[];
+  detail: {
+    sampleInput: string;
+    phoneIntake: string[];
+    estimateInputs: string[];
+    approvalPolicy: string[];
+    evidenceOutput: string[];
+    handoffFields: string[];
+    telegramIntake: {
+      inboundMessage: string;
+      normalizedFields: string[];
+      replyDraft: string;
+    };
+    pilotKit: {
+      offerSummary: string;
+      demoScript: string[];
+      outreachFocus: string[];
+      launchChecklist: string[];
+      outreachWizard: {
+        audience: string;
+        testMessage: string;
+        confirmationGate: string;
+        prospects: LocalServiceOutreachProspect[];
+      };
+      metrics: {
+        label: string;
+        baseline: string;
+        target: string;
+      }[];
+    };
+    customerConfirmation: string;
+    operatorHandoff: string;
+  };
+  payload: Record<string, boolean | number | string | string[]>;
+  evidencePath: string;
+  bundlePath: string;
+};
+
+const LOCAL_SERVICES_PILOT_OFFER_PATH = "/workspace-docs/local-services-pilot-offer.md";
+const LOCAL_SERVICES_DEMO_SCRIPT_PATH = "/workspace-docs/local-services-demo-script.md";
+const LOCAL_SERVICES_OUTREACH_LIST_PATH = "/workspace-docs/local-services-outreach-list.md";
+const LOCAL_SERVICES_PILOT_SCORECARD_PATH = "/workspace-docs/local-services-pilot-scorecard.md";
+const LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY = "liveDesk:localServicesPilotWorkspace:v1";
+const LOCAL_SERVICE_PILOT_STATUS_LABELS: Record<LocalServicePilotStatus, string> = {
+  not_contacted: "Not contacted",
+  draft_ready: "Draft ready",
+  contacted_manually: "Contacted manually",
+  reply_received: "Reply received",
+  rejected_for_now: "Rejected for now",
+};
+const LOCAL_SERVICE_PILOT_STATUS_ORDER: LocalServicePilotStatus[] = [
+  "not_contacted",
+  "draft_ready",
+  "contacted_manually",
+  "reply_received",
+  "rejected_for_now",
+];
+const LOCAL_SERVICE_PILOT_STATUS_ACTIONS: { status: LocalServicePilotStatus; label: string }[] = [
+  { status: "draft_ready", label: "Record scorecard draft" },
+  { status: "contacted_manually", label: "Mark manually contacted" },
+  { status: "reply_received", label: "Mark reply received" },
+  { status: "rejected_for_now", label: "Reject for now" },
+];
+
+function isLocalServicePilotStatus(value: unknown): value is LocalServicePilotStatus {
+  return (
+    value === "not_contacted" ||
+    value === "draft_ready" ||
+    value === "contacted_manually" ||
+    value === "reply_received" ||
+    value === "rejected_for_now"
+  );
+}
+
+function readStringRecord(value: unknown): Record<string, string> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string",
+    ),
+  );
+}
+
+function readPilotStatusRecord(value: unknown): Record<string, LocalServicePilotStatus> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).filter((entry): entry is [string, LocalServicePilotStatus] =>
+      isLocalServicePilotStatus(entry[1]),
+    ),
+  );
+}
+
+function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState {
+  if (typeof window === "undefined") {
+    return { selectedProspectByService: {}, statusByProspectKey: {} };
+  }
+  try {
+    const raw = window.localStorage.getItem(LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY);
+    if (!raw) {
+      return { selectedProspectByService: {}, statusByProspectKey: {} };
+    }
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    return {
+      selectedProspectByService: readStringRecord(parsed.selectedProspectByService),
+      statusByProspectKey: readPilotStatusRecord(parsed.statusByProspectKey),
+    };
+  } catch {
+    return { selectedProspectByService: {}, statusByProspectKey: {} };
+  }
+}
+
+function latestCaseEventTitle(caseValue: WorkspaceCase, pattern: RegExp): string | null {
+  return [...caseValue.events].reverse().find((event) => pattern.test(event.title))?.title ?? null;
+}
+
+function extractEventSuffix(
+  caseValue: WorkspaceCase,
+  pattern: RegExp,
+  prefixPattern: RegExp,
+  fallback: string,
+): string {
+  return latestCaseEventTitle(caseValue, pattern)?.replace(prefixPattern, "").trim() || fallback;
+}
+
+function collectMissingDocumentNames(caseValue: WorkspaceCase): string[] {
+  return caseValue.documents.filter((item) => item.state !== "ok").map((item) => item.name);
+}
+
+function buildPlaybookPayloadPreview(
+  template: PlaybookTemplate,
+  wiki: RuntimeCaseWiki | undefined,
+): PlaybookPayloadPreview {
+  const { caseValue } = template;
+  const missingDocuments = collectMissingDocumentNames(caseValue);
+  const currentBlocker =
+    wiki?.highlights.topBlockingQuestion?.question ??
+    latestCaseEventTitle(caseValue, /missing|review|flag/i) ??
+    null;
+  const nextAction =
+    wiki?.recommendedNextAction?.title ??
+    wiki?.recommendedNextAction?.summary ??
+    latestCaseEventTitle(caseValue, /calendar invite sent|approved|reminder|lead intake/i) ??
+    caseValue.stage;
+
+  switch (template.id) {
+    case "lead-qualification":
+      return {
+        surfaceLabel: "Operator Console",
+        surfacePath: `/app/console?ref=${encodeURIComponent(caseValue.ref)}`,
+        payload: {
+          case_ref: caseValue.ref,
+          client: caseValue.client,
+          delivery_channel: "operator_intake_review",
+          lead_status: wiki?.overview.status ?? caseValue.stage.toLowerCase().replace(/\s+/g, "_"),
+          visa_route: caseValue.visa,
+          country: caseValue.country,
+          missing_documents: missingDocuments,
+          next_action: nextAction,
+          surface_path: `/app/console?ref=${encodeURIComponent(caseValue.ref)}`,
+        },
+      };
+    case "missing-documents":
+      return {
+        surfaceLabel: "Documents lane",
+        surfacePath: `/app/console?ref=${encodeURIComponent(caseValue.ref)}&focus=documents`,
+        payload: {
+          case_ref: caseValue.ref,
+          client: caseValue.client,
+          delivery_channel: "protected_follow_up",
+          follow_up_status: caseValue.approval ? "approval_required" : "ready_to_send",
+          missing_documents: missingDocuments,
+          next_contact_at: caseValue.approval ? "approval pending" : caseValue.updated,
+          approval_owner: wiki?.recommendedNextAction?.owner ?? caseValue.owner,
+          current_blocker: currentBlocker ?? "Missing documents still block the case",
+          evidence_path: buildCaseEvidencePath(caseValue),
+          surface_path: `/app/console?ref=${encodeURIComponent(caseValue.ref)}&focus=documents`,
+        },
+      };
+    case "consultation-booking":
+      return {
+        surfaceLabel: "Presentation bundle",
+        surfacePath: buildCaseBundlePath(caseValue),
+        payload: {
+          case_ref: caseValue.ref,
+          client: caseValue.client,
+          delivery_channel: "consultation_packet",
+          consultation_at: extractEventSuffix(
+            caseValue,
+            /Calendar invite sent/i,
+            /^Calendar invite sent · /i,
+            "Consultation booked",
+          ),
+          eligibility_status: extractEventSuffix(
+            caseValue,
+            /Eligibility check passed/i,
+            /^Eligibility check passed · /i,
+            "Eligibility confirmed",
+          ),
+          packet_status: missingDocuments.length > 0 ? "review_before_consult" : "booking_ready",
+          doc_blockers: missingDocuments,
+          next_action: nextAction,
+          surface_path: buildCaseBundlePath(caseValue),
+        },
+      };
+    case "crm-handoff":
+      return {
+        surfaceLabel: "Case Vault",
+        surfacePath: buildCaseVaultPath(caseValue),
+        payload: {
+          case_ref: caseValue.ref,
+          client: caseValue.client,
+          delivery_channel: "crm_handoff",
+          case_status: wiki?.overview.status ?? caseValue.status,
+          handoff_ready: caseValue.status === "resolved" || wiki?.overview.status === "resolved",
+          approved_by:
+            latestCaseEventTitle(caseValue, /Approved by reviewer/i)?.replace(/^Approved by /i, "") ??
+            caseValue.owner,
+          evidence_link: buildCaseEvidencePath(caseValue),
+          bundle_path: buildCaseBundlePath(caseValue),
+          surface_path: buildCaseVaultPath(caseValue),
+        },
+      };
+    default:
+      return {
+        surfaceLabel: "Operator Console",
+        surfacePath: `/app/console?ref=${encodeURIComponent(caseValue.ref)}`,
+        payload: {
+          case_ref: caseValue.ref,
+          client: caseValue.client,
+          next_action: nextAction,
+          surface_path: `/app/console?ref=${encodeURIComponent(caseValue.ref)}`,
+        },
+      };
+  }
+}
+
+function formatPayloadValue(value: boolean | number | string | string[]): string {
+  if (Array.isArray(value)) return value.length > 0 ? value.join(", ") : "none";
+  if (typeof value === "boolean") return value ? "yes" : "no";
+  return String(value);
+}
+
+function buildLocalServicePayloadPreview(template: LocalServiceDemoTemplate): LocalServicePayloadPreview {
+  return {
+    surfaceLabel: "Dispatch handoff bundle",
+    surfacePath: template.bundlePath,
+    payload: {
+      ...template.payload,
+      evidence_link: template.evidencePath,
+      bundle_path: template.bundlePath,
+      approval_policy: "operator_required_before_customer_or_master_send",
+    },
+  };
+}
+
+function buildLocalServiceDispatchExport(
+  template: LocalServiceDemoTemplate,
+  payloadPreview: LocalServicePayloadPreview,
+  kind: LocalServiceExportKind = "dispatch",
+): LocalServiceDispatchExport {
+  const outcome = template.highlights.find((item) => item.label === "Outcome")?.value ?? template.title;
+  const approval =
+    template.highlights.find((item) => item.label === "Approval")?.value ?? "Operator approval required";
+  const evidence = template.highlights.find((item) => item.label === "Evidence")?.value ?? "Call transcript";
+  const deliverable =
+    template.highlights.find((item) => item.label === "Deliverable")?.value ?? "Dispatch job card";
+  const payloadFieldSummary = Object.entries(payloadPreview.payload)
+    .map(([key, value]) => `${key}=${formatPayloadValue(value)}`)
+    .join("; ");
+  const rows = [
+    { label: "Service", value: `${template.ref} - ${template.title}` },
+    { label: "Channel", value: template.channel },
+    { label: "Outcome", value: outcome },
+    { label: "Approval", value: approval },
+    { label: "Evidence", value: evidence },
+    { label: "Deliverable", value: deliverable },
+    { label: "Handoff status", value: formatPayloadValue(payloadPreview.payload.handoff_status ?? "approval_required") },
+    { label: "Evidence link", value: template.evidencePath },
+    { label: "Bundle", value: payloadPreview.surfacePath },
+  ];
+  const title =
+    kind === "customer"
+      ? "Customer confirmation drawer"
+      : kind === "handoff"
+        ? "Master/operator handoff drawer"
+        : "Dispatch payload drawer";
+  const description =
+    kind === "customer"
+      ? "Review the customer-facing confirmation before sending it by phone, SMS, or Telegram."
+      : kind === "handoff"
+        ? "Review the master/operator handoff before sending the job to a technician or service team."
+        : "Review the local-services job card before copying it into CRM, Telegram, or dispatcher tooling.";
+  const copyLabel =
+    kind === "customer"
+      ? "Copy customer confirmation"
+      : kind === "handoff"
+        ? "Copy master handoff"
+        : "Copy dispatch export";
+  const surfaceActionLabel = "Open handoff bundle";
+  const checklist =
+    kind === "customer"
+      ? [
+          "Confirm customer name, phone, and preferred visit window.",
+          "Confirm the operator has approved the slot or callback posture.",
+          "Do not promise final price unless the operator has approved the estimate.",
+          "Send the confirmation only through an approved customer channel.",
+        ]
+      : kind === "handoff"
+        ? [
+            "Confirm service type, district, address, and access notes.",
+            "Confirm urgency and preferred visit window before assigning a master.",
+            "Open the evidence link when call transcript or media proof needs review.",
+            "Send to the master or service team only after operator approval.",
+          ]
+        : [
+            "Confirm customer phone, district, and address before dispatch.",
+            "Confirm price or estimate range before sending the customer confirmation.",
+            "Open the evidence link if the call summary or media request needs review.",
+            "Send to the master or service team only after operator approval.",
+          ];
+  const coreLines = [
+    `${title}: ${template.title}`,
+    `Service: ${template.ref}`,
+    `Channel: ${template.channel}`,
+    `Outcome: ${outcome}`,
+    `Approval: ${approval}`,
+    `Evidence: ${evidence}`,
+    `Deliverable: ${deliverable}`,
+  ];
+  const humanLines =
+    kind === "customer"
+      ? [
+          ...coreLines,
+          `Customer confirmation: ${template.detail.customerConfirmation}`,
+          `Telegram reply draft: ${template.detail.telegramIntake.replyDraft}`,
+          "Customer send posture: operator approval required before final booking or price promise.",
+          `Evidence link: ${template.evidencePath}`,
+        ]
+      : kind === "handoff"
+        ? [
+            ...coreLines,
+            `Master/operator handoff: ${template.detail.operatorHandoff}`,
+            `Required fields: ${template.detail.handoffFields.join(", ")}`,
+            `Telegram normalized fields: ${template.detail.telegramIntake.normalizedFields.join(", ")}`,
+            `Payload fields: ${payloadFieldSummary}`,
+            `Canonical bundle: ${payloadPreview.surfacePath}`,
+          ]
+        : [
+            ...coreLines,
+            `Telegram intake: ${template.detail.telegramIntake.inboundMessage}`,
+            `Customer confirmation: ${template.detail.customerConfirmation}`,
+            `Master/operator handoff: ${template.detail.operatorHandoff}`,
+            `Required fields: ${template.detail.handoffFields.join(", ")}`,
+            `Payload fields: ${payloadFieldSummary}`,
+            `Evidence link: ${template.evidencePath}`,
+            `Canonical bundle: ${payloadPreview.surfacePath}`,
+          ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: title,
+      export_kind: kind,
+      service_ref: template.ref,
+      service_id: template.id,
+      channel: template.channel,
+      canonical_surface: {
+        label: payloadPreview.surfaceLabel,
+        path: payloadPreview.surfacePath,
+      },
+      human_summary: Object.fromEntries(rows.map((row) => [row.label.toLowerCase().replace(/\s+/g, "_"), row.value])),
+      telegram_intake: template.detail.telegramIntake,
+      customer_confirmation: template.detail.customerConfirmation,
+      operator_handoff: template.detail.operatorHandoff,
+      checklist,
+      payload: payloadPreview.payload,
+    },
+    null,
+    2,
+  );
+
+  return {
+    title,
+    description,
+    modeLabel: "Dispatch export mode",
+    copyLabel,
+    surfaceActionLabel,
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows,
+    checklist,
+  };
+}
+
+const LOCAL_SERVICE_DEMO_TEMPLATES: LocalServiceDemoTemplate[] = [
+  {
+    id: "ac-repair-dispatch",
+    title: "AC repair dispatch",
+    ref: "LS-7101",
+    summary: "Phone AI qualifies an AC repair request, checks district, and prepares a slot for operator approval.",
+    statusNote: "Best first wedge for Tashkent summer demand: urgent, high intent, and expensive to miss.",
+    channel: "Phone AI intake",
+    tone: "violet",
+    Icon: Wind,
+    highlights: [
+      { label: "Outcome", value: "Service visit ready" },
+      { label: "Approval", value: "Operator confirms slot" },
+      { label: "Evidence", value: "Call transcript" },
+      { label: "Deliverable", value: "Dispatch job card" },
+    ],
+    detail: {
+      sampleInput:
+        "Customer calls because the AC stopped cooling in Yunusabad. They need a same-day visit after 18:00 and can send a short video in Telegram.",
+      phoneIntake: [
+        "Ask for district, full address, phone, and preferred visit window.",
+        "Identify AC issue: no cooling, leak, noise, cleaning, install, or maintenance.",
+        "Ask for brand/model when available and request photo or video via Telegram.",
+      ],
+      estimateInputs: [
+        "service_type=AC repair",
+        "district=Yunusabad",
+        "urgency=same_day",
+        "preferred_time=18:00-20:00",
+      ],
+      approvalPolicy: [
+        "AI can prepare a visit slot, but operator approves the final technician assignment.",
+        "No final price promise before the operator reviews issue type and travel window.",
+      ],
+      evidenceOutput: [
+        "Call summary",
+        "Requested photo/video flag",
+        "Operator approval decision",
+      ],
+      handoffFields: ["customer_name", "phone", "district", "address", "issue_type", "preferred_time", "master_type"],
+      telegramIntake: {
+        inboundMessage:
+          "Salom. Yunusobodda konditsioner sovutmayapti. Bugun 18:00 dan keyin usta kela oladimi?",
+        normalizedFields: [
+          "channel=telegram",
+          "service_type=ac_repair",
+          "district=Yunusabad",
+          "preferred_time=after_18:00",
+        ],
+        replyDraft:
+          "Manzil va telefon raqamingizni yuboring. Operator usta vaqtini va yakuniy narxni tasdiqlaydi.",
+      },
+      pilotKit: {
+        offerSummary:
+          "Capture missed AC calls, qualify district and urgency on the first touch, and hand operators an approval-ready same-day visit card.",
+        demoScript: [
+          "Show the phone intake collecting district, issue type, and preferred visit window.",
+          "Show the Telegram fallback normalizing the same request into the shared job card.",
+          "Show the operator approving the slot and copying the master handoff.",
+        ],
+        outreachFocus: [
+          "Independent AC installers with 1-3 masters",
+          "District-first HVAC repair shops in Yunusabad and Chilanzar",
+          "After-hours service teams losing summer overflow calls",
+        ],
+        launchChecklist: [
+          "Connect one after-hours phone line and one Telegram media handoff.",
+          "Define district coverage and the same-day visit promise before launch.",
+          "Lock the estimate floor/ceiling the operator may approve without escalation.",
+          "Assign one dispatcher or owner as the approval owner for evening slots.",
+        ],
+        outreachWizard: {
+          audience:
+            "Start with AC repair teams from the 10-company outreach list that promise same-day or after-hours service in Tashkent.",
+          testMessage:
+            "Hi. We help AC repair teams answer missed phone and Telegram requests, collect district/issue/time, and hand you an approval-ready visit card. Can I show a 7-minute demo using a same-day AC repair example?",
+          confirmationGate:
+            "Operator selects the company, checks channel fit, previews the message, and confirms before any real outreach is sent.",
+          prospects: [
+            {
+              id: "ac-master",
+              company: "AC MASTER",
+              segment: "AC repair",
+              channelFit: "Phone-first repair and service demand",
+              whyNow: "Summer overflow and same-day calls are expensive to miss.",
+              scorecardFocus: "Missed-call pain, urgency, Telegram/media proof, approval owner",
+              nextStep: "Preview the AC repair message, then log as demo candidate before contact.",
+            },
+            {
+              id: "aircold",
+              company: "Aircold",
+              segment: "AC repair",
+              channelFit: "Repair, installation, and maintenance intake",
+              whyNow: "Warranty and repair language makes structured issue capture useful.",
+              scorecardFocus: "Repeatable service scope, price estimate rules, first-response owner",
+              nextStep: "Confirm channel fit and qualify whether same-day repair is promised.",
+            },
+            {
+              id: "server-service",
+              company: "Server Service",
+              segment: "AC repair / installation",
+              channelFit: "Same-day positioning across Tashkent",
+              whyNow: "A dispatch card can standardize install/repair slot capture.",
+              scorecardFocus: "District coverage, technician handoff, operator approval gate",
+              nextStep: "Keep as second-wave AC account if AC MASTER or Aircold are slow.",
+            },
+          ],
+        },
+        metrics: [
+          { label: "Inbound requests", baseline: "manual tally", target: "daily tracked" },
+          { label: "Missed-call recovery", baseline: "unknown", target: "same-day callback" },
+          { label: "Response time", baseline: "operator dependent", target: "<5 min first reply" },
+          { label: "Bookings", baseline: "spreadsheet follow-up", target: "operator-approved slot" },
+          { label: "Manual operator edits", baseline: "not measured", target: "<3 edits per job card" },
+          { label: "No-show / cancellation", baseline: "ad hoc", target: "explicit weekly review" },
+        ],
+      },
+      customerConfirmation:
+        "We received your AC repair request. An operator will confirm the technician and final time shortly.",
+      operatorHandoff:
+        "Same-day AC repair lead in Yunusabad. Customer prefers 18:00-20:00 and can send video proof in Telegram.",
+    },
+    payload: {
+      case_ref: "LS-7101",
+      customer_name: "F. Karimov",
+      phone: "+998 XX XXX XX XX",
+      service_type: "ac_repair",
+      district: "Yunusabad",
+      address_status: "collected",
+      urgency: "same_day",
+      preferred_time: "18:00-20:00",
+      photos_requested: true,
+      estimate_inputs: ["issue_type", "district", "preferred_time", "brand_or_model"],
+      operator_owner: "dispatcher_queue",
+      handoff_status: "approval_required",
+    },
+    evidencePath: buildCaseEvidencePath("LS-7101"),
+    bundlePath: buildCaseBundlePath("LS-7101"),
+  },
+  {
+    id: "plumbing-emergency",
+    title: "Plumbing emergency",
+    ref: "LS-7204",
+    summary: "AI triages a leak or clog, separates emergency from routine work, and alerts the operator.",
+    statusNote: "Emergency triage is the clearest revenue case: delayed response sends the customer to a competitor.",
+    channel: "Phone AI intake",
+    tone: "rose",
+    Icon: Wrench,
+    highlights: [
+      { label: "Outcome", value: "Emergency routed" },
+      { label: "Approval", value: "Owner/dispatcher review" },
+      { label: "Evidence", value: "Urgency trail" },
+      { label: "Deliverable", value: "Master handoff" },
+    ],
+    detail: {
+      sampleInput:
+        "Customer reports water under the sink in Chilanzar. The AI asks whether water is still flowing, collects access details, and marks it urgent.",
+      phoneIntake: [
+        "Confirm leak, clog, install, replacement, or diagnostics.",
+        "Ask if water is actively flowing and whether the main valve is closed.",
+        "Collect district, address, access note, and callback number.",
+      ],
+      estimateInputs: [
+        "service_type=plumbing",
+        "emergency=true",
+        "district=Chilanzar",
+        "access_note=call before arrival",
+      ],
+      approvalPolicy: [
+        "AI may provide safety guidance and mark urgency, but operator approves dispatch.",
+        "After-hours rate disclosure must be shown before confirmation.",
+      ],
+      evidenceOutput: [
+        "Emergency triage answers",
+        "Safety guidance shown to customer",
+        "Dispatch approval status",
+      ],
+      handoffFields: ["customer_name", "phone", "district", "address", "emergency_type", "access_note", "rate_disclosure"],
+      telegramIntake: {
+        inboundMessage:
+          "Chilonzorda rakovina tagidan suv oqyapti. Hozir ham oqyapti, tez usta kerak.",
+        normalizedFields: [
+          "channel=telegram",
+          "service_type=plumbing",
+          "district=Chilanzar",
+          "urgency=emergency",
+        ],
+        replyDraft:
+          "Agar xavfsiz bo'lsa, asosiy suv kranini yoping. Operator tezkor chiqish va tarifni tasdiqlaydi.",
+      },
+      pilotKit: {
+        offerSummary:
+          "Turn urgent leak and clog calls into explicit emergency triage, faster callbacks, and operator-approved dispatch instead of chaotic after-hours texting.",
+        demoScript: [
+          "Show the intake separating emergency leaks from routine plumbing work.",
+          "Show the safety guidance and evidence trail before dispatch approval.",
+          "Show the operator handoff drawer with address, urgency, and rate disclosure.",
+        ],
+        outreachFocus: [
+          "Emergency plumbers covering evenings and weekends",
+          "Owner-led plumbing teams handling WhatsApp and phone manually",
+          "Local services businesses where one missed urgent job pays for the pilot",
+        ],
+        launchChecklist: [
+          "Define emergency versus routine tariff rules before the bot goes live.",
+          "Keep the safety script approved for active leak, clog, and gas-risk calls.",
+          "Assign one owner or dispatcher for after-hours approval and technician routing.",
+          "Map district coverage so urgent jobs are escalated only to reachable masters.",
+        ],
+        outreachWizard: {
+          audience:
+            "Prioritize owner-led plumbers where one urgent missed call can pay for the pilot and where Telegram follow-up is already used.",
+          testMessage:
+            "Hi. We help plumbing teams triage urgent leak calls, collect address and access notes, show safety guidance, and prepare an operator-approved dispatch card. Can I show a 7-minute emergency plumbing demo?",
+          confirmationGate:
+            "Operator verifies the account is emergency-service relevant, checks the tariff language, then confirms the test message before outreach.",
+          prospects: [
+            {
+              id: "santexniki-uz",
+              company: "Santexniki.uz",
+              segment: "Plumbing",
+              channelFit: "Emergency posture with Telegram CTA",
+              whyNow: "Urgent leaks and clogs punish delayed callbacks immediately.",
+              scorecardFocus: "Emergency demand, Telegram dependence, rate disclosure, approval owner",
+              nextStep: "Preview the emergency plumbing message and log as first-wave account.",
+            },
+            {
+              id: "ibrat-qurilish-servis",
+              company: "Ibrat Qurilish Servis",
+              segment: "Plumbing / engineering networks",
+              channelFit: "Repair, installation, and emergency call posture",
+              whyNow: "The intake can separate emergency versus routine jobs before routing.",
+              scorecardFocus: "Service scope, district coverage, dispatch owner, tariff rules",
+              nextStep: "Use if the owner-led workflow is still phone/chat/manual.",
+            },
+          ],
+        },
+        metrics: [
+          { label: "Inbound requests", baseline: "owner phone only", target: "all urgent leads captured" },
+          { label: "Missed-call recovery", baseline: "callback if noticed", target: "urgent recovery queue" },
+          { label: "Response time", baseline: "varies by owner", target: "<3 min triage reply" },
+          { label: "Bookings", baseline: "manual dispatch notes", target: "approved dispatch card" },
+          { label: "Manual operator edits", baseline: "full rewrite", target: "light review only" },
+          { label: "No-show / cancellation", baseline: "not logged", target: "tracked by district and urgency" },
+        ],
+      },
+      customerConfirmation:
+        "Your plumbing request is marked urgent. Please close the water valve if safe. Our operator will confirm dispatch.",
+      operatorHandoff:
+        "Urgent plumbing lead in Chilanzar. Active leak under sink, customer asked to close valve, dispatch approval required.",
+    },
+    payload: {
+      case_ref: "LS-7204",
+      customer_name: "M. Saidova",
+      phone: "+998 XX XXX XX XX",
+      service_type: "plumbing",
+      district: "Chilanzar",
+      address_status: "collected",
+      urgency: "emergency",
+      active_leak: true,
+      safety_guidance: "close_main_valve_if_safe",
+      preferred_time: "as_soon_as_possible",
+      estimate_inputs: ["emergency_type", "district", "after_hours_rate", "access_note"],
+      operator_owner: "urgent_dispatch_queue",
+      handoff_status: "approval_required",
+    },
+    evidencePath: buildCaseEvidencePath("LS-7204"),
+    bundlePath: buildCaseBundlePath("LS-7204"),
+  },
+  {
+    id: "cleaning-quote-booking",
+    title: "Cleaning quote and booking",
+    ref: "LS-7302",
+    summary: "AI collects room, area, service type, and schedule details before producing an operator-reviewed quote.",
+    statusNote: "Cleaning stays inside local services: same intake, estimate, slot, and handoff model.",
+    channel: "Phone or Telegram intake",
+    tone: "mint",
+    Icon: Sparkles,
+    highlights: [
+      { label: "Outcome", value: "Quote inputs ready" },
+      { label: "Approval", value: "Price reviewed" },
+      { label: "Evidence", value: "Estimate inputs" },
+      { label: "Deliverable", value: "Booking draft" },
+    ],
+    detail: {
+      sampleInput:
+        "Customer asks for after-renovation cleaning in Mirabad: 90 sqm apartment, 3 rooms, 2 bathrooms, windows included, weekend preferred.",
+      phoneIntake: [
+        "Ask property type, area in sqm, rooms, bathrooms, windows, and service type.",
+        "Ask if this is after renovation, move-out, standard, deep clean, or recurring.",
+        "Collect date preference, district, access note, and special requests.",
+      ],
+      estimateInputs: [
+        "area_sqm=90",
+        "service_type=after_renovation",
+        "rooms=3",
+        "bathrooms=2",
+        "windows=included",
+      ],
+      approvalPolicy: [
+        "AI can calculate an estimate range, but operator approves the final price.",
+        "Recurring schedule and add-ons require confirmation before customer send.",
+      ],
+      evidenceOutput: [
+        "Needs assessment",
+        "Estimate inputs",
+        "Approved quote and booking draft",
+      ],
+      handoffFields: ["customer_name", "phone", "district", "area_sqm", "service_type", "preferred_date", "estimate_range"],
+      telegramIntake: {
+        inboundMessage:
+          "Mirabadda remontdan keyin 90 kv uy tozalash kerak. 3 xona, 2 sanuzel, oynalar ham bor. Dam olish kuni bo'ladimi?",
+        normalizedFields: [
+          "channel=telegram",
+          "service_type=cleaning_quote",
+          "district=Mirabad",
+          "area_sqm=90",
+        ],
+        replyDraft:
+          "Ma'lumotlar qabul qilindi. Operator yakuniy narx va bo'sh brigada vaqtini tasdiqlaydi.",
+      },
+      pilotKit: {
+        offerSummary:
+          "Convert cleaning quote calls and Telegram messages into complete estimate inputs, reviewed pricing, and fewer operator back-and-forths before booking.",
+        demoScript: [
+          "Show the intake capturing property size, service type, and preferred date.",
+          "Show the Telegram message normalized into the same estimate fields.",
+          "Show the customer confirmation and handoff drawers after operator review.",
+        ],
+        outreachFocus: [
+          "After-renovation cleaning teams",
+          "Small agencies quoting by Telegram and phone",
+          "Weekend-heavy crews where quote latency kills bookings",
+        ],
+        launchChecklist: [
+          "Approve the pricing matrix for size, add-ons, and after-renovation work.",
+          "Define which visit windows can be promised before manual review.",
+          "Assign one manager as the final quote and booking approval owner.",
+          "Route phone and Telegram requests into one queue so quote history stays together.",
+        ],
+        outreachWizard: {
+          audience:
+            "Start with cleaning teams that quote manually in Telegram and lose bookings when weekend or after-renovation estimates are delayed.",
+          testMessage:
+            "Hi. We help cleaning teams turn phone and Telegram quote requests into complete estimate inputs, reviewed pricing, and booking-ready confirmations. Can I show a 7-minute cleaning quote demo?",
+          confirmationGate:
+            "Operator checks service fit, pricing sensitivity, and owner availability before sending a test message or booking a demo.",
+          prospects: [
+            {
+              id: "service-pro",
+              company: "Service-Pro",
+              segment: "Cleaning",
+              channelFit: "Apartments, homes, and offices with pricing language",
+              whyNow: "Quote delay and weekend demand are easy to show in a 7-minute demo.",
+              scorecardFocus: "Pricing matrix, Telegram dependence, quote latency, approval owner",
+              nextStep: "Preview the cleaning quote message and log as first-wave account.",
+            },
+            {
+              id: "eco-fresh",
+              company: "Eco Fresh",
+              segment: "Cleaning",
+              channelFit: "Offices, apartments, factories, and sites in Tashkent",
+              whyNow: "Multiple service categories benefit from one normalized quote queue.",
+              scorecardFocus: "Repeatable scope, property type fields, manager review rules",
+              nextStep: "Use after Service-Pro if they show mixed phone and Telegram intake.",
+            },
+            {
+              id: "cleantime",
+              company: "CleanTime",
+              segment: "Cleaning",
+              channelFit: "Fast price calculation and broad cleaning categories",
+              whyNow: "Time-to-quote is the cleanest demo promise for this lane.",
+              scorecardFocus: "Quote speed, add-ons, weekend availability, no-show tracking",
+              nextStep: "Keep as first-week follow-up if AC repair response is weak.",
+            },
+          ],
+        },
+        metrics: [
+          { label: "Inbound requests", baseline: "chat by chat", target: "all quote requests logged" },
+          { label: "Missed-call recovery", baseline: "manual callback", target: "same-shift follow-up" },
+          { label: "Response time", baseline: "depends on manager", target: "<10 min quote reply" },
+          { label: "Bookings", baseline: "quote thread only", target: "approved booking draft" },
+          { label: "Manual operator edits", baseline: "pricing rebuilt manually", target: "only add-ons adjusted" },
+          { label: "No-show / cancellation", baseline: "not segmented", target: "tracked by property type" },
+        ],
+      },
+      customerConfirmation:
+        "We collected your cleaning request and will confirm the final price and available team shortly.",
+      operatorHandoff:
+        "After-renovation cleaning quote in Mirabad. 90 sqm, 3 rooms, 2 bathrooms, windows included, weekend preferred.",
+    },
+    payload: {
+      case_ref: "LS-7302",
+      customer_name: "N. Akhmedova",
+      phone: "+998 XX XXX XX XX",
+      service_type: "cleaning_quote",
+      property_type: "apartment",
+      district: "Mirabad",
+      area_sqm: 90,
+      rooms: 3,
+      bathrooms: 2,
+      windows: "included",
+      after_renovation: true,
+      preferred_date: "weekend",
+      recurring_frequency: "one_time",
+      estimate_range: "operator_review_required",
+      operator_owner: "cleaning_dispatch_queue",
+      handoff_status: "approval_required",
+    },
+    evidencePath: buildCaseEvidencePath("LS-7302"),
+    bundlePath: buildCaseBundlePath("LS-7302"),
+  },
+  {
+    id: "measurement-visit-booking",
+    title: "Measurement visit booking",
+    ref: "LS-7406",
+    summary: "AI qualifies windows, doors, ceilings, or fit-out requests and prepares a measurer visit.",
+    statusNote: "Construction-adjacent P0: useful demand, same dispatcher workflow, no inventory or stock promise.",
+    channel: "Phone or Telegram intake",
+    tone: "amber",
+    Icon: Ruler,
+    highlights: [
+      { label: "Outcome", value: "Measurer slot ready" },
+      { label: "Approval", value: "Manager confirms visit" },
+      { label: "Evidence", value: "Photos and sizes" },
+      { label: "Deliverable", value: "Measurement job card" },
+    ],
+    detail: {
+      sampleInput:
+        "Customer wants windows and balcony glazing in Yashnabad. They can send photos, know the approximate opening sizes, and need a free measurement visit this week.",
+      phoneIntake: [
+        "Identify scope: windows, doors, balcony glazing, stretch ceiling, blinds, or fit-out measurement.",
+        "Collect district, address, approximate quantity, measurements if known, and photo availability.",
+        "Ask whether this is renovation, new apartment, office, or commercial space.",
+      ],
+      estimateInputs: [
+        "service_type=measurement_visit",
+        "scope=windows_and_balcony",
+        "district=Yashnabad",
+        "preferred_date=this_week",
+      ],
+      approvalPolicy: [
+        "AI can prepare a measurement visit, but manager approves the measurer and final slot.",
+        "No material availability, installation date, or final price is promised before human review.",
+      ],
+      evidenceOutput: [
+        "Scope summary",
+        "Photo and measurement request",
+        "Manager-approved measurer visit",
+      ],
+      handoffFields: [
+        "customer_name",
+        "phone",
+        "district",
+        "address",
+        "scope",
+        "approx_quantity",
+        "preferred_date",
+        "photo_status",
+      ],
+      telegramIntake: {
+        inboundMessage:
+          "Yashnobodda balkon va derazalar uchun zamer kerak. Rasmlar yubora olaman, shu haftaga vaqt bormi?",
+        normalizedFields: [
+          "channel=telegram",
+          "service_type=measurement_visit",
+          "scope=windows_and_balcony",
+          "district=Yashnabad",
+        ],
+        replyDraft:
+          "Rasmlarni va manzilni yuboring. Menejer zamerchi vaqtini va keyingi qadamni tasdiqlaydi.",
+      },
+      pilotKit: {
+        offerSummary:
+          "Turn windows, doors, ceilings, and fit-out inquiries into a clean measurement visit card with photos, approximate sizes, district, and manager-approved slot.",
+        demoScript: [
+          "Show the intake separating measurement visits from material-only price questions.",
+          "Show photo and approximate-size capture before any price or stock promise.",
+          "Show the manager approving the measurer visit and copying the handoff.",
+        ],
+        outreachFocus: [
+          "Window and door showrooms that offer free measurement",
+          "Ceiling and fit-out teams selling both material and installation",
+          "Renovation-adjacent companies where a missed request loses the whole project",
+        ],
+        launchChecklist: [
+          "Define which scopes qualify for a free measurement visit.",
+          "Approve the no-final-price script before the bot handles material questions.",
+          "Map district coverage and measurer availability before taking live calls.",
+          "Route photos from Telegram into the same operator-reviewed job card.",
+        ],
+        outreachWizard: {
+          audience:
+            "Use this lane for construction-adjacent companies after AC, plumbing, and cleaning: windows, doors, ceilings, blinds, and fit-out measurement teams.",
+          testMessage:
+            "Hi. We help window, door, and fit-out teams capture calls and Telegram requests, collect photos/sizes/address, and prepare a manager-approved measurement visit card. Can I show a 7-minute demo?",
+          confirmationGate:
+            "Operator verifies that the company books measurement visits, reviews the no-final-price language, then confirms before any outreach.",
+          prospects: [
+            {
+              id: "imzo",
+              company: "IMZO",
+              segment: "Windows / doors",
+              channelFit: "Free measurement and showroom-led requests",
+              whyNow: "Measurement requests already require photos, address, scope, and manager follow-up.",
+              scorecardFocus: "Measurement policy, district coverage, photo intake, final-price guardrail",
+              nextStep: "Keep as benchmark or later pilot target; verify branch-level decision maker first.",
+            },
+            {
+              id: "modern-systems",
+              company: "Modern Systems",
+              segment: "Windows / sliding systems",
+              channelFit: "Manager callback and installation-service posture",
+              whyNow: "Broad product scope needs structured intake before manager callback.",
+              scorecardFocus: "Scope categories, measurement visit workflow, owner/manager approval",
+              nextStep: "Use as a construction-adjacent demo account after first service pilots.",
+            },
+            {
+              id: "brix-uz",
+              company: "BRIX.UZ",
+              segment: "Ceilings / fit-out",
+              channelFit: "Product plus service quote requests",
+              whyNow: "Ceiling and fit-out inquiries can start as measurement visits before quote approval.",
+              scorecardFocus: "Quote-vs-visit separation, material questions, installation handoff",
+              nextStep: "Keep for P1 materials-and-installation quote desk validation.",
+            },
+          ],
+        },
+        metrics: [
+          { label: "Inbound requests", baseline: "phone or form callbacks", target: "all measurement requests logged" },
+          { label: "Missed-call recovery", baseline: "manager dependent", target: "same-day measurement follow-up" },
+          { label: "Response time", baseline: "manual callback", target: "<10 min first reply" },
+          { label: "Bookings", baseline: "chat or notebook", target: "manager-approved measurer slot" },
+          { label: "Manual operator edits", baseline: "scope rebuilt manually", target: "scope and photos already captured" },
+          { label: "No-show / cancellation", baseline: "not tracked", target: "tracked by district and scope" },
+        ],
+      },
+      customerConfirmation:
+        "We collected your measurement request. A manager will confirm the measurer visit and next step shortly.",
+      operatorHandoff:
+        "Measurement visit request in Yashnabad. Customer needs windows and balcony glazing, can send photos, and prefers this week.",
+    },
+    payload: {
+      case_ref: "LS-7406",
+      customer_name: "D. Rasulov",
+      phone: "+998 XX XXX XX XX",
+      service_type: "measurement_visit",
+      scope: "windows_and_balcony",
+      property_type: "apartment",
+      district: "Yashnabad",
+      address_status: "collected",
+      approx_quantity: "3_windows_plus_balcony",
+      photos_requested: true,
+      measurements_known: "approximate",
+      preferred_date: "this_week",
+      estimate_inputs: ["scope", "district", "approx_quantity", "photos", "property_type"],
+      operator_owner: "measurement_dispatch_queue",
+      handoff_status: "approval_required",
+    },
+    evidencePath: buildCaseEvidencePath("LS-7406"),
+    bundlePath: buildCaseBundlePath("LS-7406"),
+  },
+];
+
+const LocalServicesDispatchDemoPanel = ({
+  activeServiceId,
+  onSelectService,
+  onClose,
+  onCopyPayload,
+  onOpenDispatchDrawer,
+  onOpenPath,
+}: {
+  activeServiceId: string | null;
+  onSelectService: (id: string) => void;
+  onClose: () => void;
+  onCopyPayload: (template: LocalServiceDemoTemplate) => void;
+  onOpenDispatchDrawer: (kind?: LocalServiceExportKind) => void;
+  onOpenPath: (path: string) => void;
+}) => {
+  const selectedTemplate =
+    LOCAL_SERVICE_DEMO_TEMPLATES.find((template) => template.id === activeServiceId) ??
+    LOCAL_SERVICE_DEMO_TEMPLATES[0];
+  const selectedPayloadPreview = buildLocalServicePayloadPreview(selectedTemplate);
+  const [pilotWorkspaceState, setPilotWorkspaceState] = useState<LocalServicePilotWorkspaceState>(() =>
+    readLocalServicePilotWorkspaceState(),
+  );
+  const outreachProspects = selectedTemplate.detail.pilotKit.outreachWizard.prospects;
+  const selectedOutreachProspectId =
+    pilotWorkspaceState.selectedProspectByService[selectedTemplate.id] ?? outreachProspects[0]?.id ?? "";
+  const selectedOutreachProspect =
+    outreachProspects.find((prospect) => prospect.id === selectedOutreachProspectId) ?? outreachProspects[0];
+  const scorecardDraftKey = `${selectedTemplate.id}:${selectedOutreachProspect?.id ?? "none"}`;
+  const currentPilotStatus = pilotWorkspaceState.statusByProspectKey[scorecardDraftKey] ?? "not_contacted";
+  const currentPilotStatusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[currentPilotStatus];
+  const allPilotProspects = useMemo(
+    () =>
+      LOCAL_SERVICE_DEMO_TEMPLATES.flatMap((template) =>
+        template.detail.pilotKit.outreachWizard.prospects.map((prospect) => ({
+          key: `${template.id}:${prospect.id}`,
+          serviceId: template.id,
+          serviceTitle: template.title,
+          tone: template.tone,
+          prospect,
+        })),
+      ),
+    [],
+  );
+  const pilotFunnelCounts = useMemo(() => {
+    const counts: Record<LocalServicePilotStatus, number> = {
+      not_contacted: 0,
+      draft_ready: 0,
+      contacted_manually: 0,
+      reply_received: 0,
+      rejected_for_now: 0,
+    };
+    for (const item of allPilotProspects) {
+      const status = pilotWorkspaceState.statusByProspectKey[item.key] ?? "not_contacted";
+      counts[status] += 1;
+    }
+    return counts;
+  }, [allPilotProspects, pilotWorkspaceState.statusByProspectKey]);
+  const pilotFunnelRows = useMemo(
+    () =>
+      allPilotProspects.map((item) => {
+        const status = pilotWorkspaceState.statusByProspectKey[item.key] ?? "not_contacted";
+        return {
+          ...item,
+          status,
+          statusLabel: LOCAL_SERVICE_PILOT_STATUS_LABELS[status],
+        };
+      }),
+    [allPilotProspects, pilotWorkspaceState.statusByProspectKey],
+  );
+  const nextManualBatch = pilotFunnelRows
+    .filter((item) => item.status !== "reply_received" && item.status !== "rejected_for_now")
+    .slice(0, 4);
+  const scorecardDraftRows = selectedOutreachProspect
+    ? [
+        { label: "Company", value: selectedOutreachProspect.company },
+        { label: "Segment", value: selectedOutreachProspect.segment },
+        { label: "Channel fit", value: selectedOutreachProspect.channelFit },
+        { label: "Qualification focus", value: selectedOutreachProspect.scorecardFocus },
+        { label: "Next step", value: selectedOutreachProspect.nextStep },
+        { label: "Status", value: currentPilotStatusLabel },
+      ]
+    : [];
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY, JSON.stringify(pilotWorkspaceState));
+    } catch {
+      // Disabled storage should not block the demo flow.
+    }
+  }, [pilotWorkspaceState]);
+
+  const updatePilotWorkspaceStatus = (status: LocalServicePilotStatus) => {
+    setPilotWorkspaceState((prev) => ({
+      ...prev,
+      statusByProspectKey: {
+        ...prev.statusByProspectKey,
+        [scorecardDraftKey]: status,
+      },
+    }));
+  };
+
+  return (
+    <section
+      aria-label="Local services dispatcher demo"
+      className="mx-8 mb-5 rounded-md border border-border/70 bg-card/35 overflow-hidden shadow-[0_18px_40px_-28px_rgba(0,0,0,0.65)]"
+    >
+      <div className="px-5 py-4 border-b border-border/60 flex items-start gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+            <span className="inline-flex h-5 items-center px-2 rounded-[5px] bg-[hsl(var(--tint-mint)/0.14)] text-[10px] font-mono uppercase tracking-[0.12em] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.24)]">
+              local-services-dispatch
+            </span>
+            <span className="font-mono text-[11px] text-muted-foreground">phone + operator approval</span>
+          </div>
+          <h2 className="font-serif text-[22px] leading-tight tracking-tight text-foreground">
+            AI Dispatcher for Local Services.
+          </h2>
+          <p className="mt-1.5 text-[12.5px] text-muted-foreground leading-relaxed max-w-3xl">
+            The phone assistant collects the request, prepares the estimate inputs, and leaves a
+            job card for operator-approved booking. No autonomous dispatch or final pricing in P0.
+          </p>
+        </div>
+        <div className="hidden xl:grid grid-cols-3 gap-2 min-w-[420px]">
+          {[
+            ["Channel", "Phone, Telegram"],
+            ["Market", "Tashkent services"],
+            ["Gate", "Operator review"],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-md border border-border/50 bg-secondary/20 px-3 py-2">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+                {label}
+              </div>
+              <div className="mt-1 font-mono text-[11px] text-foreground truncate">{value}</div>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-smooth"
+          aria-label="Close local services dispatcher demo"
+        >
+          <X className="h-3.5 w-3.5" strokeWidth={1.75} />
+        </button>
+      </div>
+
+      <div className="p-5 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+          {LOCAL_SERVICE_DEMO_TEMPLATES.map((template) => {
+            const { Icon } = template;
+            const selected = template.id === selectedTemplate.id;
+            return (
+              <article
+                key={template.id}
+                className={`rounded-md border p-4 transition-smooth ${
+                  selected ? "border-transparent bg-card/55 ring-1 ring-inset" : "border-border/60 bg-card/30"
+                }`}
+                style={
+                  selected
+                    ? {
+                        borderColor: `hsl(var(--tint-${template.tone}) / 0.34)`,
+                        ["--tw-ring-color" as const]: `hsl(var(--tint-${template.tone}) / 0.3)`,
+                      }
+                    : undefined
+                }
+              >
+                <div className="flex items-start gap-3">
+                  <span
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md ring-1 ring-inset"
+                    style={{
+                      backgroundColor: `hsl(var(--tint-${template.tone}) / 0.14)`,
+                      color: `hsl(var(--tint-${template.tone}-fg))`,
+                      ["--tw-ring-color" as const]: `hsl(var(--tint-${template.tone}) / 0.24)`,
+                    }}
+                  >
+                    <Icon className="h-4 w-4" strokeWidth={1.9} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start gap-2 flex-wrap">
+                      <h3 className="text-[13px] font-semibold tracking-tight text-foreground">
+                        {template.title}
+                      </h3>
+                      <Pill tone={template.tone} size="sm">
+                        {template.ref}
+                      </Pill>
+                    </div>
+                    <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+                      {template.summary}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+                  {template.highlights.map((highlight) => (
+                    <div key={highlight.label} className="rounded-md bg-background/35 px-2.5 py-2">
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                        {highlight.label}
+                      </div>
+                      <div className="mt-1 text-foreground">{highlight.value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="mt-3 text-[11.5px] leading-relaxed text-muted-foreground">
+                  {template.statusNote}
+                </p>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => onSelectService(template.id)} className="h-8">
+                    Inspect service
+                  </Button>
+                  <Button size="sm" onClick={() => onOpenPath(template.evidencePath)} className="h-8">
+                    Evidence
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => onOpenPath(template.bundlePath)} className="h-8">
+                    Handoff bundle
+                  </Button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+
+        <section className="rounded-md border border-border/60 bg-card/25 p-4" aria-label="Pilot funnel summary">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                <BriefcaseBusiness className="h-3.5 w-3.5" strokeWidth={1.8} />
+                Pilot funnel summary
+              </div>
+              <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground max-w-3xl">
+                Browser-local view of all outreach candidates. It helps plan the manual batch without sending
+                messages, updating CRM, or changing the Markdown scorecard automatically.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                {allPilotProspects.length} candidates
+              </span>
+              <span className="inline-flex rounded-[5px] bg-[hsl(var(--tint-amber)/0.13)] px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-amber-fg))] ring-1 ring-inset ring-[hsl(var(--tint-amber)/0.22)]">
+                browser-local
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
+            <div className="rounded-md border border-border/50 bg-background/35 px-3 py-2.5">
+              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                All candidates
+              </div>
+              <div className="mt-1 font-mono text-[18px] text-foreground">{allPilotProspects.length}</div>
+            </div>
+            {LOCAL_SERVICE_PILOT_STATUS_ORDER.map((status) => (
+              <div key={status} className="rounded-md border border-border/50 bg-background/35 px-3 py-2.5">
+                <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                  {LOCAL_SERVICE_PILOT_STATUS_LABELS[status]}
+                </div>
+                <div className="mt-1 font-mono text-[18px] text-foreground">{pilotFunnelCounts[status]}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.72fr)]">
+            <div className="rounded-md bg-background/35 px-3 py-3">
+              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                Next manual batch
+              </div>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                {nextManualBatch.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => {
+                      onSelectService(item.serviceId);
+                      setPilotWorkspaceState((prev) => ({
+                        ...prev,
+                        selectedProspectByService: {
+                          ...prev.selectedProspectByService,
+                          [item.serviceId]: item.prospect.id,
+                        },
+                      }));
+                    }}
+                    className="rounded-md border border-border/50 bg-card/25 px-3 py-2 text-left transition-smooth hover:bg-card/40"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[12px] font-semibold text-foreground">{item.prospect.company}</span>
+                      <span className="rounded-[5px] bg-secondary/45 px-2 py-0.5 text-[10px] text-muted-foreground">
+                        {item.statusLabel}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                      {item.serviceTitle} · {item.prospect.channelFit}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-md bg-background/35 px-3 py-3">
+              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                Manual execution rule
+              </div>
+              <p className="mt-2 text-[12px] leading-relaxed text-foreground">
+                Treat these statuses as operator notes only. Contacted manually means a human contacted the
+                company outside the shell; the product did not send anything.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onOpenPath(LOCAL_SERVICES_OUTREACH_LIST_PATH)}
+                  className="h-7"
+                >
+                  Open outreach list
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+                  className="h-7"
+                >
+                  Open pilot scorecard
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          className="rounded-lg border border-border/60 bg-card/35 p-4"
+          aria-label={`${selectedTemplate.title} local service detail`}
+        >
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Pill tone={selectedTemplate.tone} size="sm">
+                  Selected service
+                </Pill>
+                <Pill tone="slate" size="sm">
+                  {selectedTemplate.channel}
+                </Pill>
+                <Pill tone="amber" size="sm">
+                  Operator-approved booking
+                </Pill>
+              </div>
+              <h3 className="mt-2 text-[15px] font-semibold tracking-tight text-foreground">
+                {selectedTemplate.title}
+              </h3>
+              <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground max-w-3xl">
+                {selectedTemplate.detail.sampleInput}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => onCopyPayload(selectedTemplate)} className="h-8">
+                <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                Copy dispatch payload
+              </Button>
+              <Button size="sm" variant="secondary" onClick={onOpenDispatchDrawer} className="h-8">
+                Open dispatch drawer
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => onOpenPath(selectedTemplate.evidencePath)} className="h-8">
+                Evidence link
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => onOpenPath(selectedTemplate.bundlePath)} className="h-8">
+                Handoff bundle
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
+            <div className="space-y-3">
+              <div className="grid gap-3 md:grid-cols-2">
+                <section className="rounded-md bg-background/35 px-3 py-3">
+                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    <PhoneCall className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    Phone intake
+                  </div>
+                  <ul className="mt-2 space-y-1.5 text-[12px] leading-relaxed text-foreground">
+                    {selectedTemplate.detail.phoneIntake.map((item) => (
+                      <li key={item} className="flex gap-2">
+                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+
+                <section className="rounded-md bg-background/35 px-3 py-3">
+                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    <MapPin className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    Pricing and slot inputs
+                  </div>
+                  <ul className="mt-2 space-y-1.5 text-[12px] leading-relaxed text-foreground">
+                    {selectedTemplate.detail.estimateInputs.map((item) => (
+                      <li key={item} className="font-mono text-[11px] text-foreground">
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <section className="rounded-md bg-background/35 px-3 py-3">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Approval policy
+                  </div>
+                  <ul className="mt-2 space-y-1.5 text-[12px] leading-relaxed text-foreground">
+                    {selectedTemplate.detail.approvalPolicy.map((item) => (
+                      <li key={item} className="flex gap-2">
+                        <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+
+                <section className="rounded-md bg-background/35 px-3 py-3">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Evidence output
+                  </div>
+                  <ul className="mt-2 space-y-1.5 text-[12px] leading-relaxed text-foreground">
+                    {selectedTemplate.detail.evidenceOutput.map((item) => (
+                      <li key={item} className="flex gap-2">
+                        <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              </div>
+
+              <section className="rounded-md bg-background/35 px-3 py-3">
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                  <MessageSquareText className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  Telegram intake prototype
+                </div>
+                <p className="mt-2 rounded-md border border-border/50 bg-card/25 px-3 py-2 text-[12px] leading-relaxed text-foreground">
+                  {selectedTemplate.detail.telegramIntake.inboundMessage}
+                </p>
+                <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                      Normalized fields
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {selectedTemplate.detail.telegramIntake.normalizedFields.map((field) => (
+                        <span
+                          key={field}
+                          className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground"
+                        >
+                          {field}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                      Reply draft
+                    </div>
+                    <p className="mt-2 text-[12px] leading-relaxed text-foreground">
+                      {selectedTemplate.detail.telegramIntake.replyDraft}
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              <section className="rounded-md bg-background/35 px-3 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    <BriefcaseBusiness className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    Pilot readiness
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onOpenPath(LOCAL_SERVICES_PILOT_OFFER_PATH)}
+                      className="h-7"
+                    >
+                      Open offer doc
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onOpenPath(LOCAL_SERVICES_DEMO_SCRIPT_PATH)}
+                      className="h-7"
+                    >
+                      Open demo script
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onOpenPath(LOCAL_SERVICES_OUTREACH_LIST_PATH)}
+                      className="h-7"
+                    >
+                      Open outreach list
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+                      className="h-7"
+                    >
+                      Open pilot scorecard
+                    </Button>
+                  </div>
+                </div>
+                <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                        One-page offer
+                      </div>
+                      <p className="mt-2 text-[12px] leading-relaxed text-foreground">
+                        {selectedTemplate.detail.pilotKit.offerSummary}
+                      </p>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                        Outreach focus
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {selectedTemplate.detail.pilotKit.outreachFocus.map((item) => (
+                          <span
+                            key={item}
+                            className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 text-[10px] text-muted-foreground"
+                          >
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                      90-second demo script
+                    </div>
+                    <ul className="mt-2 space-y-1.5 text-[12px] leading-relaxed text-foreground">
+                      {selectedTemplate.detail.pilotKit.demoScript.map((item) => (
+                        <li key={item} className="flex gap-2">
+                          <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Launch checklist
+                  </div>
+                  <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+                    {selectedTemplate.detail.pilotKit.launchChecklist.map((item) => (
+                      <li
+                        key={item}
+                        className="flex gap-2 rounded-md border border-border/50 bg-card/25 px-3 py-2.5 text-[12px] leading-relaxed text-foreground"
+                      >
+                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="mt-3">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Pilot metrics
+                  </div>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                    {selectedTemplate.detail.pilotKit.metrics.map((metric) => (
+                      <div key={metric.label} className="rounded-md border border-border/50 bg-card/25 px-3 py-2.5">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          {metric.label}
+                        </div>
+                        <div className="mt-2 text-[11px] text-muted-foreground">
+                          Baseline: <span className="text-foreground">{metric.baseline}</span>
+                        </div>
+                        <div className="mt-1 text-[11px] text-muted-foreground">
+                          Target: <span className="text-foreground">{metric.target}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-3 rounded-md border border-border/50 bg-card/25 px-3 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                      <Send className="h-3.5 w-3.5" strokeWidth={1.8} />
+                      Pilot outreach wizard
+                    </div>
+                    <span className="inline-flex rounded-[5px] bg-[hsl(var(--tint-amber)/0.13)] px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-amber-fg))] ring-1 ring-inset ring-[hsl(var(--tint-amber)/0.22)]">
+                      operator-approved
+                    </span>
+                  </div>
+                  <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                    {[
+                      {
+                        label: "1. Offer preview",
+                        value: selectedTemplate.detail.pilotKit.offerSummary,
+                      },
+                      {
+                        label: "2. Audience from outreach list",
+                        value: selectedTemplate.detail.pilotKit.outreachWizard.audience,
+                      },
+                      {
+                        label: "3. Test message preview",
+                        value: selectedTemplate.detail.pilotKit.outreachWizard.testMessage,
+                      },
+                      {
+                        label: "4. Operator confirmation",
+                        value: selectedTemplate.detail.pilotKit.outreachWizard.confirmationGate,
+                      },
+                    ].map((step) => (
+                      <div key={step.label} className="rounded-md bg-background/40 px-3 py-2.5">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          {step.label}
+                        </div>
+                        <p className="mt-2 text-[12px] leading-relaxed text-foreground">{step.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-3">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          Pilot scorecard action
+                        </div>
+                        <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                          Select a company from the outreach list, review the test message, then log a
+                          scorecard draft. No outbound message is sent from this shell.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => onOpenPath(LOCAL_SERVICES_OUTREACH_LIST_PATH)}
+                          className="h-7"
+                        >
+                          Open outreach list
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+                          className="h-7"
+                        >
+                          Open pilot scorecard
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          Selected company
+                        </div>
+                        <div className="mt-2 grid gap-2">
+                          {outreachProspects.map((prospect) => {
+                            const selected = prospect.id === selectedOutreachProspectId;
+                            return (
+                              <button
+                                key={prospect.id}
+                                type="button"
+                                aria-pressed={selected}
+                                onClick={() => {
+                                  setPilotWorkspaceState((prev) => ({
+                                    ...prev,
+                                    selectedProspectByService: {
+                                      ...prev.selectedProspectByService,
+                                      [selectedTemplate.id]: prospect.id,
+                                    },
+                                  }));
+                                }}
+                                className={`rounded-md border px-3 py-2 text-left transition-smooth ${
+                                  selected
+                                    ? "border-transparent bg-card/55 ring-1 ring-inset"
+                                    : "border-border/50 bg-card/25 hover:bg-card/40"
+                                }`}
+                                style={
+                                  selected
+                                    ? {
+                                        borderColor: `hsl(var(--tint-${selectedTemplate.tone}) / 0.34)`,
+                                        ["--tw-ring-color" as const]: `hsl(var(--tint-${selectedTemplate.tone}) / 0.3)`,
+                                      }
+                                    : undefined
+                                }
+                              >
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-[12px] font-semibold text-foreground">
+                                    {prospect.company}
+                                  </span>
+                                  <span className="rounded-[5px] bg-secondary/45 px-2 py-0.5 text-[10px] text-muted-foreground">
+                                    {prospect.segment}
+                                  </span>
+                                </div>
+                                <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                                  {prospect.whyNow}
+                                </p>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="rounded-md bg-card/25 px-3 py-2.5">
+                          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                            Test message preview
+                          </div>
+                          <p className="mt-2 text-[12px] leading-relaxed text-foreground">
+                            {selectedTemplate.detail.pilotKit.outreachWizard.testMessage}
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {[
+                              "Preview test message",
+                              "Confirm manually",
+                              "Log outcome in scorecard",
+                              "No outbound message sent",
+                            ].map((item) => (
+                              <span
+                                key={item}
+                                className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 text-[10px] text-muted-foreground"
+                              >
+                                {item}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="rounded-md bg-card/25 px-3 py-2.5">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                                Pilot workspace state
+                              </div>
+                              <div className="mt-1 inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 text-[10px] text-muted-foreground">
+                                Saved in this browser
+                              </div>
+                            </div>
+                            <span className="rounded-[5px] bg-[hsl(var(--tint-mint)/0.12)] px-2 py-1 text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.22)]">
+                              {currentPilotStatusLabel}
+                            </span>
+                          </div>
+                          <dl className="mt-2 space-y-1.5 text-[11px]">
+                            {scorecardDraftRows.map((row) => (
+                              <div key={row.label} className="grid grid-cols-[132px_minmax(0,1fr)] gap-2">
+                                <dt className="text-muted-foreground">{row.label}</dt>
+                                <dd className="text-foreground">{row.value}</dd>
+                              </div>
+                            ))}
+                          </dl>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {LOCAL_SERVICE_PILOT_STATUS_ACTIONS.map((action) => (
+                              <Button
+                                key={action.status}
+                                size="sm"
+                                variant={currentPilotStatus === action.status ? "default" : "secondary"}
+                                onClick={() => updatePilotWorkspaceStatus(action.status)}
+                                className="h-7"
+                              >
+                                {action.label}
+                              </Button>
+                            ))}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => updatePilotWorkspaceStatus("not_contacted")}
+                              className="h-7"
+                            >
+                              Reset to not contacted
+                            </Button>
+                          </div>
+                          {currentPilotStatus !== "not_contacted" && (
+                            <p className="mt-2 rounded-md bg-[hsl(var(--tint-mint)/0.12)] px-2 py-1.5 text-[11px] text-[hsl(var(--tint-mint-fg))]">
+                              Pilot workspace state persisted locally. Sync it into the pilot scorecard only after manual review.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="rounded-md bg-background/35 px-3 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    <Send className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    Customer confirmation draft
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onOpenDispatchDrawer("customer")}
+                    className="h-7"
+                  >
+                    Open customer drawer
+                  </Button>
+                </div>
+                <p className="mt-2 text-[12px] leading-relaxed text-foreground">
+                  {selectedTemplate.detail.customerConfirmation}
+                </p>
+              </section>
+            </div>
+
+            <div className="space-y-3">
+              <section className="rounded-md bg-background/35 px-3 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Master/operator handoff
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onOpenDispatchDrawer("handoff")}
+                    className="h-7"
+                  >
+                    Open handoff drawer
+                  </Button>
+                </div>
+                <p className="mt-2 text-[12px] leading-relaxed text-foreground">
+                  {selectedTemplate.detail.operatorHandoff}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {selectedTemplate.detail.handoffFields.map((field) => (
+                    <span
+                      key={field}
+                      className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground"
+                    >
+                      {field}
+                    </span>
+                  ))}
+                </div>
+              </section>
+
+              <section className="rounded-md bg-background/35 px-3 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                      Dispatch payload preview
+                    </div>
+                    <p className="mt-1 text-[11.5px] text-muted-foreground">
+                      {selectedTemplate.ref} stays approval-gated before customer or master send.
+                    </p>
+                  </div>
+                  <Button size="sm" variant="ghost" onClick={() => onCopyPayload(selectedTemplate)} className="h-8">
+                    <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                    Copy
+                  </Button>
+                </div>
+                <div className="mt-3 rounded-md border border-border/60 bg-card/30 px-3 py-3">
+                  <dl className="space-y-2 text-[11px]">
+                    {Object.entries(selectedPayloadPreview.payload).map(([key, value]) => (
+                      <div key={key} className="grid grid-cols-[128px_minmax(0,1fr)] gap-3">
+                        <dt className="font-mono text-muted-foreground truncate">{key}</dt>
+                        <dd className="text-foreground break-words">{formatPayloadValue(value)}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              </section>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+  );
+};
+
+const LocalServiceDispatchDrawer = ({
+  open,
+  onOpenChange,
+  template,
+  exportKind,
+  mode,
+  onModeChange,
+  onCopy,
+  onOpenBundle,
+  onOpenEvidence,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  template: LocalServiceDemoTemplate | null;
+  exportKind: LocalServiceExportKind;
+  mode: PlaybookExportMode;
+  onModeChange: (mode: PlaybookExportMode) => void;
+  onCopy: (text: string, label: string) => void;
+  onOpenBundle: () => void;
+  onOpenEvidence: () => void;
+}) => {
+  const payloadPreview = template ? buildLocalServicePayloadPreview(template) : null;
+  const exportView =
+    template && payloadPreview ? buildLocalServiceDispatchExport(template, payloadPreview, exportKind) : null;
+  const renderedText = mode === "human" ? exportView?.humanText : exportView?.jsonText;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col gap-0 p-0">
+        <SheetHeader className="px-7 py-5 border-b border-border/70 space-y-2.5 text-left">
+          <div className="flex items-center gap-2">
+            <PhoneCall className="h-3.5 w-3.5 text-muted-foreground/70" strokeWidth={1.75} />
+            <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground/80">
+              Local services dispatch export
+            </span>
+          </div>
+          <SheetTitle className="font-serif text-[22px] tracking-tight leading-[1.2]">
+            {exportView?.title ?? "Dispatch payload drawer"}
+          </SheetTitle>
+          <SheetDescription className="text-[12.5px] text-muted-foreground/85 leading-relaxed">
+            {exportView?.description ??
+              "Select a local-services card to prepare an operator-reviewed dispatch export."}
+          </SheetDescription>
+        </SheetHeader>
+
+        {exportView && renderedText && (
+          <div className="flex-1 min-h-0 overflow-auto">
+            <section className="px-7 pt-6 pb-5 border-b border-border/50 space-y-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                    {exportView.modeLabel}
+                  </div>
+                  <p className="mt-1 text-[12.5px] text-muted-foreground">
+                    Switch between the dispatcher note and the JSON payload before external send.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={mode === "human" ? "default" : "secondary"}
+                    onClick={() => onModeChange("human")}
+                    className="h-8"
+                  >
+                    Human-readable
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={mode === "json" ? "default" : "secondary"}
+                    onClick={() => onModeChange("json")}
+                    className="h-8"
+                  >
+                    JSON
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-2">
+                {exportView.rows.map((row) => (
+                  <div key={row.label} className="rounded-md border border-border/60 bg-card/30 px-3 py-2.5">
+                    <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+                      {row.label}
+                    </div>
+                    <div className="mt-1 break-words text-[12px] leading-relaxed text-foreground">
+                      {row.value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="px-7 py-5 border-b border-border/50 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                    Operator approval checklist
+                  </div>
+                  <p className="mt-1 text-[12.5px] text-muted-foreground">
+                    Keeps phone booking, pricing, and master dispatch behind a human approval gate.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="secondary" onClick={onOpenEvidence} className="h-8">
+                    Evidence
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={onOpenBundle} className="h-8">
+                    <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                    {exportView.surfaceActionLabel}
+                  </Button>
+                </div>
+              </div>
+              <ul className="space-y-2 text-[12.5px] leading-relaxed text-foreground">
+                {exportView.checklist.map((item) => (
+                  <li key={item} className="flex gap-2">
+                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="px-7 py-5 space-y-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                    {mode === "human" ? "Human-readable dispatch handoff" : "JSON payload"}
+                  </div>
+                  <p className="mt-1 text-[12.5px] text-muted-foreground">
+                    Copy only after the operator confirms the customer-facing booking posture.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => onCopy(renderedText, exportView.copyLabel)}
+                  className="h-8"
+                >
+                  <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  {exportView.copyLabel}
+                </Button>
+              </div>
+              <pre className="max-h-[42vh] overflow-auto rounded-md border border-border/60 bg-card/30 px-3 py-3 font-mono text-[11px] leading-relaxed text-foreground">
+                {renderedText}
+              </pre>
+            </section>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+};
+
+function buildPlaybookOperatorExport(
+  template: PlaybookTemplate,
+  payloadPreview: PlaybookPayloadPreview,
+  wiki: RuntimeCaseWiki | undefined,
+): PlaybookOperatorExport {
+  const { caseValue } = template;
+  const outcome = template.highlights.find((item) => item.label === "Outcome")?.value ?? caseValue.stage;
+  const approval = template.highlights.find((item) => item.label === "Approval")?.value ?? "Operator review";
+  const evidence = template.highlights.find((item) => item.label === "Evidence")?.value ?? payloadPreview.surfaceLabel;
+  const deliverable = template.highlights.find((item) => item.label === "Deliverable")?.value ?? template.title;
+  const nextAction =
+    wiki?.recommendedNextAction?.title ??
+    wiki?.recommendedNextAction?.summary ??
+    payloadPreview.payload.next_action?.toString() ??
+    template.statusNote;
+  const blocker =
+    wiki?.highlights.topBlockingQuestion?.question ??
+    payloadPreview.payload.current_blocker?.toString() ??
+    "No blocking question in the current Case Wiki snapshot.";
+  const status = wiki?.overview.status ?? caseValue.status;
+  const exportReady =
+    wiki?.operatorPreviewPack?.compliance?.enforcement?.exportReady ??
+    wiki?.compliance?.enforcement?.exportReady;
+  const compliance =
+    exportReady === false
+      ? "review required before external send"
+      : exportReady === true
+        ? "ready for approved export"
+        : "operator review required";
+  const payloadFieldSummary = Object.entries(payloadPreview.payload)
+    .map(([key, value]) => `${key}=${formatPayloadValue(value)}`)
+    .join("; ");
+  const drawerTitle =
+    template.id === "crm-handoff"
+      ? "CRM payload drawer"
+      : template.id === "consultation-booking"
+        ? "Consultation handoff drawer"
+        : "Operator handoff drawer";
+  const surfaceActionLabel =
+    template.id === "crm-handoff"
+      ? "Open Case Vault"
+      : template.id === "consultation-booking"
+        ? "Open Presentation bundle"
+        : `Open ${payloadPreview.surfaceLabel}`;
+  const rows = [
+    { label: "Case", value: `${caseValue.ref} - ${caseValue.client}` },
+    { label: "Route", value: `${caseValue.visa} - ${caseValue.country}` },
+    { label: "Outcome", value: outcome },
+    { label: "Approval", value: approval },
+    { label: "Evidence", value: evidence },
+    { label: "Deliverable", value: deliverable },
+    { label: "Status", value: status },
+    { label: "Compliance", value: compliance },
+    { label: "Payload fields", value: payloadFieldSummary },
+    { label: "Surface", value: payloadPreview.surfacePath },
+  ];
+  const checklist = [
+    `Confirm owner: ${wiki?.recommendedNextAction?.owner ?? caseValue.owner}`,
+    `Review blocker: ${blocker}`,
+    `Open canonical surface: ${payloadPreview.surfaceLabel}`,
+    "Copy the human-readable handoff or JSON payload only after operator review.",
+  ];
+  const humanLines = [
+    `${drawerTitle}: ${template.title}`,
+    `Case: ${caseValue.ref} - ${caseValue.client}`,
+    `Route: ${caseValue.visa} - ${caseValue.country}`,
+    `Outcome: ${outcome}`,
+    `Approval: ${approval}`,
+    `Evidence: ${evidence}`,
+    `Deliverable: ${deliverable}`,
+    `Status: ${status}`,
+    `Next action: ${nextAction}`,
+    `Current blocker: ${blocker}`,
+    `Payload fields: ${payloadFieldSummary}`,
+    `Canonical surface: ${payloadPreview.surfaceLabel} (${payloadPreview.surfacePath})`,
+    `Compliance: ${compliance}`,
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: drawerTitle,
+      case_ref: caseValue.ref,
+      client: caseValue.client,
+      owner: caseValue.owner,
+      canonical_surface: {
+        label: payloadPreview.surfaceLabel,
+        path: payloadPreview.surfacePath,
+      },
+      human_summary: Object.fromEntries(rows.map((row) => [row.label.toLowerCase().replace(/\s+/g, "_"), row.value])),
+      checklist,
+      payload: payloadPreview.payload,
+    },
+    null,
+    2,
+  );
+
+  return {
+    title: drawerTitle,
+    description:
+      template.id === "crm-handoff"
+        ? "Review the CRM-ready handoff before copying into the agency system."
+        : template.id === "consultation-booking"
+          ? "Review the consultation packet handoff before opening the presentation bundle."
+          : "Review the operator handoff before moving to the canonical surface.",
+    modeLabel: template.id === "crm-handoff" ? "CRM export mode" : "Handoff export mode",
+    copyLabel: template.id === "crm-handoff" ? "Copy CRM export" : "Copy handoff export",
+    surfaceActionLabel,
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows,
+    checklist,
+  };
+}
+
+const PlaybookTemplateCard = ({
+  template,
+  selected,
+  onSelect,
+}: {
+  template: PlaybookTemplate;
+  selected: boolean;
+  onSelect: () => void;
+}) => {
+  const { Icon, caseValue } = template;
+  return (
+    <article
+      className={`rounded-md border p-4 transition-smooth ${
+        selected
+          ? "border-transparent bg-card/55 ring-1 ring-inset"
+          : "border-border/60 bg-card/30"
+      }`}
+      style={
+        selected
+          ? {
+              borderColor: `hsl(var(--tint-${template.tone}) / 0.34)`,
+              ["--tw-ring-color" as const]: `hsl(var(--tint-${template.tone}) / 0.3)`,
+            }
+          : undefined
+      }
+    >
+      <div className="flex items-start gap-3">
+        <span
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md ring-1 ring-inset"
+          style={{
+            backgroundColor: `hsl(var(--tint-${template.tone}) / 0.14)`,
+            color: `hsl(var(--tint-${template.tone}-fg))`,
+            ["--tw-ring-color" as const]: `hsl(var(--tint-${template.tone}) / 0.24)`,
+          }}
+        >
+          <Icon className="h-4 w-4" strokeWidth={1.9} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start gap-2 flex-wrap">
+            <h3 className="text-[13px] font-semibold tracking-tight text-foreground">
+              {template.title}
+            </h3>
+            <Pill tone={template.tone} size="sm">
+              {caseValue.ref}
+            </Pill>
+          </div>
+          <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+            {template.summary}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+        <div className="rounded-md bg-background/35 px-2.5 py-2">
+          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+            Client
+          </div>
+          <div className="mt-1 text-foreground truncate">{caseValue.client}</div>
+        </div>
+        <div className="rounded-md bg-background/35 px-2.5 py-2">
+          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+            Stage
+          </div>
+          <div className="mt-1 text-foreground truncate">{caseValue.stage}</div>
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+        {template.highlights.map((highlight) => (
+          <div key={highlight.label} className="rounded-md bg-background/35 px-2.5 py-2">
+            <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+              {highlight.label}
+            </div>
+            <div className="mt-1 text-foreground">{highlight.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-3 text-[11.5px] leading-relaxed text-muted-foreground">
+        {template.statusNote}
+      </p>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button size="sm" variant="ghost" onClick={onSelect} className="h-8">
+          Inspect template
+        </Button>
+        <Button size="sm" onClick={template.onPrimary} className="h-8">
+          {template.primaryLabel}
+        </Button>
+        <Button size="sm" variant="secondary" onClick={template.onSecondary} className="h-8">
+          {template.secondaryLabel}
+        </Button>
+      </div>
+    </article>
+  );
+};
+
+const PlaybookTemplateDetailPanel = ({
+  template,
+  payloadPreview,
+  onCopyPayload,
+  onOpenExportDrawer,
+}: {
+  template: PlaybookTemplate;
+  payloadPreview: PlaybookPayloadPreview;
+  onCopyPayload: () => void;
+  onOpenExportDrawer: () => void;
+}) => {
+  const { Icon, caseValue } = template;
+  return (
+    <section
+      className="mt-3 rounded-lg border border-border/60 bg-card/35 p-4"
+      aria-label={`${template.title} detail`}
+    >
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Pill tone={template.tone} size="sm">
+              Selected template
+            </Pill>
+            <Pill tone="slate" size="sm">
+              {caseValue.ref}
+            </Pill>
+          </div>
+          <div className="mt-2 flex items-start gap-3">
+            <span
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md ring-1 ring-inset"
+              style={{
+                backgroundColor: `hsl(var(--tint-${template.tone}) / 0.14)`,
+                color: `hsl(var(--tint-${template.tone}-fg))`,
+                ["--tw-ring-color" as const]: `hsl(var(--tint-${template.tone}) / 0.24)`,
+              }}
+            >
+              <Icon className="h-4 w-4" strokeWidth={1.9} />
+            </span>
+            <div className="min-w-0">
+              <h3 className="text-[15px] font-semibold tracking-tight text-foreground">
+                {template.title}
+              </h3>
+              <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
+                {template.summary}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" onClick={template.onPrimary} className="h-8">
+            {template.primaryLabel}
+          </Button>
+          <Button size="sm" variant="secondary" onClick={template.onSecondary} className="h-8">
+            {template.secondaryLabel}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={onOpenExportDrawer} className="h-8">
+            Open export drawer
+          </Button>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
+        <div className="space-y-3">
+          <section className="rounded-md bg-background/35 px-3 py-3">
+            <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+              Sample input
+            </div>
+            <p className="mt-2 text-[12px] leading-relaxed text-foreground">
+              {template.detail.sampleInput}
+            </p>
+          </section>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <section className="rounded-md bg-background/35 px-3 py-3">
+              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                Approval policy
+              </div>
+              <ul className="mt-2 space-y-1.5 text-[12px] leading-relaxed text-foreground">
+                {template.detail.approvalPolicy.map((item) => (
+                  <li key={item} className="flex gap-2">
+                    <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="rounded-md bg-background/35 px-3 py-3">
+              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                Evidence output
+              </div>
+              <ul className="mt-2 space-y-1.5 text-[12px] leading-relaxed text-foreground">
+                {template.detail.evidenceOutput.map((item) => (
+                  <li key={item} className="flex gap-2">
+                    <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </div>
+
+          <section className="rounded-md bg-background/35 px-3 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                  Payload preview
+                </div>
+                <p className="mt-1 text-[11.5px] text-muted-foreground">
+                  {payloadPreview.surfaceLabel}
+                </p>
+              </div>
+              <Button size="sm" variant="ghost" onClick={onCopyPayload} className="h-8">
+                <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                Copy payload
+              </Button>
+            </div>
+            <div className="mt-3 rounded-md border border-border/60 bg-card/30 px-3 py-3">
+              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                Surface path
+              </div>
+              <div className="mt-1 break-all font-mono text-[10.5px] leading-relaxed text-foreground">
+                {payloadPreview.surfacePath}
+              </div>
+            </div>
+            <pre className="mt-3 overflow-x-auto rounded-md border border-border/60 bg-card/30 px-3 py-3 font-mono text-[10.5px] leading-relaxed text-foreground">
+              {JSON.stringify(payloadPreview.payload, null, 2)}
+            </pre>
+          </section>
+        </div>
+
+        <aside className="rounded-md bg-background/35 px-3 py-3">
+          <div className="grid grid-cols-2 gap-2 text-[11px]">
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                Client
+              </div>
+              <div className="mt-1 text-foreground">{caseValue.client}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                Stage
+              </div>
+              <div className="mt-1 text-foreground">{caseValue.stage}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                Owner
+              </div>
+              <div className="mt-1 text-foreground">{caseValue.owner}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                Visa route
+              </div>
+              <div className="mt-1 text-foreground">{caseValue.visa}</div>
+            </div>
+          </div>
+
+          <section className="mt-4">
+            <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+              CRM fields
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {template.detail.crmFields.map((field) => (
+                <Pill key={field} tone="slate" size="sm">
+                  {field}
+                </Pill>
+              ))}
+            </div>
+          </section>
+
+          <div className="mt-4 rounded-md border border-border/60 bg-card/30 px-3 py-3">
+            <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+              Operator note
+            </div>
+            <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">
+              {template.statusNote}
+            </p>
+          </div>
+        </aside>
+      </div>
+    </section>
+  );
+};
+
+const PlaybookExportDrawer = ({
+  open,
+  onOpenChange,
+  template,
+  payloadPreview,
+  wiki,
+  mode,
+  onModeChange,
+  onCopy,
+  onOpenSurface,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  template: PlaybookTemplate | null;
+  payloadPreview: PlaybookPayloadPreview | null;
+  wiki: RuntimeCaseWiki | undefined;
+  mode: PlaybookExportMode;
+  onModeChange: (mode: PlaybookExportMode) => void;
+  onCopy: (text: string, label: string) => void;
+  onOpenSurface: () => void;
+}) => {
+  const exportView =
+    template && payloadPreview
+      ? buildPlaybookOperatorExport(template, payloadPreview, wiki)
+      : null;
+  const renderedText = mode === "human" ? exportView?.humanText : exportView?.jsonText;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col gap-0 p-0">
+        <SheetHeader className="px-7 py-5 border-b border-border/70 space-y-2.5 text-left">
+          <div className="flex items-center gap-2">
+            <BriefcaseBusiness className="h-3.5 w-3.5 text-muted-foreground/70" strokeWidth={1.75} />
+            <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground/80">
+              Integration-ready export
+            </span>
+          </div>
+          <SheetTitle className="font-serif text-[22px] tracking-tight leading-[1.2]">
+            {exportView?.title ?? "Operator handoff drawer"}
+          </SheetTitle>
+          <SheetDescription className="text-[12.5px] text-muted-foreground/85 leading-relaxed">
+            {exportView?.description ??
+              "Select a playbook template to prepare an operator-reviewed export."}
+          </SheetDescription>
+        </SheetHeader>
+
+        {exportView && renderedText && (
+          <div className="flex-1 min-h-0 overflow-auto">
+            <section className="px-7 pt-6 pb-5 border-b border-border/50 space-y-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                    {exportView.modeLabel}
+                  </div>
+                  <p className="mt-1 text-[12.5px] text-muted-foreground">
+                    Switch between a human-readable operator note and the JSON payload for integration review.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={mode === "human" ? "default" : "secondary"}
+                    onClick={() => onModeChange("human")}
+                    className="h-8"
+                  >
+                    Human-readable
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={mode === "json" ? "default" : "secondary"}
+                    onClick={() => onModeChange("json")}
+                    className="h-8"
+                  >
+                    JSON
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-2">
+                {exportView.rows.map((row) => (
+                  <div key={row.label} className="rounded-md border border-border/60 bg-card/30 px-3 py-2.5">
+                    <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+                      {row.label}
+                    </div>
+                    <div className="mt-1 break-words text-[12px] leading-relaxed text-foreground">
+                      {row.value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="px-7 py-5 border-b border-border/50 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                    Operator review checklist
+                  </div>
+                  <p className="mt-1 text-[12.5px] text-muted-foreground">
+                    Keeps CRM and consultation handoff actions explicit before export.
+                  </p>
+                </div>
+                <Button size="sm" variant="secondary" onClick={onOpenSurface} className="h-8">
+                  <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  {exportView.surfaceActionLabel}
+                </Button>
+              </div>
+              <ul className="space-y-2 text-[12.5px] leading-relaxed text-foreground">
+                {exportView.checklist.map((item) => (
+                  <li key={item} className="flex gap-2">
+                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="px-7 py-5 space-y-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                    {mode === "human" ? "Human-readable handoff" : "JSON payload"}
+                  </div>
+                  <p className="mt-1 text-[12.5px] text-muted-foreground">
+                    Copy only after the operator confirms the approval and evidence posture.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => onCopy(renderedText, exportView.copyLabel)}
+                  className="h-8"
+                >
+                  <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  {exportView.copyLabel}
+                </Button>
+              </div>
+              <pre className="max-h-[42vh] overflow-auto rounded-md border border-border/60 bg-card/30 px-3 py-3 font-mono text-[11px] leading-relaxed text-foreground">
+                {renderedText}
+              </pre>
+            </section>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+};
+
 export const LiveDesk = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { cases, deviceNodes, addDraftCase } = useWorkspaceRuntime();
+  const { cases, deviceNodes, addDraftCase, getCaseWikiByRef } = useWorkspaceRuntime();
   const requestCounts = useAllRequestCounts();
   const requestStaleness = useAllRequestStaleness();
   const { isVip, toggleVip } = useVipCases();
   const [query, setQuery] = useState("");
   const [newCaseOpen, setNewCaseOpen] = useState(false);
+  const [playbookExportDrawerOpen, setPlaybookExportDrawerOpen] = useState(false);
+  const [playbookExportMode, setPlaybookExportMode] = useState<PlaybookExportMode>("human");
+  const [localServiceDispatchDrawerOpen, setLocalServiceDispatchDrawerOpen] = useState(false);
+  const [localServiceDispatchMode, setLocalServiceDispatchMode] = useState<PlaybookExportMode>("human");
+  const [localServiceExportKind, setLocalServiceExportKind] = useState<LocalServiceExportKind>("dispatch");
   // Marker for the most recently created case — drives a brief fresh-glow on
   // its row so the operator can spot the new entry in the dense list.
   // Cleared shortly after to keep the animation a one-shot affair.
@@ -174,6 +3007,16 @@ export const LiveDesk = () => {
   // Narrows the desk to non-resolved cases under the 1h SLA threshold so
   // the operator lands directly on what's about to breach.
   const burningFilter = searchParams.get("burning") === "1";
+  const visaIntakeDemo = searchParams.get("demo") === "visa-intake";
+  const localServicesDispatchDemo = searchParams.get("demo") === "local-services-dispatch";
+  const activePlaybookId = searchParams.get("playbook");
+  const activeLocalServiceId = searchParams.get("service");
+  const activeLocalServiceTemplate = useMemo(
+    () =>
+      LOCAL_SERVICE_DEMO_TEMPLATES.find((template) => template.id === activeLocalServiceId) ??
+      LOCAL_SERVICE_DEMO_TEMPLATES[0],
+    [activeLocalServiceId],
+  );
   const nonHealthyNodeIds = useMemo(
     () => new Set(deviceNodes.filter((n) => n.status !== "healthy").map((n) => n.id)),
     [deviceNodes],
@@ -184,6 +3027,60 @@ export const LiveDesk = () => {
       next.delete("node");
       next.delete("infra");
       next.delete("burning");
+      return next;
+    });
+  };
+  const openVisaIntakeDemo = () => {
+    setLocalServiceDispatchDrawerOpen(false);
+    setQuery("");
+    setOnlyMine(false);
+    setMineOnly(false);
+    setVipOnly(false);
+    clearSelection();
+    setFocusedRef(null);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("node");
+      next.delete("infra");
+      next.delete("burning");
+      next.set("demo", "visa-intake");
+      next.set("playbook", "missing-documents");
+      next.delete("service");
+      return next;
+    });
+  };
+  const closeVisaIntakeDemo = () => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("demo");
+      return next;
+    });
+  };
+  const openLocalServicesDispatchDemo = () => {
+    setPlaybookExportDrawerOpen(false);
+    setQuery("");
+    setOnlyMine(false);
+    setMineOnly(false);
+    setVipOnly(false);
+    clearSelection();
+    setFocusedRef(null);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("node");
+      next.delete("infra");
+      next.delete("burning");
+      next.delete("playbook");
+      next.set("demo", "local-services-dispatch");
+      next.set("service", "ac-repair-dispatch");
+      return next;
+    });
+  };
+  const closeLocalServicesDispatchDemo = () => {
+    setLocalServiceDispatchDrawerOpen(false);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("demo");
+      next.delete("service");
       return next;
     });
   };
@@ -320,6 +3217,316 @@ export const LiveDesk = () => {
       }),
     [burningFilter, cases, infraFilter, isVip, mineOnly, nodeFilterId, nonHealthyNodeIds, onlyMine, query, requestCounts, vipOnly]
   );
+
+  const visaIntakeDemoCase = useMemo(
+    () =>
+      cases.find((c) => c.ref === "VS-2841") ??
+      cases.find((c) => c.status === "needs_action" && c.documents.some((doc) => doc.state === "missing")) ??
+      cases[0],
+    [cases],
+  );
+
+  const playbookTemplates = useMemo<PlaybookTemplate[]>(() => {
+    const countMissingDocuments = (value: WorkspaceCase) =>
+      value.documents.filter((doc) => doc.state === "missing").length;
+    const findLatestEvent = (value: WorkspaceCase, pattern: RegExp) =>
+      [...value.events].reverse().find((event) => pattern.test(event.title))?.title ?? null;
+    const leadQualificationCase =
+      cases.find((c) => c.ref === "VS-2838") ??
+      cases.find((c) => c.stage === "Lead intake") ??
+      cases[0];
+    const missingDocumentsCase =
+      cases.find((c) => c.ref === "VS-2841") ??
+      cases.find((c) => c.documents.some((doc) => doc.state === "missing") && c.status !== "resolved") ??
+      cases[0];
+    const consultationCase =
+      cases.find((c) => c.ref === "VS-2840") ??
+      cases.find((c) => /consultation/i.test(c.stage)) ??
+      cases[0];
+    const crmHandoffCase =
+      cases.find((c) => c.ref === "VS-2837") ??
+      cases.find((c) => /crm/i.test(c.stage) || c.status === "resolved") ??
+      cases[0];
+
+    return [
+      leadQualificationCase && {
+        id: "lead-qualification",
+        title: "Visa lead qualification",
+        summary: "Start from intake, confirm fit, and move the case into the operator desk.",
+        statusNote: "Uses the lead-intake case path and keeps the first operator review attached to a live case.",
+        highlights: [
+          { label: "Outcome", value: `${leadQualificationCase.visa} fit` },
+          { label: "Approval", value: "Console review only" },
+          { label: "Evidence", value: "Console trail" },
+          { label: "Deliverable", value: `${countMissingDocuments(leadQualificationCase)} requested docs` },
+        ],
+        detail: {
+          sampleInput:
+            "New lead from Japan for the Highly Skilled Pro route. Passport scan, resume, and diploma are still missing after intake.",
+          approvalPolicy: [
+            "No external send before the operator confirms the visa fit and missing-document ask.",
+            "Escalate only if intake facts contradict the auto-classified route.",
+          ],
+          evidenceOutput: [
+            "Lead-intake console timeline",
+            "Auto-classification event trail",
+            "Missing-document count preview",
+          ],
+          crmFields: ["lead_status", "visa_route", "country", "missing_documents"],
+        },
+        tone: "violet",
+        Icon: ClipboardCheck,
+        caseValue: leadQualificationCase,
+        primaryLabel: "Open case",
+        secondaryLabel: "7-minute path",
+        onPrimary: () => navigate(`/app/console?ref=${encodeURIComponent(leadQualificationCase.ref)}`),
+        onSecondary: openVisaIntakeDemo,
+      },
+      missingDocumentsCase && {
+        id: "missing-documents",
+        title: "Missing-document follow-up",
+        summary: "Open the document chase directly where the missing evidence and approval live.",
+        statusNote: "Routes straight into the document lane so the operator sees gaps before opening deeper runtime support.",
+        highlights: [
+          { label: "Outcome", value: `${countMissingDocuments(missingDocumentsCase)} missing docs` },
+          { label: "Approval", value: "Reminder queued" },
+          { label: "Evidence", value: "Evidence bundle" },
+          { label: "Deliverable", value: "Protected follow-up" },
+        ],
+        detail: {
+          sampleInput:
+            "A. Petrov uploaded the employment contract, but passport scan, diploma apostille, insurance proof, and rental contract are still missing.",
+          approvalPolicy: [
+            "The external reminder stays protected until the operator approves the drafted follow-up.",
+            "Review the document-focused console before opening deeper runtime support or replay.",
+          ],
+          evidenceOutput: [
+            "Per-case evidence bundle",
+            "Approval draft and trust signals",
+            "Document gap timeline",
+          ],
+          crmFields: ["follow_up_status", "missing_documents", "next_contact_at", "approval_owner"],
+        },
+        tone: "amber",
+        Icon: FileText,
+        caseValue: missingDocumentsCase,
+        primaryLabel: "Review docs",
+        secondaryLabel: "Evidence",
+        onPrimary: () =>
+          navigate(`/app/console?ref=${encodeURIComponent(missingDocumentsCase.ref)}&focus=documents`),
+        onSecondary: () => navigate(buildCaseEvidencePath(missingDocumentsCase)),
+      },
+      consultationCase && {
+        id: "consultation-booking",
+        title: "Consultation booking prep",
+        summary: "Pick up the booking-ready case and review the consultation outcome or packet.",
+        statusNote: "Keeps booking inside the main workflow lane instead of dropping the operator into generic demo fixtures.",
+        highlights: [
+          {
+            label: "Outcome",
+            value:
+              findLatestEvent(consultationCase, /Calendar invite sent/i)?.replace(
+                /^Calendar invite sent · /i,
+                "",
+              ) ?? "Consultation booked",
+          },
+          { label: "Approval", value: "No blocker" },
+          { label: "Evidence", value: "Presentation bundle" },
+          { label: "Deliverable", value: "Consult packet" },
+        ],
+        detail: {
+          sampleInput:
+            "Eligibility passed for L. Johansson and the calendar invite is already sent. Salary proof still needs review before the consult.",
+          approvalPolicy: [
+            "No extra approval gate while preparing the consultation packet.",
+            "Escalate only if booking details or eligibility status drift from the case record.",
+          ],
+          evidenceOutput: [
+            "Presentation bundle",
+            "Consultation booking event trail",
+            "Latest document review state",
+          ],
+          crmFields: ["consultation_at", "eligibility_status", "packet_status", "doc_blockers"],
+        },
+        tone: "mint",
+        Icon: CalendarCheck,
+        caseValue: consultationCase,
+        primaryLabel: "Open bundle",
+        secondaryLabel: "Open case",
+        onPrimary: () => navigate(buildCaseBundlePath(consultationCase)),
+        onSecondary: () => navigate(`/app/console?ref=${encodeURIComponent(consultationCase.ref)}`),
+      },
+      crmHandoffCase && {
+        id: "crm-handoff",
+        title: "CRM handoff summary",
+        summary: "Review the resolved case through the handoff-oriented support surface and proof links.",
+        statusNote: "Surfaces the CRM-ready posture without forcing raw replay or artifact-first navigation.",
+        highlights: [
+          { label: "Outcome", value: "CRM-ready handoff" },
+          { label: "Approval", value: "Reviewer approved" },
+          { label: "Evidence", value: "Case Vault" },
+          { label: "Deliverable", value: "Resolved case proof" },
+        ],
+        detail: {
+          sampleInput:
+            "Resolved D7 case for M. Costa with all required documents verified and reviewer approval already completed.",
+          approvalPolicy: [
+            "No external send is needed; this lane is for internal operator handoff and CRM sync.",
+            "Use Case Vault as the source of truth for resolved-case evidence and provenance.",
+          ],
+          evidenceOutput: [
+            "Case Vault handoff surface",
+            "Resolved case timeline",
+            "Reviewer approval stamp",
+          ],
+          crmFields: ["case_status", "handoff_ready", "approved_by", "evidence_link"],
+        },
+        tone: "slate",
+        Icon: BriefcaseBusiness,
+        caseValue: crmHandoffCase,
+        primaryLabel: "Open Case Vault",
+        secondaryLabel: "Presentation bundle",
+        onPrimary: () => navigate(buildCaseVaultPath(crmHandoffCase)),
+        onSecondary: () => navigate(buildCaseBundlePath(crmHandoffCase)),
+      },
+    ].filter(Boolean) as PlaybookTemplate[];
+  }, [cases, navigate, openVisaIntakeDemo]);
+
+  const activePlaybookTemplate = useMemo(() => {
+    if (playbookTemplates.length === 0) return null;
+    return (
+      playbookTemplates.find((template) => template.id === activePlaybookId) ??
+      (visaIntakeDemo
+        ? playbookTemplates.find((template) => template.id === "missing-documents")
+        : null) ??
+      playbookTemplates[0]
+    );
+  }, [activePlaybookId, playbookTemplates, visaIntakeDemo]);
+
+  const activePlaybookWiki = useMemo(
+    () =>
+      activePlaybookTemplate
+        ? getCaseWikiByRef(
+            activePlaybookTemplate.caseValue.caseId ??
+              activePlaybookTemplate.caseValue.sessionId ??
+              activePlaybookTemplate.caseValue.ref,
+          )
+        : undefined,
+    [activePlaybookTemplate, getCaseWikiByRef],
+  );
+
+  const activePlaybookPayloadPreview = useMemo(
+    () =>
+      activePlaybookTemplate
+        ? buildPlaybookPayloadPreview(activePlaybookTemplate, activePlaybookWiki)
+        : null,
+    [activePlaybookTemplate, activePlaybookWiki],
+  );
+
+  const copyActivePlaybookPayload = async () => {
+    if (!activePlaybookTemplate || !activePlaybookPayloadPreview) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(
+        JSON.stringify(activePlaybookPayloadPreview.payload, null, 2),
+      );
+      toast({
+        title: "Payload copied",
+        description: `${activePlaybookTemplate.title} · ${activePlaybookTemplate.caseValue.ref}`,
+      });
+    } catch {
+      toast({
+        title: "Copy failed",
+        description: "Clipboard is unavailable in this browser.",
+      });
+    }
+  };
+
+  const openActivePlaybookExportDrawer = () => {
+    setPlaybookExportMode(activePlaybookTemplate?.id === "crm-handoff" ? "json" : "human");
+    setPlaybookExportDrawerOpen(true);
+  };
+
+  const copyPlaybookExport = async (text: string, label: string) => {
+    if (!activePlaybookTemplate) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: `${label} copied`,
+        description: `${activePlaybookTemplate.title} - ${activePlaybookTemplate.caseValue.ref}`,
+      });
+    } catch {
+      toast({
+        title: "Copy failed",
+        description: "Clipboard is unavailable in this browser.",
+      });
+    }
+  };
+
+  const openActivePlaybookSurface = () => {
+    if (!activePlaybookPayloadPreview) {
+      return;
+    }
+    setPlaybookExportDrawerOpen(false);
+    navigate(activePlaybookPayloadPreview.surfacePath);
+  };
+
+  const copyLocalServiceDispatchPayload = async (template: LocalServiceDemoTemplate) => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(buildLocalServicePayloadPreview(template).payload, null, 2));
+      toast({
+        title: "Dispatch payload copied",
+        description: `${template.title} - ${template.ref}`,
+      });
+    } catch {
+      toast({
+        title: "Copy failed",
+        description: "Clipboard is unavailable in this browser.",
+      });
+    }
+  };
+
+  const openActiveLocalServiceDispatchDrawer = (kind: LocalServiceExportKind = "dispatch") => {
+    setLocalServiceExportKind(kind);
+    setLocalServiceDispatchMode("human");
+    setLocalServiceDispatchDrawerOpen(true);
+  };
+
+  const copyLocalServiceDispatchExport = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: `${label} copied`,
+        description: `${activeLocalServiceTemplate.title} - ${activeLocalServiceTemplate.ref}`,
+      });
+    } catch {
+      toast({
+        title: "Copy failed",
+        description: "Clipboard is unavailable in this browser.",
+      });
+    }
+  };
+
+  const openActiveLocalServiceBundle = () => {
+    setLocalServiceDispatchDrawerOpen(false);
+    navigate(activeLocalServiceTemplate.bundlePath);
+  };
+
+  const openActiveLocalServiceEvidence = () => {
+    setLocalServiceDispatchDrawerOpen(false);
+    navigate(activeLocalServiceTemplate.evidencePath);
+  };
+
+  const openLocalServiceDemoPath = (path: string) => {
+    if (path.startsWith("/workspace-docs/")) {
+      window.location.assign(path);
+      return;
+    }
+    navigate(path);
+  };
 
   // Staleness threshold for the My-requests view secondary grouping. 24h is
   // the default "I should poke this again" horizon for an immigration-doc
@@ -656,14 +3863,71 @@ export const LiveDesk = () => {
           the operator narrows the desk the active-filter ribbon below
           carries the count, so we drop it here to avoid duplicating
           information at competing weights. */}
-      <div className="flex items-center justify-between gap-4 px-8 pt-6 pb-5">
-        <div className="flex items-baseline gap-3 min-w-0">
-          <h1 className="font-serif text-[26px] tracking-tight leading-none">Live Desk</h1>
-          <span className="font-mono text-[10.5px] text-muted-foreground/70 tabular-nums">
-            {filtered.length} active
-          </span>
+      <div className="flex items-start justify-between gap-4 px-8 pt-6 pb-5">
+        <div className="min-w-0">
+          <div className="flex items-baseline gap-3 min-w-0 flex-wrap">
+            <h1 className="font-serif text-[26px] tracking-tight leading-none">Live Desk</h1>
+            <span className="font-mono text-[10.5px] text-muted-foreground/70 tabular-nums">
+              {filtered.length} active
+            </span>
+            {visaIntakeDemo && (
+              <Pill tone="violet" size="sm">
+                7-minute path
+              </Pill>
+            )}
+            {localServicesDispatchDemo && (
+              <Pill tone="mint" size="sm">
+                Local services demo
+              </Pill>
+            )}
+          </div>
+          <p className="mt-1.5 text-[12px] text-muted-foreground/85 max-w-2xl leading-relaxed">
+            {localServicesDispatchDemo
+              ? "Answer phone requests, collect service details, prepare estimates, and hand off operator-approved bookings."
+              : "Qualify leads, chase missing documents, prepare consultations, and hand off clean case context before deeper runtime review."}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <Button
+            size="sm"
+            variant={localServicesDispatchDemo ? "secondary" : "outline"}
+            onClick={localServicesDispatchDemo ? closeLocalServicesDispatchDemo : openLocalServicesDispatchDemo}
+            className="h-8 text-xs"
+          >
+            {localServicesDispatchDemo ? (
+              <>
+                <X className="mr-0 sm:mr-1.5 h-3.5 w-3.5" strokeWidth={2} />
+                <span className="hidden sm:inline">Exit local demo</span>
+                <span className="sm:hidden">Exit</span>
+              </>
+            ) : (
+              <>
+                <PhoneCall className="mr-0 sm:mr-1.5 h-3.5 w-3.5" strokeWidth={2} />
+                <span className="hidden sm:inline">Local services demo</span>
+                <span className="sm:hidden">Local</span>
+              </>
+            )}
+          </Button>
+          <Button
+            size="sm"
+            variant={visaIntakeDemo ? "secondary" : "outline"}
+            onClick={visaIntakeDemo ? closeVisaIntakeDemo : openVisaIntakeDemo}
+            className="h-8 text-xs"
+          >
+            {visaIntakeDemo ? (
+              <>
+                <X className="mr-0 sm:mr-1.5 h-3.5 w-3.5" strokeWidth={2} />
+                <span className="hidden sm:inline">Exit demo</span>
+                <span className="sm:hidden">Exit</span>
+              </>
+            ) : (
+              <>
+                <ClipboardCheck className="mr-0 sm:mr-1.5 h-3.5 w-3.5" strokeWidth={2} />
+                <span className="hidden sm:inline">Start 7-minute demo</span>
+                <span className="sm:hidden">Demo</span>
+              </>
+            )}
+          </Button>
           {/* "Mine only" — narrows desk to cases owned by CURRENT_OPERATOR.
               Sits to the LEFT of "My requests" so the pair reads naturally
               as a sentence: "mine only, my requests". Uses the rose tint
@@ -847,6 +4111,86 @@ export const LiveDesk = () => {
         </div>
       </div>
 
+      {localServicesDispatchDemo && (
+        <LocalServicesDispatchDemoPanel
+          activeServiceId={activeLocalServiceId}
+          onSelectService={(id) =>
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev);
+              next.set("demo", "local-services-dispatch");
+              next.set("service", id);
+              next.delete("playbook");
+              return next;
+            })
+          }
+          onClose={closeLocalServicesDispatchDemo}
+          onCopyPayload={copyLocalServiceDispatchPayload}
+          onOpenDispatchDrawer={openActiveLocalServiceDispatchDrawer}
+          onOpenPath={openLocalServiceDemoPath}
+        />
+      )}
+
+      {!localServicesDispatchDemo && playbookTemplates.length > 0 && (
+        <section className="px-8 pb-5" aria-label="Workflow playbook templates">
+          <div className="flex items-center gap-2 mb-3">
+            <Pill tone="slate" size="sm">
+              Playbook templates
+            </Pill>
+            <p className="text-[11.5px] text-muted-foreground">
+              Four workflow lanes for qualification, documents, booking, and handoff.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+            {playbookTemplates.map((template) => (
+              <PlaybookTemplateCard
+                key={template.id}
+                template={template}
+                selected={activePlaybookTemplate?.id === template.id}
+                onSelect={() =>
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.set("playbook", template.id);
+                    return next;
+                  })
+                }
+              />
+            ))}
+          </div>
+          {activePlaybookTemplate && activePlaybookPayloadPreview && (
+            <PlaybookTemplateDetailPanel
+              template={activePlaybookTemplate}
+              payloadPreview={activePlaybookPayloadPreview}
+              onCopyPayload={copyActivePlaybookPayload}
+              onOpenExportDrawer={openActivePlaybookExportDrawer}
+            />
+          )}
+        </section>
+      )}
+
+      <PlaybookExportDrawer
+        open={playbookExportDrawerOpen}
+        onOpenChange={setPlaybookExportDrawerOpen}
+        template={activePlaybookTemplate}
+        payloadPreview={activePlaybookPayloadPreview}
+        wiki={activePlaybookWiki}
+        mode={playbookExportMode}
+        onModeChange={setPlaybookExportMode}
+        onCopy={copyPlaybookExport}
+        onOpenSurface={openActivePlaybookSurface}
+      />
+
+      <LocalServiceDispatchDrawer
+        open={localServiceDispatchDrawerOpen}
+        onOpenChange={setLocalServiceDispatchDrawerOpen}
+        template={localServicesDispatchDemo ? activeLocalServiceTemplate : null}
+        exportKind={localServiceExportKind}
+        mode={localServiceDispatchMode}
+        onModeChange={setLocalServiceDispatchMode}
+        onCopy={copyLocalServiceDispatchExport}
+        onOpenBundle={openActiveLocalServiceBundle}
+        onOpenEvidence={openActiveLocalServiceEvidence}
+      />
+
       <NewCaseSheet
         open={newCaseOpen}
         onOpenChange={setNewCaseOpen}
@@ -874,6 +4218,19 @@ export const LiveDesk = () => {
           });
         }}
       />
+
+      {visaIntakeDemo && visaIntakeDemoCase && (
+        <SevenMinuteVisaIntakePanel
+          caseValue={visaIntakeDemoCase}
+          onClose={closeVisaIntakeDemo}
+          onOpenConsole={() =>
+            navigate(`/app/console?ref=${encodeURIComponent(visaIntakeDemoCase.ref)}&focus=approval`)
+          }
+          onOpenBundle={() => navigate(buildCaseBundlePath(visaIntakeDemoCase))}
+          onOpenEvidence={() => navigate(buildCaseEvidencePath(visaIntakeDemoCase))}
+          onOpenCaseVault={() => navigate(buildCaseVaultPath(visaIntakeDemoCase))}
+        />
+      )}
 
       {/* Grouped list */}
       <div className="flex-1 min-h-0 overflow-auto">

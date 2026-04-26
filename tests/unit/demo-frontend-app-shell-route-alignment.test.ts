@@ -21,11 +21,17 @@ test("demo frontend server redirects root to /app and keeps legacy on /legacy", 
 
   assert.match(source, /const appShellDir = path\.resolve\(publicDir, "app-shell"\);/);
   assert.match(source, /const artifactsDir = path\.resolve\(__dirname, "\.\.\/\.\.\/\.\.\/artifacts"\);/);
+  assert.match(source, /const docsDir = path\.resolve\(__dirname, "\.\.\/\.\.\/\.\.\/docs"\);/);
   assert.match(source, /const legacyIndexPath = path\.resolve\(publicDir, "index\.html"\);/);
   assert.match(source, /const appShellIndexPath = path\.resolve\(appShellDir, "index\.html"\);/);
   assert.match(source, /function isAppShellDocumentRoute\(urlPath: string\): boolean/);
   assert.match(source, /function isAppShellAssetRoute\(urlPath: string\): boolean/);
   assert.match(source, /const debugArtifactCatalog = \[/);
+  assert.match(source, /const workspaceDocAllowlist = \[/);
+  assert.match(source, /"local-services-pilot-offer\.md"/);
+  assert.match(source, /"local-services-demo-script\.md"/);
+  assert.match(source, /"local-services-outreach-list\.md"/);
+  assert.match(source, /"local-services-pilot-scorecard\.md"/);
   assert.match(source, /label: "Action Desk KPI report"/);
   assert.match(source, /relativePath: "release-evidence\/action-desk-kpi-report\.json"/);
   assert.match(source, /label: "Consultation booking proof"/);
@@ -33,14 +39,17 @@ test("demo frontend server redirects root to /app and keeps legacy on /legacy", 
   assert.match(source, /label: "Consultation booking approved artifact"/);
   assert.match(source, /relativePath: "demo-e2e\/consultation-booking-approved\.json"/);
   assert.match(source, /function resolveDebugArtifactPath\(requestPath: string\): string \| null/);
+  assert.match(source, /function resolveWorkspaceDocPath\(requestPath: string\): string \| null/);
   assert.match(source, /req\.method === "GET" && \(req\.url === "\/" \|\| req\.url\?\.startsWith\("\/\?"\)\)/);
   assert.match(source, /res\.setHeader\("Location", `\/app\$\{query\}`\);/);
   assert.match(source, /req\.method === "GET" && req\.url === "\/debug-artifacts\/index\.json"/);
   assert.match(source, /requestPath === "\/legacy" \|\| requestPath === "\/legacy\/"/);
   assert.match(source, /requestPath\.startsWith\("\/debug-artifacts\/"\)/);
+  assert.match(source, /requestPath\.startsWith\("\/workspace-docs\/"\)/);
   assert.match(source, /filePath = appShellIndexPath;/);
   assert.match(source, /filePath = legacyIndexPath;/);
   assert.match(source, /filePath = debugArtifactPath;/);
+  assert.match(source, /filePath = workspaceDocPath;/);
 });
 
 test("built app shell publishes stable public assets for /app, /bundle, and /evidence routes", () => {

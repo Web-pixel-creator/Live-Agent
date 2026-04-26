@@ -18,11 +18,12 @@ Product framing for operators:
 
 1. Frontend: `http://localhost:3000/app`
 2. Seven-minute visa-intake path: `http://localhost:3000/app?demo=visa-intake`
-3. API summary: `GET /v1/operator/summary`
-4. Operator queue: `GET /v1/operator/queue`
-5. Operator actions: `POST /v1/operator/actions`
-6. Runtime drill catalog: `GET /v1/runtime/fault-profiles`
-7. Runtime drill execution: `POST /v1/runtime/fault-profiles/execute` (`x-operator-role: admin`, use `dryRun=true` before live activation when possible)
+3. Local-services dispatcher path: `http://localhost:3000/app?demo=local-services-dispatch&service=ac-repair-dispatch`
+4. API summary: `GET /v1/operator/summary`
+5. Operator queue: `GET /v1/operator/queue`
+6. Operator actions: `POST /v1/operator/actions`
+7. Runtime drill catalog: `GET /v1/runtime/fault-profiles`
+8. Runtime drill execution: `POST /v1/runtime/fault-profiles/execute` (`x-operator-role: admin`, use `dryRun=true` before live activation when possible)
 
 Seven-minute demo note: use `/app?demo=visa-intake` when the goal is to show
 product value before runtime depth, or open `/app` and click `Start 7-minute
@@ -42,6 +43,45 @@ integration-ready review surface: `CRM handoff summary` opens a `CRM payload
 drawer`, `Consultation booking prep` opens a `Consultation handoff drawer`, and
 both drawers switch between `Human-readable` and `JSON` modes before jumping to
 the canonical `Case Vault` or `Presentation bundle` surface.
+
+Local-services demo note: use
+`/app?demo=local-services-dispatch&service=ac-repair-dispatch` when the goal is
+to show the Tashkent local-services wedge. The first screen says `AI Dispatcher
+for Local Services` and exposes `AC repair dispatch`, `Plumbing emergency`,
+`Cleaning quote and booking`, and `Measurement visit booking`. The AI assistant is phone-first, but the demo keeps
+booking and dispatch operator-approved: it collects the request, prepares
+pricing and slot inputs, drafts customer confirmation, produces a master/operator
+handoff, keeps the `Dispatch payload preview` behind review, and exposes
+`Open dispatch drawer`, `Open customer drawer`, and `Open handoff drawer` for
+operator-approved `Human-readable` / `JSON` exports. The same detail panel now
+shows `Telegram intake prototype`, so a message-based customer request is
+normalized into the same job-card payload instead of creating a second workflow.
+The same panel now carries `Pilot readiness`, including `One-page offer`,
+`90-second demo script`, `Outreach focus`, a `Launch checklist`, and tracked
+`Pilot metrics` for the first local-services pilot.
+It also carries a `Pilot outreach wizard` with `Offer preview`,
+`Audience from outreach list`, `Test message preview`, and
+`Operator confirmation` so the pilot can be prepared without implying an
+autonomous send.
+The wizard now has an operator-local `Pilot scorecard action`: choose a
+lane-specific company from the outreach list, inspect the `Test message preview`,
+and `Record scorecard draft` as `Not contacted`. This records demo-session
+intent only; real outreach still requires manual operator action outside the
+shell.
+The selected company and pilot status are persisted in browser `localStorage`
+under `liveDesk:localServicesPilotWorkspace:v1`. Use the status buttons only as
+operator notes: `Draft ready`, `Contacted manually`, `Reply received`, and
+`Rejected for now` do not send messages or update external CRM.
+The `Pilot funnel summary` shows `All candidates`, per-status counts, and
+`Next manual batch` so the operator can plan who to contact next without opening
+the Markdown scorecard first.
+Use `Open offer doc` and `Open demo script` when the operator needs the pilot
+artifact layer instead of the inline summary.
+Use `Open outreach list` and `Open pilot scorecard` when the conversation moves
+from positioning into real pilot execution.
+The measurement lane is the only construction-adjacent P0 lane: it captures
+windows, doors, ceilings, fit-out, photos, approximate sizes, and a manager-
+approved measurer slot. Material quote/delivery desks remain later work.
 
 `GET /v1/operator/queue` is the repo-owned operator queue built from compiled Case Wiki snapshots. `GET /v1/operator/summary` now also includes the same snapshot at `data.operatorQueue`, so the main summary refresh can hydrate queue cards and `Active Queue` without a second fetch. The frontend should prefer this backend snapshot for remediation, approval, runtime, incident, and compliance-enforcement jumps; local queue inference remains only as a fallback when the route is unavailable or stale.
 

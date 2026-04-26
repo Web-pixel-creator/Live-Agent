@@ -31,6 +31,47 @@ for the local-services dispatcher wedge and should prevent scattered notes about
 HVAC, plumbing, cleaning, restaurants, hotels, and dentistry from cluttering the
 seven-minute immigration path.
 
+The first implementation path for that expansion is
+`/app?demo=local-services-dispatch&service=ac-repair-dispatch`. It should stay
+phone-first and operator-approved: the AI assistant collects the request,
+prepares estimate and slot inputs, drafts confirmation, and produces a
+master/operator handoff without autonomous dispatch. The detail panel also opens
+`Open dispatch drawer`, `Open customer drawer`, and `Open handoff drawer`, where
+the operator can switch between `Human-readable` and `JSON` exports before
+copying the dispatch, customer-confirmation, or master handoff payload. The same
+detail panel includes `Telegram intake prototype` to prove message intake uses
+the same job-card contract as phone intake. It now also includes `Pilot readiness`,
+`One-page offer`, `90-second demo script`, `Outreach focus`, a `Launch checklist`,
+and tracked `Pilot metrics` so the first Tashkent pilot can be explained
+without leaving `/app`.
+The shell now includes a fourth P0 demo card, `Measurement visit booking`, for
+windows, doors, ceilings, blinds, and fit-out requests. This is the approved
+construction-adjacent expansion because it is still a dispatcher workflow:
+collect scope, district, photos, approximate sizes, and a manager-approved
+measurer slot. Construction-material stock, delivery, payment, and substitution
+rules remain outside P0.
+The same block now includes a `Pilot outreach wizard` with `Offer preview`,
+`Audience from outreach list`, `Test message preview`, and
+`Operator confirmation`, keeping first outreach preparation inside the shell
+while real sends remain outside the autonomous path.
+It now continues into `Pilot scorecard action`: select a company from the
+repo-owned outreach list, review the message, and `Record scorecard draft` as a
+demo-session `Not contacted` entry. This gives the operator a real next action
+without creating an external send or CRM write.
+That state is now persisted in browser `localStorage` with
+`liveDesk:localServicesPilotWorkspace:v1`, covering the selected outreach
+candidate and the operator-only statuses `Draft ready`, `Contacted manually`,
+`Reply received`, and `Rejected for now`.
+The same shell now adds `Pilot funnel summary` with `All candidates`,
+per-status counts, and `Next manual batch`, which turns the first pilot from a
+single selected account into a small visible funnel without adding CRM scope.
+That same block should link to repo-owned pilot artifacts through
+`/workspace-docs/local-services-pilot-offer.md` and
+`/workspace-docs/local-services-demo-script.md`.
+The next execution layer should also stay repo-owned through
+`/workspace-docs/local-services-outreach-list.md` and
+`/workspace-docs/local-services-pilot-scorecard.md`.
+
 ## Success Criteria
 
 The seven-minute path is successful when:

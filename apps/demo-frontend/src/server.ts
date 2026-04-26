@@ -9,6 +9,7 @@ const __dirname = path.dirname(__filename);
 const publicDir = path.resolve(__dirname, "../public");
 const appShellDir = path.resolve(publicDir, "app-shell");
 const artifactsDir = path.resolve(__dirname, "../../../artifacts");
+const docsDir = path.resolve(__dirname, "../../../docs");
 const legacyIndexPath = path.resolve(publicDir, "index.html");
 const appShellIndexPath = path.resolve(appShellDir, "index.html");
 
@@ -21,6 +22,7 @@ const contentTypes: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".md": "text/markdown; charset=utf-8",
   ".svg": "image/svg+xml",
   ".png": "image/png",
   ".jpg": "image/jpeg",
@@ -137,6 +139,13 @@ const debugArtifactCatalog = [
   },
 ] as const;
 
+const workspaceDocAllowlist = [
+  "local-services-pilot-offer.md",
+  "local-services-demo-script.md",
+  "local-services-outreach-list.md",
+  "local-services-pilot-scorecard.md",
+] as const;
+
 function resolveDebugArtifactPath(requestPath: string): string | null {
   if (!requestPath.startsWith("/debug-artifacts/")) {
     return null;
@@ -150,6 +159,21 @@ function resolveDebugArtifactPath(requestPath: string): string | null {
     return null;
   }
   return path.resolve(artifactsDir, relative);
+}
+
+function resolveWorkspaceDocPath(requestPath: string): string | null {
+  if (!requestPath.startsWith("/workspace-docs/")) {
+    return null;
+  }
+  const relative = requestPath.replace(/^\/workspace-docs\//, "");
+  if (!relative || relative.includes("..") || !/\.md$/i.test(relative)) {
+    return null;
+  }
+  const isAllowed = workspaceDocAllowlist.includes(relative as (typeof workspaceDocAllowlist)[number]);
+  if (!isAllowed) {
+    return null;
+  }
+  return path.resolve(docsDir, relative);
 }
 
 const server = createServer(async (req, res) => {
@@ -231,11 +255,20 @@ const server = createServer(async (req, res) => {
     }
     filePath = debugArtifactPath;
     allowFallbackIndex = false;
+  } else if (requestPath.startsWith("/workspace-docs/")) {
+    const workspaceDocPath = resolveWorkspaceDocPath(requestPath);
+    if (!workspaceDocPath) {
+      res.statusCode = 404;
+      res.end("Not found");
+      return;
+    }
+    filePath = workspaceDocPath;
+    allowFallbackIndex = false;
   } else {
     filePath = resolveSafePath(publicDir, requestPath);
   }
 
-  if (!filePath.startsWith(publicDir) && !filePath.startsWith(artifactsDir)) {
+  if (!filePath.startsWith(publicDir) && !filePath.startsWith(artifactsDir) && !filePath.startsWith(docsDir)) {
     res.statusCode = 403;
     res.end("Forbidden");
     return;

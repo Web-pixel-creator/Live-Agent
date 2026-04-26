@@ -2,7 +2,7 @@
 
 Status: canonical expansion spec for the next commercial wedge.
 
-Last reviewed: 2026-04-25.
+Last reviewed: 2026-04-26.
 
 ## Decision
 
@@ -75,8 +75,8 @@ Include:
 
 1. HVAC / AC repair and service,
 2. plumbing,
-3. electrical,
-4. cleaning.
+3. cleaning,
+4. measurement visits for windows, doors, ceilings, blinds, and fit-out work.
 
 These are one product because the workflow is the same:
 
@@ -87,6 +87,10 @@ These are one product because the workflow is the same:
 5. estimate range or quote inputs,
 6. schedule a slot or handoff,
 7. notify operator or master.
+
+Electrical remains compatible with the same dispatcher pattern, but it is not a
+first demo lane until the four visible paths get pilot signal. The construction
+adjacent P0 lane is measurement booking, not material commerce.
 
 ### P1 Demo Expansion
 
@@ -111,8 +115,9 @@ services dispatcher has at least 3-5 serious pilot conversations.
 1. hotels,
 2. dental clinics,
 3. construction-material quote and delivery desks,
-4. immigration and relocation as premium trust-heavy workflows,
-5. marketplace or partner templates.
+4. electrical if a verified Tashkent pilot asks for it,
+5. immigration and relocation as premium trust-heavy workflows,
+6. marketplace or partner templates.
 
 Construction materials are adjacent, but not P0. They are usually a commerce
 and logistics workflow, not a field-service dispatch workflow. The intake must
@@ -403,6 +408,7 @@ Playbooks:
 1. `AC repair dispatch`
 2. `Plumbing emergency`
 3. `Cleaning quote and booking`
+4. `Measurement visit booking`
 
 Required fields:
 
@@ -435,6 +441,23 @@ Required fields:
 10. `preferred_date`
 11. `recurring_frequency`
 12. `estimate_range`
+
+### Measurement Visit Booking
+
+Required fields:
+
+1. `customer_name`
+2. `phone`
+3. `district`
+4. `address`
+5. `scope`
+6. `approx_quantity`
+7. `photo_status`
+8. `measurements_known`
+9. `property_type`
+10. `preferred_date`
+11. `operator_owner`
+12. `handoff_status`
 
 ### Restaurant Reservation
 
@@ -539,40 +562,113 @@ Buying trigger:
 1. Keep this spec as the canonical local-services plan.
 2. Link it from `README.md` and `docs/product-master-plan.md`.
 3. Add `/app?demo=local-services-dispatch`.
-4. Add three cards: `AC repair dispatch`, `Plumbing emergency`, `Cleaning quote
-   and booking`.
+4. Add four cards: `AC repair dispatch`, `Plumbing emergency`, `Cleaning quote
+   and booking`, and `Measurement visit booking`.
 5. Each card must show `Outcome`, `Approval`, `Evidence`, and `Deliverable`.
 6. Each card must open a detail panel with sample input, approval policy,
    evidence output, CRM/job fields, payload preview, and export drawer.
 
+Current shell posture:
+
+`/app?demo=local-services-dispatch&service=ac-repair-dispatch` now opens the P0
+local-services dispatcher demo in the Live Desk shell. It shows four P0 cards,
+keeps phone intake explicit, and treats booking/dispatch as an
+operator-approved action. The selected card now also opens `Dispatch payload
+drawer`, `Customer confirmation drawer`, and `Master/operator handoff drawer`
+with `Human-readable` and `JSON` export modes, evidence link, and handoff bundle
+jump. The detail panel also includes `Telegram intake prototype`, where a
+customer message is normalized into the same approval-gated job-card payload.
+The selected card now also exposes `Pilot readiness`, `One-page offer`,
+`90-second demo script`, `Outreach focus`, a `Launch checklist`, and tracked
+`Pilot metrics` so the team can explain the pilot contract in the shell before
+external outreach.
+The same block now includes a `Pilot outreach wizard` that mirrors the useful
+campaign-builder pattern from the reviewed AI receptionist references:
+`Offer preview` -> `Audience from outreach list` -> `Test message preview` ->
+`Operator confirmation`. This is a planning and review surface only; no real
+outreach is sent autonomously.
+The wizard now continues into a shell-level `Pilot scorecard action`: the
+operator selects a company from the repo-owned outreach list, inspects the test
+message, and clicks `Record scorecard draft`. The draft is intentionally local
+to the demo session and remains `Not contacted` until a human performs outreach
+outside the product shell.
+The shell now persists that pilot workspace state in browser `localStorage`
+under `liveDesk:localServicesPilotWorkspace:v1`. It stores the selected
+candidate per local-services lane and the operator-only status per
+service/company pair: `Not contacted`, `Draft ready`, `Contacted manually`,
+`Reply received`, or `Rejected for now`.
+The shell now also exposes a `Pilot funnel summary` across every outreach
+candidate. It shows `All candidates`, per-status counts, and `Next manual batch`
+so the operator can move through the first pilot list without treating the demo
+as a CRM or autonomous outreach tool.
+The shell now also opens repo-owned pilot artifacts through
+`/workspace-docs/local-services-pilot-offer.md` and
+`/workspace-docs/local-services-demo-script.md`.
+It now also opens the execution documents
+`/workspace-docs/local-services-outreach-list.md` and
+`/workspace-docs/local-services-pilot-scorecard.md`.
+
 ### P1 - Operator-Ready Payloads
 
-1. Add structured payload builders for local services.
-2. Add `Dispatch payload drawer`.
-3. Add `Customer confirmation drawer`.
-4. Add `Master/operator handoff drawer`.
+1. Add structured payload builders for local services. Done in shell demo.
+2. Add `Dispatch payload drawer`. Done in shell demo.
+3. Add `Customer confirmation drawer`. Done in shell demo.
+4. Add `Master/operator handoff drawer`. Done in shell demo.
 5. Keep `Human-readable` and `JSON` modes.
 
 ### P2 - Telegram-First Pilot
 
-1. Add Telegram intake prototype.
-2. Convert a Telegram message into the same job-card payload.
-3. Produce customer confirmation draft.
-4. Produce operator/master handoff draft.
+1. Add Telegram intake prototype. Done in shell demo.
+2. Convert a Telegram message into the same job-card payload. Done in shell demo.
+3. Produce customer confirmation draft. Done in shell demo.
+4. Produce operator/master handoff draft. Done in shell demo.
 5. Save transcript and evidence link.
 
 ### P3 - Real Pilot Kit
 
-1. Create a one-page offer for Tashkent service companies.
-2. Create a 90-second screen recording.
-3. Prepare a 10-company outreach list.
-4. Track pilot metrics:
+1. Create a one-page offer for Tashkent service companies. Done as a repo-owned
+   doc.
+2. Create a 90-second demo script. Done as a repo-owned doc. Actual recorded
+   video still pending.
+3. Prepare a 10-company outreach list. Done as a repo-owned doc.
+4. Add a pilot scorecard for qualification, outreach, and 14-day tracking. Done
+   as a repo-owned doc.
+5. Add a shell-level pilot outreach wizard for offer preview, audience, test
+   message, and operator confirmation. Done in shell demo.
+6. Add a shell-level scorecard draft action for selected outreach candidates.
+   Done in shell demo; no external send or CRM write happens.
+7. Persist browser-local pilot workspace state so reloads keep selected company
+   and outreach status. Done in shell demo through `localStorage`.
+8. Add a shell-level pilot funnel summary with per-status counts and a next
+   manual batch. Done in shell demo.
+9. Track pilot metrics:
    - inbound requests,
    - missed-call recovery,
    - response time,
    - bookings,
    - manual operator edits,
    - customer no-show or cancellation.
+
+Current shell readiness for P3:
+
+1. `Pilot readiness` block is present in the demo shell.
+2. `One-page offer`, `90-second demo script`, `Outreach focus`, `Launch checklist`,
+   and `Pilot metrics` are visible for each local-services lane.
+3. `Pilot outreach wizard`, `Offer preview`, `Audience from outreach list`,
+   `Test message preview`, and `Operator confirmation` are visible for each
+   local-services lane.
+4. `Pilot scorecard action`, `Selected company`, `Record scorecard draft`,
+   `Pilot workspace state`, `Saved in this browser`, `Contacted manually`,
+   `Reply received`, `Rejected for now`, and `No outbound message sent` are
+   visible in the shell-level wizard.
+5. `Pilot funnel summary`, `All candidates`, per-status counts, `Next manual
+   batch`, and `Manual execution rule` are visible in the shell.
+6. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
+   artifact documents from the same local frontend server.
+7. `Open outreach list` and `Open pilot scorecard` resolve to the repo-owned
+   pilot execution documents from the same local frontend server.
+8. Actual external execution still remains outside the shell: recorded video,
+   live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path
 

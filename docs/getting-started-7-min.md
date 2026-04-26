@@ -20,6 +20,60 @@ Or open `http://localhost:3000/app` and click `Start 7-minute demo`.
 The demo posture uses the existing `VS-2841` immigration case and keeps the
 primary app shell intact.
 
+## Local Services Expansion Path
+
+Open:
+
+```text
+http://localhost:3000/app?demo=local-services-dispatch&service=ac-repair-dispatch
+```
+
+Or open `http://localhost:3000/app` and click `Local services demo`.
+
+This is the P0 market-test path for Tashkent service businesses. It shows
+`AI Dispatcher for Local Services` with four cards:
+
+1. `AC repair dispatch`
+2. `Plumbing emergency`
+3. `Cleaning quote and booking`
+4. `Measurement visit booking`
+
+Each card previews `Outcome`, `Approval`, `Evidence`, and `Deliverable`. The
+detail panel shows phone intake, pricing and slot inputs, approval policy,
+evidence output, customer confirmation draft, master/operator handoff, and
+`Dispatch payload preview`. Use `Open dispatch drawer`, `Open customer drawer`,
+or `Open handoff drawer` to review the job-card, customer confirmation, or
+master handoff export in `Human-readable` or `JSON` mode before copying it.
+The same panel includes a `Telegram intake prototype`: a customer message,
+normalized fields, and a reply draft that reuse the same approval-gated job-card
+payload.
+It now also includes `Pilot readiness` with a `One-page offer`, `90-second demo script`,
+`Outreach focus`, a `Launch checklist`, and tracked `Pilot metrics` for the
+first Tashkent pilot.
+The same block now includes a `Pilot outreach wizard` that walks the operator
+through `Offer preview`, `Audience from outreach list`, `Test message preview`,
+and `Operator confirmation` before any real outreach happens.
+That wizard now includes a `Pilot scorecard action`: select `AC MASTER`,
+`Santexniki.uz`, `Service-Pro`, or another lane-specific candidate from the
+repo-owned outreach list, review the test message, and `Record scorecard draft`
+as `Not contacted` demo-session evidence.
+The pilot workspace state is persisted in browser `localStorage` as
+`liveDesk:localServicesPilotWorkspace:v1`, so reloads keep `Draft ready`,
+`Contacted manually`, `Reply received`, or `Rejected for now` statuses.
+The same demo now includes a `Pilot funnel summary` with `All candidates`,
+per-status counts, and a `Next manual batch` list for jumping back to the right
+service/company pair.
+Use `Open offer doc` and `Open demo script` to open the repo-owned pilot
+artifacts without leaving the local frontend server.
+Use `Open outreach list` and `Open pilot scorecard` when you move from demo
+story to actual pilot execution.
+
+The AI assistant can talk to the customer by phone, but P0 booking and dispatch
+remain operator-approved.
+Construction-material commerce is intentionally not in this first path. The
+measurement lane covers construction-adjacent demand without promising stock,
+delivery, payment, or final price before human review.
+
 ## Seven-Minute Path
 
 1. Review the case header: client, owner, SLA, visa type, and country.

@@ -68,7 +68,8 @@ service teams are later expansion paths, not the current product center.
 
 The next practical commercial expansion candidate is documented separately in
 `docs/local-services-action-desk-spec.md`: one `AI Dispatcher for local service
-businesses`, starting with HVAC/AC repair, plumbing, electrical, and cleaning.
+businesses`, starting with HVAC/AC repair, plumbing, cleaning, and measurement
+visits for windows, doors, ceilings, and fit-out requests.
 That expansion must stay one dispatcher product, not a collection of unrelated
 vertical products. Restaurants can be a secondary demo path, but should not
 displace the local-services wedge before pilot signal exists.

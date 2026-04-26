@@ -72,9 +72,47 @@ Local-services expansion spec:
 
 - `docs/local-services-action-desk-spec.md` is the canonical plan for the next
   market-test wedge: one `AI Dispatcher for local service businesses`, with
-  HVAC/AC repair, plumbing, electrical, and cleaning as P0 service workflows.
+  HVAC/AC repair, plumbing, cleaning, and measurement visits as P0 service workflows.
+- `/app?demo=local-services-dispatch&service=ac-repair-dispatch` opens the P0
+  local-services demo path with `AC repair dispatch`, `Plumbing emergency`,
+  `Cleaning quote and booking`, and `Measurement visit booking` cards.
+- that path is phone-first: the AI assistant collects the request and prepares
+  estimate, slot, evidence, and handoff payloads, while booking and dispatch
+  stay operator-approved.
+- the local-services detail panel now has `Open dispatch drawer`, `Open customer
+  drawer`, and `Open handoff drawer` actions with `Human-readable` and `JSON`
+  modes for dispatcher, customer-confirmation, and master handoff exports.
+- the same panel includes a `Telegram intake prototype` that normalizes a
+  customer message into the same approval-gated job-card payload.
+- the same panel now also exposes `Pilot readiness` with a `One-page offer`,
+  `90-second demo script`, `Outreach focus`, a `Launch checklist`, and tracked
+  `Pilot metrics`.
+- `Pilot readiness` now also includes a `Pilot outreach wizard`:
+  `Offer preview` -> `Audience from outreach list` -> `Test message preview` ->
+  `Operator confirmation`. It is an operator-approved planning surface, not an
+  autonomous send path.
+- the wizard now supports an operator-local `Pilot scorecard action`: choose a
+  company from the repo-owned outreach list, review the test message, and
+  `Record scorecard draft` as `Not contacted` / demo-session evidence before
+  any real outreach happens.
+- the same pilot workspace state now persists in browser `localStorage` under
+  `liveDesk:localServicesPilotWorkspace:v1`, so the operator can return to the
+  demo and still see `Draft ready`, `Contacted manually`, `Reply received`, or
+  `Rejected for now` for each selected outreach candidate.
+- the demo also shows a `Pilot funnel summary` across all outreach candidates:
+  `All candidates`, per-status counts, and a `Next manual batch` list that jumps
+  the operator back to the relevant service/company pair.
+- `Pilot readiness` now links to repo-owned pilot artifacts at
+  `/workspace-docs/local-services-pilot-offer.md` and
+  `/workspace-docs/local-services-demo-script.md`.
+- the same support layer now also links to
+  `/workspace-docs/local-services-outreach-list.md` and
+  `/workspace-docs/local-services-pilot-scorecard.md` for pilot execution.
 - restaurants stay as a secondary demo path until local services has real pilot
   signal.
+- construction-material quote and delivery stays out of P0; the first
+  construction-adjacent lane is measurement booking because it preserves the
+  same dispatcher workflow without stock, payment, or substitution complexity.
 - immigration remains the trust-heavy proof surface for approval, evidence,
   replay, and operator-safe handoff.
 

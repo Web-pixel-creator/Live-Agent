@@ -25,6 +25,8 @@ import {
   RotateCw,
   Beaker,
   Files,
+  ClipboardCheck,
+  PhoneCall,
 } from "lucide-react";
 import {
   backdateAllRequests,
@@ -36,6 +38,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { toastWithUndo } from "@/lib/undoToast";
 import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
+import { buildCaseBundlePath, buildCaseVaultPath } from "@/lib/case-artifact-links";
 
 // Global cmd+k palette: search cases, jump between surfaces, run quick actions
 // against the case currently in context (from /app/console?ref=… or last opened).
@@ -63,6 +66,24 @@ export function CommandPalette() {
   }, [cases, location, pendingApprovals]);
 
   const currentCase = cases.find((c) => c.ref === currentCaseRef);
+  const leadQualificationCase = useMemo(
+    () => cases.find((c) => c.ref === "VS-2838") ?? cases.find((c) => c.stage === "Lead intake"),
+    [cases],
+  );
+  const missingDocumentsCase = useMemo(
+    () =>
+      cases.find((c) => c.ref === "VS-2841") ??
+      cases.find((c) => c.documents.some((doc) => doc.state === "missing") && c.status !== "resolved"),
+    [cases],
+  );
+  const consultationCase = useMemo(
+    () => cases.find((c) => c.ref === "VS-2840") ?? cases.find((c) => /consultation/i.test(c.stage)),
+    [cases],
+  );
+  const crmHandoffCase = useMemo(
+    () => cases.find((c) => c.ref === "VS-2837") ?? cases.find((c) => /crm/i.test(c.stage) || c.status === "resolved"),
+    [cases],
+  );
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -193,6 +214,16 @@ export function CommandPalette() {
             Live Desk
             <CommandShortcut>g d</CommandShortcut>
           </CommandItem>
+          <CommandItem onSelect={() => run(() => navigate("/app?demo=visa-intake"))}>
+            <ClipboardCheck className="mr-2 h-4 w-4 text-[hsl(var(--tint-violet-fg))]" />
+            Start 7-minute demo
+            <span className="ml-auto text-xs text-muted-foreground font-mono">demo</span>
+          </CommandItem>
+          <CommandItem onSelect={() => run(() => navigate("/app?demo=local-services-dispatch&service=ac-repair-dispatch"))}>
+            <PhoneCall className="mr-2 h-4 w-4 text-[hsl(var(--tint-mint-fg))]" />
+            Local services dispatcher demo
+            <span className="ml-auto text-xs text-muted-foreground font-mono">local</span>
+          </CommandItem>
           <CommandItem onSelect={() => run(() => navigate("/app/console"))}>
             <Terminal className="mr-2 h-4 w-4 text-[hsl(var(--tint-rose-fg))]" />
             Operator Console
@@ -222,6 +253,56 @@ export function CommandPalette() {
             Artifact Viewer
             <CommandShortcut>g a</CommandShortcut>
           </CommandItem>
+        </CommandGroup>
+
+        <CommandSeparator />
+        <CommandGroup heading="Playbooks">
+          {leadQualificationCase && (
+            <CommandItem
+              onSelect={() => run(() => navigate(`/app/console?ref=${leadQualificationCase.ref}`))}
+            >
+              <ClipboardCheck className="mr-2 h-4 w-4 text-[hsl(var(--tint-violet-fg))]" />
+              Visa lead qualification
+              <span className="ml-auto text-xs text-muted-foreground font-mono">
+                {leadQualificationCase.ref}
+              </span>
+            </CommandItem>
+          )}
+          {missingDocumentsCase && (
+            <CommandItem
+              onSelect={() =>
+                run(() => navigate(`/app/console?ref=${missingDocumentsCase.ref}&focus=documents`))
+              }
+            >
+              <Files className="mr-2 h-4 w-4 text-[hsl(var(--tint-amber-fg))]" />
+              Missing-document follow-up
+              <span className="ml-auto text-xs text-muted-foreground font-mono">
+                {missingDocumentsCase.ref}
+              </span>
+            </CommandItem>
+          )}
+          {consultationCase && (
+            <CommandItem
+              onSelect={() => run(() => navigate(buildCaseBundlePath(consultationCase)))}
+            >
+              <FlaskConical className="mr-2 h-4 w-4 text-[hsl(var(--tint-mint-fg))]" />
+              Consultation booking prep
+              <span className="ml-auto text-xs text-muted-foreground font-mono">
+                {consultationCase.ref}
+              </span>
+            </CommandItem>
+          )}
+          {crmHandoffCase && (
+            <CommandItem
+              onSelect={() => run(() => navigate(buildCaseVaultPath(crmHandoffCase)))}
+            >
+              <Terminal className="mr-2 h-4 w-4 text-muted-foreground" />
+              CRM handoff summary
+              <span className="ml-auto text-xs text-muted-foreground font-mono">
+                {crmHandoffCase.ref}
+              </span>
+            </CommandItem>
+          )}
         </CommandGroup>
 
         <CommandSeparator />
