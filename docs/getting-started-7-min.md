@@ -57,6 +57,9 @@ happens.
 `Message/test preview` now opens a `Preview / Test message modal` with
 `Human-readable` / `JSON` modes, the exact `Copy test message` action, and
 `Copy test message preview`; the preview does not send outreach.
+`Operator confirmation` now opens an `Operator confirmation summary` with
+`Ready for manual outreach`, selected company, channel, exact message, approval
+checklist, and `Copy confirmation summary`.
 That wizard now includes a `Pilot scorecard action`: select `AC MASTER`,
 `Santexniki.uz`, `Service-Pro`, or another lane-specific candidate from the
 repo-owned outreach list, review the test message, and `Record scorecard draft`

@@ -444,6 +444,19 @@ type LocalServicePilotMessagePreview = {
   checklist: string[];
 };
 
+type LocalServicePilotConfirmationSummary = {
+  title: string;
+  description: string;
+  modeLabel: string;
+  copyLabel: string;
+  statusLabel: string;
+  messageText: string;
+  humanText: string;
+  jsonText: string;
+  rows: { label: string; value: string }[];
+  checklist: string[];
+};
+
 type LocalServiceOutreachProspect = {
   id: string;
   company: string;
@@ -1189,6 +1202,84 @@ function buildLocalServicePilotMessagePreview(
   };
 }
 
+function buildLocalServicePilotConfirmationSummary(
+  template: LocalServiceDemoTemplate,
+  prospect: LocalServiceOutreachProspect | undefined,
+): LocalServicePilotConfirmationSummary {
+  const wizard = template.detail.pilotKit.outreachWizard;
+  const statusLabel = "Ready for manual outreach";
+  const company = prospect?.company ?? "No prospect selected";
+  const segment = prospect?.segment ?? "unknown";
+  const channel = prospect?.channelFit ?? template.channel;
+  const messageText = wizard.testMessage;
+  const checklist = [
+    "Company is selected from the repo-owned outreach list.",
+    "Channel fit is reviewed by the operator before contact.",
+    "Exact message was inspected in the Preview / Test message modal.",
+    "Operator sends manually outside the shell and logs the result afterward.",
+  ];
+  const humanLines = [
+    `Operator confirmation summary: ${template.title}`,
+    `Status: ${statusLabel}`,
+    `Selected company: ${company}`,
+    `Segment: ${segment}`,
+    `Channel: ${channel}`,
+    "",
+    "Exact message:",
+    messageText,
+    "",
+    "Approval checklist:",
+    ...checklist.map((item) => `- ${item}`),
+    "",
+    "Manual execution rule: this confirmation does not send outreach, write CRM, or update the scorecard.",
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_operator_confirmation",
+      export_kind: "manual_outreach_confirmation_summary",
+      confirmation_status: "ready_for_manual_outreach",
+      confirmation_status_label: statusLabel,
+      service_id: template.id,
+      service_ref: template.ref,
+      service_title: template.title,
+      selected_company: company,
+      selected_segment: segment,
+      channel,
+      exact_message: messageText,
+      approval_checklist: checklist,
+      guardrails: [
+        "operator_confirmation_required",
+        "ready_for_manual_outreach_only",
+        "no_outbound_message_sent",
+        "no_crm_write",
+        "manual_scorecard_sync_required",
+      ],
+    },
+    null,
+    2,
+  );
+
+  return {
+    title: "Operator confirmation summary",
+    description:
+      "Final review surface before a human performs manual outreach outside the product shell.",
+    modeLabel: "Confirmation summary mode",
+    copyLabel: "Copy confirmation summary",
+    statusLabel,
+    messageText,
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: [
+      { label: "Status", value: statusLabel },
+      { label: "Selected company", value: company },
+      { label: "Segment", value: segment },
+      { label: "Channel", value: channel },
+      { label: "Guardrail", value: "Ready for manual outreach only; no outbound send" },
+    ],
+    checklist,
+  };
+}
+
 const LOCAL_SERVICE_DEMO_TEMPLATES: LocalServiceDemoTemplate[] = [
   {
     id: "ac-repair-dispatch",
@@ -1783,6 +1874,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [pilotMetricsTrackerMode, setPilotMetricsTrackerMode] = useState<PlaybookExportMode>("human");
   const [pilotMessagePreviewOpen, setPilotMessagePreviewOpen] = useState(false);
   const [pilotMessagePreviewMode, setPilotMessagePreviewMode] = useState<PlaybookExportMode>("human");
+  const [pilotOperatorConfirmationOpen, setPilotOperatorConfirmationOpen] = useState(false);
+  const [pilotOperatorConfirmationMode, setPilotOperatorConfirmationMode] = useState<PlaybookExportMode>("human");
   const outreachProspects = selectedTemplate.detail.pilotKit.outreachWizard.prospects;
   const selectedOutreachProspectId =
     pilotWorkspaceState.selectedProspectByService[selectedTemplate.id] ?? outreachProspects[0]?.id ?? "";
@@ -1865,6 +1958,10 @@ const LocalServicesDispatchDemoPanel = ({
   const pilotMessagePreview = useMemo(
     () => buildLocalServicePilotMessagePreview(selectedTemplate, selectedOutreachProspect, currentPilotStatus),
     [currentPilotStatus, selectedOutreachProspect, selectedTemplate],
+  );
+  const pilotOperatorConfirmation = useMemo(
+    () => buildLocalServicePilotConfirmationSummary(selectedTemplate, selectedOutreachProspect),
+    [selectedOutreachProspect, selectedTemplate],
   );
   const nextManualBatch = pilotFunnelRows
     .filter((item) => item.status !== "reply_received" && item.status !== "rejected_for_now")
@@ -2649,6 +2746,46 @@ const LocalServicesDispatchDemoPanel = ({
                         </div>
 
                         <div className="rounded-md bg-card/25 px-3 py-2.5">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                                Operator confirmation summary
+                              </div>
+                              <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                                Final check before a human sends anything outside the shell.
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => setPilotOperatorConfirmationOpen(true)}
+                              className="h-8"
+                            >
+                              <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                              Open confirmation summary
+                            </Button>
+                          </div>
+                          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                            <div className="rounded-md border border-border/50 bg-background/35 px-3 py-2">
+                              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                                Selected company
+                              </div>
+                              <div className="mt-1 text-[12px] text-foreground">
+                                {pilotOperatorConfirmation.rows.find((row) => row.label === "Selected company")?.value}
+                              </div>
+                            </div>
+                            <div className="rounded-md border border-border/50 bg-background/35 px-3 py-2">
+                              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                                Status
+                              </div>
+                              <div className="mt-1 inline-flex rounded-[5px] bg-[hsl(var(--tint-mint)/0.12)] px-2 py-1 text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.22)]">
+                                Ready for manual outreach
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="rounded-md bg-card/25 px-3 py-2.5">
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                               <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
@@ -2810,6 +2947,16 @@ const LocalServicesDispatchDemoPanel = ({
         preview={pilotMessagePreview}
         mode={pilotMessagePreviewMode}
         onModeChange={setPilotMessagePreviewMode}
+        onCopy={onCopyText}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+        onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
+      />
+      <LocalServicePilotOperatorConfirmationSheet
+        open={pilotOperatorConfirmationOpen}
+        onOpenChange={setPilotOperatorConfirmationOpen}
+        confirmation={pilotOperatorConfirmation}
+        mode={pilotOperatorConfirmationMode}
+        onModeChange={setPilotOperatorConfirmationMode}
         onCopy={onCopyText}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
@@ -3271,6 +3418,168 @@ const LocalServicePilotMessagePreviewSheet = ({
               >
                 <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
                 {preview.copyPreviewLabel}
+              </Button>
+            </div>
+            <pre className="max-h-[36vh] overflow-auto rounded-md border border-border/60 bg-card/30 px-3 py-3 font-mono text-[11px] leading-relaxed text-foreground">
+              {renderedText}
+            </pre>
+          </section>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+};
+
+const LocalServicePilotOperatorConfirmationSheet = ({
+  open,
+  onOpenChange,
+  confirmation,
+  mode,
+  onModeChange,
+  onCopy,
+  onOpenScorecard,
+  onOpenExecutionPack,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  confirmation: LocalServicePilotConfirmationSummary;
+  mode: PlaybookExportMode;
+  onModeChange: (mode: PlaybookExportMode) => void;
+  onCopy: (text: string, label: string) => void;
+  onOpenScorecard: () => void;
+  onOpenExecutionPack: () => void;
+}) => {
+  const renderedText = mode === "human" ? confirmation.humanText : confirmation.jsonText;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col gap-0 p-0">
+        <SheetHeader className="px-7 py-5 border-b border-border/70 space-y-2.5 text-left">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground/70" strokeWidth={1.75} />
+            <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground/80">
+              Operator confirmation
+            </span>
+          </div>
+          <SheetTitle className="font-serif text-[22px] tracking-tight leading-[1.2]">
+            {confirmation.title}
+          </SheetTitle>
+          <SheetDescription className="text-[12.5px] text-muted-foreground/85 leading-relaxed">
+            {confirmation.description}
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="flex-1 min-h-0 overflow-auto">
+          <section className="px-7 pt-6 pb-5 border-b border-border/50 space-y-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  {confirmation.modeLabel}
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Confirm the selected company, channel, exact message, and manual approval posture.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant={mode === "human" ? "default" : "secondary"}
+                  onClick={() => onModeChange("human")}
+                  className="h-8"
+                >
+                  Human-readable
+                </Button>
+                <Button
+                  size="sm"
+                  variant={mode === "json" ? "default" : "secondary"}
+                  onClick={() => onModeChange("json")}
+                  className="h-8"
+                >
+                  JSON
+                </Button>
+              </div>
+            </div>
+
+            <div className="inline-flex rounded-[5px] bg-[hsl(var(--tint-mint)/0.12)] px-2 py-1 text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.22)]">
+              {confirmation.statusLabel}
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              {confirmation.rows.map((row) => (
+                <div key={row.label} className="rounded-md border border-border/60 bg-card/30 px-3 py-2.5">
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+                    {row.label}
+                  </div>
+                  <div className="mt-1 break-words text-[12px] leading-relaxed text-foreground">
+                    {row.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="px-7 py-5 border-b border-border/50 space-y-3">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  Approval checklist
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  This is the final shell check before the operator leaves the product to contact the company.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="secondary" onClick={onOpenExecutionPack} className="h-8">
+                  <FileText className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Open outreach execution pack
+                </Button>
+                <Button size="sm" variant="secondary" onClick={onOpenScorecard} className="h-8">
+                  <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Open pilot scorecard
+                </Button>
+              </div>
+            </div>
+            <ul className="space-y-2 text-[12.5px] leading-relaxed text-foreground">
+              {confirmation.checklist.map((item) => (
+                <li key={item} className="flex gap-2">
+                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="px-7 py-5 border-b border-border/50 space-y-3">
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                Exact message
+              </div>
+              <p className="mt-1 text-[12.5px] text-muted-foreground">
+                Visible here for final confirmation only. No outbound send happens from this shell.
+              </p>
+            </div>
+            <div className="rounded-md border border-border/60 bg-card/30 px-3 py-3 text-[12.5px] leading-relaxed text-foreground">
+              {confirmation.messageText}
+            </div>
+          </section>
+
+          <section className="px-7 py-5 space-y-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  {mode === "human" ? "Human-readable confirmation" : "JSON confirmation payload"}
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Copy after the operator confirms this is the message they will send manually.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => onCopy(renderedText, confirmation.copyLabel)}
+                className="h-8"
+              >
+                <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                {confirmation.copyLabel}
               </Button>
             </div>
             <pre className="max-h-[36vh] overflow-auto rounded-md border border-border/60 bg-card/30 px-3 py-3 font-mono text-[11px] leading-relaxed text-foreground">

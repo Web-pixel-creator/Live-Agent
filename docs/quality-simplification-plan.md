@@ -58,6 +58,9 @@ The `Message/test preview` step now opens a `Preview / Test message modal` with
 `Human-readable` / `JSON` modes, `Copy test message`, and
 `Copy test message preview`, so the operator can inspect the exact text without
 creating an external send.
+The `Operator confirmation` step now opens an `Operator confirmation summary`
+with `Ready for manual outreach`, selected company, channel, exact message,
+approval checklist, and `Copy confirmation summary`.
 It now continues into `Pilot scorecard action`: select a company from the
 repo-owned outreach list, review the message, and `Record scorecard draft` as a
 demo-session `Not contacted` entry. This gives the operator a real next action

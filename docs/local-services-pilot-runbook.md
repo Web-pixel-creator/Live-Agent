@@ -52,7 +52,8 @@ Do not use the pilot to build:
    - Service-Pro
 4. For each account, create a scorecard row before outreach.
 5. Use the shell `Pilot outreach wizard` and `Preview / Test message modal` to
-   inspect the exact message, then keep the status as `Not contacted` until a
+   inspect the exact message. Open `Operator confirmation summary` and confirm
+   `Ready for manual outreach`, then keep the status as `Not contacted` until a
    human sends the message outside the shell.
 6. Open `Open metrics tracker` for the selected lane and mark `Baseline
    captured` only after real baseline data or owner estimates are collected.

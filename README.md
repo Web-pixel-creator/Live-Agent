@@ -95,6 +95,9 @@ Local-services expansion spec:
   `Human-readable` / `JSON` modes, the exact `Copy test message` action, and
   `Copy test message preview`; it is still a review artifact and does not send
   outreach.
+- `Operator confirmation` now opens an `Operator confirmation summary` with
+  `Ready for manual outreach`, selected company, channel, exact message,
+  approval checklist, and `Copy confirmation summary`; it is still manual-only.
 - the wizard now supports an operator-local `Pilot scorecard action`: choose a
   company from the repo-owned outreach list, review the test message, and
   `Record scorecard draft` as `Not contacted` / demo-session evidence before

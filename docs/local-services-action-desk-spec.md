@@ -593,6 +593,11 @@ The `Message/test preview` step now opens a `Preview / Test message modal` with
 `local_services_test_message_preview` and
 `manual_confirmation_required_before_outreach` so the contract is explicit:
 inspect and copy only, no external send or CRM write.
+The `Operator confirmation` step now opens an `Operator confirmation summary`
+with `Ready for manual outreach`, selected company, channel, exact message,
+approval checklist, and `Copy confirmation summary`. The payload includes
+`local_services_operator_confirmation` and `ready_for_manual_outreach` so it
+stays a final reviewed state, not an autonomous send.
 The wizard now continues into a shell-level `Pilot scorecard action`: the
 operator selects a company from the repo-owned outreach list, inspects the test
 message, and clicks `Record scorecard draft`. The draft is intentionally local
@@ -697,26 +702,29 @@ Current shell readiness for P3:
    `Copy test message preview`, `local_services_test_message_preview`, and
    `manual_confirmation_required_before_outreach` are present for the
    `Message/test preview` step.
-5. `Pilot scorecard action`, `Selected company`, `Record scorecard draft`,
+5. `Operator confirmation summary`, `Ready for manual outreach`,
+   `Copy confirmation summary`, `local_services_operator_confirmation`, and
+   `ready_for_manual_outreach` are present for the `Operator confirmation` step.
+6. `Pilot scorecard action`, `Selected company`, `Record scorecard draft`,
    `Pilot workspace state`, `Saved in this browser`, `Contacted manually`,
    `Reply received`, `Rejected for now`, and `No outbound message sent` are
    visible in the shell-level wizard.
-6. `Pilot funnel summary`, `All candidates`, per-status counts, `Next manual
+7. `Pilot funnel summary`, `All candidates`, per-status counts, `Next manual
    batch`, and `Manual execution rule` are visible in the shell.
-7. `Open pilot export`, `Pilot workspace export drawer`, `Human-readable`,
+8. `Open pilot export`, `Pilot workspace export drawer`, `Human-readable`,
    `JSON`, and `Copy pilot workspace export` are visible in the shell.
-8. `Open metrics tracker`, `Pilot metrics tracker`, `Human-readable`, `JSON`,
+9. `Open metrics tracker`, `Pilot metrics tracker`, `Human-readable`, `JSON`,
    and `Copy pilot metrics tracker` are visible in the shell.
-9. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
+10. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
    artifact documents from the same local frontend server.
-10. `Open outreach list`, `Open outreach execution pack`, and
+11. `Open outreach list`, `Open outreach execution pack`, and
    `Open pilot scorecard` resolve to the repo-owned pilot execution documents
    from the same local frontend server.
-11. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
+12. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
    14-day pilot runbook from the same local frontend server.
-12. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
+13. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
    repo-owned first-contact execution pack from the same local frontend server.
-13. Actual external execution still remains outside the shell: recorded video,
+14. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path

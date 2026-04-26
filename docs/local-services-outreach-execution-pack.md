@@ -203,8 +203,10 @@ Allowed reply statuses:
    or spreadsheet export.
 7. Show `Pilot readiness`, open the `Preview / Test message modal`, and explain
    that `Copy test message` is still manual-only and sends nothing.
-8. Show `Pilot metrics` and `Open metrics tracker`.
-9. End with one question: "Would this save missed requests or manager time if we
+8. Open `Operator confirmation summary`, show `Ready for manual outreach`, and
+   explain that it is a final human approval state, not an autonomous send.
+9. Show `Pilot metrics` and `Open metrics tracker`.
+10. End with one question: "Would this save missed requests or manager time if we
    tested it for 14 days?"
 
 ## After Each Contact
