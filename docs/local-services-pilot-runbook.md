@@ -38,7 +38,8 @@ Do not use the pilot to build:
 2. Demo script: `docs/local-services-demo-script.md`
 3. Outreach queue: `docs/local-services-outreach-list.md`
 4. Scorecard: `docs/local-services-pilot-scorecard.md`
-5. Demo route: `/app?demo=local-services-dispatch&service=ac-repair-dispatch`
+5. Outreach execution pack: `docs/local-services-outreach-execution-pack.md`
+6. Demo route: `/app?demo=local-services-dispatch&service=ac-repair-dispatch`
 
 ## Day Minus One: Prepare
 
@@ -58,6 +59,9 @@ Do not use the pilot to build:
 ## Day Zero: Outreach
 
 Send messages manually. The shell must not send messages.
+Use `docs/local-services-outreach-execution-pack.md` as the first-contact
+source for service-specific messages, Discovery Call Template, Manual Execution
+Table, and Do-Not-Send Rules.
 
 Use this base message:
 
@@ -176,4 +180,3 @@ For every serious pilot, keep:
 
 Do not store private customer data in public docs. Redact names, phone numbers,
 addresses, and payment details before copying anything into the repo.
-

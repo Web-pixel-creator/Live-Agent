@@ -621,6 +621,12 @@ The real 14-day pilot execution sequence now lives in
 `/workspace-docs/local-services-pilot-runbook.md`. It stays outside the product
 shell because live outreach, replies, customer data handling, and pilot evidence
 are manual operator work.
+The first manual outreach execution pack now lives in
+`docs/local-services-outreach-execution-pack.md` and is served locally at
+`/workspace-docs/local-services-outreach-execution-pack.md`. It defines the
+first batch, service-specific messages, Discovery Call Template, Manual
+Execution Table, and Do-Not-Send Rules without adding autonomous outreach to
+the shell.
 
 ### P1 - Operator-Ready Payloads
 
@@ -667,6 +673,8 @@ are manual operator work.
    - customer no-show or cancellation.
 11. Add a real pilot execution runbook. Done as a repo-owned doc:
     `docs/local-services-pilot-runbook.md`.
+12. Add a first manual outreach execution pack. Done as a repo-owned doc:
+    `docs/local-services-outreach-execution-pack.md`.
 
 Current shell readiness for P3:
 
@@ -692,7 +700,9 @@ Current shell readiness for P3:
    pilot execution documents from the same local frontend server.
 10. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
    14-day pilot runbook from the same local frontend server.
-11. Actual external execution still remains outside the shell: recorded video,
+11. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
+   repo-owned first-contact execution pack from the same local frontend server.
+12. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path

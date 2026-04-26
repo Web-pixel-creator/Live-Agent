@@ -94,6 +94,10 @@ sequence: day-minus-one prep, manual outreach, discovery call, pilot setup,
 daily metric capture, week-one review, week-two review, and evidence pack. It
 is intentionally outside the product shell because real outreach and customer
 data handling stay manual and operator-owned.
+Use `docs/local-services-outreach-execution-pack.md` for the first manual
+contact wave: AC MASTER, Aircold, Santexniki.uz, and Service-Pro message
+templates, discovery-call questions, the manual execution table, and
+Do-Not-Send Rules.
 The measurement lane is the only construction-adjacent P0 lane: it captures
 windows, doors, ceilings, fit-out, photos, approximate sizes, and a manager-
 approved measurer slot. Material quote/delivery desks remain later work.

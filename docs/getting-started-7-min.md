@@ -76,6 +76,9 @@ story to actual pilot execution.
 Use `docs/local-services-pilot-runbook.md` for the manual 14-day pilot sequence
 after a company agrees to test. It covers outreach, discovery, setup, daily
 metrics, reviews, and the evidence pack.
+Use `docs/local-services-outreach-execution-pack.md` before first contact. It
+contains the four-company first batch, service-specific messages, Discovery
+Call Template, Manual Execution Table, and Do-Not-Send Rules.
 
 The AI assistant can talk to the customer by phone, but P0 booking and dispatch
 remain operator-approved.

@@ -84,6 +84,11 @@ The real execution checklist now lives in `docs/local-services-pilot-runbook.md`
 and is served at `/workspace-docs/local-services-pilot-runbook.md`. It should
 remain outside the app shell until real pilots prove which actions deserve
 product UI.
+The first-contact execution pack now lives in
+`docs/local-services-outreach-execution-pack.md` and is served at
+`/workspace-docs/local-services-outreach-execution-pack.md`. It stays as a
+manual founder worksheet with message templates, discovery-call questions, a
+Manual Execution Table, and Do-Not-Send Rules.
 
 ## Success Criteria
 

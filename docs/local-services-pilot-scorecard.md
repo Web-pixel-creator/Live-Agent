@@ -4,6 +4,9 @@ Use this document to score the first outreach conversations and early pilots.
 Use `docs/local-services-pilot-runbook.md` for the operating sequence that
 decides when to create rows, when to contact manually, and when to continue or
 stop the pilot.
+Use `docs/local-services-outreach-execution-pack.md` for the first four manual
+messages, Discovery Call Template, Manual Execution Table, and Do-Not-Send
+Rules before updating real outreach status.
 
 The point is not to collect vanity notes. The point is to decide quickly:
 

@@ -53,6 +53,9 @@ The demo shell can now select these accounts in the `Pilot outreach wizard` and
 produce a local `Scorecard draft`. Treat that as preparation only: no real
 message is sent and the company remains `Not contacted` until a human operator
 performs outreach.
+Use `docs/local-services-outreach-execution-pack.md` before first contact for
+the first four manual messages, Discovery Call Template, Manual Execution Table,
+and Do-Not-Send Rules.
 The selected company and status are saved in browser `localStorage` as
 `liveDesk:localServicesPilotWorkspace:v1`, so the demo can survive refreshes
 without pretending to be CRM.
