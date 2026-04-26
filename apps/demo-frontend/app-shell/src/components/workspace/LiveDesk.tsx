@@ -419,8 +419,12 @@ type LocalServiceDispatchExport = {
 type LocalServicePilotWorkspaceExport = {
   title: string;
   description: string;
+  eyebrow?: string;
   modeLabel: string;
   copyLabel: string;
+  reviewTitle?: string;
+  reviewDescription?: string;
+  scorecardActionLabel?: string;
   humanText: string;
   jsonText: string;
   rows: { label: string; value: string }[];
@@ -444,9 +448,12 @@ type LocalServicePilotStatus =
   | "reply_received"
   | "rejected_for_now";
 
+type LocalServicePilotMetricStatus = "not_started" | "baseline_captured" | "tracking_live" | "review_ready";
+
 type LocalServicePilotWorkspaceState = {
   selectedProspectByService: Record<string, string>;
   statusByProspectKey: Record<string, LocalServicePilotStatus>;
+  metricStatusByService: Record<string, LocalServicePilotMetricStatus>;
 };
 
 type LocalServiceDemoTemplate = {
@@ -531,6 +538,17 @@ const LOCAL_SERVICE_PILOT_STATUS_ACTIONS: { status: LocalServicePilotStatus; lab
   { status: "reply_received", label: "Mark reply received" },
   { status: "rejected_for_now", label: "Reject for now" },
 ];
+const LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS: Record<LocalServicePilotMetricStatus, string> = {
+  not_started: "Metrics not started",
+  baseline_captured: "Baseline captured",
+  tracking_live: "Tracking live",
+  review_ready: "Review ready",
+};
+const LOCAL_SERVICE_PILOT_METRIC_STATUS_ACTIONS: { status: LocalServicePilotMetricStatus; label: string }[] = [
+  { status: "baseline_captured", label: "Mark baseline captured" },
+  { status: "tracking_live", label: "Mark tracking live" },
+  { status: "review_ready", label: "Mark review ready" },
+];
 
 function isLocalServicePilotStatus(value: unknown): value is LocalServicePilotStatus {
   return (
@@ -539,6 +557,15 @@ function isLocalServicePilotStatus(value: unknown): value is LocalServicePilotSt
     value === "contacted_manually" ||
     value === "reply_received" ||
     value === "rejected_for_now"
+  );
+}
+
+function isLocalServicePilotMetricStatus(value: unknown): value is LocalServicePilotMetricStatus {
+  return (
+    value === "not_started" ||
+    value === "baseline_captured" ||
+    value === "tracking_live" ||
+    value === "review_ready"
   );
 }
 
@@ -560,22 +587,32 @@ function readPilotStatusRecord(value: unknown): Record<string, LocalServicePilot
   );
 }
 
+function readPilotMetricStatusRecord(value: unknown): Record<string, LocalServicePilotMetricStatus> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).filter(
+      (entry): entry is [string, LocalServicePilotMetricStatus] => isLocalServicePilotMetricStatus(entry[1]),
+    ),
+  );
+}
+
 function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState {
   if (typeof window === "undefined") {
-    return { selectedProspectByService: {}, statusByProspectKey: {} };
+    return { selectedProspectByService: {}, statusByProspectKey: {}, metricStatusByService: {} };
   }
   try {
     const raw = window.localStorage.getItem(LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY);
     if (!raw) {
-      return { selectedProspectByService: {}, statusByProspectKey: {} };
+      return { selectedProspectByService: {}, statusByProspectKey: {}, metricStatusByService: {} };
     }
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     return {
       selectedProspectByService: readStringRecord(parsed.selectedProspectByService),
       statusByProspectKey: readPilotStatusRecord(parsed.statusByProspectKey),
+      metricStatusByService: readPilotMetricStatusRecord(parsed.metricStatusByService),
     };
   } catch {
-    return { selectedProspectByService: {}, statusByProspectKey: {} };
+    return { selectedProspectByService: {}, statusByProspectKey: {}, metricStatusByService: {} };
   }
 }
 
@@ -959,12 +996,94 @@ function buildLocalServicePilotWorkspaceExport(
     title: "Pilot workspace export drawer",
     description:
       "Export the local-services pilot mini-funnel as a reviewed operator note or JSON payload. It stays browser-local and does not send messages or write CRM.",
+    eyebrow: "Pilot workspace export",
     modeLabel: "Pilot export mode",
     copyLabel: "Copy pilot workspace export",
+    reviewTitle: "Operator review checklist",
+    reviewDescription:
+      "This export is a planning artifact only: no outbound message, no CRM write, no scorecard mutation.",
+    scorecardActionLabel: "Open pilot scorecard",
     humanText: humanLines.join("\n"),
     jsonText,
     rows: rowsSummary,
     checklist,
+  };
+}
+
+function buildLocalServicePilotMetricsTrackerExport(
+  template: LocalServiceDemoTemplate,
+  status: LocalServicePilotMetricStatus,
+): LocalServicePilotWorkspaceExport {
+  const statusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[status];
+  const metricLines = template.detail.pilotKit.metrics.map(
+    (metric) => `- ${metric.label}: baseline=${metric.baseline}; target=${metric.target}`,
+  );
+  const humanLines = [
+    `Pilot metrics tracker: ${template.title}`,
+    `Service: ${template.ref}`,
+    "Export scope: browser-local pilot metric plan",
+    `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
+    `Metric status: ${statusLabel}`,
+    "",
+    "Metrics:",
+    ...metricLines,
+    "",
+    "Manual metric capture rule: this tracker does not sync analytics, write CRM, or update Markdown scorecards automatically.",
+    "Operator action: review live pilot numbers, then manually sync the weekly summary into the pilot scorecard.",
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_pilot_metrics_tracker",
+      export_kind: "browser_local_metric_tracking_state",
+      storage_key: LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY,
+      service_id: template.id,
+      service_ref: template.ref,
+      service_title: template.title,
+      metric_status: status,
+      metric_status_label: statusLabel,
+      metrics: template.detail.pilotKit.metrics.map((metric) => ({
+        label: metric.label,
+        baseline: metric.baseline,
+        target: metric.target,
+        capture_source: "manual_operator_review",
+      })),
+      guardrails: [
+        "manual_metric_capture",
+        "no_external_analytics_sync",
+        "no_crm_write",
+        "manual_scorecard_sync_required",
+      ],
+    },
+    null,
+    2,
+  );
+
+  return {
+    title: "Pilot metrics tracker",
+    description:
+      "Export the selected local-services lane metrics as a reviewed operator note or JSON payload. It stays browser-local and does not sync analytics or write CRM.",
+    eyebrow: "Pilot metrics tracker",
+    modeLabel: "Metrics export mode",
+    copyLabel: "Copy pilot metrics tracker",
+    reviewTitle: "Operator metric checklist",
+    reviewDescription:
+      "This tracker is a manual pilot artifact only: no analytics sync, no CRM write, no scorecard mutation.",
+    scorecardActionLabel: "Open pilot scorecard",
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: [
+      { label: "Service", value: `${template.ref} - ${template.title}` },
+      { label: "Metric status", value: statusLabel },
+      { label: "Metrics tracked", value: String(template.detail.pilotKit.metrics.length) },
+      { label: "Review cadence", value: "daily capture, weekly scorecard sync" },
+      { label: "Guardrail", value: "Manual metric capture, no analytics sync, no CRM write" },
+    ],
+    checklist: [
+      "Capture baseline from real calls, chats, bookings, or dispatcher notes.",
+      "Review missed-call recovery, response time, bookings, edits, and cancellation signals together.",
+      "Sync only reviewed weekly numbers into the pilot scorecard or CRM.",
+      "Do not treat this tracker as proof that external analytics were synced.",
+    ],
   };
 }
 
@@ -1558,6 +1677,8 @@ const LocalServicesDispatchDemoPanel = ({
   );
   const [pilotWorkspaceExportOpen, setPilotWorkspaceExportOpen] = useState(false);
   const [pilotWorkspaceExportMode, setPilotWorkspaceExportMode] = useState<PlaybookExportMode>("human");
+  const [pilotMetricsTrackerOpen, setPilotMetricsTrackerOpen] = useState(false);
+  const [pilotMetricsTrackerMode, setPilotMetricsTrackerMode] = useState<PlaybookExportMode>("human");
   const outreachProspects = selectedTemplate.detail.pilotKit.outreachWizard.prospects;
   const selectedOutreachProspectId =
     pilotWorkspaceState.selectedProspectByService[selectedTemplate.id] ?? outreachProspects[0]?.id ?? "";
@@ -1566,6 +1687,8 @@ const LocalServicesDispatchDemoPanel = ({
   const scorecardDraftKey = `${selectedTemplate.id}:${selectedOutreachProspect?.id ?? "none"}`;
   const currentPilotStatus = pilotWorkspaceState.statusByProspectKey[scorecardDraftKey] ?? "not_contacted";
   const currentPilotStatusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[currentPilotStatus];
+  const currentMetricStatus = pilotWorkspaceState.metricStatusByService[selectedTemplate.id] ?? "not_started";
+  const currentMetricStatusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[currentMetricStatus];
   const allPilotProspects = useMemo(
     () =>
       LOCAL_SERVICE_DEMO_TEMPLATES.flatMap((template) =>
@@ -1609,6 +1732,10 @@ const LocalServicesDispatchDemoPanel = ({
     () => buildLocalServicePilotWorkspaceExport(pilotFunnelRows, pilotFunnelCounts),
     [pilotFunnelCounts, pilotFunnelRows],
   );
+  const pilotMetricsTrackerExport = useMemo(
+    () => buildLocalServicePilotMetricsTrackerExport(selectedTemplate, currentMetricStatus),
+    [currentMetricStatus, selectedTemplate],
+  );
   const nextManualBatch = pilotFunnelRows
     .filter((item) => item.status !== "reply_received" && item.status !== "rejected_for_now")
     .slice(0, 4);
@@ -1638,6 +1765,16 @@ const LocalServicesDispatchDemoPanel = ({
       statusByProspectKey: {
         ...prev.statusByProspectKey,
         [scorecardDraftKey]: status,
+      },
+    }));
+  };
+
+  const updatePilotMetricStatus = (status: LocalServicePilotMetricStatus) => {
+    setPilotWorkspaceState((prev) => ({
+      ...prev,
+      metricStatusByService: {
+        ...prev.metricStatusByService,
+        [selectedTemplate.id]: status,
       },
     }));
   };
@@ -2117,8 +2254,26 @@ const LocalServicesDispatchDemoPanel = ({
                   </ul>
                 </div>
                 <div className="mt-3">
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                    Pilot metrics
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                        Pilot metrics
+                      </div>
+                      <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                        {currentMetricStatusLabel}
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setPilotMetricsTrackerMode("human");
+                        setPilotMetricsTrackerOpen(true);
+                      }}
+                      className="h-7"
+                    >
+                      Open metrics tracker
+                    </Button>
                   </div>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                     {selectedTemplate.detail.pilotKit.metrics.map((metric) => (
@@ -2134,6 +2289,39 @@ const LocalServicesDispatchDemoPanel = ({
                         </div>
                       </div>
                     ))}
+                  </div>
+                  <div className="mt-2 rounded-md border border-border/50 bg-card/25 px-3 py-2.5">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          Metric capture state
+                        </div>
+                        <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                          Browser-local pilot metrics only. Manual capture, no analytics sync, no CRM write.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {LOCAL_SERVICE_PILOT_METRIC_STATUS_ACTIONS.map((action) => (
+                          <Button
+                            key={action.status}
+                            size="sm"
+                            variant={currentMetricStatus === action.status ? "default" : "secondary"}
+                            onClick={() => updatePilotMetricStatus(action.status)}
+                            className="h-7"
+                          >
+                            {action.label}
+                          </Button>
+                        ))}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => updatePilotMetricStatus("not_started")}
+                          className="h-7"
+                        >
+                          Reset metrics
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <div className="mt-3 rounded-md border border-border/50 bg-card/25 px-3 py-3">
@@ -2427,6 +2615,15 @@ const LocalServicesDispatchDemoPanel = ({
         onCopy={onCopyText}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
       />
+      <LocalServicePilotWorkspaceExportDrawer
+        open={pilotMetricsTrackerOpen}
+        onOpenChange={setPilotMetricsTrackerOpen}
+        exportView={pilotMetricsTrackerExport}
+        mode={pilotMetricsTrackerMode}
+        onModeChange={setPilotMetricsTrackerMode}
+        onCopy={onCopyText}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+      />
     </section>
   );
 };
@@ -2608,7 +2805,7 @@ const LocalServicePilotWorkspaceExportDrawer = ({
           <div className="flex items-center gap-2">
             <BriefcaseBusiness className="h-3.5 w-3.5 text-muted-foreground/70" strokeWidth={1.75} />
             <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground/80">
-              Pilot workspace export
+              {exportView.eyebrow ?? "Pilot workspace export"}
             </span>
           </div>
           <SheetTitle className="font-serif text-[22px] tracking-tight leading-[1.2]">
@@ -2668,15 +2865,16 @@ const LocalServicePilotWorkspaceExportDrawer = ({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
-                  Operator review checklist
+                  {exportView.reviewTitle ?? "Operator review checklist"}
                 </div>
                 <p className="mt-1 text-[12.5px] text-muted-foreground">
-                  This export is a planning artifact only: no outbound message, no CRM write, no scorecard mutation.
+                  {exportView.reviewDescription ??
+                    "This export is a planning artifact only: no outbound message, no CRM write, no scorecard mutation."}
                 </p>
               </div>
               <Button size="sm" variant="secondary" onClick={onOpenScorecard} className="h-8">
                 <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
-                Open pilot scorecard
+                {exportView.scorecardActionLabel ?? "Open pilot scorecard"}
               </Button>
             </div>
             <ul className="space-y-2 text-[12.5px] leading-relaxed text-foreground">

@@ -80,6 +80,11 @@ mini-funnel. The `Pilot workspace export drawer` switches between
 `Human-readable` and `JSON`, exposes `Copy pilot workspace export`, and remains
 manual-only: no outbound message, no CRM write, and no Markdown scorecard
 mutation.
+Use `Open metrics tracker` when the operator needs one reviewed snapshot of the
+selected lane's pilot measurements. The `Pilot metrics tracker` switches between
+`Human-readable` and `JSON`, exposes `Copy pilot metrics tracker`, and remains
+manual-only: no analytics sync, no CRM write, and no Markdown scorecard
+mutation.
 Use `Open offer doc` and `Open demo script` when the operator needs the pilot
 artifact layer instead of the inline summary.
 Use `Open outreach list` and `Open pilot scorecard` when the conversation moves

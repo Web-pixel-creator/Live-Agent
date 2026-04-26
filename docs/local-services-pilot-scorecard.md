@@ -89,6 +89,12 @@ into CRM or a spreadsheet. `Copy pilot workspace export` copies the reviewed
 snapshot only; it does not send a message, update CRM, or mutate this Markdown
 file automatically.
 
+`Open metrics tracker` opens the `Pilot metrics tracker` for the selected
+service lane. Use `Human-readable` for weekly operator review and `JSON` when
+pasting reviewed numbers into a spreadsheet. `Copy pilot metrics tracker`
+copies the reviewed metric plan only; it does not sync analytics, update CRM, or
+mutate this Markdown file automatically.
+
 ## Discovery Call Notes
 
 Copy this block per company.

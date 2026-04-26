@@ -605,6 +605,11 @@ The same funnel now opens a `Pilot workspace export drawer` through
 `Open pilot export`. The drawer has `Human-readable` and `JSON` modes, exposes
 `Copy pilot workspace export`, and carries explicit guardrails: no outbound
 message, no CRM write, and manual scorecard sync only.
+The selected lane's `Pilot metrics` block now opens a `Pilot metrics tracker`
+through `Open metrics tracker`. The tracker has `Human-readable` and `JSON`
+modes, exposes `Copy pilot metrics tracker`, stores its status in the same
+browser-local workspace state, and carries explicit guardrails: manual metric
+capture, no analytics sync, no CRM write, and manual scorecard sync only.
 The shell now also opens repo-owned pilot artifacts through
 `/workspace-docs/local-services-pilot-offer.md` and
 `/workspace-docs/local-services-demo-script.md`.
@@ -647,7 +652,8 @@ It now also opens the execution documents
    manual batch. Done in shell demo.
 9. Add a shell-level pilot workspace export drawer with human-readable and JSON
    modes. Done in shell demo; no external send or CRM write happens.
-10. Track pilot metrics:
+10. Track pilot metrics. Done in shell demo through a browser-local
+    `Pilot metrics tracker` with `Human-readable` / `JSON` export modes:
    - inbound requests,
    - missed-call recovery,
    - response time,
@@ -671,11 +677,13 @@ Current shell readiness for P3:
    batch`, and `Manual execution rule` are visible in the shell.
 6. `Open pilot export`, `Pilot workspace export drawer`, `Human-readable`,
    `JSON`, and `Copy pilot workspace export` are visible in the shell.
-7. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
+7. `Open metrics tracker`, `Pilot metrics tracker`, `Human-readable`, `JSON`,
+   and `Copy pilot metrics tracker` are visible in the shell.
+8. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
    artifact documents from the same local frontend server.
-8. `Open outreach list` and `Open pilot scorecard` resolve to the repo-owned
+9. `Open outreach list` and `Open pilot scorecard` resolve to the repo-owned
    pilot execution documents from the same local frontend server.
-9. Actual external execution still remains outside the shell: recorded video,
+10. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path

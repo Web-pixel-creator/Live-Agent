@@ -69,6 +69,11 @@ That funnel now has `Open pilot export`, which opens a `Pilot workspace export
 drawer` with `Human-readable` / `JSON` modes and `Copy pilot workspace export`.
 The export is intentionally manual-only: no outbound message, no CRM write, and
 no Markdown scorecard mutation.
+The same browser-local state now has `Open metrics tracker`, which opens a
+`Pilot metrics tracker` with `Human-readable` / `JSON` modes and
+`Copy pilot metrics tracker`. This closes the first pilot measurement loop while
+remaining manual-only: no analytics sync, no CRM write, and no Markdown
+scorecard mutation.
 That same block should link to repo-owned pilot artifacts through
 `/workspace-docs/local-services-pilot-offer.md` and
 `/workspace-docs/local-services-demo-script.md`.

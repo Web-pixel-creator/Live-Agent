@@ -105,6 +105,10 @@ Local-services expansion spec:
 - the funnel summary now opens a `Pilot workspace export drawer` with
   `Human-readable` and `JSON` modes plus `Copy pilot workspace export`; it is a
   browser-local planning artifact and does not send outreach or write CRM.
+- the same browser-local pilot state now includes a `Pilot metrics tracker`:
+  `Open metrics tracker` exposes `Human-readable` / `JSON` modes and
+  `Copy pilot metrics tracker` for manual weekly scorecard sync, with no
+  analytics sync or CRM write.
 - `Pilot readiness` now links to repo-owned pilot artifacts at
   `/workspace-docs/local-services-pilot-offer.md` and
   `/workspace-docs/local-services-demo-script.md`.

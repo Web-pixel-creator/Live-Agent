@@ -66,6 +66,9 @@ service/company pair.
 Use `Open pilot export` to open the `Pilot workspace export drawer`. It provides
 `Human-readable` and `JSON` modes plus `Copy pilot workspace export` for manual
 scorecard or CRM sync. It does not send messages or write CRM.
+Use `Open metrics tracker` to open the `Pilot metrics tracker`. It provides
+`Human-readable` and `JSON` modes plus `Copy pilot metrics tracker` for manual
+weekly scorecard sync. It does not sync analytics or write CRM.
 Use `Open offer doc` and `Open demo script` to open the repo-owned pilot
 artifacts without leaving the local frontend server.
 Use `Open outreach list` and `Open pilot scorecard` when you move from demo

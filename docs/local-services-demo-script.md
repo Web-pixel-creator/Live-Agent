@@ -82,10 +82,11 @@ Point at:
 2. `90-second demo script`
 3. `Launch checklist`
 4. `Pilot metrics`
+5. `Open metrics tracker`
 
 Say:
 
-`This makes the product sales-ready as well: we can explain the offer, launch steps, and pilot metrics without leaving the shell.`
+`This makes the product sales-ready as well: we can explain the offer, launch steps, and pilot metrics without leaving the shell, then copy the reviewed metrics tracker manually into the scorecard.`
 
 Optional second click if the prospect is construction-adjacent: open
 `Measurement visit booking` and point at the no-final-price approval rule.

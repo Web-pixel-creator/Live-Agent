@@ -506,8 +506,11 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /operator-approved/);
   assert.match(liveDesk, /type LocalServiceOutreachProspect = \{/);
   assert.match(liveDesk, /type LocalServicePilotWorkspaceState = \{/);
+  assert.match(liveDesk, /type LocalServicePilotMetricStatus =/);
+  assert.match(liveDesk, /metricStatusByService/);
   assert.match(liveDesk, /LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY = "liveDesk:localServicesPilotWorkspace:v1"/);
   assert.match(liveDesk, /LOCAL_SERVICE_PILOT_STATUS_ORDER/);
+  assert.match(liveDesk, /LOCAL_SERVICE_PILOT_METRIC_STATUS_ACTIONS/);
   assert.match(liveDesk, /readLocalServicePilotWorkspaceState/);
   assert.match(liveDesk, /window\.localStorage\.setItem\(LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY/);
   assert.match(liveDesk, /allPilotProspects/);
@@ -521,6 +524,15 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Pilot workspace export drawer/);
   assert.match(liveDesk, /Copy pilot workspace export/);
   assert.match(liveDesk, /no_crm_write/);
+  assert.match(liveDesk, /Pilot metrics tracker/);
+  assert.match(liveDesk, /Open metrics tracker/);
+  assert.match(liveDesk, /Copy pilot metrics tracker/);
+  assert.match(liveDesk, /local_services_pilot_metrics_tracker/);
+  assert.match(liveDesk, /Metric capture state/);
+  assert.match(liveDesk, /Mark baseline captured/);
+  assert.match(liveDesk, /Mark tracking live/);
+  assert.match(liveDesk, /Mark review ready/);
+  assert.match(liveDesk, /Reset metrics/);
   assert.match(liveDesk, /browser-local/);
   assert.match(liveDesk, /Pilot scorecard action/);
   assert.match(liveDesk, /Selected company/);
@@ -695,6 +707,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Next manual batch/);
   assert.match(readme, /Pilot workspace export drawer/);
   assert.match(readme, /Copy pilot workspace export/);
+  assert.match(readme, /Pilot metrics tracker/);
+  assert.match(readme, /Copy pilot metrics tracker/);
   assert.match(readme, /\/workspace-docs\/local-services-pilot-offer\.md/);
   assert.match(readme, /\/workspace-docs\/local-services-demo-script\.md/);
   assert.match(readme, /\/workspace-docs\/local-services-outreach-list\.md/);
@@ -743,6 +757,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /Next manual batch/);
   assert.match(localDevelopment, /Manual execution rule/);
   assert.match(localDevelopment, /Open pilot export/);
+  assert.match(localDevelopment, /Open metrics tracker/);
   assert.match(localDevelopment, /No outbound message sent/);
   assert.match(localDevelopment, /Open offer doc/);
   assert.match(localDevelopment, /Open demo script/);
@@ -789,6 +804,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Next manual batch/);
   assert.match(operatorGuide, /Pilot workspace export drawer/);
   assert.match(operatorGuide, /Copy pilot workspace export/);
+  assert.match(operatorGuide, /Pilot metrics tracker/);
+  assert.match(operatorGuide, /Copy pilot metrics tracker/);
   assert.match(operatorGuide, /Open offer doc/);
   assert.match(operatorGuide, /Open demo script/);
   assert.match(operatorGuide, /Open outreach list/);
@@ -829,6 +846,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /Next manual batch/);
   assert.match(simplificationPlan, /Open pilot export/);
   assert.match(simplificationPlan, /Pilot workspace export\s+drawer/);
+  assert.match(simplificationPlan, /Pilot metrics tracker/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-pilot-offer\.md/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-demo-script\.md/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-outreach-list\.md/);
@@ -878,6 +896,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /Next manual batch/);
   assert.match(gettingStarted, /Open pilot export/);
   assert.match(gettingStarted, /Copy pilot workspace export/);
+  assert.match(gettingStarted, /Open metrics tracker/);
+  assert.match(gettingStarted, /Copy pilot metrics tracker/);
   assert.match(gettingStarted, /Open offer doc/);
   assert.match(gettingStarted, /Open demo script/);
   assert.match(gettingStarted, /Open outreach list/);
@@ -922,6 +942,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /Open pilot export/);
   assert.match(localServicesSpec, /Pilot workspace export drawer/);
   assert.match(localServicesSpec, /Copy pilot workspace export/);
+  assert.match(localServicesSpec, /Pilot metrics tracker/);
+  assert.match(localServicesSpec, /Copy pilot metrics tracker/);
   assert.match(localServicesSpec, /No outbound message sent/);
   assert.match(localServicesSpec, /no real\s+outreach is sent autonomously/);
   assert.match(localServicesSpec, /\/workspace-docs\/local-services-pilot-offer\.md/);
@@ -941,6 +963,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(demoScript, /# Local Services 90-Second Demo Script/);
   assert.match(demoScript, /\/app\?demo=local-services-dispatch&service=ac-repair-dispatch/);
   assert.match(demoScript, /Pilot readiness/);
+  assert.match(demoScript, /Open metrics tracker/);
   assert.match(demoScript, /Measurement visit booking/);
   assert.match(demoScript, /final pricing are not automated in P0/);
   assert.match(demoScript, /operator-approved dispatch/);
@@ -977,6 +1000,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotScorecard, /Open pilot export/);
   assert.match(pilotScorecard, /Pilot workspace export drawer/);
   assert.match(pilotScorecard, /Copy pilot workspace export/);
+  assert.match(pilotScorecard, /Pilot metrics tracker/);
+  assert.match(pilotScorecard, /Copy pilot metrics tracker/);
   assert.match(pilotScorecard, /does not send a\s+message/);
   assert.match(pilotScorecard, /14-Day Pilot Scorecard/);
   assert.match(pilotScorecard, /Pilot Exit Rules/);
