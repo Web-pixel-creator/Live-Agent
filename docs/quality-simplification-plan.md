@@ -89,6 +89,9 @@ The first-contact execution pack now lives in
 `/workspace-docs/local-services-outreach-execution-pack.md`. It stays as a
 manual founder worksheet with message templates, discovery-call questions, a
 Manual Execution Table, and Do-Not-Send Rules.
+The shell now exposes that document through `Open outreach execution pack`
+beside the outreach list and scorecard, so the pilot UI can open the first
+manual messages without creating an autonomous send path.
 
 ## Success Criteria
 

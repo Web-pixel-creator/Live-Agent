@@ -517,6 +517,7 @@ const LOCAL_SERVICES_PILOT_OFFER_PATH = "/workspace-docs/local-services-pilot-of
 const LOCAL_SERVICES_DEMO_SCRIPT_PATH = "/workspace-docs/local-services-demo-script.md";
 const LOCAL_SERVICES_OUTREACH_LIST_PATH = "/workspace-docs/local-services-outreach-list.md";
 const LOCAL_SERVICES_PILOT_SCORECARD_PATH = "/workspace-docs/local-services-pilot-scorecard.md";
+const LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH = "/workspace-docs/local-services-outreach-execution-pack.md";
 const LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY = "liveDesk:localServicesPilotWorkspace:v1";
 const LOCAL_SERVICE_PILOT_STATUS_LABELS: Record<LocalServicePilotStatus, string> = {
   not_contacted: "Not contacted",
@@ -2007,6 +2008,14 @@ const LocalServicesDispatchDemoPanel = ({
                 <Button
                   size="sm"
                   variant="ghost"
+                  onClick={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
+                  className="h-7"
+                >
+                  Open outreach execution pack
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
                   onClick={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
                   className="h-7"
                 >
@@ -2186,6 +2195,14 @@ const LocalServicesDispatchDemoPanel = ({
                       className="h-7"
                     >
                       Open outreach list
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
+                      className="h-7"
+                    >
+                      Open outreach execution pack
                     </Button>
                     <Button
                       size="sm"
@@ -2380,6 +2397,14 @@ const LocalServicesDispatchDemoPanel = ({
                           className="h-7"
                         >
                           Open outreach list
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
+                          className="h-7"
+                        >
+                          Open outreach execution pack
                         </Button>
                         <Button
                           size="sm"
@@ -2614,6 +2639,7 @@ const LocalServicesDispatchDemoPanel = ({
         onModeChange={setPilotWorkspaceExportMode}
         onCopy={onCopyText}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+        onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
       />
       <LocalServicePilotWorkspaceExportDrawer
         open={pilotMetricsTrackerOpen}
@@ -2623,6 +2649,7 @@ const LocalServicesDispatchDemoPanel = ({
         onModeChange={setPilotMetricsTrackerMode}
         onCopy={onCopyText}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+        onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
       />
     </section>
   );
@@ -2787,6 +2814,7 @@ const LocalServicePilotWorkspaceExportDrawer = ({
   onModeChange,
   onCopy,
   onOpenScorecard,
+  onOpenExecutionPack,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -2795,6 +2823,7 @@ const LocalServicePilotWorkspaceExportDrawer = ({
   onModeChange: (mode: PlaybookExportMode) => void;
   onCopy: (text: string, label: string) => void;
   onOpenScorecard: () => void;
+  onOpenExecutionPack: () => void;
 }) => {
   const renderedText = mode === "human" ? exportView.humanText : exportView.jsonText;
 
@@ -2872,10 +2901,16 @@ const LocalServicePilotWorkspaceExportDrawer = ({
                     "This export is a planning artifact only: no outbound message, no CRM write, no scorecard mutation."}
                 </p>
               </div>
-              <Button size="sm" variant="secondary" onClick={onOpenScorecard} className="h-8">
-                <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
-                {exportView.scorecardActionLabel ?? "Open pilot scorecard"}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="secondary" onClick={onOpenExecutionPack} className="h-8">
+                  <FileText className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Open outreach execution pack
+                </Button>
+                <Button size="sm" variant="secondary" onClick={onOpenScorecard} className="h-8">
+                  <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  {exportView.scorecardActionLabel ?? "Open pilot scorecard"}
+                </Button>
+              </div>
             </div>
             <ul className="space-y-2 text-[12.5px] leading-relaxed text-foreground">
               {exportView.checklist.map((item) => (

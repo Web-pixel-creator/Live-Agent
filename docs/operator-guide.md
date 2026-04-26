@@ -87,8 +87,9 @@ manual-only: no analytics sync, no CRM write, and no Markdown scorecard
 mutation.
 Use `Open offer doc` and `Open demo script` when the operator needs the pilot
 artifact layer instead of the inline summary.
-Use `Open outreach list` and `Open pilot scorecard` when the conversation moves
-from positioning into real pilot execution.
+Use `Open outreach list`, `Open outreach execution pack`, and
+`Open pilot scorecard` when the conversation moves from positioning into real
+pilot execution.
 Use `docs/local-services-pilot-runbook.md` for the actual 14-day operating
 sequence: day-minus-one prep, manual outreach, discovery call, pilot setup,
 daily metric capture, week-one review, week-two review, and evidence pack. It

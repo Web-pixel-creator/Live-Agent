@@ -627,6 +627,9 @@ The first manual outreach execution pack now lives in
 first batch, service-specific messages, Discovery Call Template, Manual
 Execution Table, and Do-Not-Send Rules without adding autonomous outreach to
 the shell.
+The local-services shell now opens the same document through
+`Open outreach execution pack` from the pilot readiness, outreach wizard, and
+pilot export surfaces.
 
 ### P1 - Operator-Ready Payloads
 
@@ -696,8 +699,9 @@ Current shell readiness for P3:
    and `Copy pilot metrics tracker` are visible in the shell.
 8. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
    artifact documents from the same local frontend server.
-9. `Open outreach list` and `Open pilot scorecard` resolve to the repo-owned
-   pilot execution documents from the same local frontend server.
+9. `Open outreach list`, `Open outreach execution pack`, and
+   `Open pilot scorecard` resolve to the repo-owned pilot execution documents
+   from the same local frontend server.
 10. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
    14-day pilot runbook from the same local frontend server.
 11. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the

@@ -122,6 +122,9 @@ Local-services expansion spec:
   `docs/local-services-outreach-execution-pack.md`; it gives the four-account
   first batch, service-specific messages, discovery-call template, manual
   execution table, and do-not-send rules.
+- the shell now exposes `Open outreach execution pack` wherever pilot outreach
+  is reviewed, so the first manual messages are available from `/app` without
+  adding autonomous send behavior.
 - restaurants stay as a secondary demo path until local services has real pilot
   signal.
 - construction-material quote and delivery stays out of P0; the first
