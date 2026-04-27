@@ -96,6 +96,11 @@ During each pilot day, use `Open daily log` to review `Pilot daily log`,
 The structured payload is `local_services_pilot_daily_log`; it remains a manual
 operating-loop note only and does not sync analytics, write CRM, create
 calendar bookings, send customer messages, or mutate this list.
+After the first real week, use `Open week-one review` to review `Pilot week-one
+review`, `Continue / stop decision`, and `Copy week-one review`. The structured
+payload is `local_services_pilot_week_one_review`; it remains owner/operator
+review only and does not decide autonomously, write CRM, change billing, send
+customer messages, or mutate this list.
 
 ### Week 1
 

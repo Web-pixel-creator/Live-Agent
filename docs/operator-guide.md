@@ -142,6 +142,11 @@ note before updating a private scorecard. `Pilot daily log` exposes
 The payload is `local_services_pilot_daily_log`; it remains manual-only and
 does not sync analytics, write CRM, create calendar bookings, send customer
 messages, or mutate Markdown docs.
+Use `Open week-one review` when the first operating week has real activity and
+the owner must decide whether to continue, pause, or stop. `Pilot week-one
+review` exposes `Continue / stop decision`, `Copy week-one review`, and
+`local_services_pilot_week_one_review`. It is manual-only: no autonomous pilot
+decision, CRM write, billing change, customer message, or Markdown mutation.
 Use `Open offer doc` and `Open demo script` when the operator needs the pilot
 artifact layer instead of the inline summary.
 Use `Open outreach list`, `Open outreach execution pack`, and

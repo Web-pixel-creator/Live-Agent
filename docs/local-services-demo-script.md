@@ -114,11 +114,15 @@ Point at:
 34. `Daily capture fields`
 35. `Daily operating loop`
 36. `Copy pilot daily log`
-37. `Open pilot runbook`
+37. `Open week-one review`
+38. `Pilot week-one review`
+39. `Continue / stop decision`
+40. `Copy week-one review`
+41. `Open pilot runbook`
 
 Say:
 
-`This makes the product sales-ready as well: we can explain the offer, show the 7-minute setup path, review business profile, knowledge sources, behavior, test call readiness, prove the saved intake transcript and evidence link, then filter the outreach list by service or status, choose visible scorecard columns, show the 14-day manual pilot checklist, prepare the discovery call brief, turn that into the day-one setup brief, and capture the daily operating-loop note before copying reviewed setup, discovery, daily, or metrics notes manually. Nothing here activates phone, Telegram, WhatsApp, CRM, analytics, billing, outreach sends, calendar bookings, customer messages, or CRM writes.`
+`This makes the product sales-ready as well: we can explain the offer, show the 7-minute setup path, review business profile, knowledge sources, behavior, test call readiness, prove the saved intake transcript and evidence link, then filter the outreach list by service or status, choose visible scorecard columns, show the 14-day manual pilot checklist, prepare the discovery call brief, turn that into the day-one setup brief, capture the daily operating-loop note, and prepare the week-one continue/stop review before copying reviewed setup, discovery, daily, review, or metrics notes manually. Nothing here activates phone, Telegram, WhatsApp, CRM, analytics, billing, outreach sends, calendar bookings, customer messages, or CRM writes.`
 
 Optional second click if the prospect is construction-adjacent: open
 `Measurement visit booking` and point at the no-final-price approval rule.

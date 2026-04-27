@@ -244,7 +244,12 @@ Allowed reply statuses:
    `Daily operating loop`, `Copy pilot daily log`, and
    `local_services_pilot_daily_log`; explain that this is a manual daily note,
    not analytics sync, CRM write, calendar booking, or customer send.
-19. End with one question: "Would this save missed requests or manager time if we
+19. Show `Open week-one review`, `Pilot week-one review`,
+   `Continue / stop decision`, `Copy week-one review`, and
+   `local_services_pilot_week_one_review`; explain that this is a manual owner
+   review, not an autonomous pilot decision, CRM write, billing change, or
+   customer send.
+20. End with one question: "Would this save missed requests or manager time if we
    tested it for 14 days?"
 
 ## After Each Contact
@@ -261,3 +266,6 @@ Allowed reply statuses:
 6. Copy the daily operating-loop note from `Pilot daily log` only after a real
    pilot day; do not treat it as proof that analytics, CRM, calendar, or
    customer-message systems were updated.
+7. Copy the week-one review only after real week-one activity; do not treat it
+   as proof that the pilot decision, CRM, billing, or customer-message systems
+   were updated.

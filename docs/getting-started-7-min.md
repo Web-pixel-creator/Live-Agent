@@ -122,6 +122,11 @@ It provides `Daily capture fields`, `Daily operating loop`, and
 `Copy pilot daily log` with the structured `local_services_pilot_daily_log`
 payload. It is a manual note only: no analytics sync, CRM write, calendar
 booking, customer send, or Markdown scorecard mutation.
+Use `Open week-one review` after real week-one activity exists. It opens
+`Pilot week-one review` with `Continue / stop decision`,
+`Copy week-one review`, and `local_services_pilot_week_one_review`. It does not
+decide autonomously, write CRM, change billing, send customer messages, or
+mutate Markdown docs.
 Use `Open offer doc` and `Open demo script` to open the repo-owned pilot
 artifacts without leaving the local frontend server.
 Use `Open outreach list`, `Open outreach execution pack`, and

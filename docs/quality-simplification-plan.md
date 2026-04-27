@@ -128,6 +128,11 @@ log` with `Daily capture fields`, `Daily operating loop`,
 `Copy pilot daily log`, and the structured `local_services_pilot_daily_log`
 payload. This creates a reviewed daily operating-loop note without analytics
 sync, CRM write, calendar booking, customer send, or Markdown mutation.
+The same pilot area now has `Open week-one review`, which opens `Pilot week-one
+review` with `Continue / stop decision`, `Copy week-one review`, and the
+structured `local_services_pilot_week_one_review` payload. This keeps the first
+continue/pause/stop decision owner-reviewed and manual-only, with no CRM write,
+billing change, customer send, or Markdown mutation.
 That same block should link to repo-owned pilot artifacts through
 `/workspace-docs/local-services-pilot-offer.md` and
 `/workspace-docs/local-services-demo-script.md`.

@@ -95,6 +95,10 @@ Do not use the pilot to build:
     `Daily capture fields`, `Daily operating loop`, and `Copy pilot daily log`,
     then copy `local_services_pilot_daily_log` into the private scorecard or
     spreadsheet manually.
+14. Open `Open week-one review` only after real week-one activity exists. Review
+    `Pilot week-one review`, `Continue / stop decision`, and
+    `Copy week-one review`, then copy `local_services_pilot_week_one_review`
+    into the private scorecard or spreadsheet manually.
 
 ## Day Zero: Outreach
 
@@ -176,6 +180,9 @@ final numbers manually into the Markdown scorecard or spreadsheet.
 Use `Pilot daily log` as the daily operating-loop note before the weekly
 metrics review. It is manual-only: no analytics sync, CRM write, calendar
 booking, customer message, or Markdown mutation.
+Use `Pilot week-one review` after the first real week to prepare the
+continue/pause/stop discussion. It is manual-only: no autonomous pilot decision,
+CRM write, billing change, customer message, or Markdown mutation.
 
 ## Week One Review
 

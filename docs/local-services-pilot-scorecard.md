@@ -139,6 +139,13 @@ Use it at the end of each pilot day to review `Daily capture fields`,
 calendar bookings, send customer messages, or mutate this Markdown file
 automatically.
 
+`Open week-one review` opens the `Pilot week-one review` drawer for the selected
+service lane and company. Use it after real week-one activity exists to review
+`Continue / stop decision` and `Copy week-one review`. The payload is
+`local_services_pilot_week_one_review`; it does not decide autonomously, update
+CRM, change billing, send customer messages, or mutate this Markdown file
+automatically.
+
 `Open discovery prep` opens the `Discovery call prep` drawer for a replied
 company. Use `Human-readable` for the founder call, `JSON` for structured
 handoff notes, and `Copy discovery call prep` only after the selected company

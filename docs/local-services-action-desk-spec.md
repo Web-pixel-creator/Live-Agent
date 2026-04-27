@@ -675,6 +675,12 @@ It exposes `Daily capture fields`, `Daily operating loop`,
 `Copy pilot daily log`, and the structured `local_services_pilot_daily_log`
 payload. It is the reviewed daily operating-loop note only: no analytics sync,
 CRM write, calendar booking, customer send, or Markdown mutation.
+The same pilot block now opens `Pilot week-one review` through
+`Open week-one review`. It exposes `Continue / stop decision`,
+`Copy week-one review`, and the structured
+`local_services_pilot_week_one_review` payload. It is the owner-reviewed
+continue/pause/stop decision pack only: no autonomous pilot decision, CRM write,
+billing change, customer send, or Markdown mutation.
 The shell now also opens repo-owned pilot artifacts through
 `/workspace-docs/local-services-pilot-offer.md` and
 `/workspace-docs/local-services-demo-script.md`.
@@ -812,9 +818,12 @@ Current shell readiness for P3:
 18. `Open daily log`, `Pilot daily log`, `Daily capture fields`,
    `Daily operating loop`, `Copy pilot daily log`, and
    `local_services_pilot_daily_log` are visible in the shell.
-19. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
+19. `Open week-one review`, `Pilot week-one review`,
+   `Continue / stop decision`, `Copy week-one review`, and
+   `local_services_pilot_week_one_review` are visible in the shell.
+20. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
    artifact documents from the same local frontend server.
-20. `Open outreach list`, `Open outreach execution pack`, and
+21. `Open outreach list`, `Open outreach execution pack`, and
    `Open pilot scorecard` resolve to the repo-owned pilot execution documents
    from the same local frontend server.
 18. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned

@@ -160,6 +160,10 @@ Local-services expansion spec:
   `Copy pilot daily log`, and `local_services_pilot_daily_log` so the operator
   can record each pilot day manually without analytics sync, CRM write, calendar
   booking, or customer send.
+- the same pilot area now opens `Pilot week-one review` through
+  `Open week-one review`; it exposes `Continue / stop decision`,
+  `Copy week-one review`, and `local_services_pilot_week_one_review` so week-one
+  continuation decisions stay owner-reviewed and manual-only.
 - `Pilot readiness` now links to repo-owned pilot artifacts at
   `/workspace-docs/local-services-pilot-offer.md` and
   `/workspace-docs/local-services-demo-script.md`.

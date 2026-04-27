@@ -1402,6 +1402,126 @@ function buildLocalServicePilotDailyLogExport(
   };
 }
 
+function buildLocalServicePilotWeekOneReviewExport(
+  template: LocalServiceDemoTemplate,
+  prospect: LocalServiceOutreachProspect | undefined,
+  pilotStatus: LocalServicePilotStatus,
+  metricStatus: LocalServicePilotMetricStatus,
+): LocalServicePilotWorkspaceExport {
+  const pilotStatusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[pilotStatus];
+  const metricStatusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus];
+  const prospectLabel = prospect ? `${prospect.company} - ${prospect.segment}` : "No prospect selected";
+  const continueCriteria = [
+    "operator used the job-card output without rewriting it from scratch",
+    "at least one missed or delayed request was recovered",
+    "first reply time improved",
+    "owner asks to keep the flow running",
+    "there is a clear paid use case",
+  ];
+  const stopCriteria = [
+    "no real requests are routed through the pilot",
+    "no one owns approvals",
+    "the company wants a custom marketplace or CRM project",
+    "every request is too custom for the P0 dispatcher flow",
+  ];
+  const decisionFields = [
+    {
+      label: "Decision",
+      value: "continue, pause, or stop after owner review",
+    },
+    {
+      label: "Proof",
+      value: "missed request recovered, faster reply, booking/dispatch, or reduced rewrite work",
+    },
+    {
+      label: "Owner note",
+      value: "one sentence from the business owner or dispatcher",
+    },
+    {
+      label: "Week-two focus",
+      value: "one measurable workflow to improve next",
+    },
+  ];
+  const humanLines = [
+    `Pilot week-one review: ${template.title}`,
+    `Service: ${template.ref}`,
+    `Selected company: ${prospectLabel}`,
+    `Pilot status: ${pilotStatusLabel}`,
+    `Metric status: ${metricStatusLabel}`,
+    "Export scope: manual week-one decision pack",
+    "",
+    "Continue if at least two are true:",
+    ...continueCriteria.map((criterion) => `- ${criterion}`),
+    "",
+    "Stop early if any are true:",
+    ...stopCriteria.map((criterion) => `- ${criterion}`),
+    "",
+    "Review fields:",
+    ...decisionFields.map((field) => `- ${field.label}: ${field.value}`),
+    "",
+    "Decision rule: the operator records the decision manually after owner review. The shell does not decide, message customers, change billing, or write CRM.",
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_pilot_week_one_review",
+      export_kind: "manual_week_one_decision_pack",
+      storage_key: LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY,
+      service_id: template.id,
+      service_ref: template.ref,
+      service_title: template.title,
+      prospect_id: prospect?.id ?? null,
+      prospect_company: prospect?.company ?? null,
+      pilot_status: pilotStatus,
+      pilot_status_label: pilotStatusLabel,
+      metric_status: metricStatus,
+      metric_status_label: metricStatusLabel,
+      continue_criteria: continueCriteria,
+      stop_criteria: stopCriteria,
+      decision_fields: decisionFields,
+      guardrails: [
+        "manual_week_one_review",
+        "no_autonomous_pilot_decision",
+        "no_crm_write",
+        "no_billing_change",
+        "no_customer_message_sent",
+        "manual_scorecard_sync_required",
+      ],
+    },
+    null,
+    2,
+  );
+
+  return {
+    title: "Pilot week-one review",
+    description:
+      "Prepare a manual continue, pause, or stop review for the selected local-services pilot after the first operating week.",
+    eyebrow: "Pilot review",
+    modeLabel: "Review mode",
+    copyLabel: "Copy week-one review",
+    reviewTitle: "Continue / stop decision",
+    reviewDescription:
+      "Use this only after real pilot activity exists. The owner or operator makes the decision outside the shell.",
+    executionActionLabel: "Open pilot runbook",
+    scorecardActionLabel: "Open pilot scorecard",
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: [
+      { label: "Service", value: `${template.ref} - ${template.title}` },
+      { label: "Company", value: prospectLabel },
+      { label: "Pilot status", value: pilotStatusLabel },
+      { label: "Metric status", value: metricStatusLabel },
+      { label: "Guardrail", value: "Manual review only, no autonomous pilot decision" },
+    ],
+    checklist: [
+      "Confirm at least one real pilot day was logged before using this review.",
+      "Count continue criteria and stop criteria separately.",
+      "Write the owner or dispatcher note in a private scorecard or spreadsheet.",
+      "Choose one week-two focus if the pilot continues.",
+      "Do not treat this review as a billing, CRM, or customer-message action.",
+    ],
+  };
+}
+
 function buildLocalServicePilotMessagePreview(
   template: LocalServiceDemoTemplate,
   prospect: LocalServiceOutreachProspect | undefined,
@@ -2618,6 +2738,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [pilotMetricsTrackerMode, setPilotMetricsTrackerMode] = useState<PlaybookExportMode>("human");
   const [pilotDailyLogOpen, setPilotDailyLogOpen] = useState(false);
   const [pilotDailyLogMode, setPilotDailyLogMode] = useState<PlaybookExportMode>("human");
+  const [pilotWeekOneReviewOpen, setPilotWeekOneReviewOpen] = useState(false);
+  const [pilotWeekOneReviewMode, setPilotWeekOneReviewMode] = useState<PlaybookExportMode>("human");
   const [pilotMessagePreviewOpen, setPilotMessagePreviewOpen] = useState(false);
   const [pilotMessagePreviewMode, setPilotMessagePreviewMode] = useState<PlaybookExportMode>("human");
   const [pilotOperatorConfirmationOpen, setPilotOperatorConfirmationOpen] = useState(false);
@@ -2727,6 +2849,16 @@ const LocalServicesDispatchDemoPanel = ({
   const pilotDailyLogExport = useMemo(
     () => buildLocalServicePilotDailyLogExport(selectedTemplate, currentMetricStatus),
     [currentMetricStatus, selectedTemplate],
+  );
+  const pilotWeekOneReviewExport = useMemo(
+    () =>
+      buildLocalServicePilotWeekOneReviewExport(
+        selectedTemplate,
+        selectedOutreachProspect,
+        currentPilotStatus,
+        currentMetricStatus,
+      ),
+    [currentMetricStatus, currentPilotStatus, selectedOutreachProspect, selectedTemplate],
   );
   const pilotMessagePreview = useMemo(
     () => buildLocalServicePilotMessagePreview(selectedTemplate, selectedOutreachProspect, currentPilotStatus),
@@ -3752,6 +3884,17 @@ const LocalServicesDispatchDemoPanel = ({
                     >
                       Open daily log
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setPilotWeekOneReviewMode("human");
+                        setPilotWeekOneReviewOpen(true);
+                      }}
+                      className="h-7"
+                    >
+                      Open week-one review
+                    </Button>
                   </div>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                     {selectedTemplate.detail.pilotKit.metrics.map((metric) => (
@@ -4255,6 +4398,16 @@ const LocalServicesDispatchDemoPanel = ({
         exportView={pilotDailyLogExport}
         mode={pilotDailyLogMode}
         onModeChange={setPilotDailyLogMode}
+        onCopy={onCopyText}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+        onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_PILOT_RUNBOOK_PATH)}
+      />
+      <LocalServicePilotWorkspaceExportDrawer
+        open={pilotWeekOneReviewOpen}
+        onOpenChange={setPilotWeekOneReviewOpen}
+        exportView={pilotWeekOneReviewExport}
+        mode={pilotWeekOneReviewMode}
+        onModeChange={setPilotWeekOneReviewMode}
         onCopy={onCopyText}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_PILOT_RUNBOOK_PATH)}
