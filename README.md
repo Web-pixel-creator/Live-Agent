@@ -149,8 +149,9 @@ Local-services expansion spec:
   and `View only, no send`. It lets an operator choose a pilot company from the
   shell without turning the product into CRM or autonomous outreach.
 - the same funnel now includes a `Pilot execution checklist`: a 14-day pilot
-  operating loop with `Prepare first manual batch`, `Ready for first manual
-  batch`, `Record ready drafts`, `Log manual contact`, `Book discovery call`,
+  operating loop with `Pass test call/message`, `Needs test call passed`,
+  `Prepare first manual batch`, `Ready for first manual batch`,
+  `Record ready drafts`, `Log manual contact`, `Book discovery call`,
   `Start metric capture`, `Founder-only execution`, `No autonomous send`, and
   `Open pilot runbook`. It mirrors browser-local statuses only. The same
   checklist now opens `Discovery call prep` through `Open discovery prep`; that

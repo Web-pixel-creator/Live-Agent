@@ -3231,18 +3231,30 @@ const LocalServicesDispatchDemoPanel = ({
     .slice(0, 4);
   const pilotExecutionChecklist: LocalServicePilotExecutionStep[] = [
     {
+      label: "Pass test call/message",
+      status: testCallPassed ? "Test call passed" : `Test call progress ${testCallProgress}`,
+      owner: "Operator",
+      detail: "Complete the setup dry run before any live pilot channel, outreach, or dispatch workflow is connected.",
+      done: testCallPassed,
+    },
+    {
       label: "Prepare first manual batch",
-      status: nextManualBatch.length > 0 ? "Ready for first manual batch" : "Needs unfiltered candidate",
+      status:
+        testCallPassed && nextManualBatch.length > 0
+          ? "Ready for first manual batch"
+          : testCallPassed
+            ? "Needs unfiltered candidate"
+            : "Needs test call passed",
       owner: "Founder",
-      detail: "Pick the first companies from the filtered outreach list and keep execution outside the shell.",
-      done: nextManualBatch.length > 0,
+      detail: "Pick the first companies from the filtered outreach list only after the dry-run gate is passed.",
+      done: testCallPassed && nextManualBatch.length > 0,
     },
     {
       label: "Record ready drafts",
       status: `${pilotFunnelCounts.draft_ready} draft ready`,
       owner: "Operator",
-      detail: "Use Preview / Test message and Operator confirmation before the first manual send.",
-      done: pilotFunnelCounts.draft_ready > 0,
+      detail: "Use Preview / Test message and Operator confirmation after the setup dry run is recorded.",
+      done: testCallPassed && pilotFunnelCounts.draft_ready > 0,
     },
     {
       label: "Log manual contact",
@@ -4143,7 +4155,7 @@ const LocalServicesDispatchDemoPanel = ({
               </div>
             </div>
 
-            <div className="mt-3 grid gap-2 lg:grid-cols-5">
+            <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-6">
               {pilotExecutionChecklist.map((step, index) => {
                 const StepIcon = step.done ? CheckCircle2 : Clock;
                 return (

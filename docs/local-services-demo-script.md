@@ -133,16 +133,18 @@ Point at:
 17. `Transcript + evidence`
 18. `Saved intake evidence`
 19. `Pilot execution checklist`
-20. `Prepare first manual batch`
-21. `Open discovery prep`
-22. `Discovery call prep`
-23. `Questions to ask`
-24. `Pilot success criteria`
-25. `Copy discovery call prep`
-26. `Open day-one setup`
-27. `Day-one setup brief`
-28. `Business profile lock`
-29. `Setup tasks`
+20. `Pass test call/message`
+21. `Needs test call passed`
+22. `Prepare first manual batch`
+23. `Open discovery prep`
+24. `Discovery call prep`
+25. `Questions to ask`
+26. `Pilot success criteria`
+27. `Copy discovery call prep`
+28. `Open day-one setup`
+29. `Day-one setup brief`
+30. `Business profile lock`
+31. `Setup tasks`
 30. `Test call plan`
 31. `Copy day-one setup brief`
 32. `Open daily log`

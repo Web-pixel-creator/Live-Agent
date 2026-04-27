@@ -69,7 +69,8 @@ Do not use the pilot to build:
    `Pilot funnel summary` to narrow by `Service filter` or `Status filter`,
    review `Filtered candidates`, and select from the `Filtered outreach list`.
    The list is `View only, no send`; it does not send outreach or write CRM.
-8. Review `Pilot execution checklist`: `Prepare first manual batch`,
+8. Review `Pilot execution checklist`: `Pass test call/message`,
+   `Needs test call passed`, `Prepare first manual batch`,
    `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
    `Book discovery call`, `Start metric capture`, `Founder-only execution`,
    `No autonomous send`, and `Open pilot runbook`. Treat it as the manual

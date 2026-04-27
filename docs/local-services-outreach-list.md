@@ -80,6 +80,7 @@ The selected service panel also exposes `Open intake evidence` and
 evidence`, `local_services_intake_evidence`, and `transcript_evidence_link` as
 proof-only context before handoff.
 The same funnel now shows `Pilot execution checklist` with
+`Pass test call/message`, `Needs test call passed`,
 `Prepare first manual batch`, `Ready for first manual batch`,
 `Record ready drafts`, `Log manual contact`, `Book discovery call`,
 `Start metric capture`, `Founder-only execution`, `No autonomous send`, and

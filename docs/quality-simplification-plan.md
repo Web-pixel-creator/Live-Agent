@@ -111,10 +111,11 @@ The same funnel now adds `Outreach list filters` and `Column settings`:
 `Filtered outreach list`, `All services`, `All statuses`, `Clear filters`, and
 `View only, no send`. This brings the useful table/filter pattern into the
 pilot shell while keeping the action manual-only.
-That same funnel now adds `Pilot execution checklist`: `Prepare first manual
-batch`, `Ready for first manual batch`, `Record ready drafts`,
-`Log manual contact`, `Book discovery call`, `Start metric capture`,
-`Founder-only execution`, `No autonomous send`, and `Open pilot runbook`.
+That same funnel now adds `Pilot execution checklist`: `Pass test call/message`,
+`Needs test call passed`, `Prepare first manual batch`,
+`Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
+`Book discovery call`, `Start metric capture`, `Founder-only execution`,
+`No autonomous send`, and `Open pilot runbook`.
 This turns the 14-day pilot runbook into a visible operating loop without
 adding autonomous outreach or CRM scope.
 The next small operating layer is now `Open discovery prep`: it opens

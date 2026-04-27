@@ -116,7 +116,8 @@ The `Pilot funnel summary` also includes `Outreach list filters` and
 list is labeled `View only, no send`; selecting a row only loads that company
 into the scorecard action.
 The same funnel includes `Pilot execution checklist`, a 14-day manual operating
-loop with `Prepare first manual batch`, `Ready for first manual batch`,
+loop with `Pass test call/message`, `Needs test call passed`,
+`Prepare first manual batch`, `Ready for first manual batch`,
 `Record ready drafts`, `Log manual contact`, `Book discovery call`,
 `Start metric capture`, `Founder-only execution`, `No autonomous send`, and
 `Open pilot runbook`. Treat it as status guidance only; it does not send,

@@ -597,6 +597,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /LOCAL_SERVICES_PILOT_RUNBOOK_PATH = "\/workspace-docs\/local-services-pilot-runbook\.md"/);
   assert.match(liveDesk, /Pilot execution checklist/);
   assert.match(liveDesk, /14-day pilot operating loop/);
+  assert.match(liveDesk, /Pass test call\/message/);
+  assert.match(liveDesk, /Needs test call passed/);
   assert.match(liveDesk, /Prepare first manual batch/);
   assert.match(liveDesk, /Ready for first manual batch/);
   assert.match(liveDesk, /Record ready drafts/);
@@ -933,6 +935,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Clear filters/);
   assert.match(readme, /View only, no send/);
   assert.match(readme, /Pilot execution checklist/);
+  assert.match(readme, /Pass test call\/message/);
+  assert.match(readme, /Needs test call passed/);
   assert.match(readme, /Prepare first manual batch/);
   assert.match(readme, /Ready for first manual\s+batch/);
   assert.match(readme, /Record ready drafts/);
@@ -1092,6 +1096,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /Clear filters/);
   assert.match(localDevelopment, /View only, no send/);
   assert.match(localDevelopment, /Pilot execution checklist/);
+  assert.match(localDevelopment, /Pass test call\/message/);
+  assert.match(localDevelopment, /Needs test call passed/);
   assert.match(localDevelopment, /Prepare first manual batch/);
   assert.match(localDevelopment, /Ready for first manual batch/);
   assert.match(localDevelopment, /Record ready drafts/);
@@ -1248,6 +1254,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Clear filters/);
   assert.match(operatorGuide, /View only, no send/);
   assert.match(operatorGuide, /Pilot execution checklist/);
+  assert.match(operatorGuide, /Pass test call\/message/);
+  assert.match(operatorGuide, /Needs test call passed/);
   assert.match(operatorGuide, /Prepare first manual batch/);
   assert.match(operatorGuide, /Ready for first manual batch/);
   assert.match(operatorGuide, /Record ready drafts/);
@@ -1400,6 +1408,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /Clear filters/);
   assert.match(simplificationPlan, /View only, no send/);
   assert.match(simplificationPlan, /Pilot execution checklist/);
+  assert.match(simplificationPlan, /Pass test call\/message/);
+  assert.match(simplificationPlan, /Needs test call passed/);
   assert.match(simplificationPlan, /Prepare first manual\s+batch/);
   assert.match(simplificationPlan, /Ready for first manual batch/);
   assert.match(simplificationPlan, /Record ready drafts/);
@@ -1553,6 +1563,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /Clear filters/);
   assert.match(gettingStarted, /View only, no send/);
   assert.match(gettingStarted, /Pilot execution checklist/);
+  assert.match(gettingStarted, /Pass test call\/message/);
+  assert.match(gettingStarted, /Needs test call passed/);
   assert.match(gettingStarted, /Prepare first manual\s+batch/);
   assert.match(gettingStarted, /Ready for first manual batch/);
   assert.match(gettingStarted, /Record ready drafts/);
@@ -1708,6 +1720,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /Clear filters/);
   assert.match(localServicesSpec, /View only, no send/);
   assert.match(localServicesSpec, /Pilot execution checklist/);
+  assert.match(localServicesSpec, /Pass test call\/message/);
+  assert.match(localServicesSpec, /Needs test call passed/);
   assert.match(localServicesSpec, /Prepare first manual batch/);
   assert.match(localServicesSpec, /Ready for first manual batch/);
   assert.match(localServicesSpec, /Record ready drafts/);
@@ -1831,6 +1845,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(demoScript, /Transcript \+ evidence/);
   assert.match(demoScript, /Saved intake evidence/);
   assert.match(demoScript, /Pilot execution checklist/);
+  assert.match(demoScript, /Pass test call\/message/);
+  assert.match(demoScript, /Needs test call passed/);
   assert.match(demoScript, /Prepare first manual batch/);
   assert.match(demoScript, /Open discovery prep/);
   assert.match(demoScript, /Discovery call\s+prep/);
@@ -1944,6 +1960,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(outreachList, /local_services_intake_evidence/);
   assert.match(outreachList, /transcript_evidence_link/);
   assert.match(outreachList, /Pilot execution checklist/);
+  assert.match(outreachList, /Pass test call\/message/);
+  assert.match(outreachList, /Needs test call passed/);
   assert.match(outreachList, /Prepare first manual batch/);
   assert.match(outreachList, /Ready for first manual batch/);
   assert.match(outreachList, /Record ready drafts/);
@@ -2012,6 +2030,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotScorecard, /local_services_intake_evidence/);
   assert.match(pilotScorecard, /transcript_evidence_link/);
   assert.match(pilotScorecard, /Pilot execution checklist/);
+  assert.match(pilotScorecard, /Pass test call\/message/);
+  assert.match(pilotScorecard, /Needs test call passed/);
   assert.match(pilotScorecard, /Prepare first manual batch/);
   assert.match(pilotScorecard, /Ready for first manual batch/);
   assert.match(pilotScorecard, /Record ready drafts/);
@@ -2121,6 +2141,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotRunbook, /local_services_intake_evidence/);
   assert.match(pilotRunbook, /transcript_evidence_link/);
   assert.match(pilotRunbook, /Pilot execution checklist/);
+  assert.match(pilotRunbook, /Pass test call\/message/);
+  assert.match(pilotRunbook, /Needs test call passed/);
   assert.match(pilotRunbook, /Prepare first manual batch/);
   assert.match(pilotRunbook, /Ready for first manual batch/);
   assert.match(pilotRunbook, /Record ready drafts/);
@@ -2236,6 +2258,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(outreachExecutionPack, /local_services_intake_evidence/);
   assert.match(outreachExecutionPack, /transcript_evidence_link/);
   assert.match(outreachExecutionPack, /Pilot execution checklist/);
+  assert.match(outreachExecutionPack, /Pass test call\/message/);
+  assert.match(outreachExecutionPack, /Needs test call passed/);
   assert.match(outreachExecutionPack, /Prepare first manual batch/);
   assert.match(outreachExecutionPack, /Ready for first manual batch/);
   assert.match(outreachExecutionPack, /Record ready drafts/);

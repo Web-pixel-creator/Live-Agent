@@ -73,7 +73,8 @@ Use it to:
    `Saved intake evidence`, `Intake transcript + evidence link`,
    `Transcript preview`, `Copy intake evidence`,
    `local_services_intake_evidence`, and `transcript_evidence_link`
-8. review `Pilot execution checklist`, `Prepare first manual batch`,
+8. review `Pilot execution checklist`, `Pass test call/message`,
+   `Needs test call passed`, `Prepare first manual batch`,
    `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
    `Book discovery call`, `Start metric capture`, `Founder-only execution`,
    `No autonomous send`, and `Open pilot runbook`

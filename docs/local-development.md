@@ -54,6 +54,7 @@ browser-local outreach list and do not send messages or write CRM.
 and `transcript_evidence_link`. This is proof-only: it does not write Telegram,
 CRM, phone storage, or scorecards.
 3.4. The same route now includes `Pilot execution checklist` with
+`Pass test call/message`, `Needs test call passed`,
 `Prepare first manual batch`, `Ready for first manual batch`,
 `Record ready drafts`, `Log manual contact`, `Book discovery call`,
 `Start metric capture`, `Founder-only execution`, `No autonomous send`, and

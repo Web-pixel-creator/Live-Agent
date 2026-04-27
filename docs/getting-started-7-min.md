@@ -85,10 +85,11 @@ The `Pilot funnel summary` now also has `Outreach list filters` and
 `Filtered outreach list`, `All services`, `All statuses`, `Clear filters`, and
 `View only, no send`. Use this to pick a pilot company from the shell without
 claiming the product sent outreach or wrote CRM.
-The same funnel now has `Pilot execution checklist`: `Prepare first manual
-batch`, `Ready for first manual batch`, `Record ready drafts`,
-`Log manual contact`, `Book discovery call`, `Start metric capture`,
-`Founder-only execution`, `No autonomous send`, and `Open pilot runbook`. It
+The same funnel now has `Pilot execution checklist`: `Pass test call/message`,
+`Needs test call passed`, `Prepare first manual batch`,
+`Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
+`Book discovery call`, `Start metric capture`, `Founder-only execution`,
+`No autonomous send`, and `Open pilot runbook`. It
 shows the 14-day pilot operating loop without sending anything automatically.
 Use `Open discovery prep` after a company is marked `Reply received`. The
 `Discovery call prep` drawer gives `Questions to ask`, `Pilot success criteria`,
