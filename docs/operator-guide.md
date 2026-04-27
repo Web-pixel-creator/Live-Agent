@@ -108,6 +108,12 @@ review `Questions to ask`, `Pilot success criteria`, and
 `Copy discovery call prep` before manually booking or following up. The payload
 is `local_services_discovery_call_prep`; it is not a calendar action, CRM write,
 analytics sync, or outbound message.
+`Open day-one setup` opens `Day-one setup brief` after the discovery call:
+review `Business profile lock`, `Setup tasks`, `Test call plan`, and
+`Copy day-one setup brief` before running the first test call/message. The
+payload is `local_services_day_one_setup_brief`; it is not phone activation,
+Telegram/WhatsApp activation, billing, CRM write, calendar booking, analytics
+sync, or customer send.
 The wizard now has an operator-local `Pilot scorecard action`: choose a
 lane-specific company from the outreach list, inspect the `Test message preview`,
 and `Record scorecard draft` as `Not contacted`. This records demo-session

@@ -65,6 +65,12 @@ outreach, write CRM, sync analytics, or mutate Markdown docs.
 `local_services_discovery_call_prep`. It prepares the first replied-company
 conversation only; it does not create calendar bookings, send follow-up, write
 CRM, sync analytics, or mutate Markdown docs.
+3.6. The same route now includes `Open day-one setup`, which opens
+`Day-one setup brief` with `Business profile lock`, `Setup tasks`,
+`Test call plan`, `Copy day-one setup brief`, and
+`local_services_day_one_setup_brief`. It converts a discovery call into a
+manual setup handoff only; it does not activate phone, Telegram, WhatsApp, CRM,
+analytics, billing, calendar, or customer sends.
 4. `http://localhost:3000/app/console/runtime` serves the deeper operator support route for replay, compliance, export, and runtime diagnostics. It remains a secondary/internal surface, while the primary sidebar keeps the transferred `hello-friend` routing (`/app`, `/app/console`, `/app/simulation`, `/app/nodes`) intact.
 4.1. `http://localhost:3000/debug-artifacts/index.json` serves the read-only artifact index used by the runtime support `Artifact Viewer`, and the same frontend server can then serve allowlisted JSON files from `artifacts/demo-e2e`, `artifacts/runtime`, and `artifacts/release-evidence`; the support route also pins quick-view tabs for the four main evidence files so a local operator can inspect the structured release/demo summary before opening the raw JSON.
 5. `http://localhost:3000/legacy` keeps the legacy compatibility dashboard/runtime surfaces, links back to `/app`, defaults to `Operator Console` + `Device Nodes` fallback tabs, no longer keeps the hidden legacy live/simulation render loops or compatibility-only control bindings active, and bounces any remaining quick-start actions that need those primary surfaces into `/app`. The direct-live proof query opts those live bindings back in for smoke evidence only (`?debugLive=true` or `?livePreferredMode=direct_live`).

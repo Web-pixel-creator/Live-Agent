@@ -77,12 +77,16 @@ Use it to:
 8. use `Open discovery prep` after `Reply received` to review
    `Discovery call prep`, `Questions to ask`, `Pilot success criteria`,
    `Copy discovery call prep`, and `local_services_discovery_call_prep`
-9. review the `Test message preview`
-10. open `Operator confirmation summary`
-11. click `Record ready for manual outreach` to mark `Draft ready` locally
-12. open `Ask AI about pilot` if the operator needs `Suggested questions`,
+9. use `Open day-one setup` after the discovery call to review
+   `Day-one setup brief`, `Business profile lock`, `Setup tasks`,
+   `Test call plan`, `Copy day-one setup brief`, and
+   `local_services_day_one_setup_brief`
+10. review the `Test message preview`
+11. open `Operator confirmation summary`
+12. click `Record ready for manual outreach` to mark `Draft ready` locally
+13. open `Ask AI about pilot` if the operator needs `Suggested questions`,
    `Best candidate`, `Bottleneck`, or `Next message`
-13. keep real outreach manual-only until a human sends the message outside the shell
+14. keep real outreach manual-only until a human sends the message outside the shell
 
 This shell action is intentionally local to the demo session. It does not send a
 message, activate phone or Telegram, update CRM, call an external LLM, or change
@@ -134,6 +138,12 @@ handoff notes, and `Copy discovery call prep` only after the selected company
 and status are current. The payload is `local_services_discovery_call_prep` and
 does not create calendar bookings, send follow-up, write CRM, sync analytics, or
 mutate this Markdown file automatically.
+
+`Open day-one setup` opens the `Day-one setup brief` drawer after discovery.
+Use it to lock the business profile, setup tasks, and test call plan before the
+first real pilot day. `Copy day-one setup brief` copies
+`local_services_day_one_setup_brief` only; it does not activate phone,
+Telegram, WhatsApp, billing, CRM, calendar, analytics, or customer sends.
 
 ## Discovery Call Notes
 

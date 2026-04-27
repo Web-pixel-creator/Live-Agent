@@ -234,8 +234,13 @@ Allowed reply statuses:
    `Pilot success criteria`, `Copy discovery call prep`, and
    `local_services_discovery_call_prep`; explain that this prepares the first
    replied-company call only and does not book a calendar slot or write CRM.
-16. Show `Pilot metrics` and `Open metrics tracker`.
-17. End with one question: "Would this save missed requests or manager time if we
+16. Show `Open day-one setup`, `Day-one setup brief`, `Business profile lock`,
+   `Setup tasks`, `Test call plan`, `Copy day-one setup brief`, and
+   `local_services_day_one_setup_brief`; explain that this prepares the first
+   pilot day only and does not activate channels, billing, CRM, calendar, or
+   customer sends.
+17. Show `Pilot metrics` and `Open metrics tracker`.
+18. End with one question: "Would this save missed requests or manager time if we
    tested it for 14 days?"
 
 ## After Each Contact

@@ -108,6 +108,12 @@ The next small operating layer is now `Open discovery prep`: it opens
 `local_services_discovery_call_prep` payload. This keeps the first replied
 company call inside the operator workflow without adding calendar, CRM,
 analytics, or outbound-message scope.
+The next linked setup layer is now `Open day-one setup`: it opens
+`Day-one setup brief` with `Business profile lock`, `Setup tasks`,
+`Test call plan`, `Copy day-one setup brief`, and the structured
+`local_services_day_one_setup_brief` payload. This turns the discovery call into
+pilot setup work without adding live channel activation, billing, CRM,
+analytics, calendar, or customer-message scope.
 That funnel now has `Open pilot export`, which opens a `Pilot workspace export
 drawer` with `Human-readable` / `JSON` modes and `Copy pilot workspace export`.
 The export is intentionally manual-only: no outbound message, no CRM write, and

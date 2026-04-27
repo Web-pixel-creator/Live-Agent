@@ -103,11 +103,17 @@ Point at:
 23. `Questions to ask`
 24. `Pilot success criteria`
 25. `Copy discovery call prep`
-26. `Open pilot runbook`
+26. `Open day-one setup`
+27. `Day-one setup brief`
+28. `Business profile lock`
+29. `Setup tasks`
+30. `Test call plan`
+31. `Copy day-one setup brief`
+32. `Open pilot runbook`
 
 Say:
 
-`This makes the product sales-ready as well: we can explain the offer, show the 7-minute setup path, review business profile, knowledge sources, behavior, test call readiness, prove the saved intake transcript and evidence link, then filter the outreach list by service or status, choose visible scorecard columns, show the 14-day manual pilot checklist, and prepare the discovery call brief before copying the reviewed setup, discovery, or metrics brief manually. Nothing here activates phone, Telegram, WhatsApp, CRM, analytics, billing, outreach sends, calendar bookings, or CRM writes.`
+`This makes the product sales-ready as well: we can explain the offer, show the 7-minute setup path, review business profile, knowledge sources, behavior, test call readiness, prove the saved intake transcript and evidence link, then filter the outreach list by service or status, choose visible scorecard columns, show the 14-day manual pilot checklist, prepare the discovery call brief, and turn that into the day-one setup brief before copying the reviewed setup, discovery, or metrics note manually. Nothing here activates phone, Telegram, WhatsApp, CRM, analytics, billing, outreach sends, calendar bookings, or CRM writes.`
 
 Optional second click if the prospect is construction-adjacent: open
 `Measurement visit booking` and point at the no-final-price approval rule.

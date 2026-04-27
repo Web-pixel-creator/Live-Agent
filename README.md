@@ -142,6 +142,12 @@ Local-services expansion spec:
   call brief exposes `Questions to ask`, `Pilot success criteria`,
   `Copy discovery call prep`, and `local_services_discovery_call_prep` without
   creating a calendar event, sending follow-up, or writing CRM.
+- after the discovery call, the same pilot loop opens `Day-one setup brief`
+  through `Open day-one setup`; it exposes `Business profile lock`,
+  `Setup tasks`, `Test call plan`, `Copy day-one setup brief`, and
+  `local_services_day_one_setup_brief` so the operator can prepare the first
+  real pilot day without activating phone, Telegram, WhatsApp, CRM, analytics,
+  billing, calendar, or customer send.
 - the funnel summary now opens a `Pilot workspace export drawer` with
   `Human-readable` and `JSON` modes plus `Copy pilot workspace export`; it is a
   browser-local planning artifact and does not send outreach or write CRM.

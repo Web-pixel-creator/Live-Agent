@@ -496,6 +496,21 @@ type LocalServiceDiscoveryCallPrep = {
   guardrails: string[];
 };
 
+type LocalServiceDayOneSetupBrief = {
+  title: string;
+  description: string;
+  modeLabel: string;
+  copyLabel: string;
+  setupReadiness: string;
+  humanText: string;
+  jsonText: string;
+  rows: { label: string; value: string }[];
+  businessProfile: { label: string; value: string }[];
+  setupTasks: { label: string; value: string; owner: string }[];
+  testPlan: string[];
+  guardrails: string[];
+};
+
 type LocalServiceAgentSetupBrief = {
   title: string;
   description: string;
@@ -1550,6 +1565,133 @@ function buildLocalServiceDiscoveryCallPrep(
   };
 }
 
+function buildLocalServiceDayOneSetupBrief(
+  template: LocalServiceDemoTemplate,
+  prospect: LocalServiceOutreachProspect | undefined,
+  status: LocalServicePilotStatus,
+  metricStatus: LocalServicePilotMetricStatus,
+): LocalServiceDayOneSetupBrief {
+  const statusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[status];
+  const metricStatusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus];
+  const company = prospect?.company ?? "No prospect selected";
+  const setupReadiness =
+    status === "reply_received"
+      ? "Discovery reply captured - ready to prepare day-one setup"
+      : "Needs replied company before day-one setup";
+  const businessProfile = [
+    { label: "Company", value: company },
+    { label: "Service lane", value: `${template.ref} - ${template.title}` },
+    { label: "Segment", value: prospect?.segment ?? "unknown" },
+    { label: "Channel fit", value: prospect?.channelFit ?? template.channel },
+    { label: "Pilot offer", value: template.detail.pilotKit.offerSummary },
+  ];
+  const setupTasks = [
+    {
+      label: "Lock business profile",
+      value: "Confirm service area, work hours, owner/dispatcher name, and approved callback language.",
+      owner: "Founder",
+    },
+    {
+      label: "Load knowledge sources",
+      value: `${template.detail.phoneIntake.length} intake prompts, ${template.detail.estimateInputs.length} estimate inputs, ${template.detail.approvalPolicy.length} approval rules, and Telegram replay sample.`,
+      owner: "Operator",
+    },
+    {
+      label: "Define approval rules",
+      value: "Keep final price, appointment slot, master assignment, and customer-facing send behind human approval.",
+      owner: "Owner",
+    },
+    {
+      label: "Prepare test call/message",
+      value: "Use the sample input and Telegram fallback to run one dry test before any live channel activation.",
+      owner: "Operator",
+    },
+    {
+      label: "Capture baseline",
+      value: "Record current request volume, missed-call pain, response time, booking rate, and manual edits.",
+      owner: "Founder",
+    },
+  ];
+  const testPlan = [
+    `Run one scripted phone test: ${template.detail.sampleInput}`,
+    `Run one Telegram/media test: ${template.detail.telegramIntake.inboundMessage}`,
+    "Confirm the generated customer confirmation stays draft-only.",
+    "Confirm the master/operator handoff includes the required approval fields.",
+    "Copy the reviewed setup brief into the private pilot notes after owner approval.",
+  ];
+  const guardrails = [
+    "no_phone_channel_activation",
+    "no_telegram_or_whatsapp_activation",
+    "no_calendar_booking_created",
+    "no_crm_write",
+    "no_customer_message_sent",
+    "manual_owner_approval_required",
+  ];
+  const humanLines = [
+    `Day-one setup brief: ${template.title}`,
+    `Selected company: ${company}`,
+    `Current status: ${statusLabel}`,
+    `Metric status: ${metricStatusLabel}`,
+    `Setup readiness: ${setupReadiness}`,
+    "",
+    "Business profile:",
+    ...businessProfile.map((item) => `- ${item.label}: ${item.value}`),
+    "",
+    "Day-one setup tasks:",
+    ...setupTasks.map((task) => `- ${task.label} (${task.owner}): ${task.value}`),
+    "",
+    "Test call plan:",
+    ...testPlan.map((step) => `- ${step}`),
+    "",
+    "Guardrails:",
+    ...guardrails.map((guardrail) => `- ${guardrail}`),
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_day_one_setup_brief",
+      export_kind: "operator_review_setup_handoff",
+      service_id: template.id,
+      service_ref: template.ref,
+      service_title: template.title,
+      selected_company: company,
+      selected_status: status,
+      selected_status_label: statusLabel,
+      metric_status: metricStatus,
+      metric_status_label: metricStatusLabel,
+      setup_readiness: setupReadiness,
+      business_profile: businessProfile,
+      setup_tasks: setupTasks,
+      test_plan: testPlan,
+      guardrails,
+    },
+    null,
+    2,
+  );
+
+  return {
+    title: "Day-one setup brief",
+    description:
+      "Operator-reviewed setup handoff for the first pilot day. It turns the discovery call into business profile, knowledge source, approval-rule, and test-call prep without activating channels.",
+    modeLabel: "Day-one setup mode",
+    copyLabel: "Copy day-one setup brief",
+    setupReadiness,
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: [
+      { label: "Selected company", value: company },
+      { label: "Service", value: `${template.ref} - ${template.title}` },
+      { label: "Current status", value: statusLabel },
+      { label: "Metric status", value: metricStatusLabel },
+      { label: "Setup readiness", value: setupReadiness },
+      { label: "Guardrail", value: "No channel activation, no CRM write, no customer send" },
+    ],
+    businessProfile,
+    setupTasks,
+    testPlan,
+    guardrails,
+  };
+}
+
 function buildLocalServicePilotAnalystBrief(
   template: LocalServiceDemoTemplate,
   prospect: LocalServiceOutreachProspect | undefined,
@@ -2365,6 +2507,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [pilotAnalystMode, setPilotAnalystMode] = useState<PlaybookExportMode>("human");
   const [discoveryCallPrepOpen, setDiscoveryCallPrepOpen] = useState(false);
   const [discoveryCallPrepMode, setDiscoveryCallPrepMode] = useState<PlaybookExportMode>("human");
+  const [dayOneSetupOpen, setDayOneSetupOpen] = useState(false);
+  const [dayOneSetupMode, setDayOneSetupMode] = useState<PlaybookExportMode>("human");
   const [agentSetupOpen, setAgentSetupOpen] = useState(false);
   const [agentSetupMode, setAgentSetupMode] = useState<PlaybookExportMode>("human");
   const [intakeEvidenceOpen, setIntakeEvidenceOpen] = useState(false);
@@ -2489,6 +2633,16 @@ const LocalServicesDispatchDemoPanel = ({
       ),
     [currentMetricStatus, currentPilotStatus, selectedOutreachProspect, selectedTemplate],
   );
+  const dayOneSetupBrief = useMemo(
+    () =>
+      buildLocalServiceDayOneSetupBrief(
+        selectedTemplate,
+        selectedOutreachProspect,
+        currentPilotStatus,
+        currentMetricStatus,
+      ),
+    [currentMetricStatus, currentPilotStatus, selectedOutreachProspect, selectedTemplate],
+  );
   const agentSetupBrief = useMemo(() => buildLocalServiceAgentSetupBrief(selectedTemplate), [selectedTemplate]);
   const nextManualBatch = filteredPilotFunnelRows
     .filter((item) => item.status !== "reply_received" && item.status !== "rejected_for_now")
@@ -2526,7 +2680,7 @@ const LocalServicesDispatchDemoPanel = ({
       label: "Start metric capture",
       status: currentMetricStatusLabel,
       owner: "Operator",
-      detail: "Use Open metrics tracker after the first serious pilot conversation starts.",
+      detail: "Open Day-one setup brief first, then use Open metrics tracker after the pilot conversation starts.",
       done: currentMetricStatus !== "not_started",
     },
   ];
@@ -3003,6 +3157,17 @@ const LocalServicesDispatchDemoPanel = ({
                 className="h-7"
               >
                 Open discovery prep
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setDayOneSetupMode("human");
+                  setDayOneSetupOpen(true);
+                }}
+                className="h-7"
+              >
+                Open day-one setup
               </Button>
               <Button
                 size="sm"
@@ -3993,6 +4158,21 @@ const LocalServicesDispatchDemoPanel = ({
         onOpenMetrics={() => setPilotMetricsTrackerOpen(true)}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenRunbook={() => onOpenPath(LOCAL_SERVICES_PILOT_RUNBOOK_PATH)}
+        onOpenDayOneSetup={() => {
+          setDayOneSetupMode("human");
+          setDayOneSetupOpen(true);
+        }}
+      />
+      <LocalServiceDayOneSetupSheet
+        open={dayOneSetupOpen}
+        onOpenChange={setDayOneSetupOpen}
+        brief={dayOneSetupBrief}
+        mode={dayOneSetupMode}
+        onModeChange={setDayOneSetupMode}
+        onCopy={onCopyText}
+        onOpenAgentSetup={() => setAgentSetupOpen(true)}
+        onOpenMetrics={() => setPilotMetricsTrackerOpen(true)}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
       />
       <LocalServiceAgentSetupSheet
         open={agentSetupOpen}
@@ -5001,6 +5181,7 @@ const LocalServiceDiscoveryCallPrepSheet = ({
   onOpenMetrics,
   onOpenScorecard,
   onOpenRunbook,
+  onOpenDayOneSetup,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -5011,6 +5192,7 @@ const LocalServiceDiscoveryCallPrepSheet = ({
   onOpenMetrics: () => void;
   onOpenScorecard: () => void;
   onOpenRunbook: () => void;
+  onOpenDayOneSetup: () => void;
 }) => {
   const renderedText = mode === "human" ? prep.humanText : prep.jsonText;
 
@@ -5096,6 +5278,10 @@ const LocalServiceDiscoveryCallPrepSheet = ({
                   <FileText className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
                   Open pilot runbook
                 </Button>
+                <Button size="sm" variant="secondary" onClick={onOpenDayOneSetup} className="h-8">
+                  <UserRoundCog className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Open day-one setup
+                </Button>
                 <Button size="sm" variant="secondary" onClick={onOpenMetrics} className="h-8">
                   <Clock className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
                   Open metrics tracker
@@ -5159,6 +5345,207 @@ const LocalServiceDiscoveryCallPrepSheet = ({
               <Button size="sm" onClick={() => onCopy(renderedText, prep.copyLabel)} className="h-8">
                 <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
                 {prep.copyLabel}
+              </Button>
+            </div>
+            <pre className="max-h-[36vh] overflow-auto rounded-md border border-border/60 bg-card/30 px-3 py-3 font-mono text-[11px] leading-relaxed text-foreground">
+              {renderedText}
+            </pre>
+          </section>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+};
+
+const LocalServiceDayOneSetupSheet = ({
+  open,
+  onOpenChange,
+  brief,
+  mode,
+  onModeChange,
+  onCopy,
+  onOpenAgentSetup,
+  onOpenMetrics,
+  onOpenScorecard,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  brief: LocalServiceDayOneSetupBrief;
+  mode: PlaybookExportMode;
+  onModeChange: (mode: PlaybookExportMode) => void;
+  onCopy: (text: string, label: string) => void;
+  onOpenAgentSetup: () => void;
+  onOpenMetrics: () => void;
+  onOpenScorecard: () => void;
+}) => {
+  const renderedText = mode === "human" ? brief.humanText : brief.jsonText;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col gap-0 p-0">
+        <SheetHeader className="px-7 py-5 border-b border-border/70 space-y-2.5 text-left">
+          <div className="flex items-center gap-2">
+            <UserRoundCog className="h-3.5 w-3.5 text-muted-foreground/70" strokeWidth={1.75} />
+            <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground/80">
+              Day-one setup
+            </span>
+          </div>
+          <SheetTitle className="font-serif text-[22px] tracking-tight leading-[1.2]">
+            {brief.title}
+          </SheetTitle>
+          <SheetDescription className="text-[12.5px] text-muted-foreground/85 leading-relaxed">
+            {brief.description}
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="flex-1 min-h-0 overflow-auto">
+          <section className="px-7 pt-6 pb-5 border-b border-border/50 space-y-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  {brief.modeLabel}
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Convert the discovery call into setup tasks before activating any live channel.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant={mode === "human" ? "default" : "secondary"}
+                  onClick={() => onModeChange("human")}
+                  className="h-8"
+                >
+                  Human-readable
+                </Button>
+                <Button
+                  size="sm"
+                  variant={mode === "json" ? "default" : "secondary"}
+                  onClick={() => onModeChange("json")}
+                  className="h-8"
+                >
+                  JSON
+                </Button>
+              </div>
+            </div>
+
+            <div className="inline-flex rounded-[5px] bg-[hsl(var(--tint-mint)/0.12)] px-2 py-1 text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.22)]">
+              {brief.setupReadiness}
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              {brief.rows.map((row) => (
+                <div key={row.label} className="rounded-md border border-border/60 bg-card/30 px-3 py-2.5">
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+                    {row.label}
+                  </div>
+                  <div className="mt-1 break-words text-[12px] leading-relaxed text-foreground">
+                    {row.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="px-7 py-5 border-b border-border/50 space-y-3">
+            <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+              Business profile lock
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {brief.businessProfile.map((item) => (
+                <div key={item.label} className="rounded-md border border-border/60 bg-card/30 px-3 py-2.5">
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+                    {item.label}
+                  </div>
+                  <div className="mt-1 break-words text-[12px] leading-relaxed text-foreground">
+                    {item.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="px-7 py-5 border-b border-border/50 space-y-3">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  Setup tasks
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Operator-owned day-one work before the first real test call or message.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="secondary" onClick={onOpenAgentSetup} className="h-8">
+                  <UserRoundCog className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Open setup checklist
+                </Button>
+                <Button size="sm" variant="secondary" onClick={onOpenMetrics} className="h-8">
+                  <Clock className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Open metrics tracker
+                </Button>
+                <Button size="sm" variant="secondary" onClick={onOpenScorecard} className="h-8">
+                  <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Open pilot scorecard
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {brief.setupTasks.map((task) => (
+                <div key={task.label} className="rounded-md border border-border/60 bg-card/30 px-3 py-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[12px] font-semibold text-foreground">{task.label}</span>
+                    <span className="rounded-[5px] bg-secondary/45 px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
+                      Owner: {task.owner}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">{task.value}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="px-7 py-5 border-b border-border/50 space-y-3">
+            <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+              Test call plan
+            </div>
+            <ul className="space-y-2 text-[12.5px] leading-relaxed text-foreground">
+              {brief.testPlan.map((step) => (
+                <li key={step} className="flex gap-2">
+                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="px-7 py-5 border-b border-border/50 space-y-3">
+            <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+              Guardrails
+            </div>
+            <ul className="space-y-2 text-[12.5px] leading-relaxed text-foreground">
+              {brief.guardrails.map((guardrail) => (
+                <li key={guardrail} className="flex gap-2">
+                  <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                  <span>{guardrail}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="px-7 py-5 space-y-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  {mode === "human" ? "Human-readable setup handoff" : "JSON setup handoff"}
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Copy only after the operator confirms the day-one profile and test plan.
+                </p>
+              </div>
+              <Button size="sm" onClick={() => onCopy(renderedText, brief.copyLabel)} className="h-8">
+                <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                {brief.copyLabel}
               </Button>
             </div>
             <pre className="max-h-[36vh] overflow-auto rounded-md border border-border/60 bg-card/30 px-3 py-3 font-mono text-[11px] leading-relaxed text-foreground">

@@ -95,6 +95,12 @@ Use `Open discovery prep` after a company is marked `Reply received`. The
 `Human-readable` / `JSON` modes, and `Copy discovery call prep`; the structured
 payload is `local_services_discovery_call_prep`. It does not book a calendar
 slot, send follow-up, write CRM, sync analytics, or mutate docs.
+Use `Open day-one setup` after the discovery call is real. The
+`Day-one setup brief` drawer gives `Business profile lock`, `Setup tasks`,
+`Test call plan`, `Human-readable` / `JSON` modes, and
+`Copy day-one setup brief`; the structured payload is
+`local_services_day_one_setup_brief`. It does not activate phone, Telegram,
+WhatsApp, CRM, analytics, billing, calendar, or customer sends.
 That wizard now includes a `Pilot scorecard action`: select `AC MASTER`,
 `Santexniki.uz`, `Service-Pro`, or another lane-specific candidate from the
 repo-owned outreach list, review the test message, and `Record scorecard draft`

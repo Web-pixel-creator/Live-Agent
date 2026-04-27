@@ -86,6 +86,11 @@ prep`, `Questions to ask`, `Pilot success criteria`, and
 `Copy discovery call prep`. The structured payload is
 `local_services_discovery_call_prep`; it remains manual-only and does not book
 calendar slots, send follow-up, write CRM, sync analytics, or mutate this list.
+After that call, use `Open day-one setup` to review `Day-one setup brief`,
+`Business profile lock`, `Setup tasks`, `Test call plan`, and
+`Copy day-one setup brief`. The structured payload is
+`local_services_day_one_setup_brief`; it remains setup handoff only and does not
+activate channels, billing, CRM, calendar, analytics, or customer sends.
 
 ### Week 1
 
