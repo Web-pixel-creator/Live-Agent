@@ -39,6 +39,7 @@ Seven-minute product path:
 - approve the protected missing-document follow-up
 - open the per-case evidence or presentation bundle
 - keep runtime, replay, signing, and raw artifact detail in support surfaces
+  such as `docs/evidence-and-trust.md`
 
 Live Desk also exposes four productized playbook templates:
 

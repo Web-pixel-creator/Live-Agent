@@ -265,7 +265,8 @@ Create or update:
 1. `README.md` product-first introduction,
 2. `docs/getting-started-7-min.md`,
 3. `docs/operator-guide.md` seven-minute demo note,
-4. `docs/evidence-and-trust.md` for replay, signing, and release detail.
+4. `docs/evidence-and-trust.md` for replay, signing, and release detail. Done
+   as the support document for proof depth outside the first product scan.
 
 ### P1 - Templates
 

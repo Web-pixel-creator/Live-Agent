@@ -24,6 +24,7 @@ Product framing for operators:
 6. Operator actions: `POST /v1/operator/actions`
 7. Runtime drill catalog: `GET /v1/runtime/fault-profiles`
 8. Runtime drill execution: `POST /v1/runtime/fault-profiles/execute` (`x-operator-role: admin`, use `dryRun=true` before live activation when possible)
+9. Evidence and trust support doc: `docs/evidence-and-trust.md`
 
 Seven-minute demo note: use `/app?demo=visa-intake` when the goal is to show
 product value before runtime depth, or open `/app` and click `Start 7-minute
@@ -43,6 +44,9 @@ integration-ready review surface: `CRM handoff summary` opens a `CRM payload
 drawer`, `Consultation booking prep` opens a `Consultation handoff drawer`, and
 both drawers switch between `Human-readable` and `JSON` modes before jumping to
 the canonical `Case Vault` or `Presentation bundle` surface.
+Use `docs/evidence-and-trust.md` when an operator needs replay, signing,
+release evidence, or compliance posture; keep that detail out of the first
+product scan unless the buyer asks for proof depth.
 
 Local-services demo note: use
 `/app?demo=local-services-dispatch&service=ac-repair-dispatch` when the goal is

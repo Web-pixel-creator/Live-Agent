@@ -458,6 +458,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   const operatorGuide = readRepoSource("docs/operator-guide.md");
   const simplificationPlan = readRepoSource("docs/quality-simplification-plan.md");
   const gettingStarted = readRepoSource("docs/getting-started-7-min.md");
+  const evidenceTrust = readRepoSource("docs/evidence-and-trust.md");
   const localServicesSpec = readRepoSource("docs/local-services-action-desk-spec.md");
   const pilotOffer = readRepoSource("docs/local-services-pilot-offer.md");
   const demoScript = readRepoSource("docs/local-services-demo-script.md");
@@ -1068,6 +1069,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /docs\/local-services-outreach-execution-pack\.md/);
   assert.match(readme, /Open outreach execution pack/);
   assert.match(readme, /Start 7-minute demo/);
+  assert.match(readme, /docs\/evidence-and-trust\.md/);
   assert.match(readme, /Live Desk also exposes four productized playbook templates/);
   assert.match(readme, /Outcome`, `Approval`, `Evidence`, and `Deliverable/);
   assert.match(readme, /Selecting a template opens an inline detail panel/);
@@ -1079,6 +1081,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Consultation handoff drawer/);
   assert.match(readme, /Human-readable` and `JSON`/);
   assert.match(localDevelopment, /\/app\?demo=visa-intake/);
+  assert.match(localDevelopment, /docs\/evidence-and-trust\.md/);
+  assert.match(localDevelopment, /replay, signing, release evidence/);
   assert.match(localDevelopment, /\/app\?demo=local-services-dispatch&service=ac-repair-dispatch/);
   assert.match(localDevelopment, /AI Dispatcher for Local Services/);
   assert.match(localDevelopment, /Measurement visit booking/);
@@ -1255,6 +1259,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /`CRM payload drawer` and `Consultation handoff drawer`/);
   assert.match(localDevelopment, /\?playbook=<lane-id>/);
   assert.match(operatorGuide, /Seven-minute demo note:/);
+  assert.match(operatorGuide, /docs\/evidence-and-trust\.md/);
+  assert.match(operatorGuide, /replay, signing,\s+release evidence/);
   assert.match(operatorGuide, /Local-services demo note:/);
   assert.match(operatorGuide, /\/app\?demo=local-services-dispatch&service=ac-repair-dispatch/);
   assert.match(operatorGuide, /AI Dispatcher\s+for Local Services/);
@@ -1572,6 +1578,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /CRM payload drawer/);
   assert.match(simplificationPlan, /Consultation handoff drawer/);
   assert.match(simplificationPlan, /\?playbook=/);
+  assert.match(simplificationPlan, /docs\/evidence-and-trust\.md/);
+  assert.match(simplificationPlan, /support document for proof depth/);
   assert.match(gettingStarted, /Start 7-minute demo/);
   assert.match(gettingStarted, /Local Services Expansion Path/);
   assert.match(gettingStarted, /Local services demo/);
@@ -1734,6 +1742,14 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /Open export drawer/);
   assert.match(gettingStarted, /Human-readable` and `JSON`/);
   assert.match(gettingStarted, /Case Outcome Summary/);
+  assert.match(evidenceTrust, /# Evidence and Trust/);
+  assert.match(evidenceTrust, /support surface for replay, signing, release evidence/);
+  assert.match(evidenceTrust, /Case Outcome Summary/);
+  assert.match(evidenceTrust, /Signature pending/);
+  assert.match(evidenceTrust, /npm run verify:release/);
+  assert.match(evidenceTrust, /public\/demo-e2e\/badge\.json/);
+  assert.match(evidenceTrust, /artifacts\/release-evidence\/runtime-proof-report\.json/);
+  assert.match(evidenceTrust, /No external side effects/);
   assert.match(localServicesSpec, /AI Dispatcher for local service businesses/);
   assert.match(localServicesSpec, /\/app\?demo=local-services-dispatch&service=ac-repair-dispatch/);
   assert.match(localServicesSpec, /Measurement visit booking/);
