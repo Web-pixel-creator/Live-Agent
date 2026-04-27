@@ -128,7 +128,9 @@ The final recording must visibly include:
 9. `Pilot readiness`,
 10. `Open recording checklist`,
 11. `Open evidence pack`,
-12. `No autonomous send`.
+12. `Manual activity log`,
+13. `No external side effects`,
+14. `No autonomous send`.
 
 ## Do-Not-Claim Rules
 

@@ -162,7 +162,11 @@ Local-services expansion spec:
   `Next action`, `Copy launch packet`, and
   `local_services_pilot_launch_packet`; it still does not send outreach,
   create calendar events, write CRM, or mutate docs. It mirrors
-  browser-local statuses only. The same
+  browser-local statuses only. The same checklist now also shows
+  `Manual activity log`, `Last manual action`, `Copy activity log`, and
+  `local_services_manual_activity_log` for browser-local scorecard and metric
+  events; it records `No external side effects` and does not send outreach,
+  create calendar events, write CRM, sync analytics, bill, or mutate docs. The same
   checklist now opens `Discovery call prep` through `Open discovery prep`; that
   call brief exposes `Questions to ask`, `Pilot success criteria`,
   `Copy discovery call prep`, and `local_services_discovery_call_prep` without
@@ -175,7 +179,8 @@ Local-services expansion spec:
   billing, calendar, or customer send.
 - the funnel summary now opens a `Pilot workspace export drawer` with
   `Human-readable` and `JSON` modes plus `Copy pilot workspace export`; it is a
-  browser-local planning artifact and does not send outreach or write CRM.
+  browser-local planning artifact that includes the latest `Manual activity log`
+  / `Last manual action`; it does not send outreach or write CRM.
 - the same browser-local pilot state now includes a `Pilot metrics tracker`:
   `Open metrics tracker` exposes `Human-readable` / `JSON` modes and
   `Copy pilot metrics tracker` for manual weekly scorecard sync, with no

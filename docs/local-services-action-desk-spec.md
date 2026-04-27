@@ -689,8 +689,9 @@ Telegram, WhatsApp, CRM, analytics, billing, calendar, customer send, or
 Markdown mutation happens.
 The same funnel now opens a `Pilot workspace export drawer` through
 `Open pilot export`. The drawer has `Human-readable` and `JSON` modes, exposes
-`Copy pilot workspace export`, and carries explicit guardrails: no outbound
-message, no CRM write, and manual scorecard sync only.
+`Copy pilot workspace export`, includes the latest `Manual activity log` /
+`Last manual action`, and carries explicit guardrails: no outbound message, no
+CRM write, and manual scorecard sync only.
 The selected lane's `Pilot metrics` block now opens a `Pilot metrics tracker`
 through `Open metrics tracker`. The tracker has `Human-readable` and `JSON`
 modes, exposes `Copy pilot metrics tracker`, stores its status in the same
@@ -864,51 +865,56 @@ Current shell readiness for P3:
    and `local_services_pilot_launch_packet` are visible as the first-contact
    launch packet. It remains manual-only: no outreach send, calendar event, CRM
    write, analytics sync, or Markdown mutation.
-18. `Open discovery prep`, `Discovery call prep`, `Questions to ask`,
+18. `Manual activity log`, `Last manual action`, `Copy activity log`,
+   `local_services_manual_activity_log`, and `No external side effects` are
+   visible as the browser-local log for scorecard and metric events. It does
+   not send outreach, create calendar events, write CRM, sync analytics, bill,
+   or mutate Markdown docs.
+19. `Open discovery prep`, `Discovery call prep`, `Questions to ask`,
    `Pilot success criteria`, `Copy discovery call prep`, and
    `local_services_discovery_call_prep` are visible as the manual discovery
    call preparation surface.
-19. `Open day-one setup`, `Day-one setup brief`, `Business profile lock`,
+20. `Open day-one setup`, `Day-one setup brief`, `Business profile lock`,
    `Setup tasks`, `Test call plan`, `Copy day-one setup brief`, and
    `local_services_day_one_setup_brief` are visible as the manual first-day
    setup handoff surface.
-20. `Open pilot export`, `Pilot workspace export drawer`, `Human-readable`,
+21. `Open pilot export`, `Pilot workspace export drawer`, `Human-readable`,
    `JSON`, and `Copy pilot workspace export` are visible in the shell.
-21. `Open metrics tracker`, `Pilot metrics tracker`, `Human-readable`, `JSON`,
+22. `Open metrics tracker`, `Pilot metrics tracker`, `Human-readable`, `JSON`,
    and `Copy pilot metrics tracker` are visible in the shell.
-22. `Open daily log`, `Pilot daily log`, `Daily capture fields`,
+23. `Open daily log`, `Pilot daily log`, `Daily capture fields`,
    `Daily operating loop`, `Copy pilot daily log`, and
    `local_services_pilot_daily_log` are visible in the shell.
-23. `Open week-one review`, `Pilot week-one review`,
+24. `Open week-one review`, `Pilot week-one review`,
    `Continue / stop decision`, `Copy week-one review`, and
    `local_services_pilot_week_one_review` are visible in the shell.
-24. `Open evidence pack`, `Pilot evidence pack`, `Week-two evidence pack`,
+25. `Open evidence pack`, `Pilot evidence pack`, `Week-two evidence pack`,
    `Copy evidence pack`, and `local_services_pilot_evidence_pack` are visible
    in the shell.
-25. `Open offer doc`, `Open demo script`, and `Open recording checklist`
+26. `Open offer doc`, `Open demo script`, and `Open recording checklist`
    resolve to the repo-owned pilot artifact documents from the same local
    frontend server.
-26. `Open outreach list`, `Open outreach execution pack`, and
+27. `Open outreach list`, `Open outreach execution pack`, and
    `Open pilot scorecard` resolve to the repo-owned pilot execution documents
    from the same local frontend server.
-27. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
+28. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
    14-day pilot runbook from the same local frontend server.
-28. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
+29. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
    repo-owned first-contact execution pack from the same local frontend server.
-29. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
+30. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
    the repo-owned 90-second recording checklist from the same local frontend
    server.
-30. `?recording=90s`, `90-second recording mode`, `Recording path`, and
+31. `?recording=90s`, `90-second recording mode`, `Recording path`, and
    `90s recording` are visible as the demo-recording posture, and outreach
    tables plus scorecard controls are hidden during recording.
-31. `?setup=7min`, `7-minute setup wizard`, `Setup path`, and `7-min setup`
+32. `?setup=7min`, `7-minute setup wizard`, `Setup path`, and `7-min setup`
    are visible as the setup-first posture, and outreach tables plus scorecard
    controls are hidden while setup mode is active.
-32. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
+33. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
    `Saved setup state`, `Mark complete`, `Mark ready for pilot test`,
    `Ready for pilot test`, and `Reset setup progress` are visible as the
    stateful setup checklist contract.
-33. Actual external execution still remains outside the shell: recorded video,
+34. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path

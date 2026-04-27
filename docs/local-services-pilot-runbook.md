@@ -83,18 +83,23 @@ Do not use the pilot to build:
    `Next action`, `Copy launch packet`, and
    `local_services_pilot_launch_packet`. It is manual-only and does not send
    outreach, create calendar events, write CRM, or mutate docs.
-11. After a company is marked `Reply received`, use `Open discovery prep` to
+11. Review `Manual activity log`, `Last manual action`, `Copy activity log`,
+   and `local_services_manual_activity_log` after recording scorecard or metric
+   status changes. It is browser-local proof only and has `No external side
+   effects`: no outreach send, calendar event, CRM write, analytics sync,
+   billing action, or Markdown mutation.
+12. After a company is marked `Reply received`, use `Open discovery prep` to
    review `Discovery call prep`, `Questions to ask`, `Pilot success criteria`,
    `Copy discovery call prep`, and `local_services_discovery_call_prep`. Treat
    it as a founder call brief only; it does not book calendars, send follow-up,
    write CRM, sync analytics, or mutate docs.
-12. After the discovery call, use `Open day-one setup` to review
+13. After the discovery call, use `Open day-one setup` to review
     `Day-one setup brief`, `Business profile lock`, `Setup tasks`,
     `Test call plan`, `Copy day-one setup brief`, and
     `local_services_day_one_setup_brief`. Treat it as setup handoff only; it
     does not activate phone, Telegram, WhatsApp, billing, CRM, calendar,
     analytics, or customer sends.
-13. Use the shell `Pilot outreach wizard` and `Preview / Test message modal` to
+14. Use the shell `Pilot outreach wizard` and `Preview / Test message modal` to
    inspect the exact message. Open `Operator confirmation summary` and confirm
    `Ready for manual outreach`. Click `Record ready for manual outreach` to set
    the browser-local status to `Draft ready`, then keep real outreach outside
@@ -102,17 +107,17 @@ Do not use the pilot to build:
    Use `Ask AI about pilot` only as an internal deterministic analyst brief for
    `Suggested questions`, `Best candidate`, `Bottleneck`, and `Next message`;
    it does not call an external LLM, send outreach, or write CRM.
-14. Open `Open metrics tracker` for the selected lane and mark `Baseline
+15. Open `Open metrics tracker` for the selected lane and mark `Baseline
    captured` only after real baseline data or owner estimates are collected.
-15. Open `Open daily log` at the end of the first pilot day, review
+16. Open `Open daily log` at the end of the first pilot day, review
     `Daily capture fields`, `Daily operating loop`, and `Copy pilot daily log`,
     then copy `local_services_pilot_daily_log` into the private scorecard or
     spreadsheet manually.
-16. Open `Open week-one review` only after real week-one activity exists. Review
+17. Open `Open week-one review` only after real week-one activity exists. Review
     `Pilot week-one review`, `Continue / stop decision`, and
     `Copy week-one review`, then copy `local_services_pilot_week_one_review`
     into the private scorecard or spreadsheet manually.
-17. Open `Open evidence pack` at day 14 for serious pilots. Review
+18. Open `Open evidence pack` at day 14 for serious pilots. Review
     `Pilot evidence pack`, `Week-two evidence pack`, and `Copy evidence pack`,
     then copy `local_services_pilot_evidence_pack` into the private scorecard
     or owner-facing proof pack manually after redaction.

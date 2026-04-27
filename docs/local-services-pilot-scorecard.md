@@ -85,19 +85,24 @@ Use it to:
    `First manual contact checklist`, `Launch readiness`, `Dry-run gate`,
    `Selected company`, `Draft status`, `Next action`, `Copy launch packet`,
    and `local_services_pilot_launch_packet`
-10. use `Open discovery prep` after `Reply received` to review
+10. review `Manual activity log`, `Last manual action`, `Copy activity log`,
+   `local_services_manual_activity_log`, and `No external side effects` after
+   scorecard or metric status changes; it is browser-local proof only and does
+   not send outreach, write CRM, create calendar events, sync analytics, bill,
+   or mutate Markdown docs
+11. use `Open discovery prep` after `Reply received` to review
    `Discovery call prep`, `Questions to ask`, `Pilot success criteria`,
    `Copy discovery call prep`, and `local_services_discovery_call_prep`
-11. use `Open day-one setup` after the discovery call to review
+12. use `Open day-one setup` after the discovery call to review
    `Day-one setup brief`, `Business profile lock`, `Setup tasks`,
    `Test call plan`, `Copy day-one setup brief`, and
    `local_services_day_one_setup_brief`
-12. review the `Test message preview`
-13. open `Operator confirmation summary`
-14. click `Record ready for manual outreach` to mark `Draft ready` locally
-15. open `Ask AI about pilot` if the operator needs `Suggested questions`,
+13. review the `Test message preview`
+14. open `Operator confirmation summary`
+15. click `Record ready for manual outreach` to mark `Draft ready` locally
+16. open `Ask AI about pilot` if the operator needs `Suggested questions`,
    `Best candidate`, `Bottleneck`, or `Next message`
-16. keep real outreach manual-only until a human sends the message outside the shell
+17. keep real outreach manual-only until a human sends the message outside the shell
 
 This shell action is intentionally local to the demo session. It does not send a
 message, activate phone or Telegram, update CRM, call an external LLM, or change
@@ -133,7 +138,8 @@ outreach list. Use it to see:
 
 `Open pilot export` opens the `Pilot workspace export drawer`. Use
 `Human-readable` when manually updating this scorecard and `JSON` when pasting
-into CRM or a spreadsheet. `Copy pilot workspace export` copies the reviewed
+into CRM or a spreadsheet. It includes the latest `Manual activity log` /
+`Last manual action`. `Copy pilot workspace export` copies the reviewed
 snapshot only; it does not send a message, update CRM, or mutate this Markdown
 file automatically.
 

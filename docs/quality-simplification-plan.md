@@ -126,6 +126,11 @@ packet` / `Launch packet preview` with `First manual contact checklist`,
 message.
 This turns the 14-day pilot runbook into a visible operating loop without
 adding autonomous outreach or CRM scope.
+That operating loop now also includes `Manual activity log`,
+`Last manual action`, `Copy activity log`, and
+`local_services_manual_activity_log`. It records browser-local scorecard and
+metric events only, with `No external side effects`: no outreach send, CRM
+write, calendar event, analytics sync, billing action, or Markdown mutation.
 The next small operating layer is now `Open discovery prep`: it opens
 `Discovery call prep` with `Questions to ask`, `Pilot success criteria`,
 `Copy discovery call prep`, and the structured
@@ -140,8 +145,10 @@ pilot setup work without adding live channel activation, billing, CRM,
 analytics, calendar, or customer-message scope.
 That funnel now has `Open pilot export`, which opens a `Pilot workspace export
 drawer` with `Human-readable` / `JSON` modes and `Copy pilot workspace export`.
-The export is intentionally manual-only: no outbound message, no CRM write, and
-no Markdown scorecard mutation.
+The export now includes the latest `Manual activity log` / `Last manual action`
+so reviewed scorecard and metric events travel with the funnel snapshot. It is
+intentionally manual-only: no outbound message, no CRM write, and no Markdown
+scorecard mutation.
 The same browser-local state now has `Open metrics tracker`, which opens a
 `Pilot metrics tracker` with `Human-readable` / `JSON` modes and
 `Copy pilot metrics tracker`. This closes the first pilot measurement loop while

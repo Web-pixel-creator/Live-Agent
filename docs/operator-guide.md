@@ -129,6 +129,11 @@ preview` with `First manual contact checklist`, `Launch readiness`,
 `Copy launch packet`, and `local_services_pilot_launch_packet`; treat it as
 status guidance only. It does not send,
 write CRM, sync analytics, or mutate docs.
+The same checklist now includes `Manual activity log`, `Last manual action`,
+`Copy activity log`, and `local_services_manual_activity_log` so the operator
+can copy browser-local scorecard and metric events after review. Treat
+`No external side effects` literally: the log does not send outreach, write CRM,
+create calendar events, sync analytics, bill, or mutate docs.
 `Open discovery prep` opens `Discovery call prep` for the replied-company call:
 review `Questions to ask`, `Pilot success criteria`, and
 `Copy discovery call prep` before manually booking or following up. The payload
@@ -154,7 +159,8 @@ The `Pilot funnel summary` shows `All candidates`, per-status counts, and
 the Markdown scorecard first.
 Use `Open pilot export` when the operator needs one reviewed snapshot of the
 mini-funnel. The `Pilot workspace export drawer` switches between
-`Human-readable` and `JSON`, exposes `Copy pilot workspace export`, and remains
+`Human-readable` and `JSON`, exposes `Copy pilot workspace export`, includes
+the latest `Manual activity log` / `Last manual action`, and remains
 manual-only: no outbound message, no CRM write, and no Markdown scorecard
 mutation.
 Use `Open metrics tracker` when the operator needs one reviewed snapshot of the

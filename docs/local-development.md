@@ -68,6 +68,11 @@ preview` with `First manual contact checklist`, `Launch readiness`,
 not send outreach, create calendar events, write CRM, or mutate docs. It
 mirrors browser-local state only and does not send
 outreach, write CRM, sync analytics, or mutate Markdown docs.
+It also shows `Manual activity log`, `Last manual action`, `Copy activity log`,
+and `local_services_manual_activity_log` for browser-local scorecard and metric
+events. The activity log says `No external side effects` and does not send
+outreach, create calendar events, write CRM, sync analytics, bill, or mutate
+Markdown docs.
 3.5. The same checklist now includes `Open discovery prep`, which opens
 `Discovery call prep` with `Questions to ask`, `Pilot success criteria`,
 `Human-readable` / `JSON` modes, `Copy discovery call prep`, and

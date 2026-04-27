@@ -92,6 +92,11 @@ preview` with `First manual contact checklist`, `Launch readiness`,
 `Dry-run gate`, `Selected company`, `Draft status`, `Next action`,
 `Copy launch packet`, and `local_services_pilot_launch_packet` before the
 operator sends anything manually.
+The same loop now shows `Manual activity log`, `Last manual action`,
+`Copy activity log`, and `local_services_manual_activity_log` for browser-local
+scorecard and metric events. It is explicitly `No external side effects`: no
+outreach send, CRM write, calendar event, analytics sync, billing action, or
+Markdown mutation.
 When a company replies, use `Open discovery prep` to review `Discovery call
 prep`, `Questions to ask`, `Pilot success criteria`, and
 `Copy discovery call prep`. The structured payload is

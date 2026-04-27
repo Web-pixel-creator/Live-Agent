@@ -242,35 +242,40 @@ Allowed reply statuses:
    `Selected company`, `Draft status`, `Next action`, `Copy launch packet`,
    and `local_services_pilot_launch_packet`; explain that this is the final
    operator-reviewed packet before a human sends the first contact manually.
-17. Show `Open discovery prep`, `Discovery call prep`, `Questions to ask`,
+17. Show `Manual activity log`, `Last manual action`, `Copy activity log`,
+   `local_services_manual_activity_log`, and `No external side effects`;
+   explain that this records browser-local scorecard and metric events only,
+   not outreach sends, CRM writes, calendar events, analytics sync, billing, or
+   Markdown mutation.
+18. Show `Open discovery prep`, `Discovery call prep`, `Questions to ask`,
    `Pilot success criteria`, `Copy discovery call prep`, and
    `local_services_discovery_call_prep`; explain that this prepares the first
    replied-company call only and does not book a calendar slot or write CRM.
-18. Show `Open day-one setup`, `Day-one setup brief`, `Business profile lock`,
+19. Show `Open day-one setup`, `Day-one setup brief`, `Business profile lock`,
    `Setup tasks`, `Test call plan`, `Copy day-one setup brief`, and
    `local_services_day_one_setup_brief`; explain that this prepares the first
    pilot day only and does not activate channels, billing, CRM, calendar, or
    customer sends.
-19. Show `Pilot metrics` and `Open metrics tracker`.
-20. Show `Open daily log`, `Pilot daily log`, `Daily capture fields`,
+20. Show `Pilot metrics` and `Open metrics tracker`.
+21. Show `Open daily log`, `Pilot daily log`, `Daily capture fields`,
    `Daily operating loop`, `Copy pilot daily log`, and
    `local_services_pilot_daily_log`; explain that this is a manual daily note,
    not analytics sync, CRM write, calendar booking, or customer send.
-21. Show `Open week-one review`, `Pilot week-one review`,
+22. Show `Open week-one review`, `Pilot week-one review`,
    `Continue / stop decision`, `Copy week-one review`, and
    `local_services_pilot_week_one_review`; explain that this is a manual owner
    review, not an autonomous pilot decision, CRM write, billing change, or
    customer send.
-22. Show `Open evidence pack`, `Pilot evidence pack`,
+23. Show `Open evidence pack`, `Pilot evidence pack`,
    `Week-two evidence pack`, `Copy evidence pack`, and
    `local_services_pilot_evidence_pack`; explain that this is a redacted manual
    proof pack, not public customer-data storage, CRM, billing, or customer-send
    automation.
-23. Show `Open recording checklist` if the prospect or partner needs a short
+24. Show `Open recording checklist` if the prospect or partner needs a short
    product walkthrough. Explain that it is a 90-second recording checklist with
    required on-screen proof and do-not-claim rules, not a live automation
    claim.
-24. End with one question: "Would this save missed requests or manager time if we
+25. End with one question: "Would this save missed requests or manager time if we
    tested it for 14 days?"
 
 ## After Each Contact

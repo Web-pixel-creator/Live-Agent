@@ -558,6 +558,18 @@ type LocalServicePilotStatus =
   | "rejected_for_now";
 
 type LocalServicePilotMetricStatus = "not_started" | "baseline_captured" | "tracking_live" | "review_ready";
+type LocalServicePilotActivityKind = "status_change" | "metric_change";
+type LocalServicePilotActivityEvent = {
+  id: string;
+  kind: LocalServicePilotActivityKind;
+  label: string;
+  value: string;
+  serviceId: string;
+  serviceTitle: string;
+  prospectId?: string;
+  company?: string;
+  createdAt: string;
+};
 
 type LocalServicePilotWorkspaceState = {
   selectedProspectByService: Record<string, string>;
@@ -567,6 +579,7 @@ type LocalServicePilotWorkspaceState = {
   setupReadyByService: Record<string, boolean>;
   testCallChecklistByService: Record<string, LocalServiceTestCallChecklistState>;
   testCallPassedByService: Record<string, boolean>;
+  activityLog: LocalServicePilotActivityEvent[];
 };
 
 type LocalServiceDemoTemplate = {
@@ -715,6 +728,10 @@ function isLocalServicePilotMetricStatus(value: unknown): value is LocalServiceP
   );
 }
 
+function isLocalServicePilotActivityKind(value: unknown): value is LocalServicePilotActivityKind {
+  return value === "status_change" || value === "metric_change";
+}
+
 function isLocalServiceSetupStepId(value: unknown): value is LocalServiceSetupStepId {
   return (
     value === "business_profile" ||
@@ -808,6 +825,51 @@ function readTestCallChecklistByService(value: unknown): Record<string, LocalSer
   );
 }
 
+function readPilotActivityLog(value: unknown): LocalServicePilotActivityEvent[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === "object")
+    .filter(
+      (entry) =>
+        typeof entry.id === "string" &&
+        isLocalServicePilotActivityKind(entry.kind) &&
+        typeof entry.label === "string" &&
+        typeof entry.value === "string" &&
+        typeof entry.serviceId === "string" &&
+        typeof entry.serviceTitle === "string" &&
+        typeof entry.createdAt === "string" &&
+        (typeof entry.prospectId === "undefined" || typeof entry.prospectId === "string") &&
+        (typeof entry.company === "undefined" || typeof entry.company === "string"),
+    )
+    .slice(0, 12)
+    .map((entry) => ({
+      id: entry.id as string,
+      kind: entry.kind as LocalServicePilotActivityKind,
+      label: entry.label as string,
+      value: entry.value as string,
+      serviceId: entry.serviceId as string,
+      serviceTitle: entry.serviceTitle as string,
+      prospectId: entry.prospectId as string | undefined,
+      company: entry.company as string | undefined,
+      createdAt: entry.createdAt as string,
+    }));
+}
+
+function appendLocalServicePilotActivity(
+  log: LocalServicePilotActivityEvent[],
+  event: Omit<LocalServicePilotActivityEvent, "id" | "createdAt">,
+): LocalServicePilotActivityEvent[] {
+  const createdAt = new Date().toISOString();
+  return [
+    {
+      ...event,
+      id: `${createdAt}:${event.kind}:${event.serviceId}:${event.prospectId ?? "service"}`,
+      createdAt,
+    },
+    ...log,
+  ].slice(0, 12);
+}
+
 function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState {
   const emptyState: LocalServicePilotWorkspaceState = {
     selectedProspectByService: {},
@@ -817,6 +879,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
     setupReadyByService: {},
     testCallChecklistByService: {},
     testCallPassedByService: {},
+    activityLog: [],
   };
   if (typeof window === "undefined") {
     return emptyState;
@@ -835,6 +898,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
       setupReadyByService: readBooleanRecord(parsed.setupReadyByService),
       testCallChecklistByService: readTestCallChecklistByService(parsed.testCallChecklistByService),
       testCallPassedByService: readBooleanRecord(parsed.testCallPassedByService),
+      activityLog: readPilotActivityLog(parsed.activityLog),
     };
   } catch {
     return emptyState;
@@ -1206,6 +1270,7 @@ function buildLocalServiceIntakeEvidence(
 function buildLocalServicePilotWorkspaceExport(
   rows: LocalServicePilotFunnelRow[],
   counts: Record<LocalServicePilotStatus, number>,
+  activityLog: LocalServicePilotActivityEvent[] = [],
 ): LocalServicePilotWorkspaceExport {
   const nextManualBatch = rows
     .filter((row) => row.status !== "reply_received" && row.status !== "rejected_for_now")
@@ -1221,6 +1286,13 @@ function buildLocalServicePilotWorkspaceExport(
     nextManualBatch.length > 0
       ? nextManualBatch.map((row) => `- ${row.prospect.company} (${row.serviceTitle}) -> ${row.statusLabel}`)
       : ["- none"];
+  const activityLines =
+    activityLog.length > 0
+      ? activityLog.map(
+          (event) =>
+            `- ${event.createdAt} | ${event.serviceTitle} | ${event.company ?? "service"} | ${event.label}: ${event.value}`,
+        )
+      : ["- No manual activity recorded yet."];
   const humanLines = [
     "Pilot workspace export drawer: Local services mini-funnel",
     "Export scope: browser-local planning state",
@@ -1233,6 +1305,9 @@ function buildLocalServicePilotWorkspaceExport(
     "",
     "Candidates:",
     ...candidateLines,
+    "",
+    "Manual activity log:",
+    ...activityLines,
     "",
     "Manual execution rule: this export does not send messages, update CRM, or modify Markdown scorecards automatically.",
     "Operator action: review the state, then manually sync the selected notes into the pilot scorecard or CRM.",
@@ -1271,10 +1346,22 @@ function buildLocalServicePilotWorkspaceExport(
         status: row.status,
         status_label: row.statusLabel,
       })),
+      activity_log: activityLog.map((event) => ({
+        id: event.id,
+        kind: event.kind,
+        label: event.label,
+        value: event.value,
+        service_id: event.serviceId,
+        service_title: event.serviceTitle,
+        prospect_id: event.prospectId,
+        company: event.company,
+        created_at: event.createdAt,
+      })),
       guardrails: [
         "operator_review_required_before_copy",
         "no_outbound_message_sent",
         "no_crm_write",
+        "no_external_side_effects",
         "manual_scorecard_sync_required",
       ],
     },
@@ -1289,10 +1376,12 @@ function buildLocalServicePilotWorkspaceExport(
       label: "Next manual batch",
       value: nextManualBatch.map((row) => `${row.prospect.company} / ${row.serviceTitle}`).join(", ") || "none",
     },
+    { label: "Last manual action", value: activityLog[0] ? `${activityLog[0].label}: ${activityLog[0].value}` : "none" },
     { label: "Guardrail", value: "No outbound message, no CRM write, manual scorecard sync only" },
   ];
   const checklist = [
     "Confirm the browser-local statuses match the operator's latest manual outreach notes.",
+    "Review the manual activity log before copying the export.",
     "Review the next manual batch before copying the export.",
     "Manually sync useful notes into the pilot scorecard or CRM after review.",
     "Do not treat this export as proof that outreach was sent.",
@@ -3207,8 +3296,8 @@ const LocalServicesDispatchDemoPanel = ({
   );
   const pilotFunnelFiltersActive = pilotFunnelServiceFilter !== "all" || pilotFunnelStatusFilter !== "all";
   const pilotWorkspaceExport = useMemo(
-    () => buildLocalServicePilotWorkspaceExport(pilotFunnelRows, pilotFunnelCounts),
-    [pilotFunnelCounts, pilotFunnelRows],
+    () => buildLocalServicePilotWorkspaceExport(pilotFunnelRows, pilotFunnelCounts, pilotWorkspaceState.activityLog),
+    [pilotFunnelCounts, pilotFunnelRows, pilotWorkspaceState.activityLog],
   );
   const pilotMetricsTrackerExport = useMemo(
     () => buildLocalServicePilotMetricsTrackerExport(selectedTemplate, currentMetricStatus),
@@ -3414,6 +3503,21 @@ const LocalServicesDispatchDemoPanel = ({
       ),
     [currentPilotStatus, selectedOutreachProspect, selectedTemplate, testCallPassed, testCallProgress],
   );
+  const pilotActivityLog = pilotWorkspaceState.activityLog;
+  const latestPilotActivity = pilotActivityLog[0];
+  const pilotActivityLogText = [
+    "local_services_manual_activity_log",
+    `Service: ${selectedTemplate.title}`,
+    `Selected company: ${selectedOutreachProspect?.company ?? "Not selected"}`,
+    "Recorded in browser only. No outbound send, CRM write, calendar event, analytics sync, billing action, or Markdown mutation.",
+    "Events:",
+    ...(pilotActivityLog.length > 0
+      ? pilotActivityLog.map(
+          (event) =>
+            `- ${event.createdAt} | ${event.serviceTitle} | ${event.company ?? "service"} | ${event.label}: ${event.value}`,
+        )
+      : ["- No manual activity recorded yet."]),
+  ].join("\n");
   const scorecardDraftRows = selectedOutreachProspect
     ? [
         { label: "Company", value: selectedOutreachProspect.company },
@@ -3436,23 +3540,43 @@ const LocalServicesDispatchDemoPanel = ({
   }, [pilotWorkspaceState]);
 
   const updatePilotWorkspaceStatus = (status: LocalServicePilotStatus) => {
+    const nextStatusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[status];
     setPilotWorkspaceState((prev) => ({
       ...prev,
       statusByProspectKey: {
         ...prev.statusByProspectKey,
         [scorecardDraftKey]: status,
       },
+      activityLog: appendLocalServicePilotActivity(prev.activityLog, {
+        kind: "status_change",
+        label: "Pilot status recorded",
+        value: nextStatusLabel,
+        serviceId: selectedTemplate.id,
+        serviceTitle: selectedTemplate.title,
+        prospectId: selectedOutreachProspect?.id,
+        company: selectedOutreachProspect?.company,
+      }),
     }));
   };
   const recordReadyForManualOutreach = () => updatePilotWorkspaceStatus("draft_ready");
 
   const updatePilotMetricStatus = (status: LocalServicePilotMetricStatus) => {
+    const nextMetricLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[status];
     setPilotWorkspaceState((prev) => ({
       ...prev,
       metricStatusByService: {
         ...prev.metricStatusByService,
         [selectedTemplate.id]: status,
       },
+      activityLog: appendLocalServicePilotActivity(prev.activityLog, {
+        kind: "metric_change",
+        label: "Metric capture recorded",
+        value: nextMetricLabel,
+        serviceId: selectedTemplate.id,
+        serviceTitle: selectedTemplate.title,
+        prospectId: selectedOutreachProspect?.id,
+        company: selectedOutreachProspect?.company,
+      }),
     }));
   };
   const updateSetupStepCompletion = (stepId: LocalServiceSetupStepId, complete: boolean) => {
@@ -4303,6 +4427,9 @@ const LocalServicesDispatchDemoPanel = ({
                 <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
                   No autonomous send
                 </span>
+                <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                  Manual activity log {pilotActivityLog.length}
+                </span>
               </div>
             </div>
 
@@ -4465,6 +4592,39 @@ const LocalServicesDispatchDemoPanel = ({
                 >
                   Open pilot scorecard
                 </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => onCopyText(pilotActivityLogText, "Copy activity log")}
+                  className="h-7"
+                >
+                  Copy activity log
+                </Button>
+              </div>
+              <div className="mt-3 rounded-md border border-border/50 bg-card/25 px-3 py-2.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Manual activity log
+                  </div>
+                  <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                    local_services_manual_activity_log
+                  </span>
+                  <span className="inline-flex rounded-[5px] bg-[hsl(var(--tint-amber)/0.12)] px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-amber-fg))] ring-1 ring-inset ring-[hsl(var(--tint-amber)/0.24)]">
+                    No external side effects
+                  </span>
+                </div>
+                <p className="mt-2 text-[12px] leading-relaxed text-foreground">
+                  Last manual action:{" "}
+                  {latestPilotActivity
+                    ? `${latestPilotActivity.label} - ${latestPilotActivity.value} for ${
+                        latestPilotActivity.company ?? latestPilotActivity.serviceTitle
+                      }`
+                    : "No manual activity recorded yet."}
+                </p>
+                <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                  Recorded in browser only. The log mirrors scorecard and metric actions; it does not send outreach,
+                  write CRM, create calendar events, sync analytics, bill, or mutate Markdown docs.
+                </p>
               </div>
             </div>
           </div>

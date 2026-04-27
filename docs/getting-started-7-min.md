@@ -98,6 +98,11 @@ packet` / `Launch packet preview` with `First manual contact checklist`,
 `Next action`, `Copy launch packet`, and
 `local_services_pilot_launch_packet`. It
 shows the 14-day pilot operating loop without sending anything automatically.
+The same loop now shows `Manual activity log`, `Last manual action`,
+`Copy activity log`, and `local_services_manual_activity_log` for browser-local
+scorecard and metric events. It records `No external side effects`: no outreach
+send, CRM write, calendar event, analytics sync, billing action, or Markdown
+mutation.
 Use `Open discovery prep` after a company is marked `Reply received`. The
 `Discovery call prep` drawer gives `Questions to ask`, `Pilot success criteria`,
 `Human-readable` / `JSON` modes, and `Copy discovery call prep`; the structured
@@ -121,7 +126,9 @@ per-status counts, and a `Next manual batch` list for jumping back to the right
 service/company pair.
 Use `Open pilot export` to open the `Pilot workspace export drawer`. It provides
 `Human-readable` and `JSON` modes plus `Copy pilot workspace export` for manual
-scorecard or CRM sync. It does not send messages or write CRM.
+scorecard or CRM sync. It includes the latest `Manual activity log` /
+`Last manual action` so reviewed scorecard and metric events travel with the
+funnel snapshot. It does not send messages or write CRM.
 Use `Open metrics tracker` to open the `Pilot metrics tracker`. It provides
 `Human-readable` and `JSON` modes plus `Copy pilot metrics tracker` for manual
 weekly scorecard sync. It does not sync analytics or write CRM.
