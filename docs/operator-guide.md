@@ -72,6 +72,11 @@ and `Ready for test call/message`. `Open setup checklist` opens a reviewed
 setup sheet with `Training cards`, `Copy setup brief`, and
 `local_services_agent_setup_training`. This is setup evidence only: no phone,
 Telegram, WhatsApp, CRM, analytics, or billing integration is activated.
+Use `?setup=7min` or the `7-min setup` header toggle when the operator needs
+the setup story first. The shell shows `7-minute setup wizard`, `Setup path`,
+`Open setup checklist`, `Open day-one setup`, and `Copy setup brief`, while
+outreach tables and scorecard controls stay hidden until the operator exits
+setup mode.
 It also carries a 4-step `Pilot outreach wizard` with `Offer preview`,
 `Audience from outreach list`, `Message/test preview`, and
 `Operator confirmation` so the pilot can be prepared without implying an

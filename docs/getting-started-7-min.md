@@ -141,6 +141,11 @@ For recording, open
 `/app?demo=local-services-dispatch&service=ac-repair-dispatch&recording=90s`.
 The shell shows `90-second recording mode` and `Recording path`, while outreach
 tables and scorecard controls stay hidden during recording.
+For setup-first demos, open
+`/app?demo=local-services-dispatch&service=ac-repair-dispatch&setup=7min`.
+The shell shows `7-minute setup wizard`, `Setup path`,
+`Open setup checklist`, `Open day-one setup`, and `Copy setup brief`, while
+outreach tables and scorecard controls stay hidden until setup mode is exited.
 Use `Open outreach list`, `Open outreach execution pack`, and
 `Open pilot scorecard` when you move from demo story to actual pilot execution.
 Use `docs/local-services-pilot-runbook.md` for the manual 14-day pilot sequence

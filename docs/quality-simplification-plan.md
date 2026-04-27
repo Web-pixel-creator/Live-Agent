@@ -55,6 +55,10 @@ path for `Business profile`, `Knowledge sources`, `Agent behavior`,
 opens `Training cards`, `Copy setup brief`, and
 `local_services_agent_setup_training` as a deterministic setup artifact; it
 does not activate phone, Telegram, WhatsApp, CRM, analytics, or billing.
+This setup path should now be deep-linkable through `?setup=7min`: show
+`7-minute setup wizard` and `Setup path`, expose `Open setup checklist`,
+`Open day-one setup`, and `Copy setup brief`, then hide outreach tables and
+scorecard controls so the first seven-minute explanation stays focused.
 The shell now includes a fourth P0 demo card, `Measurement visit booking`, for
 windows, doors, ceilings, blinds, and fit-out requests. This is the approved
 construction-adjacent expansion because it is still a dispatcher workflow:

@@ -2843,6 +2843,7 @@ const LOCAL_SERVICE_DEMO_TEMPLATES: LocalServiceDemoTemplate[] = [
 const LocalServicesDispatchDemoPanel = ({
   activeServiceId,
   recordingMode,
+  setupWizardMode,
   onSelectService,
   onClose,
   onCopyPayload,
@@ -2852,6 +2853,7 @@ const LocalServicesDispatchDemoPanel = ({
 }: {
   activeServiceId: string | null;
   recordingMode: boolean;
+  setupWizardMode: boolean;
   onSelectService: (id: string) => void;
   onClose: () => void;
   onCopyPayload: (template: LocalServiceDemoTemplate) => void;
@@ -3096,6 +3098,7 @@ const LocalServicesDispatchDemoPanel = ({
         { label: "Status", value: currentPilotStatusLabel },
       ]
     : [];
+  const hidePilotPlanning = recordingMode || setupWizardMode;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -3219,6 +3222,76 @@ const LocalServicesDispatchDemoPanel = ({
           </section>
         )}
 
+        {setupWizardMode && (
+          <section
+            aria-label="7-minute setup wizard"
+            className="rounded-md border border-[hsl(var(--tint-violet)/0.28)] bg-[hsl(var(--tint-violet)/0.08)] px-4 py-3"
+          >
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--tint-violet-fg))]">
+                  <UserRoundCog className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  7-minute setup wizard
+                </div>
+                <p className="mt-1.5 text-[12px] leading-relaxed text-foreground max-w-3xl">
+                  Setup path: business profile, knowledge sources, agent behavior, test call/message, ready.
+                  Outreach tables and scorecard controls are hidden so the first demo stays focused on setup.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    setAgentSetupMode("human");
+                    setAgentSetupOpen(true);
+                  }}
+                  className="h-8"
+                >
+                  <UserRoundCog className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Open setup checklist
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    setDayOneSetupMode("human");
+                    setDayOneSetupOpen(true);
+                  }}
+                  className="h-8"
+                >
+                  <ClipboardCheck className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Open day-one setup
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => onCopyText(agentSetupBrief.humanText, agentSetupBrief.copyLabel)}
+                  className="h-8"
+                >
+                  <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Copy setup brief
+                </Button>
+                <span className="inline-flex rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-violet-fg))] ring-1 ring-inset ring-[hsl(var(--tint-violet)/0.24)]">
+                  No channel activation
+                </span>
+              </div>
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+              {agentSetupBrief.setupSteps.map((step, index) => (
+                <div key={step.label} className="rounded-md bg-background/35 px-3 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] bg-[hsl(var(--tint-violet)/0.12)] font-mono text-[10px] text-[hsl(var(--tint-violet-fg))] ring-1 ring-inset ring-[hsl(var(--tint-violet)/0.22)]">
+                      {index + 1}
+                    </span>
+                    <div className="text-[11.5px] font-medium text-foreground">{step.label}</div>
+                  </div>
+                  <div className="mt-1.5 font-mono text-[10px] text-muted-foreground/70">{step.status}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
           {LOCAL_SERVICE_DEMO_TEMPLATES.map((template) => {
             const { Icon } = template;
@@ -3296,9 +3369,9 @@ const LocalServicesDispatchDemoPanel = ({
         </div>
 
         <section
-          className={`rounded-md border border-border/60 bg-card/25 p-4 ${recordingMode ? "hidden" : ""}`}
+          className={`rounded-md border border-border/60 bg-card/25 p-4 ${hidePilotPlanning ? "hidden" : ""}`}
           aria-label="Pilot funnel summary"
-          aria-hidden={recordingMode}
+          aria-hidden={hidePilotPlanning}
         >
           <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
             <div>
@@ -4163,9 +4236,9 @@ const LocalServicesDispatchDemoPanel = ({
                 </div>
                 <div
                   className={`mt-3 rounded-md border border-border/50 bg-card/25 px-3 py-3 ${
-                    recordingMode ? "hidden" : ""
+                    hidePilotPlanning ? "hidden" : ""
                   }`}
-                  aria-hidden={recordingMode}
+                  aria-hidden={hidePilotPlanning}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
@@ -6861,6 +6934,7 @@ export const LiveDesk = () => {
   const visaIntakeDemo = searchParams.get("demo") === "visa-intake";
   const localServicesDispatchDemo = searchParams.get("demo") === "local-services-dispatch";
   const localServicesRecordingMode = localServicesDispatchDemo && searchParams.get("recording") === "90s";
+  const localServicesSetupWizardMode = localServicesDispatchDemo && searchParams.get("setup") === "7min";
   const activePlaybookId = searchParams.get("playbook");
   const activeLocalServiceId = searchParams.get("service");
   const activeLocalServiceTemplate = useMemo(
@@ -6899,6 +6973,7 @@ export const LiveDesk = () => {
       next.set("playbook", "missing-documents");
       next.delete("service");
       next.delete("recording");
+      next.delete("setup");
       return next;
     });
   };
@@ -6926,6 +7001,7 @@ export const LiveDesk = () => {
       next.set("demo", "local-services-dispatch");
       next.set("service", "ac-repair-dispatch");
       next.delete("recording");
+      next.delete("setup");
       return next;
     });
   };
@@ -6946,6 +7022,7 @@ export const LiveDesk = () => {
       next.set("demo", "local-services-dispatch");
       next.set("service", "ac-repair-dispatch");
       next.set("recording", "90s");
+      next.delete("setup");
       return next;
     });
   };
@@ -6956,6 +7033,34 @@ export const LiveDesk = () => {
       return next;
     });
   };
+  const openLocalServicesSetupWizard = () => {
+    setPlaybookExportDrawerOpen(false);
+    setQuery("");
+    setOnlyMine(false);
+    setMineOnly(false);
+    setVipOnly(false);
+    clearSelection();
+    setFocusedRef(null);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("node");
+      next.delete("infra");
+      next.delete("burning");
+      next.delete("playbook");
+      next.set("demo", "local-services-dispatch");
+      next.set("service", activeLocalServiceId ?? "ac-repair-dispatch");
+      next.set("setup", "7min");
+      next.delete("recording");
+      return next;
+    });
+  };
+  const closeLocalServicesSetupWizard = () => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("setup");
+      return next;
+    });
+  };
   const closeLocalServicesDispatchDemo = () => {
     setLocalServiceDispatchDrawerOpen(false);
     setSearchParams((prev) => {
@@ -6963,6 +7068,7 @@ export const LiveDesk = () => {
       next.delete("demo");
       next.delete("service");
       next.delete("recording");
+      next.delete("setup");
       return next;
     });
   };
@@ -7782,6 +7888,11 @@ export const LiveDesk = () => {
                 90s recording
               </Pill>
             )}
+            {localServicesSetupWizardMode && (
+              <Pill tone="violet" size="sm">
+                7-min setup
+              </Pill>
+            )}
           </div>
           <p className="mt-1.5 text-[12px] text-muted-foreground/85 max-w-2xl leading-relaxed">
             {localServicesDispatchDemo
@@ -7826,6 +7937,24 @@ export const LiveDesk = () => {
                 {localServicesRecordingMode ? "Exit recording" : "90s recording"}
               </span>
               <span className="sm:hidden">90s</span>
+            </Button>
+          )}
+          {localServicesDispatchDemo && (
+            <Button
+              size="sm"
+              variant={localServicesSetupWizardMode ? "secondary" : "outline"}
+              onClick={
+                localServicesSetupWizardMode
+                  ? closeLocalServicesSetupWizard
+                  : openLocalServicesSetupWizard
+              }
+              className="h-8 text-xs"
+            >
+              <UserRoundCog className="mr-0 sm:mr-1.5 h-3.5 w-3.5" strokeWidth={2} />
+              <span className="hidden sm:inline">
+                {localServicesSetupWizardMode ? "Exit setup" : "7-min setup"}
+              </span>
+              <span className="sm:hidden">Setup</span>
             </Button>
           )}
           <Button
@@ -8035,6 +8164,7 @@ export const LiveDesk = () => {
         <LocalServicesDispatchDemoPanel
           activeServiceId={activeLocalServiceId}
           recordingMode={localServicesRecordingMode}
+          setupWizardMode={localServicesSetupWizardMode}
           onSelectService={(id) =>
             setSearchParams((prev) => {
               const next = new URLSearchParams(prev);

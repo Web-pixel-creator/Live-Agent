@@ -96,6 +96,12 @@ automation.
 `http://localhost:3000/app?demo=local-services-dispatch&service=ac-repair-dispatch&recording=90s`.
 The shell shows `Recording path` and hides the outreach table and scorecard
 controls during recording.
+3.12. Append `&setup=7min` to the local-services route to enter
+`7-minute setup wizard`. The route is
+`http://localhost:3000/app?demo=local-services-dispatch&service=ac-repair-dispatch&setup=7min`.
+The shell shows `Setup path`, `Open setup checklist`, `Open day-one setup`, and
+`Copy setup brief`, while outreach tables and scorecard controls stay hidden so
+the first operator demo stays about setup readiness.
 4. `http://localhost:3000/app/console/runtime` serves the deeper operator support route for replay, compliance, export, and runtime diagnostics. It remains a secondary/internal surface, while the primary sidebar keeps the transferred `hello-friend` routing (`/app`, `/app/console`, `/app/simulation`, `/app/nodes`) intact.
 4.1. `http://localhost:3000/debug-artifacts/index.json` serves the read-only artifact index used by the runtime support `Artifact Viewer`, and the same frontend server can then serve allowlisted JSON files from `artifacts/demo-e2e`, `artifacts/runtime`, and `artifacts/release-evidence`; the support route also pins quick-view tabs for the four main evidence files so a local operator can inspect the structured release/demo summary before opening the raw JSON.
 5. `http://localhost:3000/legacy` keeps the legacy compatibility dashboard/runtime surfaces, links back to `/app`, defaults to `Operator Console` + `Device Nodes` fallback tabs, no longer keeps the hidden legacy live/simulation render loops or compatibility-only control bindings active, and bounces any remaining quick-start actions that need those primary surfaces into `/app`. The direct-live proof query opts those live bindings back in for smoke evidence only (`?debugLive=true` or `?livePreferredMode=direct_live`).

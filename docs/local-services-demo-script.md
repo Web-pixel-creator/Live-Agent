@@ -20,6 +20,15 @@ Use the `90s recording` header toggle if you opened the normal route first.
 The recording posture shows `90-second recording mode` and `Recording path`,
 then hides outreach tables and scorecard controls during recording.
 
+For the setup-first walkthrough, open:
+
+`/app?demo=local-services-dispatch&service=ac-repair-dispatch&setup=7min`
+
+Use the `7-min setup` header toggle if you opened the normal route first. The
+setup posture shows `7-minute setup wizard` and `Setup path`, exposes
+`Open setup checklist`, `Open day-one setup`, and `Copy setup brief`, then hides
+outreach tables and scorecard controls until setup mode is exited.
+
 ## 90-Second Script
 
 ### 0-10 seconds
@@ -92,11 +101,14 @@ Point at:
 8. `Agent behavior`
 9. `Test call/message`
 10. `Ready for test call/message`
-11. `Pilot metrics`
-12. `Open metrics tracker`
-13. `Outreach list filters`
-14. `Column settings`
-15. `Filtered outreach list`
+11. `7-minute setup wizard`
+12. `Setup path`
+13. `Open day-one setup`
+14. `Pilot metrics`
+15. `Open metrics tracker`
+16. `Outreach list filters`
+17. `Column settings`
+18. `Filtered outreach list`
 16. `Open intake evidence`
 17. `Transcript + evidence`
 18. `Saved intake evidence`

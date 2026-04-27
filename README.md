@@ -98,6 +98,10 @@ Local-services expansion spec:
   opens a reviewed setup sheet with `Training cards`, `Copy setup brief`, and
   `local_services_agent_setup_training`; it does not activate phone, Telegram,
   WhatsApp, CRM, analytics, or billing integrations.
+- the same local-services route now supports `?setup=7min`. In that posture the
+  shell shows `7-minute setup wizard`, `Setup path`, `Open setup checklist`,
+  `Open day-one setup`, and `Copy setup brief`, while outreach tables and
+  scorecard controls are hidden so the first demo stays focused on setup.
 - `Pilot readiness` now also includes a `Pilot outreach wizard`:
   `Offer preview` -> `Audience from outreach list` -> `Message/test preview` ->
   `Operator confirmation`. It is now rendered as a 4-step outreach wizard and
