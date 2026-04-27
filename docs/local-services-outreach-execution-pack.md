@@ -215,8 +215,12 @@ Allowed reply statuses:
 11. Open `Ask AI about pilot` to show `Suggested questions`, `Best candidate`,
    `Bottleneck`, `Next message`, and `Copy analyst brief`; explain that this is
    deterministic internal planning and makes `No external LLM call`.
-12. Show `Pilot metrics` and `Open metrics tracker`.
-13. End with one question: "Would this save missed requests or manager time if we
+12. Show `Outreach list filters`, `Column settings`, `Service filter`,
+   `Status filter`, `Filtered candidates`, `Filtered outreach list`,
+   `All services`, `All statuses`, `Clear filters`, and `View only, no send`;
+   explain that this is a browser-local list view, not outreach automation.
+13. Show `Pilot metrics` and `Open metrics tracker`.
+14. End with one question: "Would this save missed requests or manager time if we
    tested it for 14 days?"
 
 ## After Each Contact

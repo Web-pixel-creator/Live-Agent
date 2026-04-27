@@ -86,6 +86,11 @@ candidate and the operator-only statuses `Draft ready`, `Contacted manually`,
 The same shell now adds `Pilot funnel summary` with `All candidates`,
 per-status counts, and `Next manual batch`, which turns the first pilot from a
 single selected account into a small visible funnel without adding CRM scope.
+The same funnel now adds `Outreach list filters` and `Column settings`:
+`Service filter`, `Status filter`, `Filtered candidates`,
+`Filtered outreach list`, `All services`, `All statuses`, `Clear filters`, and
+`View only, no send`. This brings the useful table/filter pattern into the
+pilot shell while keeping the action manual-only.
 That funnel now has `Open pilot export`, which opens a `Pilot workspace export
 drawer` with `Human-readable` / `JSON` modes and `Copy pilot workspace export`.
 The export is intentionally manual-only: no outbound message, no CRM write, and

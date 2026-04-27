@@ -74,6 +74,11 @@ operator-assist sheet with `Suggested questions`, `Best candidate`,
 `Bottleneck`, `Next message`, `Copy analyst brief`, and
 `local_services_pilot_ai_analyst`; it makes no external LLM call and does not
 send outreach.
+The `Pilot funnel summary` now also has `Outreach list filters` and
+`Column settings`: `Service filter`, `Status filter`, `Filtered candidates`,
+`Filtered outreach list`, `All services`, `All statuses`, `Clear filters`, and
+`View only, no send`. Use this to pick a pilot company from the shell without
+claiming the product sent outreach or wrote CRM.
 That wizard now includes a `Pilot scorecard action`: select `AC MASTER`,
 `Santexniki.uz`, `Service-Pro`, or another lane-specific candidate from the
 repo-owned outreach list, review the test message, and `Record scorecard draft`

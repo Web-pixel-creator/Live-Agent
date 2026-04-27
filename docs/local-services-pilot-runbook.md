@@ -56,7 +56,11 @@ Do not use the pilot to build:
    `Agent behavior`, `Test call/message`, and `Ready for test call/message`.
    Treat `Copy setup brief` as internal setup evidence only; it does not
    activate phone, Telegram, WhatsApp, CRM, analytics, or billing.
-6. Use the shell `Pilot outreach wizard` and `Preview / Test message modal` to
+6. Use `Outreach list filters` and `Column settings` in the
+   `Pilot funnel summary` to narrow by `Service filter` or `Status filter`,
+   review `Filtered candidates`, and select from the `Filtered outreach list`.
+   The list is `View only, no send`; it does not send outreach or write CRM.
+7. Use the shell `Pilot outreach wizard` and `Preview / Test message modal` to
    inspect the exact message. Open `Operator confirmation summary` and confirm
    `Ready for manual outreach`. Click `Record ready for manual outreach` to set
    the browser-local status to `Draft ready`, then keep real outreach outside
@@ -64,7 +68,7 @@ Do not use the pilot to build:
    Use `Ask AI about pilot` only as an internal deterministic analyst brief for
    `Suggested questions`, `Best candidate`, `Bottleneck`, and `Next message`;
    it does not call an external LLM, send outreach, or write CRM.
-7. Open `Open metrics tracker` for the selected lane and mark `Baseline
+8. Open `Open metrics tracker` for the selected lane and mark `Baseline
    captured` only after real baseline data or owner estimates are collected.
 
 ## Day Zero: Outreach

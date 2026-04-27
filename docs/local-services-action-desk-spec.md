@@ -631,6 +631,11 @@ The shell now also exposes a `Pilot funnel summary` across every outreach
 candidate. It shows `All candidates`, per-status counts, and `Next manual batch`
 so the operator can move through the first pilot list without treating the demo
 as a CRM or autonomous outreach tool.
+That same funnel now includes `Outreach list filters` and `Column settings`.
+The controls expose `Service filter`, `Status filter`, `Filtered candidates`,
+`Filtered outreach list`, `All services`, `All statuses`, `Clear filters`, and
+`View only, no send`, so the operator can narrow the first pilot list and choose
+a company from the shell while the action remains manual-only.
 The same funnel now opens a `Pilot workspace export drawer` through
 `Open pilot export`. The drawer has `Human-readable` and `JSON` modes, exposes
 `Copy pilot workspace export`, and carries explicit guardrails: no outbound
@@ -713,6 +718,8 @@ pilot export surfaces.
     no autonomous outreach.
 14. Add a shell-level `Agent setup / training state` sheet. Done in shell demo
     as a deterministic 7-minute setup checklist with no integration activation.
+15. Add shell-level `Outreach list filters` and `Column settings` for the pilot
+    funnel. Done in shell demo as view-only filtering with no send or CRM write.
 
 Current shell readiness for P3:
 
@@ -747,20 +754,24 @@ Current shell readiness for P3:
    visible in the shell-level wizard.
 10. `Pilot funnel summary`, `All candidates`, per-status counts, `Next manual
    batch`, and `Manual execution rule` are visible in the shell.
-11. `Open pilot export`, `Pilot workspace export drawer`, `Human-readable`,
+11. `Outreach list filters`, `Column settings`, `Service filter`,
+   `Status filter`, `Filtered candidates`, `Filtered outreach list`,
+   `All services`, `All statuses`, `Clear filters`, and `View only, no send`
+   are visible in the shell as view-only pilot list controls.
+12. `Open pilot export`, `Pilot workspace export drawer`, `Human-readable`,
    `JSON`, and `Copy pilot workspace export` are visible in the shell.
-12. `Open metrics tracker`, `Pilot metrics tracker`, `Human-readable`, `JSON`,
+13. `Open metrics tracker`, `Pilot metrics tracker`, `Human-readable`, `JSON`,
    and `Copy pilot metrics tracker` are visible in the shell.
-13. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
+14. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
    artifact documents from the same local frontend server.
-14. `Open outreach list`, `Open outreach execution pack`, and
+15. `Open outreach list`, `Open outreach execution pack`, and
    `Open pilot scorecard` resolve to the repo-owned pilot execution documents
    from the same local frontend server.
-15. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
+16. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
    14-day pilot runbook from the same local frontend server.
-16. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
+17. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
    repo-owned first-contact execution pack from the same local frontend server.
-17. Actual external execution still remains outside the shell: recorded video,
+18. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path

@@ -66,7 +66,11 @@ The selected company and status are saved in browser `localStorage` as
 `liveDesk:localServicesPilotWorkspace:v1`, so the demo can survive refreshes
 without pretending to be CRM.
 The `Pilot funnel summary` in the shell counts every candidate here by status
-and keeps a `Next manual batch` visible for the operator.
+and keeps a `Next manual batch` visible for the operator. It now also includes
+`Outreach list filters`, `Column settings`, `Service filter`, `Status filter`,
+`Filtered candidates`, `Filtered outreach list`, `All services`,
+`All statuses`, `Clear filters`, and `View only, no send` so the operator can
+narrow the list without creating an autonomous outreach or CRM workflow.
 
 ### Week 1
 

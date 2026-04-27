@@ -564,6 +564,9 @@ type LocalServicePilotFunnelRow = {
   statusLabel: string;
 };
 
+type LocalServicePilotStatusFilter = LocalServicePilotStatus | "all";
+type LocalServicePilotColumnKey = "service" | "status" | "channelFit" | "nextStep";
+
 const LOCAL_SERVICES_PILOT_OFFER_PATH = "/workspace-docs/local-services-pilot-offer.md";
 const LOCAL_SERVICES_DEMO_SCRIPT_PATH = "/workspace-docs/local-services-demo-script.md";
 const LOCAL_SERVICES_OUTREACH_LIST_PATH = "/workspace-docs/local-services-outreach-list.md";
@@ -590,6 +593,18 @@ const LOCAL_SERVICE_PILOT_STATUS_ACTIONS: { status: LocalServicePilotStatus; lab
   { status: "reply_received", label: "Mark reply received" },
   { status: "rejected_for_now", label: "Reject for now" },
 ];
+const LOCAL_SERVICE_PILOT_COLUMN_LABELS: Record<LocalServicePilotColumnKey, string> = {
+  service: "Service",
+  status: "Status",
+  channelFit: "Channel fit",
+  nextStep: "Next step",
+};
+const DEFAULT_LOCAL_SERVICE_PILOT_COLUMNS: Record<LocalServicePilotColumnKey, boolean> = {
+  service: true,
+  status: true,
+  channelFit: true,
+  nextStep: true,
+};
 const LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS: Record<LocalServicePilotMetricStatus, string> = {
   not_started: "Metrics not started",
   baseline_captured: "Baseline captured",
@@ -2119,6 +2134,9 @@ const LocalServicesDispatchDemoPanel = ({
   const [pilotAnalystMode, setPilotAnalystMode] = useState<PlaybookExportMode>("human");
   const [agentSetupOpen, setAgentSetupOpen] = useState(false);
   const [agentSetupMode, setAgentSetupMode] = useState<PlaybookExportMode>("human");
+  const [pilotFunnelStatusFilter, setPilotFunnelStatusFilter] = useState<LocalServicePilotStatusFilter>("all");
+  const [pilotFunnelServiceFilter, setPilotFunnelServiceFilter] = useState("all");
+  const [pilotFunnelColumns, setPilotFunnelColumns] = useState(DEFAULT_LOCAL_SERVICE_PILOT_COLUMNS);
   const outreachProspects = selectedTemplate.detail.pilotKit.outreachWizard.prospects;
   const selectedOutreachProspectId =
     pilotWorkspaceState.selectedProspectByService[selectedTemplate.id] ?? outreachProspects[0]?.id ?? "";
@@ -2190,6 +2208,16 @@ const LocalServicesDispatchDemoPanel = ({
       }),
     [allPilotProspects, pilotWorkspaceState.statusByProspectKey],
   );
+  const filteredPilotFunnelRows = useMemo(
+    () =>
+      pilotFunnelRows.filter((row) => {
+        if (pilotFunnelServiceFilter !== "all" && row.serviceId !== pilotFunnelServiceFilter) return false;
+        if (pilotFunnelStatusFilter !== "all" && row.status !== pilotFunnelStatusFilter) return false;
+        return true;
+      }),
+    [pilotFunnelRows, pilotFunnelServiceFilter, pilotFunnelStatusFilter],
+  );
+  const pilotFunnelFiltersActive = pilotFunnelServiceFilter !== "all" || pilotFunnelStatusFilter !== "all";
   const pilotWorkspaceExport = useMemo(
     () => buildLocalServicePilotWorkspaceExport(pilotFunnelRows, pilotFunnelCounts),
     [pilotFunnelCounts, pilotFunnelRows],
@@ -2217,7 +2245,7 @@ const LocalServicesDispatchDemoPanel = ({
     [currentPilotStatus, pilotFunnelCounts, selectedOutreachProspect, selectedTemplate],
   );
   const agentSetupBrief = useMemo(() => buildLocalServiceAgentSetupBrief(selectedTemplate), [selectedTemplate]);
-  const nextManualBatch = pilotFunnelRows
+  const nextManualBatch = filteredPilotFunnelRows
     .filter((item) => item.status !== "reply_received" && item.status !== "rejected_for_now")
     .slice(0, 4);
   const scorecardDraftRows = selectedOutreachProspect
@@ -2431,6 +2459,204 @@ const LocalServicesDispatchDemoPanel = ({
                 <div className="mt-1 font-mono text-[18px] text-foreground">{pilotFunnelCounts[status]}</div>
               </div>
             ))}
+          </div>
+
+          <div className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-3">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                  <Search className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  Outreach list filters
+                </div>
+                <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground max-w-3xl">
+                  Narrow the manual pilot list by service or status, then choose which scorecard columns stay visible.
+                  These controls only change the browser view.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                  Filtered candidates: {filteredPilotFunnelRows.length}
+                </span>
+                {pilotFunnelFiltersActive && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setPilotFunnelServiceFilter("all");
+                      setPilotFunnelStatusFilter("all");
+                    }}
+                    className="h-7"
+                  >
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(280px,0.58fr)]">
+              <div className="space-y-3">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Service filter
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant={pilotFunnelServiceFilter === "all" ? "default" : "secondary"}
+                      onClick={() => setPilotFunnelServiceFilter("all")}
+                      className="h-7"
+                    >
+                      All services
+                    </Button>
+                    {LOCAL_SERVICE_DEMO_TEMPLATES.map((template) => (
+                      <Button
+                        key={template.id}
+                        size="sm"
+                        variant={pilotFunnelServiceFilter === template.id ? "default" : "secondary"}
+                        onClick={() => setPilotFunnelServiceFilter(template.id)}
+                        className="h-7"
+                      >
+                        {template.title}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Status filter
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant={pilotFunnelStatusFilter === "all" ? "default" : "secondary"}
+                      onClick={() => setPilotFunnelStatusFilter("all")}
+                      className="h-7"
+                    >
+                      All statuses
+                    </Button>
+                    {LOCAL_SERVICE_PILOT_STATUS_ORDER.map((status) => (
+                      <Button
+                        key={status}
+                        size="sm"
+                        variant={pilotFunnelStatusFilter === status ? "default" : "secondary"}
+                        onClick={() => setPilotFunnelStatusFilter(status)}
+                        className="h-7"
+                      >
+                        {LOCAL_SERVICE_PILOT_STATUS_LABELS[status]}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-md border border-border/50 bg-card/25 px-3 py-3">
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                  <ClipboardCheck className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  Column settings
+                </div>
+                <div className="mt-2 grid gap-2">
+                  {(Object.keys(LOCAL_SERVICE_PILOT_COLUMN_LABELS) as LocalServicePilotColumnKey[]).map((column) => (
+                    <button
+                      key={column}
+                      type="button"
+                      aria-pressed={pilotFunnelColumns[column]}
+                      onClick={() =>
+                        setPilotFunnelColumns((prev) => ({
+                          ...prev,
+                          [column]: !prev[column],
+                        }))
+                      }
+                      className="flex items-center justify-between gap-3 rounded-md border border-border/50 bg-background/35 px-3 py-2 text-left text-[12px] text-foreground transition-smooth hover:bg-card/40"
+                    >
+                      <span>{LOCAL_SERVICE_PILOT_COLUMN_LABELS[column]}</span>
+                      <span
+                        className={`inline-flex h-5 w-5 items-center justify-center rounded-[5px] ring-1 ring-inset ${
+                          pilotFunnelColumns[column]
+                            ? "bg-[hsl(var(--tint-mint)/0.12)] text-[hsl(var(--tint-mint-fg))] ring-[hsl(var(--tint-mint)/0.22)]"
+                            : "bg-secondary/45 text-muted-foreground ring-border/50"
+                        }`}
+                      >
+                        {pilotFunnelColumns[column] && <Check className="h-3 w-3" strokeWidth={2} />}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-3 rounded-md border border-border/50 bg-card/25 px-3 py-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Filtered outreach list
+                  </div>
+                  <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                    Pick a company here to load it into the selected service scorecard action.
+                  </p>
+                </div>
+                <span className="inline-flex w-fit rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                  View only, no send
+                </span>
+              </div>
+              <div className="mt-3 grid gap-2">
+                {filteredPilotFunnelRows.length === 0 ? (
+                  <div className="rounded-md border border-border/50 bg-background/35 px-3 py-3 text-[12px] text-muted-foreground">
+                    No candidates match these filters. Clear filters to return to the full outreach list.
+                  </div>
+                ) : (
+                  filteredPilotFunnelRows.map((row) => (
+                    <button
+                      key={row.key}
+                      type="button"
+                      onClick={() => {
+                        onSelectService(row.serviceId);
+                        setPilotWorkspaceState((prev) => ({
+                          ...prev,
+                          selectedProspectByService: {
+                            ...prev.selectedProspectByService,
+                            [row.serviceId]: row.prospect.id,
+                          },
+                        }));
+                      }}
+                      className="rounded-md border border-border/50 bg-background/35 px-3 py-2.5 text-left transition-smooth hover:bg-card/40"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[12px] font-semibold text-foreground">{row.prospect.company}</span>
+                        <span className="rounded-[5px] bg-secondary/45 px-2 py-0.5 text-[10px] text-muted-foreground">
+                          {row.prospect.segment}
+                        </span>
+                        {pilotFunnelColumns.status && (
+                          <span className="rounded-[5px] bg-[hsl(var(--tint-mint)/0.12)] px-2 py-0.5 text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.22)]">
+                            {row.statusLabel}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-2 grid gap-2 text-[11px] sm:grid-cols-2 xl:grid-cols-4">
+                        {pilotFunnelColumns.service && (
+                          <div className="rounded-[5px] bg-card/30 px-2 py-1.5">
+                            <span className="text-muted-foreground">Service: </span>
+                            <span className="text-foreground">{row.serviceTitle}</span>
+                          </div>
+                        )}
+                        {pilotFunnelColumns.channelFit && (
+                          <div className="rounded-[5px] bg-card/30 px-2 py-1.5">
+                            <span className="text-muted-foreground">Channel fit: </span>
+                            <span className="text-foreground">{row.prospect.channelFit}</span>
+                          </div>
+                        )}
+                        {pilotFunnelColumns.nextStep && (
+                          <div className="rounded-[5px] bg-card/30 px-2 py-1.5 sm:col-span-2">
+                            <span className="text-muted-foreground">Next step: </span>
+                            <span className="text-foreground">{row.prospect.nextStep}</span>
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.72fr)]">

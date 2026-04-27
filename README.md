@@ -123,6 +123,11 @@ Local-services expansion spec:
 - the demo also shows a `Pilot funnel summary` across all outreach candidates:
   `All candidates`, per-status counts, and a `Next manual batch` list that jumps
   the operator back to the relevant service/company pair.
+- the same funnel now has `Outreach list filters` and `Column settings`:
+  `Service filter`, `Status filter`, `Filtered candidates`,
+  `Filtered outreach list`, `All services`, `All statuses`, `Clear filters`,
+  and `View only, no send`. It lets an operator choose a pilot company from the
+  shell without turning the product into CRM or autonomous outreach.
 - the funnel summary now opens a `Pilot workspace export drawer` with
   `Human-readable` and `JSON` modes plus `Copy pilot workspace export`; it is a
   browser-local planning artifact and does not send outreach or write CRM.

@@ -84,7 +84,13 @@ The same wizard now exposes `AI analyst` / `Ask AI about pilot`, which opens a
 deterministic analyst sheet with `Suggested questions`, `Best candidate`,
 `Bottleneck`, `Next message`, `Copy analyst brief`, and
 `local_services_pilot_ai_analyst`. It is an internal planning note only: no
-external LLM call, no outbound send, and no CRM write.
+external LLM call, outreach send, or CRM write happens.
+The `Pilot funnel summary` also includes `Outreach list filters` and
+`Column settings`. Operators can use `Service filter`, `Status filter`,
+`Filtered candidates`, `Filtered outreach list`, `All services`,
+`All statuses`, and `Clear filters` to narrow the first pilot list. The filtered
+list is labeled `View only, no send`; selecting a row only loads that company
+into the scorecard action.
 The wizard now has an operator-local `Pilot scorecard action`: choose a
 lane-specific company from the outreach list, inspect the `Test message preview`,
 and `Record scorecard draft` as `Not contacted`. This records demo-session

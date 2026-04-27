@@ -59,19 +59,25 @@ has a `Pilot scorecard action` inside the `Pilot outreach wizard`.
 Use it to:
 
 1. select a company from the repo-owned outreach list
-2. open `Agent setup / training state` and `Open setup checklist`
-3. confirm `Business profile`, `Knowledge sources`, `Agent behavior`,
+2. use `Outreach list filters` and `Column settings` in the
+   `Pilot funnel summary`
+3. narrow with `Service filter` or `Status filter`, review
+   `Filtered candidates`, and pick from the `Filtered outreach list`
+4. open `Agent setup / training state` and `Open setup checklist`
+5. confirm `Business profile`, `Knowledge sources`, `Agent behavior`,
    `Test call/message`, and `Ready for test call/message`
-4. review the `Test message preview`
-5. open `Operator confirmation summary`
-6. click `Record ready for manual outreach` to mark `Draft ready` locally
-7. open `Ask AI about pilot` if the operator needs `Suggested questions`,
+6. review the `Test message preview`
+7. open `Operator confirmation summary`
+8. click `Record ready for manual outreach` to mark `Draft ready` locally
+9. open `Ask AI about pilot` if the operator needs `Suggested questions`,
    `Best candidate`, `Bottleneck`, or `Next message`
-8. keep real outreach manual-only until a human sends the message outside the shell
+10. keep real outreach manual-only until a human sends the message outside the shell
 
 This shell action is intentionally local to the demo session. It does not send a
 message, activate phone or Telegram, update CRM, call an external LLM, or change
-this Markdown file automatically.
+this Markdown file automatically. The filtered list is `View only, no send`;
+`All services`, `All statuses`, and `Clear filters` only change the browser
+view.
 
 The current shell persists this browser-local workspace state under
 `liveDesk:localServicesPilotWorkspace:v1`.
@@ -94,6 +100,9 @@ outreach list. Use it to see:
 1. `All candidates`
 2. count by status
 3. `Next manual batch`
+4. `Outreach list filters`
+5. `Column settings`
+6. `Filtered outreach list`
 4. the current manual execution rule
 
 `Open pilot export` opens the `Pilot workspace export drawer`. Use
