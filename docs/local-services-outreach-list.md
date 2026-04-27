@@ -87,7 +87,11 @@ The same funnel now shows `Pilot execution checklist` with
 `Open pilot runbook`, plus `Pilot checklist progress`, `Dry run required` /
 `Dry run passed`, and `Manual launch blocked` / `Manual launch ready`, so the
 first 14-day pilot has a visible manual loop gated on the dry run and a ready
-draft.
+draft. `Open launch packet` opens `Pilot launch packet` / `Launch packet
+preview` with `First manual contact checklist`, `Launch readiness`,
+`Dry-run gate`, `Selected company`, `Draft status`, `Next action`,
+`Copy launch packet`, and `local_services_pilot_launch_packet` before the
+operator sends anything manually.
 When a company replies, use `Open discovery prep` to review `Discovery call
 prep`, `Questions to ask`, `Pilot success criteria`, and
 `Copy discovery call prep`. The structured payload is

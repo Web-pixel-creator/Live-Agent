@@ -123,7 +123,11 @@ loop with `Pass test call/message`, `Needs test call passed`,
 `Open pilot runbook`. Its header shows `Pilot checklist progress`,
 `Dry run required` / `Dry run passed`, and `Manual launch blocked` /
 `Manual launch ready`, so first contact stays gated on the dry run and a ready
-draft. Treat it as status guidance only; it does not send,
+draft. `Open launch packet` opens `Pilot launch packet` / `Launch packet
+preview` with `First manual contact checklist`, `Launch readiness`,
+`Dry-run gate`, `Selected company`, `Draft status`, `Next action`,
+`Copy launch packet`, and `local_services_pilot_launch_packet`; treat it as
+status guidance only. It does not send,
 write CRM, sync analytics, or mutate docs.
 `Open discovery prep` opens `Discovery call prep` for the replied-company call:
 review `Questions to ask`, `Pilot success criteria`, and

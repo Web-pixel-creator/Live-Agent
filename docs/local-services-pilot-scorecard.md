@@ -80,19 +80,24 @@ Use it to:
    `No autonomous send`, `Open pilot runbook`, `Pilot checklist progress`,
    `Dry run required`, `Dry run passed`, `Manual launch blocked`, and
    `Manual launch ready`
-8. use `Open discovery prep` after `Reply received` to review
+9. use `Open launch packet` before first manual contact to review
+   `Pilot launch packet`, `Launch packet preview`,
+   `First manual contact checklist`, `Launch readiness`, `Dry-run gate`,
+   `Selected company`, `Draft status`, `Next action`, `Copy launch packet`,
+   and `local_services_pilot_launch_packet`
+10. use `Open discovery prep` after `Reply received` to review
    `Discovery call prep`, `Questions to ask`, `Pilot success criteria`,
    `Copy discovery call prep`, and `local_services_discovery_call_prep`
-9. use `Open day-one setup` after the discovery call to review
+11. use `Open day-one setup` after the discovery call to review
    `Day-one setup brief`, `Business profile lock`, `Setup tasks`,
    `Test call plan`, `Copy day-one setup brief`, and
    `local_services_day_one_setup_brief`
-10. review the `Test message preview`
-11. open `Operator confirmation summary`
-12. click `Record ready for manual outreach` to mark `Draft ready` locally
-13. open `Ask AI about pilot` if the operator needs `Suggested questions`,
+12. review the `Test message preview`
+13. open `Operator confirmation summary`
+14. click `Record ready for manual outreach` to mark `Draft ready` locally
+15. open `Ask AI about pilot` if the operator needs `Suggested questions`,
    `Best candidate`, `Bottleneck`, or `Next message`
-14. keep real outreach manual-only until a human sends the message outside the shell
+16. keep real outreach manual-only until a human sends the message outside the shell
 
 This shell action is intentionally local to the demo session. It does not send a
 message, activate phone or Telegram, update CRM, call an external LLM, or change

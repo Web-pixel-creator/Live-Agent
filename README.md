@@ -156,7 +156,13 @@ Local-services expansion spec:
   `Open pilot runbook`. Its header shows `Pilot checklist progress`,
   `Dry run required` / `Dry run passed`, and `Manual launch blocked` /
   `Manual launch ready`, so first contact stays gated on the dry run and a
-  ready draft. It mirrors browser-local statuses only. The same
+  ready draft. `Open launch packet` opens `Pilot launch packet` /
+  `Launch packet preview` with `First manual contact checklist`,
+  `Launch readiness`, `Dry-run gate`, `Selected company`, `Draft status`,
+  `Next action`, `Copy launch packet`, and
+  `local_services_pilot_launch_packet`; it still does not send outreach,
+  create calendar events, write CRM, or mutate docs. It mirrors
+  browser-local statuses only. The same
   checklist now opens `Discovery call prep` through `Open discovery prep`; that
   call brief exposes `Questions to ask`, `Pilot success criteria`,
   `Copy discovery call prep`, and `local_services_discovery_call_prep` without

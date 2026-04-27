@@ -219,17 +219,17 @@ Allowed reply statuses:
 12. Open `Ask AI about pilot` to show `Suggested questions`, `Best candidate`,
    `Bottleneck`, `Next message`, and `Copy analyst brief`; explain that this is
    deterministic internal planning and makes `No external LLM call`.
-12. Show `Outreach list filters`, `Column settings`, `Service filter`,
+13. Show `Outreach list filters`, `Column settings`, `Service filter`,
    `Status filter`, `Filtered candidates`, `Filtered outreach list`,
    `All services`, `All statuses`, `Clear filters`, and `View only, no send`;
    explain that this is a browser-local list view, not outreach automation.
-13. Open `Open intake evidence` / `Transcript + evidence` and show
+14. Open `Open intake evidence` / `Transcript + evidence` and show
    `Saved intake evidence`, `Intake transcript + evidence link`,
    `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,
    `local_services_intake_evidence`, and `transcript_evidence_link`; explain
    that it is proof-only and does not write Telegram, CRM, phone storage, or
    scorecards.
-14. Show `Pilot execution checklist`, `Pass test call/message`,
+15. Show `Pilot execution checklist`, `Pass test call/message`,
    `Needs test call passed`, `Prepare first manual batch`,
    `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
    `Book discovery call`, `Start metric capture`, `Founder-only execution`,
@@ -237,35 +237,40 @@ Allowed reply statuses:
    `Dry run required`, `Dry run passed`, `Manual launch blocked`, and
    `Manual launch ready`; explain that this is the manual 14-day operating loop,
    not autonomous outreach.
-15. Show `Open discovery prep`, `Discovery call prep`, `Questions to ask`,
+16. Show `Open launch packet`, `Pilot launch packet`, `Launch packet preview`,
+   `First manual contact checklist`, `Launch readiness`, `Dry-run gate`,
+   `Selected company`, `Draft status`, `Next action`, `Copy launch packet`,
+   and `local_services_pilot_launch_packet`; explain that this is the final
+   operator-reviewed packet before a human sends the first contact manually.
+17. Show `Open discovery prep`, `Discovery call prep`, `Questions to ask`,
    `Pilot success criteria`, `Copy discovery call prep`, and
    `local_services_discovery_call_prep`; explain that this prepares the first
    replied-company call only and does not book a calendar slot or write CRM.
-16. Show `Open day-one setup`, `Day-one setup brief`, `Business profile lock`,
+18. Show `Open day-one setup`, `Day-one setup brief`, `Business profile lock`,
    `Setup tasks`, `Test call plan`, `Copy day-one setup brief`, and
    `local_services_day_one_setup_brief`; explain that this prepares the first
    pilot day only and does not activate channels, billing, CRM, calendar, or
    customer sends.
-17. Show `Pilot metrics` and `Open metrics tracker`.
-18. Show `Open daily log`, `Pilot daily log`, `Daily capture fields`,
+19. Show `Pilot metrics` and `Open metrics tracker`.
+20. Show `Open daily log`, `Pilot daily log`, `Daily capture fields`,
    `Daily operating loop`, `Copy pilot daily log`, and
    `local_services_pilot_daily_log`; explain that this is a manual daily note,
    not analytics sync, CRM write, calendar booking, or customer send.
-19. Show `Open week-one review`, `Pilot week-one review`,
+21. Show `Open week-one review`, `Pilot week-one review`,
    `Continue / stop decision`, `Copy week-one review`, and
    `local_services_pilot_week_one_review`; explain that this is a manual owner
    review, not an autonomous pilot decision, CRM write, billing change, or
    customer send.
-20. Show `Open evidence pack`, `Pilot evidence pack`,
+22. Show `Open evidence pack`, `Pilot evidence pack`,
    `Week-two evidence pack`, `Copy evidence pack`, and
    `local_services_pilot_evidence_pack`; explain that this is a redacted manual
    proof pack, not public customer-data storage, CRM, billing, or customer-send
    automation.
-21. Show `Open recording checklist` if the prospect or partner needs a short
+23. Show `Open recording checklist` if the prospect or partner needs a short
    product walkthrough. Explain that it is a 90-second recording checklist with
    required on-screen proof and do-not-claim rules, not a live automation
    claim.
-22. End with one question: "Would this save missed requests or manager time if we
+24. End with one question: "Would this save missed requests or manager time if we
    tested it for 14 days?"
 
 ## After Each Contact

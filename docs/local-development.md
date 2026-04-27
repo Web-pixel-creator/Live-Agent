@@ -61,7 +61,12 @@ CRM, phone storage, or scorecards.
 `Open pilot runbook`. Its header shows `Pilot checklist progress`,
 `Dry run required` / `Dry run passed`, and `Manual launch blocked` /
 `Manual launch ready`, so first contact stays gated on the dry run and a ready
-draft. It mirrors browser-local state only and does not send
+draft. `Open launch packet` opens `Pilot launch packet` / `Launch packet
+preview` with `First manual contact checklist`, `Launch readiness`,
+`Dry-run gate`, `Selected company`, `Draft status`, `Next action`,
+`Copy launch packet`, and `local_services_pilot_launch_packet`; it still does
+not send outreach, create calendar events, write CRM, or mutate docs. It
+mirrors browser-local state only and does not send
 outreach, write CRM, sync analytics, or mutate Markdown docs.
 3.5. The same checklist now includes `Open discovery prep`, which opens
 `Discovery call prep` with `Questions to ask`, `Pilot success criteria`,

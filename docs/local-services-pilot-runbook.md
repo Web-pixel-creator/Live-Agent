@@ -69,7 +69,7 @@ Do not use the pilot to build:
    `Pilot funnel summary` to narrow by `Service filter` or `Status filter`,
    review `Filtered candidates`, and select from the `Filtered outreach list`.
    The list is `View only, no send`; it does not send outreach or write CRM.
-8. Review `Pilot execution checklist`: `Pass test call/message`,
+9. Review `Pilot execution checklist`: `Pass test call/message`,
    `Needs test call passed`, `Prepare first manual batch`,
    `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
    `Book discovery call`, `Start metric capture`, `Founder-only execution`,
@@ -77,18 +77,24 @@ Do not use the pilot to build:
    `Dry run required`, `Dry run passed`, `Manual launch blocked`, and
    `Manual launch ready`. Treat it as the manual 14-day operating loop; it does
    not send outreach or mutate docs.
-9. After a company is marked `Reply received`, use `Open discovery prep` to
+10. Before first manual contact, use `Open launch packet` to review `Pilot launch
+   packet`, `Launch packet preview`, `First manual contact checklist`,
+   `Launch readiness`, `Dry-run gate`, `Selected company`, `Draft status`,
+   `Next action`, `Copy launch packet`, and
+   `local_services_pilot_launch_packet`. It is manual-only and does not send
+   outreach, create calendar events, write CRM, or mutate docs.
+11. After a company is marked `Reply received`, use `Open discovery prep` to
    review `Discovery call prep`, `Questions to ask`, `Pilot success criteria`,
    `Copy discovery call prep`, and `local_services_discovery_call_prep`. Treat
    it as a founder call brief only; it does not book calendars, send follow-up,
    write CRM, sync analytics, or mutate docs.
-10. After the discovery call, use `Open day-one setup` to review
+12. After the discovery call, use `Open day-one setup` to review
     `Day-one setup brief`, `Business profile lock`, `Setup tasks`,
     `Test call plan`, `Copy day-one setup brief`, and
     `local_services_day_one_setup_brief`. Treat it as setup handoff only; it
     does not activate phone, Telegram, WhatsApp, billing, CRM, calendar,
     analytics, or customer sends.
-11. Use the shell `Pilot outreach wizard` and `Preview / Test message modal` to
+13. Use the shell `Pilot outreach wizard` and `Preview / Test message modal` to
    inspect the exact message. Open `Operator confirmation summary` and confirm
    `Ready for manual outreach`. Click `Record ready for manual outreach` to set
    the browser-local status to `Draft ready`, then keep real outreach outside
@@ -96,17 +102,17 @@ Do not use the pilot to build:
    Use `Ask AI about pilot` only as an internal deterministic analyst brief for
    `Suggested questions`, `Best candidate`, `Bottleneck`, and `Next message`;
    it does not call an external LLM, send outreach, or write CRM.
-12. Open `Open metrics tracker` for the selected lane and mark `Baseline
+14. Open `Open metrics tracker` for the selected lane and mark `Baseline
    captured` only after real baseline data or owner estimates are collected.
-13. Open `Open daily log` at the end of the first pilot day, review
+15. Open `Open daily log` at the end of the first pilot day, review
     `Daily capture fields`, `Daily operating loop`, and `Copy pilot daily log`,
     then copy `local_services_pilot_daily_log` into the private scorecard or
     spreadsheet manually.
-14. Open `Open week-one review` only after real week-one activity exists. Review
+16. Open `Open week-one review` only after real week-one activity exists. Review
     `Pilot week-one review`, `Continue / stop decision`, and
     `Copy week-one review`, then copy `local_services_pilot_week_one_review`
     into the private scorecard or spreadsheet manually.
-15. Open `Open evidence pack` at day 14 for serious pilots. Review
+17. Open `Open evidence pack` at day 14 for serious pilots. Review
     `Pilot evidence pack`, `Week-two evidence pack`, and `Copy evidence pack`,
     then copy `local_services_pilot_evidence_pack` into the private scorecard
     or owner-facing proof pack manually after redaction.

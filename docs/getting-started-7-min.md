@@ -92,7 +92,11 @@ The same funnel now has `Pilot execution checklist`: `Pass test call/message`,
 `No autonomous send`, and `Open pilot runbook`. Its header shows
 `Pilot checklist progress`, `Dry run required` / `Dry run passed`, and
 `Manual launch blocked` / `Manual launch ready`, so first contact stays gated
-on the dry run and a ready draft. It
+on the dry run and a ready draft. `Open launch packet` opens `Pilot launch
+packet` / `Launch packet preview` with `First manual contact checklist`,
+`Launch readiness`, `Dry-run gate`, `Selected company`, `Draft status`,
+`Next action`, `Copy launch packet`, and
+`local_services_pilot_launch_packet`. It
 shows the 14-day pilot operating loop without sending anything automatically.
 Use `Open discovery prep` after a company is marked `Reply received`. The
 `Discovery call prep` drawer gives `Questions to ask`, `Pilot success criteria`,

@@ -1926,6 +1926,123 @@ function buildLocalServicePilotConfirmationSummary(
   };
 }
 
+function buildLocalServicePilotLaunchPacket(
+  template: LocalServiceDemoTemplate,
+  prospect: LocalServiceOutreachProspect | undefined,
+  pilotStatus: LocalServicePilotStatus,
+  testCallPassed: boolean,
+  testCallProgress: string,
+): LocalServicePilotWorkspaceExport {
+  const wizard = template.detail.pilotKit.outreachWizard;
+  const pilotStatusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[pilotStatus];
+  const company = prospect?.company ?? "No prospect selected";
+  const segment = prospect?.segment ?? "unknown";
+  const channel = prospect?.channelFit ?? template.channel;
+  const draftReady = pilotStatus === "draft_ready";
+  const launchReady = testCallPassed && draftReady;
+  const dryRunStatus = testCallPassed ? "Dry run passed" : `Dry run required (${testCallProgress})`;
+  const launchReadiness = launchReady
+    ? "Ready for first manual contact"
+    : testCallPassed
+      ? "Needs ready draft"
+      : "Needs dry run passed";
+  const nextOperatorAction = launchReady
+    ? "Send manually in the approved channel, then mark Contacted manually in the scorecard."
+    : testCallPassed
+      ? "Open Operator confirmation, inspect the message, then record the selected draft as ready."
+      : "Finish the setup dry run and record Test call passed before preparing first contact.";
+  const approvalChecklist = [
+    "Dry-run gate is passed before any first contact.",
+    "Selected company, service lane, and channel fit match the outreach list.",
+    "Message draft is reviewed in Preview / Test message before a human sends it.",
+    "Operator sends manually outside the shell and logs Contacted manually afterward.",
+  ];
+  const humanLines = [
+    `First manual contact packet: ${template.title}`,
+    `Launch readiness: ${launchReadiness}`,
+    `Dry-run status: ${dryRunStatus}`,
+    `Selected company: ${company}`,
+    `Segment: ${segment}`,
+    `Channel: ${channel}`,
+    `Draft status: ${pilotStatusLabel}`,
+    "",
+    "Message draft:",
+    wizard.testMessage,
+    "",
+    "Approval checklist:",
+    ...approvalChecklist.map((item) => `- ${item}`),
+    "",
+    `Next operator action: ${nextOperatorAction}`,
+    "Manual execution rule: this launch packet does not send outreach, write CRM, create a calendar event, or mutate docs.",
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_pilot_launch_packet",
+      export_kind: "operator_approved_manual_contact_packet",
+      service_id: template.id,
+      service_ref: template.ref,
+      service_title: template.title,
+      selected_prospect: prospect
+        ? {
+            id: prospect.id,
+            company: prospect.company,
+            segment: prospect.segment,
+            channel_fit: prospect.channelFit,
+            why_now: prospect.whyNow,
+            scorecard_focus: prospect.scorecardFocus,
+            next_step: prospect.nextStep,
+          }
+        : null,
+      dry_run_passed: testCallPassed,
+      dry_run_status: dryRunStatus,
+      test_call_progress: testCallProgress,
+      draft_status: pilotStatus,
+      draft_status_label: pilotStatusLabel,
+      launch_ready: launchReady,
+      launch_readiness: launchReadiness,
+      channel,
+      message_draft: wizard.testMessage,
+      approval_checklist: approvalChecklist,
+      next_operator_action: nextOperatorAction,
+      guardrails: [
+        "dry_run_required_before_first_contact",
+        "operator_approval_required",
+        "manual_send_only",
+        "no_outbound_message_sent",
+        "no_crm_write",
+        "manual_scorecard_sync_required",
+      ],
+    },
+    null,
+    2,
+  );
+
+  return {
+    title: "Pilot launch packet",
+    description:
+      "Preview the first manual contact packet with dry-run status, selected company, draft state, approval checklist, and next operator action.",
+    eyebrow: "Launch packet preview",
+    modeLabel: "Launch packet mode",
+    copyLabel: "Copy launch packet",
+    reviewTitle: "First manual contact checklist",
+    reviewDescription:
+      "This packet is a launch-readiness artifact only: no outbound message, no CRM write, no calendar event, no scorecard mutation.",
+    scorecardActionLabel: "Open pilot scorecard",
+    executionActionLabel: "Open outreach execution pack",
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: [
+      { label: "Launch readiness", value: launchReadiness },
+      { label: "Dry-run gate", value: dryRunStatus },
+      { label: "Selected company", value: company },
+      { label: "Draft status", value: pilotStatusLabel },
+      { label: "Next action", value: nextOperatorAction },
+      { label: "Guardrail", value: "Manual send only; no outbound message or CRM write" },
+    ],
+    checklist: approvalChecklist,
+  };
+}
+
 function buildLocalServiceDiscoveryCallPrep(
   template: LocalServiceDemoTemplate,
   prospect: LocalServiceOutreachProspect | undefined,
@@ -2993,6 +3110,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [pilotMessagePreviewMode, setPilotMessagePreviewMode] = useState<PlaybookExportMode>("human");
   const [pilotOperatorConfirmationOpen, setPilotOperatorConfirmationOpen] = useState(false);
   const [pilotOperatorConfirmationMode, setPilotOperatorConfirmationMode] = useState<PlaybookExportMode>("human");
+  const [pilotLaunchPacketOpen, setPilotLaunchPacketOpen] = useState(false);
+  const [pilotLaunchPacketMode, setPilotLaunchPacketMode] = useState<PlaybookExportMode>("human");
   const [pilotAnalystOpen, setPilotAnalystOpen] = useState(false);
   const [pilotAnalystMode, setPilotAnalystMode] = useState<PlaybookExportMode>("human");
   const [discoveryCallPrepOpen, setDiscoveryCallPrepOpen] = useState(false);
@@ -3281,8 +3400,20 @@ const LocalServicesDispatchDemoPanel = ({
   const completedPilotExecutionStepCount = pilotExecutionChecklist.filter((step) => step.done).length;
   const pilotExecutionProgress = `${completedPilotExecutionStepCount}/${pilotExecutionChecklist.length}`;
   const dryRunGateLabel = testCallPassed ? "Dry run passed" : "Dry run required";
+  const selectedDraftReady = currentPilotStatus === "draft_ready";
   const manualLaunchGateLabel =
-    testCallPassed && pilotFunnelCounts.draft_ready > 0 ? "Manual launch ready" : "Manual launch blocked";
+    testCallPassed && selectedDraftReady ? "Manual launch ready" : "Manual launch blocked";
+  const pilotLaunchPacket = useMemo(
+    () =>
+      buildLocalServicePilotLaunchPacket(
+        selectedTemplate,
+        selectedOutreachProspect,
+        currentPilotStatus,
+        testCallPassed,
+        testCallProgress,
+      ),
+    [currentPilotStatus, selectedOutreachProspect, selectedTemplate, testCallPassed, testCallProgress],
+  );
   const scorecardDraftRows = selectedOutreachProspect
     ? [
         { label: "Company", value: selectedOutreachProspect.company },
@@ -4205,6 +4336,17 @@ const LocalServicesDispatchDemoPanel = ({
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setPilotLaunchPacketMode("human");
+                  setPilotLaunchPacketOpen(true);
+                }}
+                className="h-7"
+              >
+                Open launch packet
+              </Button>
               <Button
                 size="sm"
                 variant="ghost"
@@ -5222,7 +5364,7 @@ const LocalServicesDispatchDemoPanel = ({
         mode={pilotWorkspaceExportMode}
         onModeChange={setPilotWorkspaceExportMode}
         onCopy={onCopyText}
-        readyRecorded={currentPilotStatus === "draft_ready"}
+        readyRecorded={selectedDraftReady}
         onRecordReady={recordReadyForManualOutreach}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
@@ -5283,6 +5425,18 @@ const LocalServicesDispatchDemoPanel = ({
         confirmation={pilotOperatorConfirmation}
         mode={pilotOperatorConfirmationMode}
         onModeChange={setPilotOperatorConfirmationMode}
+        onCopy={onCopyText}
+        readyRecorded={currentPilotStatus === "draft_ready"}
+        onRecordReady={recordReadyForManualOutreach}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+        onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
+      />
+      <LocalServicePilotWorkspaceExportDrawer
+        open={pilotLaunchPacketOpen}
+        onOpenChange={setPilotLaunchPacketOpen}
+        exportView={pilotLaunchPacket}
+        mode={pilotLaunchPacketMode}
+        onModeChange={setPilotLaunchPacketMode}
         onCopy={onCopyText}
         readyRecorded={currentPilotStatus === "draft_ready"}
         onRecordReady={recordReadyForManualOutreach}

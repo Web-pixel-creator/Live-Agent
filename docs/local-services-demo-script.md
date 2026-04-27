@@ -139,36 +139,42 @@ Point at:
 37. `Pilot checklist progress`
 38. `Dry run required`
 39. `Manual launch blocked`
-40. `Open discovery prep`
-41. `Discovery call prep`
-42. `Questions to ask`
-43. `Pilot success criteria`
-44. `Copy discovery call prep`
-45. `Open day-one setup`
-46. `Day-one setup brief`
-47. `Business profile lock`
-48. `Setup tasks`
-49. `Test call plan`
-50. `Copy day-one setup brief`
-51. `Open daily log`
-52. `Pilot daily log`
-53. `Daily capture fields`
-54. `Daily operating loop`
-55. `Copy pilot daily log`
-56. `Open week-one review`
-57. `Pilot week-one review`
-58. `Continue / stop decision`
-59. `Copy week-one review`
-60. `Open evidence pack`
-61. `Pilot evidence pack`
-62. `Week-two evidence pack`
-63. `Copy evidence pack`
-64. `Open recording checklist`
-65. `Open pilot runbook`
+40. `Open launch packet`
+41. `Pilot launch packet`
+42. `Launch packet preview`
+43. `First manual contact checklist`
+44. `Launch readiness`
+45. `Copy launch packet`
+46. `Open discovery prep`
+47. `Discovery call prep`
+48. `Questions to ask`
+49. `Pilot success criteria`
+50. `Copy discovery call prep`
+51. `Open day-one setup`
+52. `Day-one setup brief`
+53. `Business profile lock`
+54. `Setup tasks`
+55. `Test call plan`
+56. `Copy day-one setup brief`
+57. `Open daily log`
+58. `Pilot daily log`
+59. `Daily capture fields`
+60. `Daily operating loop`
+61. `Copy pilot daily log`
+62. `Open week-one review`
+63. `Pilot week-one review`
+64. `Continue / stop decision`
+65. `Copy week-one review`
+66. `Open evidence pack`
+67. `Pilot evidence pack`
+68. `Week-two evidence pack`
+69. `Copy evidence pack`
+70. `Open recording checklist`
+71. `Open pilot runbook`
 
 Say:
 
-`This makes the product sales-ready as well: we can explain the offer, show the 7-minute setup path, review business profile, knowledge sources, behavior, test call readiness, prove the saved intake transcript and evidence link, then filter the outreach list by service or status, choose visible scorecard columns, show the 14-day manual pilot checklist, prepare the discovery call brief, turn that into the day-one setup brief, capture the daily operating-loop note, prepare the week-one continue/stop review, assemble a redacted week-two evidence pack, and open the recording checklist before copying reviewed setup, discovery, daily, review, evidence, or metrics notes manually. Nothing here activates phone, Telegram, WhatsApp, CRM, analytics, billing, outreach sends, calendar bookings, customer messages, or CRM writes.`
+`This makes the product sales-ready as well: we can explain the offer, show the 7-minute setup path, review business profile, knowledge sources, behavior, test call readiness, prove the saved intake transcript and evidence link, then filter the outreach list by service or status, choose visible scorecard columns, show the 14-day manual pilot checklist, open the first manual contact launch packet, prepare the discovery call brief, turn that into the day-one setup brief, capture the daily operating-loop note, prepare the week-one continue/stop review, assemble a redacted week-two evidence pack, and open the recording checklist before copying reviewed setup, launch, discovery, daily, review, evidence, or metrics notes manually. Nothing here activates phone, Telegram, WhatsApp, CRM, analytics, billing, outreach sends, calendar bookings, customer messages, or CRM writes.`
 
 Use `docs/local-services-demo-recording-checklist.md` when recording the actual
 walkthrough. It gives the shot list, required on-screen proof, and do-not-claim
