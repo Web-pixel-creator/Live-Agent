@@ -146,6 +146,12 @@ For setup-first demos, open
 The shell shows `7-minute setup wizard`, `Setup path`,
 `Open setup checklist`, `Open day-one setup`, and `Copy setup brief`, while
 outreach tables and scorecard controls stay hidden until setup mode is exited.
+Use the setup toggles to mark `Business profile`, `Knowledge sources`,
+`Agent behavior`, and `Test call/message` complete. After those four are done,
+click `Mark ready for pilot test`; the shell then shows `Ready for pilot test`.
+The state is saved under `setupStepCompletionByService` and `setupReadyByService`
+inside `liveDesk:localServicesPilotWorkspace:v1`, so refreshes keep the setup
+progress.
 Use `Open outreach list`, `Open outreach execution pack`, and
 `Open pilot scorecard` when you move from demo story to actual pilot execution.
 Use `docs/local-services-pilot-runbook.md` for the manual 14-day pilot sequence

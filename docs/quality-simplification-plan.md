@@ -59,6 +59,11 @@ This setup path should now be deep-linkable through `?setup=7min`: show
 `7-minute setup wizard` and `Setup path`, expose `Open setup checklist`,
 `Open day-one setup`, and `Copy setup brief`, then hide outreach tables and
 scorecard controls so the first seven-minute explanation stays focused.
+It should also behave like a real onboarding checklist: store
+`setupStepCompletionByService` and `setupReadyByService` in
+`liveDesk:localServicesPilotWorkspace:v1`, expose `Setup progress`,
+`Saved setup state`, `Mark complete`, `Mark ready for pilot test`, and
+`Ready for pilot test`, and keep the whole flow browser-local.
 The shell now includes a fourth P0 demo card, `Measurement visit booking`, for
 windows, doors, ceilings, blinds, and fit-out requests. This is the approved
 construction-adjacent expansion because it is still a dispatcher workflow:

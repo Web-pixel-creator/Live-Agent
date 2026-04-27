@@ -602,6 +602,13 @@ exposes `7-minute setup wizard`, `Setup path`, `Open setup checklist`,
 `Open day-one setup`, and `Copy setup brief`, while outreach tables and
 scorecard controls are hidden so the first operator demo stays focused on setup
 readiness.
+The setup wizard is stateful: `setupStepCompletionByService` stores completed
+setup steps, `setupReadyByService` stores the final `Ready for pilot test` gate,
+and both live under `liveDesk:localServicesPilotWorkspace:v1`. The UI exposes
+`Setup progress`, `Saved setup state`, `Mark complete`,
+`Mark ready for pilot test`, and `Reset setup progress`. This remains
+browser-local and does not activate phone, Telegram, WhatsApp, CRM, analytics,
+billing, calendar, or customer messages.
 The same block now includes a `Pilot outreach wizard` that mirrors the useful
 campaign-builder pattern from the reviewed AI receptionist references:
 `Offer preview` -> `Audience from outreach list` -> `Message/test preview` ->
@@ -791,10 +798,14 @@ Current shell readiness for P3:
    `Open day-one setup`, and `Copy setup brief` are visible as the setup-first
    posture, and outreach tables plus scorecard controls are hidden while setup
    mode is active.
-5. 4-step `Pilot outreach wizard`, `Offer preview`,
+5. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
+   `Saved setup state`, `Mark complete`, `Mark ready for pilot test`,
+   `Ready for pilot test`, and `Reset setup progress` are visible as the
+   browser-local setup checklist contract.
+6. 4-step `Pilot outreach wizard`, `Offer preview`,
    `Audience from outreach list`, `Message/test preview`, and
    `Operator confirmation` are visible for each local-services lane.
-6. `Preview / Test message modal`, `Copy test message`,
+7. `Preview / Test message modal`, `Copy test message`,
    `Copy test message preview`, `local_services_test_message_preview`, and
    `manual_confirmation_required_before_outreach` are present for the
    `Message/test preview` step.
@@ -867,7 +878,11 @@ Current shell readiness for P3:
 27. `?setup=7min`, `7-minute setup wizard`, `Setup path`, and `7-min setup`
    are visible as the setup-first posture, and outreach tables plus scorecard
    controls are hidden while setup mode is active.
-28. Actual external execution still remains outside the shell: recorded video,
+28. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
+   `Saved setup state`, `Mark complete`, `Mark ready for pilot test`,
+   `Ready for pilot test`, and `Reset setup progress` are visible as the
+   stateful setup checklist contract.
+29. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path

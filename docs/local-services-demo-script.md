@@ -28,6 +28,10 @@ Use the `7-min setup` header toggle if you opened the normal route first. The
 setup posture shows `7-minute setup wizard` and `Setup path`, exposes
 `Open setup checklist`, `Open day-one setup`, and `Copy setup brief`, then hides
 outreach tables and scorecard controls until setup mode is exited.
+Use `Mark complete` on the first four setup steps, then `Mark ready for pilot test`.
+The shell should show `Setup progress`, `Saved setup state`, and
+`Ready for pilot test`; this state is saved only in the browser-local pilot
+workspace.
 
 ## 90-Second Script
 
@@ -103,12 +107,17 @@ Point at:
 10. `Ready for test call/message`
 11. `7-minute setup wizard`
 12. `Setup path`
-13. `Open day-one setup`
-14. `Pilot metrics`
-15. `Open metrics tracker`
-16. `Outreach list filters`
-17. `Column settings`
-18. `Filtered outreach list`
+13. `Setup progress`
+14. `Saved setup state`
+15. `Mark complete`
+16. `Mark ready for pilot test`
+17. `Ready for pilot test`
+18. `Open day-one setup`
+19. `Pilot metrics`
+20. `Open metrics tracker`
+21. `Outreach list filters`
+22. `Column settings`
+23. `Filtered outreach list`
 16. `Open intake evidence`
 17. `Transcript + evidence`
 18. `Saved intake evidence`

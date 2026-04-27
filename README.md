@@ -102,6 +102,10 @@ Local-services expansion spec:
   shell shows `7-minute setup wizard`, `Setup path`, `Open setup checklist`,
   `Open day-one setup`, and `Copy setup brief`, while outreach tables and
   scorecard controls are hidden so the first demo stays focused on setup.
+  The wizard now stores `setupStepCompletionByService` and `setupReadyByService`
+  inside `liveDesk:localServicesPilotWorkspace:v1`, shows `Setup progress`,
+  `Saved setup state`, `Mark complete`, `Mark ready for pilot test`, and
+  `Ready for pilot test`, and keeps this browser-local only.
 - `Pilot readiness` now also includes a `Pilot outreach wizard`:
   `Offer preview` -> `Audience from outreach list` -> `Message/test preview` ->
   `Operator confirmation`. It is now rendered as a 4-step outreach wizard and

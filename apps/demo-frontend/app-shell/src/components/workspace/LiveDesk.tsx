@@ -520,10 +520,19 @@ type LocalServiceAgentSetupBrief = {
   humanText: string;
   jsonText: string;
   rows: { label: string; value: string }[];
-  setupSteps: { label: string; value: string; status: string }[];
+  setupSteps: { id: LocalServiceSetupStepId; label: string; value: string; status: string }[];
   trainingCards: { label: string; value: string }[];
   guardrails: string[];
 };
+
+type LocalServiceSetupStepId =
+  | "business_profile"
+  | "knowledge_sources"
+  | "agent_behavior"
+  | "test_call_message"
+  | "ready_for_pilot_test";
+
+type LocalServiceSetupStepCompletion = Partial<Record<LocalServiceSetupStepId, boolean>>;
 
 type LocalServiceOutreachProspect = {
   id: string;
@@ -548,6 +557,8 @@ type LocalServicePilotWorkspaceState = {
   selectedProspectByService: Record<string, string>;
   statusByProspectKey: Record<string, LocalServicePilotStatus>;
   metricStatusByService: Record<string, LocalServicePilotMetricStatus>;
+  setupStepCompletionByService: Record<string, LocalServiceSetupStepCompletion>;
+  setupReadyByService: Record<string, boolean>;
 };
 
 type LocalServiceDemoTemplate = {
@@ -669,6 +680,7 @@ const LOCAL_SERVICE_PILOT_METRIC_STATUS_ACTIONS: { status: LocalServicePilotMetr
   { status: "tracking_live", label: "Mark tracking live" },
   { status: "review_ready", label: "Mark review ready" },
 ];
+const LOCAL_SERVICE_SETUP_READY_STEP_ID: LocalServiceSetupStepId = "ready_for_pilot_test";
 
 function isLocalServicePilotStatus(value: unknown): value is LocalServicePilotStatus {
   return (
@@ -686,6 +698,16 @@ function isLocalServicePilotMetricStatus(value: unknown): value is LocalServiceP
     value === "baseline_captured" ||
     value === "tracking_live" ||
     value === "review_ready"
+  );
+}
+
+function isLocalServiceSetupStepId(value: unknown): value is LocalServiceSetupStepId {
+  return (
+    value === "business_profile" ||
+    value === "knowledge_sources" ||
+    value === "agent_behavior" ||
+    value === "test_call_message" ||
+    value === LOCAL_SERVICE_SETUP_READY_STEP_ID
   );
 }
 
@@ -716,23 +738,60 @@ function readPilotMetricStatusRecord(value: unknown): Record<string, LocalServic
   );
 }
 
+function readBooleanRecord(value: unknown): Record<string, boolean> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).filter(
+      (entry): entry is [string, boolean] => typeof entry[1] === "boolean",
+    ),
+  );
+}
+
+function readSetupStepCompletionByService(value: unknown): Record<string, LocalServiceSetupStepCompletion> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter((entry): entry is [string, Record<string, unknown>] =>
+        Boolean(entry[1]) && typeof entry[1] === "object" && !Array.isArray(entry[1]),
+      )
+      .map(([serviceId, completion]) => [
+        serviceId,
+        Object.fromEntries(
+          Object.entries(completion).filter(
+            (entry): entry is [LocalServiceSetupStepId, boolean] =>
+              isLocalServiceSetupStepId(entry[0]) && typeof entry[1] === "boolean",
+          ),
+        ),
+      ]),
+  );
+}
+
 function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState {
+  const emptyState: LocalServicePilotWorkspaceState = {
+    selectedProspectByService: {},
+    statusByProspectKey: {},
+    metricStatusByService: {},
+    setupStepCompletionByService: {},
+    setupReadyByService: {},
+  };
   if (typeof window === "undefined") {
-    return { selectedProspectByService: {}, statusByProspectKey: {}, metricStatusByService: {} };
+    return emptyState;
   }
   try {
     const raw = window.localStorage.getItem(LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY);
     if (!raw) {
-      return { selectedProspectByService: {}, statusByProspectKey: {}, metricStatusByService: {} };
+      return emptyState;
     }
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     return {
       selectedProspectByService: readStringRecord(parsed.selectedProspectByService),
       statusByProspectKey: readPilotStatusRecord(parsed.statusByProspectKey),
       metricStatusByService: readPilotMetricStatusRecord(parsed.metricStatusByService),
+      setupStepCompletionByService: readSetupStepCompletionByService(parsed.setupStepCompletionByService),
+      setupReadyByService: readBooleanRecord(parsed.setupReadyByService),
     };
   } catch {
-    return { selectedProspectByService: {}, statusByProspectKey: {}, metricStatusByService: {} };
+    return emptyState;
   }
 }
 
@@ -2173,27 +2232,32 @@ function buildLocalServicePilotAnalystBrief(
 function buildLocalServiceAgentSetupBrief(template: LocalServiceDemoTemplate): LocalServiceAgentSetupBrief {
   const setupSteps = [
     {
+      id: "business_profile" as const,
       label: "Business profile",
       value: `${template.title}, ${template.channel}, service ref ${template.ref}`,
       status: "Ready",
     },
     {
+      id: "knowledge_sources" as const,
       label: "Knowledge sources",
       value: `${template.detail.phoneIntake.length} intake prompts, ${template.detail.estimateInputs.length} estimate inputs, ${template.detail.approvalPolicy.length} approval rules`,
       status: "Loaded",
     },
     {
+      id: "agent_behavior" as const,
       label: "Agent behavior",
       value: "Collect facts first, prepare the job card, and keep price, slot, and dispatch behind operator approval.",
       status: "Gated",
     },
     {
+      id: "test_call_message" as const,
       label: "Test call/message",
       value: `Use sample call plus Telegram replay: ${template.detail.telegramIntake.normalizedFields.join(", ")}`,
       status: "Ready to test",
     },
     {
-      label: "Ready",
+      id: LOCAL_SERVICE_SETUP_READY_STEP_ID,
+      label: "Ready for pilot test",
       value: "Pilot can start only after owner/operator confirms setup and sends the first test manually.",
       status: "Operator review",
     },
@@ -3048,6 +3112,30 @@ const LocalServicesDispatchDemoPanel = ({
     [currentMetricStatus, currentPilotStatus, selectedOutreachProspect, selectedTemplate],
   );
   const agentSetupBrief = useMemo(() => buildLocalServiceAgentSetupBrief(selectedTemplate), [selectedTemplate]);
+  const setupStepCompletion = pilotWorkspaceState.setupStepCompletionByService[selectedTemplate.id] ?? {};
+  const setupWizardPrerequisiteSteps = agentSetupBrief.setupSteps.filter(
+    (step) => step.id !== LOCAL_SERVICE_SETUP_READY_STEP_ID,
+  );
+  const completedSetupStepCount = agentSetupBrief.setupSteps.filter((step) => setupStepCompletion[step.id]).length;
+  const completedSetupPrerequisiteCount = setupWizardPrerequisiteSteps.filter(
+    (step) => setupStepCompletion[step.id],
+  ).length;
+  const setupWizardTotal = agentSetupBrief.setupSteps.length;
+  const setupWizardProgress = `${completedSetupStepCount}/${setupWizardTotal}`;
+  const setupReadyForPilot = pilotWorkspaceState.setupReadyByService[selectedTemplate.id] === true;
+  const canMarkReadyForPilot =
+    setupWizardPrerequisiteSteps.length > 0 &&
+    completedSetupPrerequisiteCount === setupWizardPrerequisiteSteps.length;
+  const setupStateLines = [
+    "Saved setup state:",
+    `Service: ${selectedTemplate.ref} - ${selectedTemplate.title}`,
+    `Setup progress: ${setupWizardProgress}`,
+    `Ready for pilot test: ${setupReadyForPilot ? "yes" : "no"}`,
+    ...agentSetupBrief.setupSteps.map(
+      (step) => `- ${step.label}: ${setupStepCompletion[step.id] ? "complete" : "pending"}`,
+    ),
+  ];
+  const setupBriefWithState = `${agentSetupBrief.humanText}\n\n${setupStateLines.join("\n")}`;
   const nextManualBatch = filteredPilotFunnelRows
     .filter((item) => item.status !== "reply_received" && item.status !== "rejected_for_now")
     .slice(0, 4);
@@ -3126,6 +3214,63 @@ const LocalServicesDispatchDemoPanel = ({
       metricStatusByService: {
         ...prev.metricStatusByService,
         [selectedTemplate.id]: status,
+      },
+    }));
+  };
+  const updateSetupStepCompletion = (stepId: LocalServiceSetupStepId, complete: boolean) => {
+    setPilotWorkspaceState((prev) => {
+      const currentCompletion = prev.setupStepCompletionByService[selectedTemplate.id] ?? {};
+      const nextCompletion = {
+        ...currentCompletion,
+        [stepId]: complete,
+      };
+      const nextReadyByService = { ...prev.setupReadyByService };
+      if (stepId !== LOCAL_SERVICE_SETUP_READY_STEP_ID && !complete) {
+        nextCompletion[LOCAL_SERVICE_SETUP_READY_STEP_ID] = false;
+        nextReadyByService[selectedTemplate.id] = false;
+      }
+      if (stepId === LOCAL_SERVICE_SETUP_READY_STEP_ID) {
+        nextReadyByService[selectedTemplate.id] = complete;
+      }
+      return {
+        ...prev,
+        setupStepCompletionByService: {
+          ...prev.setupStepCompletionByService,
+          [selectedTemplate.id]: nextCompletion,
+        },
+        setupReadyByService: nextReadyByService,
+      };
+    });
+  };
+  const markReadyForPilotTest = () => {
+    setPilotWorkspaceState((prev) => {
+      const currentCompletion = prev.setupStepCompletionByService[selectedTemplate.id] ?? {};
+      return {
+        ...prev,
+        setupStepCompletionByService: {
+          ...prev.setupStepCompletionByService,
+          [selectedTemplate.id]: {
+            ...currentCompletion,
+            [LOCAL_SERVICE_SETUP_READY_STEP_ID]: true,
+          },
+        },
+        setupReadyByService: {
+          ...prev.setupReadyByService,
+          [selectedTemplate.id]: true,
+        },
+      };
+    });
+  };
+  const resetSetupProgress = () => {
+    setPilotWorkspaceState((prev) => ({
+      ...prev,
+      setupStepCompletionByService: {
+        ...prev.setupStepCompletionByService,
+        [selectedTemplate.id]: {},
+      },
+      setupReadyByService: {
+        ...prev.setupReadyByService,
+        [selectedTemplate.id]: false,
       },
     }));
   };
@@ -3237,6 +3382,23 @@ const LocalServicesDispatchDemoPanel = ({
                   Setup path: business profile, knowledge sources, agent behavior, test call/message, ready.
                   Outreach tables and scorecard controls are hidden so the first demo stays focused on setup.
                 </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <span className="inline-flex rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-violet-fg))] ring-1 ring-inset ring-[hsl(var(--tint-violet)/0.24)]">
+                    Setup progress {setupWizardProgress}
+                  </span>
+                  <span
+                    className={`inline-flex rounded-[5px] px-2 py-1 font-mono text-[10px] ring-1 ring-inset ${
+                      setupReadyForPilot
+                        ? "bg-[hsl(var(--tint-mint)/0.12)] text-[hsl(var(--tint-mint-fg))] ring-[hsl(var(--tint-mint)/0.22)]"
+                        : "bg-background/45 text-muted-foreground ring-border/60"
+                    }`}
+                  >
+                    {setupReadyForPilot ? "Ready for pilot test" : "Setup in progress"}
+                  </span>
+                  <span className="inline-flex rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-violet-fg))] ring-1 ring-inset ring-[hsl(var(--tint-violet)/0.24)]">
+                    Saved in this browser
+                  </span>
+                </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -3265,11 +3427,19 @@ const LocalServicesDispatchDemoPanel = ({
                 </Button>
                 <Button
                   size="sm"
-                  onClick={() => onCopyText(agentSetupBrief.humanText, agentSetupBrief.copyLabel)}
+                  onClick={() => onCopyText(setupBriefWithState, agentSetupBrief.copyLabel)}
                   className="h-8"
                 >
                   <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
                   Copy setup brief
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={resetSetupProgress}
+                  className="h-8"
+                >
+                  Reset setup progress
                 </Button>
                 <span className="inline-flex rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-violet-fg))] ring-1 ring-inset ring-[hsl(var(--tint-violet)/0.24)]">
                   No channel activation
@@ -3277,17 +3447,56 @@ const LocalServicesDispatchDemoPanel = ({
               </div>
             </div>
             <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-              {agentSetupBrief.setupSteps.map((step, index) => (
-                <div key={step.label} className="rounded-md bg-background/35 px-3 py-2.5">
+              {agentSetupBrief.setupSteps.map((step, index) => {
+                const complete = setupStepCompletion[step.id] === true;
+                const readyStep = step.id === LOCAL_SERVICE_SETUP_READY_STEP_ID;
+                const disabled = readyStep && !canMarkReadyForPilot && !setupReadyForPilot;
+                return (
+                <div
+                  key={step.label}
+                  className={`rounded-md border px-3 py-2.5 ${
+                    complete
+                      ? "border-[hsl(var(--tint-mint)/0.24)] bg-[hsl(var(--tint-mint)/0.08)]"
+                      : "border-border/40 bg-background/35"
+                  }`}
+                >
                   <div className="flex items-center gap-2">
                     <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] bg-[hsl(var(--tint-violet)/0.12)] font-mono text-[10px] text-[hsl(var(--tint-violet-fg))] ring-1 ring-inset ring-[hsl(var(--tint-violet)/0.22)]">
-                      {index + 1}
+                      {complete ? <Check className="h-3 w-3" strokeWidth={2} /> : index + 1}
                     </span>
                     <div className="text-[11.5px] font-medium text-foreground">{step.label}</div>
                   </div>
-                  <div className="mt-1.5 font-mono text-[10px] text-muted-foreground/70">{step.status}</div>
+                  <div className="mt-1.5 font-mono text-[10px] text-muted-foreground/70">
+                    {complete ? "Complete" : step.status}
+                  </div>
+                  <button
+                    type="button"
+                    aria-pressed={complete}
+                    disabled={disabled}
+                    onClick={() =>
+                      readyStep
+                        ? markReadyForPilotTest()
+                        : updateSetupStepCompletion(step.id, !complete)
+                    }
+                    className={`mt-2 inline-flex h-7 items-center rounded-[5px] px-2 text-[10px] font-medium ring-1 ring-inset transition-smooth ${
+                      disabled
+                        ? "cursor-not-allowed bg-secondary/20 text-muted-foreground/45 ring-border/40"
+                        : complete
+                          ? "bg-[hsl(var(--tint-mint)/0.12)] text-[hsl(var(--tint-mint-fg))] ring-[hsl(var(--tint-mint)/0.22)]"
+                          : "bg-secondary/45 text-muted-foreground ring-border/60 hover:text-foreground"
+                    }`}
+                  >
+                    {readyStep
+                      ? setupReadyForPilot
+                        ? "Ready for pilot test"
+                        : "Mark ready for pilot test"
+                      : complete
+                        ? "Completed"
+                        : "Mark complete"}
+                  </button>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         )}
@@ -4084,7 +4293,10 @@ const LocalServicesDispatchDemoPanel = ({
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <span className="inline-flex rounded-[5px] bg-[hsl(var(--tint-mint)/0.12)] px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.22)]">
-                        Ready for test call/message
+                        {setupReadyForPilot ? "Ready for pilot test" : `Setup progress ${setupWizardProgress}`}
+                      </span>
+                      <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                        Saved setup state
                       </span>
                       <Button
                         size="sm"
@@ -4102,17 +4314,24 @@ const LocalServicesDispatchDemoPanel = ({
                   </div>
                   <ol className="mt-3 grid gap-2 md:grid-cols-5">
                     {agentSetupBrief.setupSteps.map((step, index) => (
-                      <li key={step.label} className="rounded-md bg-background/35 px-3 py-2.5">
+                      <li
+                        key={step.label}
+                        className={`rounded-md px-3 py-2.5 ${
+                          setupStepCompletion[step.id]
+                            ? "bg-[hsl(var(--tint-mint)/0.08)] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.2)]"
+                            : "bg-background/35"
+                        }`}
+                      >
                         <div className="flex items-start gap-2">
                           <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] bg-[hsl(var(--tint-mint)/0.12)] font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.22)]">
-                            {index + 1}
+                            {setupStepCompletion[step.id] ? <Check className="h-3 w-3" strokeWidth={2} /> : index + 1}
                           </span>
                           <div className="min-w-0">
                             <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
                               {step.label}
                             </div>
                             <div className="mt-0.5 font-mono text-[10px] text-muted-foreground/70">
-                              {step.status}
+                              {setupStepCompletion[step.id] ? "Complete" : step.status}
                             </div>
                           </div>
                         </div>
