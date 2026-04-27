@@ -681,6 +681,12 @@ The same pilot block now opens `Pilot week-one review` through
 `local_services_pilot_week_one_review` payload. It is the owner-reviewed
 continue/pause/stop decision pack only: no autonomous pilot decision, CRM write,
 billing change, customer send, or Markdown mutation.
+The final pilot block now opens `Pilot evidence pack` through
+`Open evidence pack`. It exposes `Week-two evidence pack`,
+`Copy evidence pack`, and the structured
+`local_services_pilot_evidence_pack` payload. It is the redacted day-14 proof
+pack only: no private customer data in public docs, no autonomous pilot
+decision, CRM write, billing change, customer send, or Markdown mutation.
 The shell now also opens repo-owned pilot artifacts through
 `/workspace-docs/local-services-pilot-offer.md` and
 `/workspace-docs/local-services-demo-script.md`.
@@ -821,9 +827,12 @@ Current shell readiness for P3:
 19. `Open week-one review`, `Pilot week-one review`,
    `Continue / stop decision`, `Copy week-one review`, and
    `local_services_pilot_week_one_review` are visible in the shell.
-20. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
+20. `Open evidence pack`, `Pilot evidence pack`, `Week-two evidence pack`,
+   `Copy evidence pack`, and `local_services_pilot_evidence_pack` are visible
+   in the shell.
+21. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
    artifact documents from the same local frontend server.
-21. `Open outreach list`, `Open outreach execution pack`, and
+22. `Open outreach list`, `Open outreach execution pack`, and
    `Open pilot scorecard` resolve to the repo-owned pilot execution documents
    from the same local frontend server.
 18. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned

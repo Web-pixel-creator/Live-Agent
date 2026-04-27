@@ -147,6 +147,11 @@ the owner must decide whether to continue, pause, or stop. `Pilot week-one
 review` exposes `Continue / stop decision`, `Copy week-one review`, and
 `local_services_pilot_week_one_review`. It is manual-only: no autonomous pilot
 decision, CRM write, billing change, customer message, or Markdown mutation.
+Use `Open evidence pack` at the end of a serious pilot to assemble the redacted
+owner proof pack. `Pilot evidence pack` exposes `Week-two evidence pack`,
+`Copy evidence pack`, `local_services_pilot_evidence_pack`, paid-pilot
+readiness, decision options, and redaction guardrails. It is not CRM, billing,
+customer-message, or public-doc storage automation.
 Use `Open offer doc` and `Open demo script` when the operator needs the pilot
 artifact layer instead of the inline summary.
 Use `Open outreach list`, `Open outreach execution pack`, and

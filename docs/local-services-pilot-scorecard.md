@@ -146,6 +146,14 @@ service lane and company. Use it after real week-one activity exists to review
 CRM, change billing, send customer messages, or mutate this Markdown file
 automatically.
 
+`Open evidence pack` opens the `Pilot evidence pack` drawer for day-14 owner
+review. Use it to collect `Week-two evidence pack`, `Copy evidence pack`,
+redacted before/after intake proof, one anonymized job card, scorecard rows,
+owner quote, and the stop/continue decision. The payload is
+`local_services_pilot_evidence_pack`; it does not store private customer data in
+public docs, decide autonomously, update CRM, change billing, send customer
+messages, or mutate this Markdown file automatically.
+
 `Open discovery prep` opens the `Discovery call prep` drawer for a replied
 company. Use `Human-readable` for the founder call, `JSON` for structured
 handoff notes, and `Copy discovery call prep` only after the selected company

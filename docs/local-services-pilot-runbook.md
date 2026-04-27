@@ -99,6 +99,10 @@ Do not use the pilot to build:
     `Pilot week-one review`, `Continue / stop decision`, and
     `Copy week-one review`, then copy `local_services_pilot_week_one_review`
     into the private scorecard or spreadsheet manually.
+15. Open `Open evidence pack` at day 14 for serious pilots. Review
+    `Pilot evidence pack`, `Week-two evidence pack`, and `Copy evidence pack`,
+    then copy `local_services_pilot_evidence_pack` into the private scorecard
+    or owner-facing proof pack manually after redaction.
 
 ## Day Zero: Outreach
 
@@ -183,6 +187,10 @@ booking, customer message, or Markdown mutation.
 Use `Pilot week-one review` after the first real week to prepare the
 continue/pause/stop discussion. It is manual-only: no autonomous pilot decision,
 CRM write, billing change, customer message, or Markdown mutation.
+Use `Pilot evidence pack` at day 14 to assemble redacted proof for paid-pilot
+readiness or a clean stop. It is manual-only: no private customer data in public
+docs, no autonomous pilot decision, CRM write, billing change, customer
+message, or Markdown mutation.
 
 ## Week One Review
 

@@ -127,6 +127,11 @@ Use `Open week-one review` after real week-one activity exists. It opens
 `Copy week-one review`, and `local_services_pilot_week_one_review`. It does not
 decide autonomously, write CRM, change billing, send customer messages, or
 mutate Markdown docs.
+Use `Open evidence pack` after the pilot has real proof. It opens
+`Pilot evidence pack` with `Week-two evidence pack`, `Copy evidence pack`, and
+`local_services_pilot_evidence_pack`. It is a redacted manual proof pack only:
+no private customer data in public docs, no autonomous pilot decision, no CRM
+write, no billing change, and no customer send.
 Use `Open offer doc` and `Open demo script` to open the repo-owned pilot
 artifacts without leaving the local frontend server.
 Use `Open outreach list`, `Open outreach execution pack`, and

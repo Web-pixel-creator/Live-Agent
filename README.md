@@ -164,6 +164,10 @@ Local-services expansion spec:
   `Open week-one review`; it exposes `Continue / stop decision`,
   `Copy week-one review`, and `local_services_pilot_week_one_review` so week-one
   continuation decisions stay owner-reviewed and manual-only.
+- it now closes the 14-day loop with `Open evidence pack`, `Pilot evidence
+  pack`, `Week-two evidence pack`, `Copy evidence pack`, and
+  `local_services_pilot_evidence_pack`; this is a redacted manual proof pack,
+  not CRM, billing, or customer-message automation.
 - `Pilot readiness` now links to repo-owned pilot artifacts at
   `/workspace-docs/local-services-pilot-offer.md` and
   `/workspace-docs/local-services-demo-script.md`.

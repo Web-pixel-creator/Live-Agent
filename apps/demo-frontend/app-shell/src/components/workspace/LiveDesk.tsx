@@ -1522,6 +1522,137 @@ function buildLocalServicePilotWeekOneReviewExport(
   };
 }
 
+function buildLocalServicePilotEvidencePackExport(
+  template: LocalServiceDemoTemplate,
+  prospect: LocalServiceOutreachProspect | undefined,
+  pilotStatus: LocalServicePilotStatus,
+  metricStatus: LocalServicePilotMetricStatus,
+): LocalServicePilotWorkspaceExport {
+  const pilotStatusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[pilotStatus];
+  const metricStatusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus];
+  const prospectLabel = prospect ? `${prospect.company} - ${prospect.segment}` : "No prospect selected";
+  const evidenceItems = [
+    {
+      label: "Before / after intake",
+      value: "one redacted screenshot or operator note comparing old intake to the pilot flow",
+    },
+    {
+      label: "Anonymized job card",
+      value: "one job card with name, phone, address, and private media removed",
+    },
+    {
+      label: "Customer confirmation",
+      value: "one operator-approved draft confirmation with private customer data redacted",
+    },
+    {
+      label: "Master handoff",
+      value: "one operator/master handoff showing district, service type, urgency, and approval state",
+    },
+    {
+      label: "Scorecard rows",
+      value: "week-one and week-two reviewed metrics from the private scorecard or spreadsheet",
+    },
+    {
+      label: "Owner quote",
+      value: "one short quote from the owner or dispatcher about time saved, trust, or blockers",
+    },
+    {
+      label: "Decision",
+      value: "clear continue, paid pilot, one-week extension, or stop decision",
+    },
+  ];
+  const weekTwoOptions = [
+    "continue as a paid pilot",
+    "continue free for one more week only if data is incomplete but demand is real",
+    "stop and move to the next account",
+  ];
+  const readinessCriteria = [
+    "a named owner wants the flow",
+    "at least one job was saved, recovered, or made faster",
+    "the operator trusts the approval gate",
+    "the scope stays inside phone, Telegram, job cards, and handoff",
+  ];
+  const humanLines = [
+    `Pilot evidence pack: ${template.title}`,
+    `Service: ${template.ref}`,
+    `Selected company: ${prospectLabel}`,
+    `Pilot status: ${pilotStatusLabel}`,
+    `Metric status: ${metricStatusLabel}`,
+    "Export scope: manual week-two evidence pack",
+    "",
+    "Evidence items:",
+    ...evidenceItems.map((item) => `- ${item.label}: ${item.value}`),
+    "",
+    "Week-two decision options:",
+    ...weekTwoOptions.map((option) => `- ${option}`),
+    "",
+    "Paid-pilot readiness:",
+    ...readinessCriteria.map((criterion) => `- ${criterion}`),
+    "",
+    "Redaction rule: do not store private customer data in public docs. Redact names, phone numbers, exact addresses, and private media before sharing externally.",
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_pilot_evidence_pack",
+      export_kind: "manual_week_two_evidence_pack",
+      storage_key: LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY,
+      service_id: template.id,
+      service_ref: template.ref,
+      service_title: template.title,
+      prospect_id: prospect?.id ?? null,
+      prospect_company: prospect?.company ?? null,
+      pilot_status: pilotStatus,
+      pilot_status_label: pilotStatusLabel,
+      metric_status: metricStatus,
+      metric_status_label: metricStatusLabel,
+      evidence_items: evidenceItems,
+      week_two_decision_options: weekTwoOptions,
+      paid_pilot_readiness: readinessCriteria,
+      guardrails: [
+        "manual_week_two_evidence_pack",
+        "no_private_customer_data_in_public_docs",
+        "redact_names_phone_addresses_media",
+        "no_autonomous_pilot_decision",
+        "no_crm_write",
+        "no_billing_change",
+        "no_customer_message_sent",
+      ],
+    },
+    null,
+    2,
+  );
+
+  return {
+    title: "Pilot evidence pack",
+    description:
+      "Prepare the redacted week-two proof pack for owner review, paid-pilot readiness, or a clean stop decision.",
+    eyebrow: "Pilot evidence",
+    modeLabel: "Evidence mode",
+    copyLabel: "Copy evidence pack",
+    reviewTitle: "Week-two evidence pack",
+    reviewDescription:
+      "Use this after a serious pilot has real proof. Redact private customer data before external sharing.",
+    executionActionLabel: "Open pilot runbook",
+    scorecardActionLabel: "Open pilot scorecard",
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: [
+      { label: "Service", value: `${template.ref} - ${template.title}` },
+      { label: "Company", value: prospectLabel },
+      { label: "Evidence items", value: String(evidenceItems.length) },
+      { label: "Decision options", value: weekTwoOptions.join(", ") },
+      { label: "Guardrail", value: "Manual redacted evidence pack, no private customer data in public docs" },
+    ],
+    checklist: [
+      "Include only redacted screenshots, notes, and job-card excerpts.",
+      "Attach week-one and week-two scorecard rows from the private tracker.",
+      "Record one owner or dispatcher quote.",
+      "Pick one clear continue, paid pilot, extension, or stop decision.",
+      "Do not treat this pack as a CRM, billing, or customer-message action.",
+    ],
+  };
+}
+
 function buildLocalServicePilotMessagePreview(
   template: LocalServiceDemoTemplate,
   prospect: LocalServiceOutreachProspect | undefined,
@@ -2740,6 +2871,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [pilotDailyLogMode, setPilotDailyLogMode] = useState<PlaybookExportMode>("human");
   const [pilotWeekOneReviewOpen, setPilotWeekOneReviewOpen] = useState(false);
   const [pilotWeekOneReviewMode, setPilotWeekOneReviewMode] = useState<PlaybookExportMode>("human");
+  const [pilotEvidencePackOpen, setPilotEvidencePackOpen] = useState(false);
+  const [pilotEvidencePackMode, setPilotEvidencePackMode] = useState<PlaybookExportMode>("human");
   const [pilotMessagePreviewOpen, setPilotMessagePreviewOpen] = useState(false);
   const [pilotMessagePreviewMode, setPilotMessagePreviewMode] = useState<PlaybookExportMode>("human");
   const [pilotOperatorConfirmationOpen, setPilotOperatorConfirmationOpen] = useState(false);
@@ -2853,6 +2986,16 @@ const LocalServicesDispatchDemoPanel = ({
   const pilotWeekOneReviewExport = useMemo(
     () =>
       buildLocalServicePilotWeekOneReviewExport(
+        selectedTemplate,
+        selectedOutreachProspect,
+        currentPilotStatus,
+        currentMetricStatus,
+      ),
+    [currentMetricStatus, currentPilotStatus, selectedOutreachProspect, selectedTemplate],
+  );
+  const pilotEvidencePackExport = useMemo(
+    () =>
+      buildLocalServicePilotEvidencePackExport(
         selectedTemplate,
         selectedOutreachProspect,
         currentPilotStatus,
@@ -3895,6 +4038,17 @@ const LocalServicesDispatchDemoPanel = ({
                     >
                       Open week-one review
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setPilotEvidencePackMode("human");
+                        setPilotEvidencePackOpen(true);
+                      }}
+                      className="h-7"
+                    >
+                      Open evidence pack
+                    </Button>
                   </div>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                     {selectedTemplate.detail.pilotKit.metrics.map((metric) => (
@@ -4408,6 +4562,16 @@ const LocalServicesDispatchDemoPanel = ({
         exportView={pilotWeekOneReviewExport}
         mode={pilotWeekOneReviewMode}
         onModeChange={setPilotWeekOneReviewMode}
+        onCopy={onCopyText}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+        onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_PILOT_RUNBOOK_PATH)}
+      />
+      <LocalServicePilotWorkspaceExportDrawer
+        open={pilotEvidencePackOpen}
+        onOpenChange={setPilotEvidencePackOpen}
+        exportView={pilotEvidencePackExport}
+        mode={pilotEvidencePackMode}
+        onModeChange={setPilotEvidencePackMode}
         onCopy={onCopyText}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_PILOT_RUNBOOK_PATH)}

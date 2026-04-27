@@ -101,6 +101,12 @@ review`, `Continue / stop decision`, and `Copy week-one review`. The structured
 payload is `local_services_pilot_week_one_review`; it remains owner/operator
 review only and does not decide autonomously, write CRM, change billing, send
 customer messages, or mutate this list.
+At day 14, use `Open evidence pack` to review `Pilot evidence pack`,
+`Week-two evidence pack`, and `Copy evidence pack`. The structured payload is
+`local_services_pilot_evidence_pack`; it remains a redacted manual proof pack
+only and does not store private customer data in public docs, decide
+autonomously, write CRM, change billing, send customer messages, or mutate this
+list.
 
 ### Week 1
 

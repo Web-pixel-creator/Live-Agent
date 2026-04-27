@@ -249,7 +249,12 @@ Allowed reply statuses:
    `local_services_pilot_week_one_review`; explain that this is a manual owner
    review, not an autonomous pilot decision, CRM write, billing change, or
    customer send.
-20. End with one question: "Would this save missed requests or manager time if we
+20. Show `Open evidence pack`, `Pilot evidence pack`,
+   `Week-two evidence pack`, `Copy evidence pack`, and
+   `local_services_pilot_evidence_pack`; explain that this is a redacted manual
+   proof pack, not public customer-data storage, CRM, billing, or customer-send
+   automation.
+21. End with one question: "Would this save missed requests or manager time if we
    tested it for 14 days?"
 
 ## After Each Contact
@@ -269,3 +274,5 @@ Allowed reply statuses:
 7. Copy the week-one review only after real week-one activity; do not treat it
    as proof that the pilot decision, CRM, billing, or customer-message systems
    were updated.
+8. Copy the evidence pack only after redaction; do not store names, phone
+   numbers, exact addresses, or private media in public docs.

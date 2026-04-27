@@ -133,6 +133,12 @@ review` with `Continue / stop decision`, `Copy week-one review`, and the
 structured `local_services_pilot_week_one_review` payload. This keeps the first
 continue/pause/stop decision owner-reviewed and manual-only, with no CRM write,
 billing change, customer send, or Markdown mutation.
+The final manual proof layer is now `Open evidence pack`: it opens
+`Pilot evidence pack` with `Week-two evidence pack`, `Copy evidence pack`, and
+the structured `local_services_pilot_evidence_pack` payload. This gives the
+founder a redacted day-14 proof pack for paid-pilot readiness or a clean stop
+decision without private customer data in public docs, CRM write, billing
+change, customer send, or Markdown mutation.
 That same block should link to repo-owned pilot artifacts through
 `/workspace-docs/local-services-pilot-offer.md` and
 `/workspace-docs/local-services-demo-script.md`.
