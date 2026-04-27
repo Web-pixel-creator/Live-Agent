@@ -136,6 +136,12 @@ selected lane's pilot measurements. The `Pilot metrics tracker` switches between
 `Human-readable` and `JSON`, exposes `Copy pilot metrics tracker`, and remains
 manual-only: no analytics sync, no CRM write, and no Markdown scorecard
 mutation.
+Use `Open daily log` when the operator needs the current day's operating-loop
+note before updating a private scorecard. `Pilot daily log` exposes
+`Daily capture fields`, `Daily operating loop`, and `Copy pilot daily log`.
+The payload is `local_services_pilot_daily_log`; it remains manual-only and
+does not sync analytics, write CRM, create calendar bookings, send customer
+messages, or mutate Markdown docs.
 Use `Open offer doc` and `Open demo script` when the operator needs the pilot
 artifact layer instead of the inline summary.
 Use `Open outreach list`, `Open outreach execution pack`, and

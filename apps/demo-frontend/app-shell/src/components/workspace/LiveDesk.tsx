@@ -437,6 +437,7 @@ type LocalServicePilotWorkspaceExport = {
   reviewTitle?: string;
   reviewDescription?: string;
   scorecardActionLabel?: string;
+  executionActionLabel?: string;
   humanText: string;
   jsonText: string;
   rows: { label: string; value: string }[];
@@ -1281,6 +1282,122 @@ function buildLocalServicePilotMetricsTrackerExport(
       "Review missed-call recovery, response time, bookings, edits, and cancellation signals together.",
       "Sync only reviewed weekly numbers into the pilot scorecard or CRM.",
       "Do not treat this tracker as proof that external analytics were synced.",
+    ],
+  };
+}
+
+function buildLocalServicePilotDailyLogExport(
+  template: LocalServiceDemoTemplate,
+  status: LocalServicePilotMetricStatus,
+): LocalServicePilotWorkspaceExport {
+  const statusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[status];
+  const dailyFields = [
+    {
+      label: "Inbound requests",
+      value: "manual count from calls, Telegram, website, and ads",
+      source: "operator tally",
+    },
+    {
+      label: "Missed-call recovery",
+      value: "manual count of missed or delayed requests recovered",
+      source: "phone/Telegram review",
+    },
+    {
+      label: "First reply time",
+      value: "manual median or representative response-time note",
+      source: "operator estimate",
+    },
+    {
+      label: "Quotes / slots / dispatch cards",
+      value: "manual count of job cards prepared for review",
+      source: "pilot workspace",
+    },
+    {
+      label: "Manual operator edits",
+      value: "manual count or note on what had to be rewritten",
+      source: "operator review",
+    },
+    {
+      label: "Confirmed bookings / dispatches",
+      value: "manual count after owner approval",
+      source: "private scorecard",
+    },
+    {
+      label: "No-shows / cancellations",
+      value: "manual count plus reason when known",
+      source: "owner/operator note",
+    },
+    {
+      label: "Operator note",
+      value: "one sentence: what still blocked trust or speed today?",
+      source: "human note",
+    },
+  ];
+  const fieldLines = dailyFields.map((field) => `- ${field.label}: ${field.value} (${field.source})`);
+  const humanLines = [
+    `Pilot daily log: ${template.title}`,
+    `Service: ${template.ref}`,
+    "Export scope: manual daily operating loop",
+    `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
+    `Metric status: ${statusLabel}`,
+    "",
+    "Daily capture fields:",
+    ...fieldLines,
+    "",
+    "Daily operating rule: this log is a reviewed template only. It does not sync analytics, write CRM, create bookings, or update Markdown scorecards automatically.",
+    "Operator action: fill the private daily numbers, then manually copy the reviewed summary into the pilot scorecard or spreadsheet.",
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_pilot_daily_log",
+      export_kind: "manual_daily_operating_loop",
+      storage_key: LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY,
+      service_id: template.id,
+      service_ref: template.ref,
+      service_title: template.title,
+      metric_status: status,
+      metric_status_label: statusLabel,
+      daily_capture_fields: dailyFields,
+      guardrails: [
+        "manual_daily_capture",
+        "no_external_analytics_sync",
+        "no_crm_write",
+        "no_calendar_booking_created",
+        "no_customer_message_sent",
+        "manual_scorecard_sync_required",
+      ],
+    },
+    null,
+    2,
+  );
+
+  return {
+    title: "Pilot daily log",
+    description:
+      "Prepare the daily operating-loop note for the selected local-services lane. It is a manual capture template, not analytics sync or CRM.",
+    eyebrow: "Pilot daily log",
+    modeLabel: "Daily log mode",
+    copyLabel: "Copy pilot daily log",
+    reviewTitle: "Daily operating loop",
+    reviewDescription:
+      "Fill these numbers manually from real calls, chats, bookings, and operator notes before scorecard sync.",
+    executionActionLabel: "Open pilot runbook",
+    scorecardActionLabel: "Open pilot scorecard",
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: [
+      { label: "Service", value: `${template.ref} - ${template.title}` },
+      { label: "Metric status", value: statusLabel },
+      { label: "Capture cadence", value: "once per pilot day" },
+      { label: "Fields", value: dailyFields.map((field) => field.label).join(", ") },
+      { label: "Guardrail", value: "Manual daily capture, no analytics sync, no CRM write" },
+    ],
+    checklist: [
+      "Count only real pilot activity from the current day.",
+      "Separate captured requests from confirmed bookings or dispatches.",
+      "Write one operator note about what still required rewriting.",
+      "Sync reviewed numbers manually into the scorecard or spreadsheet.",
+      "Do not treat this daily log as proof that external analytics were synced.",
     ],
   };
 }
@@ -2499,6 +2616,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [pilotWorkspaceExportMode, setPilotWorkspaceExportMode] = useState<PlaybookExportMode>("human");
   const [pilotMetricsTrackerOpen, setPilotMetricsTrackerOpen] = useState(false);
   const [pilotMetricsTrackerMode, setPilotMetricsTrackerMode] = useState<PlaybookExportMode>("human");
+  const [pilotDailyLogOpen, setPilotDailyLogOpen] = useState(false);
+  const [pilotDailyLogMode, setPilotDailyLogMode] = useState<PlaybookExportMode>("human");
   const [pilotMessagePreviewOpen, setPilotMessagePreviewOpen] = useState(false);
   const [pilotMessagePreviewMode, setPilotMessagePreviewMode] = useState<PlaybookExportMode>("human");
   const [pilotOperatorConfirmationOpen, setPilotOperatorConfirmationOpen] = useState(false);
@@ -2603,6 +2722,10 @@ const LocalServicesDispatchDemoPanel = ({
   );
   const pilotMetricsTrackerExport = useMemo(
     () => buildLocalServicePilotMetricsTrackerExport(selectedTemplate, currentMetricStatus),
+    [currentMetricStatus, selectedTemplate],
+  );
+  const pilotDailyLogExport = useMemo(
+    () => buildLocalServicePilotDailyLogExport(selectedTemplate, currentMetricStatus),
     [currentMetricStatus, selectedTemplate],
   );
   const pilotMessagePreview = useMemo(
@@ -3618,6 +3741,17 @@ const LocalServicesDispatchDemoPanel = ({
                     >
                       Open metrics tracker
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setPilotDailyLogMode("human");
+                        setPilotDailyLogOpen(true);
+                      }}
+                      className="h-7"
+                    >
+                      Open daily log
+                    </Button>
                   </div>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                     {selectedTemplate.detail.pilotKit.metrics.map((metric) => (
@@ -4115,6 +4249,16 @@ const LocalServicesDispatchDemoPanel = ({
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
       />
+      <LocalServicePilotWorkspaceExportDrawer
+        open={pilotDailyLogOpen}
+        onOpenChange={setPilotDailyLogOpen}
+        exportView={pilotDailyLogExport}
+        mode={pilotDailyLogMode}
+        onModeChange={setPilotDailyLogMode}
+        onCopy={onCopyText}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+        onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_PILOT_RUNBOOK_PATH)}
+      />
       <LocalServicePilotMessagePreviewSheet
         open={pilotMessagePreviewOpen}
         onOpenChange={setPilotMessagePreviewOpen}
@@ -4172,6 +4316,10 @@ const LocalServicesDispatchDemoPanel = ({
         onCopy={onCopyText}
         onOpenAgentSetup={() => setAgentSetupOpen(true)}
         onOpenMetrics={() => setPilotMetricsTrackerOpen(true)}
+        onOpenDailyLog={() => {
+          setPilotDailyLogMode("human");
+          setPilotDailyLogOpen(true);
+        }}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
       />
       <LocalServiceAgentSetupSheet
@@ -4617,7 +4765,7 @@ const LocalServicePilotWorkspaceExportDrawer = ({
                 ) : null}
                 <Button size="sm" variant="secondary" onClick={onOpenExecutionPack} className="h-8">
                   <FileText className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
-                  Open outreach execution pack
+                  {exportView.executionActionLabel ?? "Open outreach execution pack"}
                 </Button>
                 <Button size="sm" variant="secondary" onClick={onOpenScorecard} className="h-8">
                   <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
@@ -5366,6 +5514,7 @@ const LocalServiceDayOneSetupSheet = ({
   onCopy,
   onOpenAgentSetup,
   onOpenMetrics,
+  onOpenDailyLog,
   onOpenScorecard,
 }: {
   open: boolean;
@@ -5376,6 +5525,7 @@ const LocalServiceDayOneSetupSheet = ({
   onCopy: (text: string, label: string) => void;
   onOpenAgentSetup: () => void;
   onOpenMetrics: () => void;
+  onOpenDailyLog: () => void;
   onOpenScorecard: () => void;
 }) => {
   const renderedText = mode === "human" ? brief.humanText : brief.jsonText;
@@ -5483,6 +5633,10 @@ const LocalServiceDayOneSetupSheet = ({
                 <Button size="sm" variant="secondary" onClick={onOpenMetrics} className="h-8">
                   <Clock className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
                   Open metrics tracker
+                </Button>
+                <Button size="sm" variant="secondary" onClick={onOpenDailyLog} className="h-8">
+                  <ClipboardCheck className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Open daily log
                 </Button>
                 <Button size="sm" variant="secondary" onClick={onOpenScorecard} className="h-8">
                   <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />

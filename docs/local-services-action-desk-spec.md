@@ -670,6 +670,11 @@ through `Open metrics tracker`. The tracker has `Human-readable` and `JSON`
 modes, exposes `Copy pilot metrics tracker`, stores its status in the same
 browser-local workspace state, and carries explicit guardrails: manual metric
 capture, no analytics sync, no CRM write, and manual scorecard sync only.
+The same metrics block now opens `Pilot daily log` through `Open daily log`.
+It exposes `Daily capture fields`, `Daily operating loop`,
+`Copy pilot daily log`, and the structured `local_services_pilot_daily_log`
+payload. It is the reviewed daily operating-loop note only: no analytics sync,
+CRM write, calendar booking, customer send, or Markdown mutation.
 The shell now also opens repo-owned pilot artifacts through
 `/workspace-docs/local-services-pilot-offer.md` and
 `/workspace-docs/local-services-demo-script.md`.
@@ -804,9 +809,12 @@ Current shell readiness for P3:
    `JSON`, and `Copy pilot workspace export` are visible in the shell.
 17. `Open metrics tracker`, `Pilot metrics tracker`, `Human-readable`, `JSON`,
    and `Copy pilot metrics tracker` are visible in the shell.
-18. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
+18. `Open daily log`, `Pilot daily log`, `Daily capture fields`,
+   `Daily operating loop`, `Copy pilot daily log`, and
+   `local_services_pilot_daily_log` are visible in the shell.
+19. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
    artifact documents from the same local frontend server.
-19. `Open outreach list`, `Open outreach execution pack`, and
+20. `Open outreach list`, `Open outreach execution pack`, and
    `Open pilot scorecard` resolve to the repo-owned pilot execution documents
    from the same local frontend server.
 18. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned

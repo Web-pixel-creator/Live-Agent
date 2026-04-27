@@ -91,6 +91,11 @@ After that call, use `Open day-one setup` to review `Day-one setup brief`,
 `Copy day-one setup brief`. The structured payload is
 `local_services_day_one_setup_brief`; it remains setup handoff only and does not
 activate channels, billing, CRM, calendar, analytics, or customer sends.
+During each pilot day, use `Open daily log` to review `Pilot daily log`,
+`Daily capture fields`, `Daily operating loop`, and `Copy pilot daily log`.
+The structured payload is `local_services_pilot_daily_log`; it remains a manual
+operating-loop note only and does not sync analytics, write CRM, create
+calendar bookings, send customer messages, or mutate this list.
 
 ### Week 1
 

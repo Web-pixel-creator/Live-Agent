@@ -132,6 +132,13 @@ pasting reviewed numbers into a spreadsheet. `Copy pilot metrics tracker`
 copies the reviewed metric plan only; it does not sync analytics, update CRM, or
 mutate this Markdown file automatically.
 
+`Open daily log` opens the `Pilot daily log` for the selected service lane.
+Use it at the end of each pilot day to review `Daily capture fields`,
+`Daily operating loop`, and `Copy pilot daily log`. The payload is
+`local_services_pilot_daily_log`; it does not sync analytics, update CRM, create
+calendar bookings, send customer messages, or mutate this Markdown file
+automatically.
+
 `Open discovery prep` opens the `Discovery call prep` drawer for a replied
 company. Use `Human-readable` for the founder call, `JSON` for structured
 handoff notes, and `Copy discovery call prep` only after the selected company

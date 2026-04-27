@@ -155,6 +155,11 @@ Local-services expansion spec:
   `Open metrics tracker` exposes `Human-readable` / `JSON` modes and
   `Copy pilot metrics tracker` for manual weekly scorecard sync, with no
   analytics sync or CRM write.
+- the same metrics area now opens `Pilot daily log` through `Open daily log`;
+  it exposes `Daily capture fields`, `Daily operating loop`,
+  `Copy pilot daily log`, and `local_services_pilot_daily_log` so the operator
+  can record each pilot day manually without analytics sync, CRM write, calendar
+  booking, or customer send.
 - `Pilot readiness` now links to repo-owned pilot artifacts at
   `/workspace-docs/local-services-pilot-offer.md` and
   `/workspace-docs/local-services-demo-script.md`.

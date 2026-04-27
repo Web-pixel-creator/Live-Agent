@@ -91,6 +91,10 @@ Do not use the pilot to build:
    it does not call an external LLM, send outreach, or write CRM.
 12. Open `Open metrics tracker` for the selected lane and mark `Baseline
    captured` only after real baseline data or owner estimates are collected.
+13. Open `Open daily log` at the end of the first pilot day, review
+    `Daily capture fields`, `Daily operating loop`, and `Copy pilot daily log`,
+    then copy `local_services_pilot_daily_log` into the private scorecard or
+    spreadsheet manually.
 
 ## Day Zero: Outreach
 
@@ -169,6 +173,9 @@ Do this once per day during the pilot:
 
 Use the shell `Pilot metrics tracker` as the reviewed snapshot, then copy the
 final numbers manually into the Markdown scorecard or spreadsheet.
+Use `Pilot daily log` as the daily operating-loop note before the weekly
+metrics review. It is manual-only: no analytics sync, CRM write, calendar
+booking, customer message, or Markdown mutation.
 
 ## Week One Review
 

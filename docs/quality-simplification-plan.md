@@ -123,6 +123,11 @@ The same browser-local state now has `Open metrics tracker`, which opens a
 `Copy pilot metrics tracker`. This closes the first pilot measurement loop while
 remaining manual-only: no analytics sync, no CRM write, and no Markdown
 scorecard mutation.
+The same measurement area now has `Open daily log`, which opens `Pilot daily
+log` with `Daily capture fields`, `Daily operating loop`,
+`Copy pilot daily log`, and the structured `local_services_pilot_daily_log`
+payload. This creates a reviewed daily operating-loop note without analytics
+sync, CRM write, calendar booking, customer send, or Markdown mutation.
 That same block should link to repo-owned pilot artifacts through
 `/workspace-docs/local-services-pilot-offer.md` and
 `/workspace-docs/local-services-demo-script.md`.

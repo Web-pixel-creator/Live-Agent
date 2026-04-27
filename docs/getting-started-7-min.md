@@ -117,6 +117,11 @@ scorecard or CRM sync. It does not send messages or write CRM.
 Use `Open metrics tracker` to open the `Pilot metrics tracker`. It provides
 `Human-readable` and `JSON` modes plus `Copy pilot metrics tracker` for manual
 weekly scorecard sync. It does not sync analytics or write CRM.
+Use `Open daily log` to open `Pilot daily log` for the current operating day.
+It provides `Daily capture fields`, `Daily operating loop`, and
+`Copy pilot daily log` with the structured `local_services_pilot_daily_log`
+payload. It is a manual note only: no analytics sync, CRM write, calendar
+booking, customer send, or Markdown scorecard mutation.
 Use `Open offer doc` and `Open demo script` to open the repo-owned pilot
 artifacts without leaving the local frontend server.
 Use `Open outreach list`, `Open outreach execution pack`, and

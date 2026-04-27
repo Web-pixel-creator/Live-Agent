@@ -240,7 +240,11 @@ Allowed reply statuses:
    pilot day only and does not activate channels, billing, CRM, calendar, or
    customer sends.
 17. Show `Pilot metrics` and `Open metrics tracker`.
-18. End with one question: "Would this save missed requests or manager time if we
+18. Show `Open daily log`, `Pilot daily log`, `Daily capture fields`,
+   `Daily operating loop`, `Copy pilot daily log`, and
+   `local_services_pilot_daily_log`; explain that this is a manual daily note,
+   not analytics sync, CRM write, calendar booking, or customer send.
+19. End with one question: "Would this save missed requests or manager time if we
    tested it for 14 days?"
 
 ## After Each Contact
@@ -254,3 +258,6 @@ Allowed reply statuses:
    outreach happened.
 5. Update pilot metrics only after real baseline numbers or owner estimates are
    collected.
+6. Copy the daily operating-loop note from `Pilot daily log` only after a real
+   pilot day; do not treat it as proof that analytics, CRM, calendar, or
+   customer-message systems were updated.
