@@ -65,7 +65,12 @@ Do not use the pilot to build:
    `Pilot funnel summary` to narrow by `Service filter` or `Status filter`,
    review `Filtered candidates`, and select from the `Filtered outreach list`.
    The list is `View only, no send`; it does not send outreach or write CRM.
-8. Use the shell `Pilot outreach wizard` and `Preview / Test message modal` to
+8. Review `Pilot execution checklist`: `Prepare first manual batch`,
+   `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
+   `Book discovery call`, `Start metric capture`, `Founder-only execution`,
+   `No autonomous send`, and `Open pilot runbook`. Treat it as the manual
+   14-day operating loop; it does not send outreach or mutate docs.
+9. Use the shell `Pilot outreach wizard` and `Preview / Test message modal` to
    inspect the exact message. Open `Operator confirmation summary` and confirm
    `Ready for manual outreach`. Click `Record ready for manual outreach` to set
    the browser-local status to `Draft ready`, then keep real outreach outside

@@ -133,6 +133,11 @@ Local-services expansion spec:
   `Filtered outreach list`, `All services`, `All statuses`, `Clear filters`,
   and `View only, no send`. It lets an operator choose a pilot company from the
   shell without turning the product into CRM or autonomous outreach.
+- the same funnel now includes a `Pilot execution checklist`: a 14-day pilot
+  operating loop with `Prepare first manual batch`, `Ready for first manual
+  batch`, `Record ready drafts`, `Log manual contact`, `Book discovery call`,
+  `Start metric capture`, `Founder-only execution`, `No autonomous send`, and
+  `Open pilot runbook`. It mirrors browser-local statuses only.
 - the funnel summary now opens a `Pilot workspace export drawer` with
   `Human-readable` and `JSON` modes plus `Copy pilot workspace export`; it is a
   browser-local planning artifact and does not send outreach or write CRM.

@@ -70,12 +70,16 @@ Use it to:
    `Saved intake evidence`, `Intake transcript + evidence link`,
    `Transcript preview`, `Copy intake evidence`,
    `local_services_intake_evidence`, and `transcript_evidence_link`
-7. review the `Test message preview`
-8. open `Operator confirmation summary`
-9. click `Record ready for manual outreach` to mark `Draft ready` locally
-10. open `Ask AI about pilot` if the operator needs `Suggested questions`,
+7. review `Pilot execution checklist`, `Prepare first manual batch`,
+   `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
+   `Book discovery call`, `Start metric capture`, `Founder-only execution`,
+   `No autonomous send`, and `Open pilot runbook`
+8. review the `Test message preview`
+9. open `Operator confirmation summary`
+10. click `Record ready for manual outreach` to mark `Draft ready` locally
+11. open `Ask AI about pilot` if the operator needs `Suggested questions`,
    `Best candidate`, `Bottleneck`, or `Next message`
-11. keep real outreach manual-only until a human sends the message outside the shell
+12. keep real outreach manual-only until a human sends the message outside the shell
 
 This shell action is intentionally local to the demo session. It does not send a
 message, activate phone or Telegram, update CRM, call an external LLM, or change

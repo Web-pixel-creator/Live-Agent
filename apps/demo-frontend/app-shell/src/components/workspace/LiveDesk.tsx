@@ -578,12 +578,20 @@ type LocalServicePilotFunnelRow = {
 
 type LocalServicePilotStatusFilter = LocalServicePilotStatus | "all";
 type LocalServicePilotColumnKey = "service" | "status" | "channelFit" | "nextStep";
+type LocalServicePilotExecutionStep = {
+  label: string;
+  status: string;
+  owner: string;
+  detail: string;
+  done: boolean;
+};
 
 const LOCAL_SERVICES_PILOT_OFFER_PATH = "/workspace-docs/local-services-pilot-offer.md";
 const LOCAL_SERVICES_DEMO_SCRIPT_PATH = "/workspace-docs/local-services-demo-script.md";
 const LOCAL_SERVICES_OUTREACH_LIST_PATH = "/workspace-docs/local-services-outreach-list.md";
 const LOCAL_SERVICES_PILOT_SCORECARD_PATH = "/workspace-docs/local-services-pilot-scorecard.md";
 const LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH = "/workspace-docs/local-services-outreach-execution-pack.md";
+const LOCAL_SERVICES_PILOT_RUNBOOK_PATH = "/workspace-docs/local-services-pilot-runbook.md";
 const LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY = "liveDesk:localServicesPilotWorkspace:v1";
 const LOCAL_SERVICE_PILOT_STATUS_LABELS: Record<LocalServicePilotStatus, string> = {
   not_contacted: "Not contacted",
@@ -2344,6 +2352,43 @@ const LocalServicesDispatchDemoPanel = ({
   const nextManualBatch = filteredPilotFunnelRows
     .filter((item) => item.status !== "reply_received" && item.status !== "rejected_for_now")
     .slice(0, 4);
+  const pilotExecutionChecklist: LocalServicePilotExecutionStep[] = [
+    {
+      label: "Prepare first manual batch",
+      status: nextManualBatch.length > 0 ? "Ready for first manual batch" : "Needs unfiltered candidate",
+      owner: "Founder",
+      detail: "Pick the first companies from the filtered outreach list and keep execution outside the shell.",
+      done: nextManualBatch.length > 0,
+    },
+    {
+      label: "Record ready drafts",
+      status: `${pilotFunnelCounts.draft_ready} draft ready`,
+      owner: "Operator",
+      detail: "Use Preview / Test message and Operator confirmation before the first manual send.",
+      done: pilotFunnelCounts.draft_ready > 0,
+    },
+    {
+      label: "Log manual contact",
+      status: `${pilotFunnelCounts.contacted_manually + pilotFunnelCounts.reply_received} contacted or replied`,
+      owner: "Founder",
+      detail: "After sending outside the product, mark Contacted manually in the browser-local scorecard.",
+      done: pilotFunnelCounts.contacted_manually > 0 || pilotFunnelCounts.reply_received > 0,
+    },
+    {
+      label: "Book discovery call",
+      status: `${pilotFunnelCounts.reply_received} reply received`,
+      owner: "Founder",
+      detail: "When a company replies, open the runbook and scorecard to prepare the discovery call.",
+      done: pilotFunnelCounts.reply_received > 0,
+    },
+    {
+      label: "Start metric capture",
+      status: currentMetricStatusLabel,
+      owner: "Operator",
+      detail: "Use Open metrics tracker after the first serious pilot conversation starts.",
+      done: currentMetricStatus !== "not_started",
+    },
+  ];
   const scorecardDraftRows = selectedOutreachProspect
     ? [
         { label: "Company", value: selectedOutreachProspect.company },
@@ -2752,6 +2797,85 @@ const LocalServicesDispatchDemoPanel = ({
                   ))
                 )}
               </div>
+            </div>
+          </div>
+
+          <div className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-3">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                  <ClipboardCheck className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  Pilot execution checklist
+                </div>
+                <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground max-w-3xl">
+                  A 14-day pilot operating loop for founder-only execution. It mirrors the runbook and existing
+                  browser-local statuses without sending outreach, writing CRM, or mutating docs.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex rounded-[5px] bg-[hsl(var(--tint-mint)/0.12)] px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.22)]">
+                  Founder-only execution
+                </span>
+                <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                  No autonomous send
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-3 grid gap-2 lg:grid-cols-5">
+              {pilotExecutionChecklist.map((step, index) => {
+                const StepIcon = step.done ? CheckCircle2 : Clock;
+                return (
+                  <div key={step.label} className="rounded-md border border-border/50 bg-card/25 px-3 py-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] bg-secondary/45 font-mono text-[10px] text-muted-foreground">
+                        {index + 1}
+                      </span>
+                      <StepIcon
+                        className={`h-3.5 w-3.5 shrink-0 ${
+                          step.done ? "text-[hsl(var(--tint-mint-fg))]" : "text-muted-foreground"
+                        }`}
+                        strokeWidth={1.8}
+                      />
+                    </div>
+                    <div className="mt-2 text-[12px] font-semibold text-foreground">{step.label}</div>
+                    <div className="mt-1 rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                      {step.status}
+                    </div>
+                    <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">{step.detail}</p>
+                    <div className="mt-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                      Owner: {step.owner}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => onOpenPath(LOCAL_SERVICES_PILOT_RUNBOOK_PATH)}
+                className="h-7"
+              >
+                Open pilot runbook
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
+                className="h-7"
+              >
+                Open outreach execution pack
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+                className="h-7"
+              >
+                Open pilot scorecard
+              </Button>
             </div>
           </div>
 

@@ -225,8 +225,13 @@ Allowed reply statuses:
    `local_services_intake_evidence`, and `transcript_evidence_link`; explain
    that it is proof-only and does not write Telegram, CRM, phone storage, or
    scorecards.
-14. Show `Pilot metrics` and `Open metrics tracker`.
-15. End with one question: "Would this save missed requests or manager time if we
+14. Show `Pilot execution checklist`, `Prepare first manual batch`,
+   `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
+   `Book discovery call`, `Start metric capture`, `Founder-only execution`,
+   `No autonomous send`, and `Open pilot runbook`; explain that this is the
+   manual 14-day operating loop, not autonomous outreach.
+15. Show `Pilot metrics` and `Open metrics tracker`.
+16. End with one question: "Would this save missed requests or manager time if we
    tested it for 14 days?"
 
 ## After Each Contact

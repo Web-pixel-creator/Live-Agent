@@ -96,10 +96,13 @@ Point at:
 16. `Open intake evidence`
 17. `Transcript + evidence`
 18. `Saved intake evidence`
+19. `Pilot execution checklist`
+20. `Prepare first manual batch`
+21. `Open pilot runbook`
 
 Say:
 
-`This makes the product sales-ready as well: we can explain the offer, show the 7-minute setup path, review business profile, knowledge sources, behavior, test call readiness, prove the saved intake transcript and evidence link, then filter the outreach list by service or status, choose visible scorecard columns, and copy the reviewed setup or metrics brief manually. Nothing here activates phone, Telegram, WhatsApp, CRM, analytics, billing, outreach sends, or CRM writes.`
+`This makes the product sales-ready as well: we can explain the offer, show the 7-minute setup path, review business profile, knowledge sources, behavior, test call readiness, prove the saved intake transcript and evidence link, then filter the outreach list by service or status, choose visible scorecard columns, and show the 14-day manual pilot checklist before copying the reviewed setup or metrics brief manually. Nothing here activates phone, Telegram, WhatsApp, CRM, analytics, billing, outreach sends, or CRM writes.`
 
 Optional second click if the prospect is construction-adjacent: open
 `Measurement visit booking` and point at the no-final-price approval rule.

@@ -97,6 +97,12 @@ The `Pilot funnel summary` also includes `Outreach list filters` and
 `All statuses`, and `Clear filters` to narrow the first pilot list. The filtered
 list is labeled `View only, no send`; selecting a row only loads that company
 into the scorecard action.
+The same funnel includes `Pilot execution checklist`, a 14-day manual operating
+loop with `Prepare first manual batch`, `Ready for first manual batch`,
+`Record ready drafts`, `Log manual contact`, `Book discovery call`,
+`Start metric capture`, `Founder-only execution`, `No autonomous send`, and
+`Open pilot runbook`. Treat it as status guidance only; it does not send,
+write CRM, sync analytics, or mutate docs.
 The wizard now has an operator-local `Pilot scorecard action`: choose a
 lane-specific company from the outreach list, inspect the `Test message preview`,
 and `Record scorecard draft` as `Not contacted`. This records demo-session

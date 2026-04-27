@@ -85,6 +85,11 @@ The `Pilot funnel summary` now also has `Outreach list filters` and
 `Filtered outreach list`, `All services`, `All statuses`, `Clear filters`, and
 `View only, no send`. Use this to pick a pilot company from the shell without
 claiming the product sent outreach or wrote CRM.
+The same funnel now has `Pilot execution checklist`: `Prepare first manual
+batch`, `Ready for first manual batch`, `Record ready drafts`,
+`Log manual contact`, `Book discovery call`, `Start metric capture`,
+`Founder-only execution`, `No autonomous send`, and `Open pilot runbook`. It
+shows the 14-day pilot operating loop without sending anything automatically.
 That wizard now includes a `Pilot scorecard action`: select `AC MASTER`,
 `Santexniki.uz`, `Service-Pro`, or another lane-specific candidate from the
 repo-owned outreach list, review the test message, and `Record scorecard draft`

@@ -76,6 +76,11 @@ The selected service panel also exposes `Open intake evidence` and
 `Intake transcript + evidence link`, `Transcript preview`, `Copy intake
 evidence`, `local_services_intake_evidence`, and `transcript_evidence_link` as
 proof-only context before handoff.
+The same funnel now shows `Pilot execution checklist` with
+`Prepare first manual batch`, `Ready for first manual batch`,
+`Record ready drafts`, `Log manual contact`, `Book discovery call`,
+`Start metric capture`, `Founder-only execution`, `No autonomous send`, and
+`Open pilot runbook` so the first 14-day pilot has a visible manual loop.
 
 ### Week 1
 
