@@ -174,6 +174,10 @@ Local-services expansion spec:
   `Open recording checklist` for the repo-owned
   `/workspace-docs/local-services-demo-recording-checklist.md`, so the first
   90-second product walkthrough can be recorded without inventing claims.
+- the same local-services route now supports `?recording=90s`. In that posture
+  the shell shows `90-second recording mode`, `Recording path`, and
+  `Open recording checklist`, while the outreach table and scorecard controls
+  are hidden during recording.
 - the same support layer now also links to
   `/workspace-docs/local-services-outreach-list.md` and
   `/workspace-docs/local-services-pilot-scorecard.md` for pilot execution.

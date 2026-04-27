@@ -146,6 +146,10 @@ The same artifact layer should now include `Open recording checklist` and
 `/workspace-docs/local-services-demo-recording-checklist.md`, so the first
 90-second video can be recorded from one bounded shot list with explicit
 do-not-claim rules.
+The shell should also support `?recording=90s` as a narrow recording posture:
+show `90-second recording mode` and `Recording path`, then hide outreach tables
+and scorecard controls while keeping proof, pilot readiness, and evidence pack
+visible.
 The next execution layer should also stay repo-owned through
 `/workspace-docs/local-services-outreach-list.md` and
 `/workspace-docs/local-services-pilot-scorecard.md`.

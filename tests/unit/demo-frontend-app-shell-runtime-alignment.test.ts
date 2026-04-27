@@ -470,13 +470,26 @@ test("live desk exposes the seven-minute visa intake product path", () => {
 
   assert.match(liveDesk, /const visaIntakeDemo = searchParams\.get\("demo"\) === "visa-intake";/);
   assert.match(liveDesk, /const localServicesDispatchDemo = searchParams\.get\("demo"\) === "local-services-dispatch";/);
+  assert.match(liveDesk, /const localServicesRecordingMode = localServicesDispatchDemo && searchParams\.get\("recording"\) === "90s";/);
   assert.match(liveDesk, /const activeLocalServiceId = searchParams\.get\("service"\);/);
   assert.match(liveDesk, /const openVisaIntakeDemo = \(\) => \{/);
   assert.match(liveDesk, /const openLocalServicesDispatchDemo = \(\) => \{/);
+  assert.match(liveDesk, /const openLocalServicesRecordingMode = \(\) => \{/);
+  assert.match(liveDesk, /const closeLocalServicesRecordingMode = \(\) => \{/);
   assert.match(liveDesk, /next\.set\("demo", "local-services-dispatch"\);/);
   assert.match(liveDesk, /next\.set\("service", "ac-repair-dispatch"\);/);
+  assert.match(liveDesk, /next\.set\("recording", "90s"\);/);
   assert.match(liveDesk, /const SevenMinuteVisaIntakePanel = \(\{/);
   assert.match(liveDesk, /const LocalServicesDispatchDemoPanel = \(\{/);
+  assert.match(liveDesk, /recordingMode: boolean;/);
+  assert.match(liveDesk, /recordingMode=\{localServicesRecordingMode\}/);
+  assert.match(liveDesk, /90s recording/);
+  assert.match(liveDesk, /Exit recording/);
+  assert.match(liveDesk, /90-second recording mode/);
+  assert.match(liveDesk, /Recording path/);
+  assert.match(liveDesk, /Outreach tables and scorecard controls are hidden during recording/);
+  assert.match(liveDesk, /aria-hidden=\{recordingMode\}/);
+  assert.match(liveDesk, /No autonomous send/);
   assert.match(liveDesk, /Case Outcome Summary/);
   assert.match(liveDesk, /AI Dispatcher for Local Services/);
   assert.match(liveDesk, /Phone AI intake/);
@@ -928,6 +941,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /\/workspace-docs\/local-services-demo-script\.md/);
   assert.match(readme, /Open recording checklist/);
   assert.match(readme, /\/workspace-docs\/local-services-demo-recording-checklist\.md/);
+  assert.match(readme, /\?recording=90s/);
+  assert.match(readme, /90-second recording mode/);
+  assert.match(readme, /Recording path/);
   assert.match(readme, /\/workspace-docs\/local-services-outreach-list\.md/);
   assert.match(readme, /\/workspace-docs\/local-services-pilot-scorecard\.md/);
   assert.match(readme, /docs\/local-services-pilot-runbook\.md/);
@@ -1069,6 +1085,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /http:\/\/localhost:3000\/workspace-docs\/local-services-pilot-offer\.md/);
   assert.match(localDevelopment, /http:\/\/localhost:3000\/workspace-docs\/local-services-demo-script\.md/);
   assert.match(localDevelopment, /http:\/\/localhost:3000\/workspace-docs\/local-services-demo-recording-checklist\.md/);
+  assert.match(localDevelopment, /http:\/\/localhost:3000\/app\?demo=local-services-dispatch&service=ac-repair-dispatch&recording=90s/);
+  assert.match(localDevelopment, /90-second recording mode/);
   assert.match(localDevelopment, /http:\/\/localhost:3000\/workspace-docs\/local-services-pilot-runbook\.md/);
   assert.match(localDevelopment, /http:\/\/localhost:3000\/workspace-docs\/local-services-outreach-execution-pack\.md/);
   assert.match(localDevelopment, /Start 7-minute demo/);
@@ -1202,6 +1220,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /docs\/local-services-outreach-execution-pack\.md/);
   assert.match(operatorGuide, /Open recording checklist/);
   assert.match(operatorGuide, /90-second walkthrough/);
+  assert.match(operatorGuide, /\?recording=90s/);
+  assert.match(operatorGuide, /Recording path/);
   assert.match(operatorGuide, /14-day operating\s+sequence/);
   assert.match(operatorGuide, /Each card previews `Outcome`, `Approval`, `Evidence`,/);
   assert.match(operatorGuide, /inline detail panel with `Sample input`, `Approval\s+policy`, `Evidence output`, and `CRM fields`/);
@@ -1324,6 +1344,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-pilot-offer\.md/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-demo-script\.md/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-demo-recording-checklist\.md/);
+  assert.match(simplificationPlan, /\?recording=90s/);
+  assert.match(simplificationPlan, /90-second recording mode/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-outreach-list\.md/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-pilot-scorecard\.md/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-pilot-runbook\.md/);
@@ -1465,6 +1487,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /docs\/local-services-pilot-runbook\.md/);
   assert.match(gettingStarted, /docs\/local-services-outreach-execution-pack\.md/);
   assert.match(gettingStarted, /Open recording checklist/);
+  assert.match(gettingStarted, /\/app\?demo=local-services-dispatch&service=ac-repair-dispatch&recording=90s/);
+  assert.match(gettingStarted, /Recording path/);
   assert.match(gettingStarted, /Playbook templates/);
   assert.match(gettingStarted, /Each card previews `Outcome`, `Approval`, `Evidence`, and `Deliverable`/);
   assert.match(gettingStarted, /Selecting a card opens the inline detail panel with `Sample input`, `Approval policy`,\s+`Evidence output`, and `CRM fields`/);
@@ -1601,6 +1625,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /\/workspace-docs\/local-services-pilot-offer\.md/);
   assert.match(localServicesSpec, /\/workspace-docs\/local-services-demo-script\.md/);
   assert.match(localServicesSpec, /\/workspace-docs\/local-services-demo-recording-checklist\.md/);
+  assert.match(localServicesSpec, /\?recording=90s/);
+  assert.match(localServicesSpec, /90-second recording mode/);
+  assert.match(localServicesSpec, /outreach tables and scorecard\s+controls are hidden during recording/i);
   assert.match(localServicesSpec, /\/workspace-docs\/local-services-outreach-list\.md/);
   assert.match(localServicesSpec, /\/workspace-docs\/local-services-pilot-scorecard\.md/);
   assert.match(localServicesSpec, /\/workspace-docs\/local-services-pilot-runbook\.md/);
@@ -1658,11 +1685,16 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(demoScript, /Pilot evidence pack/);
   assert.match(demoScript, /Week-two evidence pack/);
   assert.match(demoScript, /Open recording checklist/);
+  assert.match(demoScript, /\/app\?demo=local-services-dispatch&service=ac-repair-dispatch&recording=90s/);
+  assert.match(demoScript, /90s recording/);
+  assert.match(demoScript, /Recording path/);
   assert.match(demoScript, /docs\/local-services-demo-recording-checklist\.md/);
 
   assert.match(demoRecordingChecklist, /Local Services Demo Recording Checklist/);
-  assert.match(demoRecordingChecklist, /\/app\?demo=local-services-dispatch&service=ac-repair-dispatch/);
+  assert.match(demoRecordingChecklist, /\/app\?demo=local-services-dispatch&service=ac-repair-dispatch&recording=90s/);
   assert.match(demoRecordingChecklist, /Required On-Screen Proof/);
+  assert.match(demoRecordingChecklist, /90-second recording mode/);
+  assert.match(demoRecordingChecklist, /Recording path/);
   assert.match(demoRecordingChecklist, /Open recording checklist/);
   assert.match(demoRecordingChecklist, /Do-Not-Claim Rules/);
   assert.match(demoRecordingChecklist, /local-services-dispatch-90s-demo\.mp4/);

@@ -693,6 +693,11 @@ The shell now also opens repo-owned pilot artifacts through
 `/workspace-docs/local-services-demo-recording-checklist.md`. The recording
 checklist gives the founder one safe 90-second shot list and explicit
 do-not-claim rules before any real pilot evidence exists.
+The local-services route also supports `?recording=90s`. In that posture the
+shell exposes `90-second recording mode`, `Recording path`, the product promise
+sequence, and `Open recording checklist`, while outreach tables and scorecard
+controls are hidden during recording. This is a demo-recording posture only; it
+does not remove the operator execution surfaces from the normal route.
 It now also opens the execution documents
 `/workspace-docs/local-services-outreach-list.md` and
 `/workspace-docs/local-services-pilot-scorecard.md`.
@@ -847,7 +852,10 @@ Current shell readiness for P3:
 25. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
    the repo-owned 90-second recording checklist from the same local frontend
    server.
-26. Actual external execution still remains outside the shell: recorded video,
+26. `?recording=90s`, `90-second recording mode`, `Recording path`, and
+   `90s recording` are visible as the demo-recording posture, and outreach
+   tables plus scorecard controls are hidden during recording.
+27. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path

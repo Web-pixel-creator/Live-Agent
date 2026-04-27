@@ -15,7 +15,7 @@ The recording should prove three things:
 
 Open:
 
-`/app?demo=local-services-dispatch&service=ac-repair-dispatch`
+`/app?demo=local-services-dispatch&service=ac-repair-dispatch&recording=90s`
 
 Keep the route focused on `AC repair dispatch` unless the prospect specifically
 asks about cleaning or measurement visit booking.
@@ -25,11 +25,12 @@ asks about cleaning or measurement visit booking.
 Before pressing record:
 
 1. open the local shell at `http://localhost:3000/app?demo=local-services-dispatch&service=ac-repair-dispatch`,
-2. confirm `http://localhost:3000/healthz` returns `200`,
-3. close unrelated browser tabs and private notes,
-4. reset the local pilot workspace state if old statuses make the story noisy,
-5. keep the browser zoom at 100 percent,
-6. prepare the one-line close: `This is not a chatbot; it is operator-approved dispatch for fewer missed requests.`
+2. switch on `90s recording` or open the route with `&recording=90s`,
+3. confirm `http://localhost:3000/healthz` returns `200`,
+4. close unrelated browser tabs and private notes,
+5. reset the local pilot workspace state if old statuses make the story noisy,
+6. keep the browser zoom at 100 percent,
+7. prepare the one-line close: `This is not a chatbot; it is operator-approved dispatch for fewer missed requests.`
 
 ## Shot List
 
@@ -99,7 +100,7 @@ Point at:
 2. `Open recording checklist`,
 3. `Open outreach execution pack`,
 4. `Agent setup / training state`,
-5. `Pilot execution checklist`,
+5. `Recording path`,
 6. `Open evidence pack`.
 
 Say:
@@ -116,17 +117,18 @@ Say:
 
 The final recording must visibly include:
 
-1. `/app?demo=local-services-dispatch&service=ac-repair-dispatch`,
-2. `AI Dispatcher for Local Services`,
-3. `AC repair dispatch`,
-4. `Operator-approved booking`,
-5. `Dispatch payload preview`,
-6. `Open intake evidence`,
-7. `Pilot readiness`,
-8. `Open recording checklist`,
-9. `Open outreach execution pack`,
-10. `Open evidence pack`,
-11. `No autonomous send`.
+1. `/app?demo=local-services-dispatch&service=ac-repair-dispatch&recording=90s`,
+2. `90-second recording mode`,
+3. `Recording path`,
+4. `AI Dispatcher for Local Services`,
+5. `AC repair dispatch`,
+6. `Operator-approved booking`,
+7. `Dispatch payload preview`,
+8. `Open intake evidence`,
+9. `Pilot readiness`,
+10. `Open recording checklist`,
+11. `Open evidence pack`,
+12. `No autonomous send`.
 
 ## Do-Not-Claim Rules
 

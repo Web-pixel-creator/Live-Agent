@@ -137,6 +137,10 @@ open the repo-owned pilot artifacts without leaving the local frontend server.
 The recording checklist is the safe 90-second walkthrough plan; it avoids claims
 about live phone provisioning, Telegram/WhatsApp sends, CRM writes, calendar
 bookings, billing, or proven revenue lift.
+For recording, open
+`/app?demo=local-services-dispatch&service=ac-repair-dispatch&recording=90s`.
+The shell shows `90-second recording mode` and `Recording path`, while outreach
+tables and scorecard controls stay hidden during recording.
 Use `Open outreach list`, `Open outreach execution pack`, and
 `Open pilot scorecard` when you move from demo story to actual pilot execution.
 Use `docs/local-services-pilot-runbook.md` for the manual 14-day pilot sequence

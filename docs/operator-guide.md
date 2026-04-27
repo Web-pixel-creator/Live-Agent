@@ -156,6 +156,11 @@ Use `Open offer doc`, `Open demo script`, and `Open recording checklist` when
 the operator needs the pilot artifact layer instead of the inline summary. The
 recording checklist is for a 90-second walkthrough and keeps claims limited to
 the current manual, operator-approved demo.
+Use `?recording=90s` or the `90s recording` header toggle when recording the
+local-services walkthrough. The shell shows `90-second recording mode` and
+`Recording path`, then hides outreach tables and scorecard controls so the
+video stays focused on product promise, job card, intake, evidence, pilot
+readiness, and evidence pack.
 Use `Open outreach list`, `Open outreach execution pack`, and
 `Open pilot scorecard` when the conversation moves from positioning into real
 pilot execution.

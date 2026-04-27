@@ -2842,6 +2842,7 @@ const LOCAL_SERVICE_DEMO_TEMPLATES: LocalServiceDemoTemplate[] = [
 
 const LocalServicesDispatchDemoPanel = ({
   activeServiceId,
+  recordingMode,
   onSelectService,
   onClose,
   onCopyPayload,
@@ -2850,6 +2851,7 @@ const LocalServicesDispatchDemoPanel = ({
   onOpenPath,
 }: {
   activeServiceId: string | null;
+  recordingMode: boolean;
   onSelectService: (id: string) => void;
   onClose: () => void;
   onCopyPayload: (template: LocalServiceDemoTemplate) => void;
@@ -3171,6 +3173,52 @@ const LocalServicesDispatchDemoPanel = ({
       </div>
 
       <div className="p-5 space-y-4">
+        {recordingMode && (
+          <section
+            aria-label="90-second recording mode"
+            className="rounded-md border border-[hsl(var(--tint-mint)/0.28)] bg-[hsl(var(--tint-mint)/0.09)] px-4 py-3"
+          >
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--tint-mint-fg))]">
+                  <Camera className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  90-second recording mode
+                </div>
+                <p className="mt-1.5 text-[12px] leading-relaxed text-foreground max-w-3xl">
+                  Recording path: product promise, job card, intake, evidence, pilot readiness, evidence pack.
+                  Outreach tables and scorecard controls are hidden during recording.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => onOpenPath(LOCAL_SERVICES_DEMO_RECORDING_CHECKLIST_PATH)}
+                  className="h-8"
+                >
+                  Open recording checklist
+                </Button>
+                <span className="inline-flex rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.24)]">
+                  No autonomous send
+                </span>
+                <span className="inline-flex rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.24)]">
+                  no live claims
+                </span>
+              </div>
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3 xl:grid-cols-6">
+              {["Product promise", "Job card", "Intake", "Evidence", "Pilot readiness", "Evidence pack"].map(
+                (item, index) => (
+                  <div key={item} className="rounded-md bg-background/35 px-3 py-2">
+                    <div className="font-mono text-[10px] text-muted-foreground">{String(index + 1).padStart(2, "0")}</div>
+                    <div className="mt-1 text-[11.5px] font-medium text-foreground">{item}</div>
+                  </div>
+                ),
+              )}
+            </div>
+          </section>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
           {LOCAL_SERVICE_DEMO_TEMPLATES.map((template) => {
             const { Icon } = template;
@@ -3247,7 +3295,11 @@ const LocalServicesDispatchDemoPanel = ({
           })}
         </div>
 
-        <section className="rounded-md border border-border/60 bg-card/25 p-4" aria-label="Pilot funnel summary">
+        <section
+          className={`rounded-md border border-border/60 bg-card/25 p-4 ${recordingMode ? "hidden" : ""}`}
+          aria-label="Pilot funnel summary"
+          aria-hidden={recordingMode}
+        >
           <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
             <div>
               <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
@@ -4109,7 +4161,12 @@ const LocalServicesDispatchDemoPanel = ({
                     </div>
                   </div>
                 </div>
-                <div className="mt-3 rounded-md border border-border/50 bg-card/25 px-3 py-3">
+                <div
+                  className={`mt-3 rounded-md border border-border/50 bg-card/25 px-3 py-3 ${
+                    recordingMode ? "hidden" : ""
+                  }`}
+                  aria-hidden={recordingMode}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
                       <Send className="h-3.5 w-3.5" strokeWidth={1.8} />
@@ -6803,6 +6860,7 @@ export const LiveDesk = () => {
   const burningFilter = searchParams.get("burning") === "1";
   const visaIntakeDemo = searchParams.get("demo") === "visa-intake";
   const localServicesDispatchDemo = searchParams.get("demo") === "local-services-dispatch";
+  const localServicesRecordingMode = localServicesDispatchDemo && searchParams.get("recording") === "90s";
   const activePlaybookId = searchParams.get("playbook");
   const activeLocalServiceId = searchParams.get("service");
   const activeLocalServiceTemplate = useMemo(
@@ -6840,6 +6898,7 @@ export const LiveDesk = () => {
       next.set("demo", "visa-intake");
       next.set("playbook", "missing-documents");
       next.delete("service");
+      next.delete("recording");
       return next;
     });
   };
@@ -6866,6 +6925,34 @@ export const LiveDesk = () => {
       next.delete("playbook");
       next.set("demo", "local-services-dispatch");
       next.set("service", "ac-repair-dispatch");
+      next.delete("recording");
+      return next;
+    });
+  };
+  const openLocalServicesRecordingMode = () => {
+    setPlaybookExportDrawerOpen(false);
+    setQuery("");
+    setOnlyMine(false);
+    setMineOnly(false);
+    setVipOnly(false);
+    clearSelection();
+    setFocusedRef(null);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("node");
+      next.delete("infra");
+      next.delete("burning");
+      next.delete("playbook");
+      next.set("demo", "local-services-dispatch");
+      next.set("service", "ac-repair-dispatch");
+      next.set("recording", "90s");
+      return next;
+    });
+  };
+  const closeLocalServicesRecordingMode = () => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("recording");
       return next;
     });
   };
@@ -6875,6 +6962,7 @@ export const LiveDesk = () => {
       const next = new URLSearchParams(prev);
       next.delete("demo");
       next.delete("service");
+      next.delete("recording");
       return next;
     });
   };
@@ -7689,6 +7777,11 @@ export const LiveDesk = () => {
                 Local services demo
               </Pill>
             )}
+            {localServicesRecordingMode && (
+              <Pill tone="amber" size="sm">
+                90s recording
+              </Pill>
+            )}
           </div>
           <p className="mt-1.5 text-[12px] text-muted-foreground/85 max-w-2xl leading-relaxed">
             {localServicesDispatchDemo
@@ -7717,6 +7810,24 @@ export const LiveDesk = () => {
               </>
             )}
           </Button>
+          {localServicesDispatchDemo && (
+            <Button
+              size="sm"
+              variant={localServicesRecordingMode ? "secondary" : "outline"}
+              onClick={
+                localServicesRecordingMode
+                  ? closeLocalServicesRecordingMode
+                  : openLocalServicesRecordingMode
+              }
+              className="h-8 text-xs"
+            >
+              <Camera className="mr-0 sm:mr-1.5 h-3.5 w-3.5" strokeWidth={2} />
+              <span className="hidden sm:inline">
+                {localServicesRecordingMode ? "Exit recording" : "90s recording"}
+              </span>
+              <span className="sm:hidden">90s</span>
+            </Button>
+          )}
           <Button
             size="sm"
             variant={visaIntakeDemo ? "secondary" : "outline"}
@@ -7923,6 +8034,7 @@ export const LiveDesk = () => {
       {localServicesDispatchDemo && (
         <LocalServicesDispatchDemoPanel
           activeServiceId={activeLocalServiceId}
+          recordingMode={localServicesRecordingMode}
           onSelectService={(id) =>
             setSearchParams((prev) => {
               const next = new URLSearchParams(prev);

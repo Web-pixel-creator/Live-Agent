@@ -14,7 +14,11 @@ The viewer should understand:
 
 Open:
 
-`/app?demo=local-services-dispatch&service=ac-repair-dispatch`
+`/app?demo=local-services-dispatch&service=ac-repair-dispatch&recording=90s`
+
+Use the `90s recording` header toggle if you opened the normal route first.
+The recording posture shows `90-second recording mode` and `Recording path`,
+then hides outreach tables and scorecard controls during recording.
 
 ## 90-Second Script
 
