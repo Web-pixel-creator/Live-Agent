@@ -74,6 +74,12 @@ operator-assist sheet with `Suggested questions`, `Best candidate`,
 `Bottleneck`, `Next message`, `Copy analyst brief`, and
 `local_services_pilot_ai_analyst`; it makes no external LLM call and does not
 send outreach.
+The selected local-services panel also has `Open intake evidence` and
+`Transcript + evidence`, opening a `Saved intake evidence` drawer with
+`Intake transcript + evidence link`, `Transcript preview`, `Evidence export
+mode`, `Copy intake evidence`, `local_services_intake_evidence`, and
+`transcript_evidence_link`. Use it to show saved proof before handoff without
+claiming live Telegram, CRM, phone storage, or scorecard persistence.
 The `Pilot funnel summary` now also has `Outreach list filters` and
 `Column settings`: `Service filter`, `Status filter`, `Filtered candidates`,
 `Filtered outreach list`, `All services`, `All statuses`, `Clear filters`, and

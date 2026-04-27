@@ -219,8 +219,14 @@ Allowed reply statuses:
    `Status filter`, `Filtered candidates`, `Filtered outreach list`,
    `All services`, `All statuses`, `Clear filters`, and `View only, no send`;
    explain that this is a browser-local list view, not outreach automation.
-13. Show `Pilot metrics` and `Open metrics tracker`.
-14. End with one question: "Would this save missed requests or manager time if we
+13. Open `Open intake evidence` / `Transcript + evidence` and show
+   `Saved intake evidence`, `Intake transcript + evidence link`,
+   `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,
+   `local_services_intake_evidence`, and `transcript_evidence_link`; explain
+   that it is proof-only and does not write Telegram, CRM, phone storage, or
+   scorecards.
+14. Show `Pilot metrics` and `Open metrics tracker`.
+15. End with one question: "Would this save missed requests or manager time if we
    tested it for 14 days?"
 
 ## After Each Contact

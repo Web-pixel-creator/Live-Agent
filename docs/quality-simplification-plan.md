@@ -40,7 +40,12 @@ master/operator handoff without autonomous dispatch. The detail panel also opens
 the operator can switch between `Human-readable` and `JSON` exports before
 copying the dispatch, customer-confirmation, or master handoff payload. The same
 detail panel includes `Telegram intake prototype` to prove message intake uses
-the same job-card contract as phone intake. It now also includes `Pilot readiness`,
+the same job-card contract as phone intake. It now opens `Open intake evidence`
+and `Transcript + evidence` into a `Saved intake evidence` drawer with
+`Intake transcript + evidence link`, `Transcript preview`,
+`Evidence export mode`, `Copy intake evidence`, `local_services_intake_evidence`,
+and `transcript_evidence_link`, so the demo can prove the saved transcript and
+evidence link without adding live channel storage. It now also includes `Pilot readiness`,
 `One-page offer`, `90-second demo script`, `Outreach focus`, a `Launch checklist`,
 and tracked `Pilot metrics` so the first Tashkent pilot can be explained
 without leaving `/app`.

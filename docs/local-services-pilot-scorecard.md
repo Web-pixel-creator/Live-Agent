@@ -66,12 +66,16 @@ Use it to:
 4. open `Agent setup / training state` and `Open setup checklist`
 5. confirm `Business profile`, `Knowledge sources`, `Agent behavior`,
    `Test call/message`, and `Ready for test call/message`
-6. review the `Test message preview`
-7. open `Operator confirmation summary`
-8. click `Record ready for manual outreach` to mark `Draft ready` locally
-9. open `Ask AI about pilot` if the operator needs `Suggested questions`,
+6. open `Open intake evidence` / `Transcript + evidence` and confirm
+   `Saved intake evidence`, `Intake transcript + evidence link`,
+   `Transcript preview`, `Copy intake evidence`,
+   `local_services_intake_evidence`, and `transcript_evidence_link`
+7. review the `Test message preview`
+8. open `Operator confirmation summary`
+9. click `Record ready for manual outreach` to mark `Draft ready` locally
+10. open `Ask AI about pilot` if the operator needs `Suggested questions`,
    `Best candidate`, `Bottleneck`, or `Next message`
-10. keep real outreach manual-only until a human sends the message outside the shell
+11. keep real outreach manual-only until a human sends the message outside the shell
 
 This shell action is intentionally local to the demo session. It does not send a
 message, activate phone or Telegram, update CRM, call an external LLM, or change

@@ -416,6 +416,18 @@ type LocalServiceDispatchExport = {
   checklist: string[];
 };
 
+type LocalServiceIntakeEvidence = {
+  title: string;
+  description: string;
+  modeLabel: string;
+  copyLabel: string;
+  humanText: string;
+  jsonText: string;
+  rows: { label: string; value: string }[];
+  transcript: { speaker: string; text: string }[];
+  checklist: string[];
+};
+
 type LocalServicePilotWorkspaceExport = {
   title: string;
   description: string;
@@ -960,6 +972,87 @@ function buildLocalServiceDispatchExport(
     humanText: humanLines.join("\n"),
     jsonText,
     rows,
+    checklist,
+  };
+}
+
+function buildLocalServiceIntakeEvidence(
+  template: LocalServiceDemoTemplate,
+  payloadPreview: LocalServicePayloadPreview,
+): LocalServiceIntakeEvidence {
+  const transcript = [
+    { speaker: "Phone customer", text: template.detail.sampleInput },
+    { speaker: "AI intake", text: template.detail.phoneIntake.join(" ") },
+    { speaker: "Telegram fallback", text: template.detail.telegramIntake.inboundMessage },
+    { speaker: "System normalization", text: template.detail.telegramIntake.normalizedFields.join("; ") },
+    { speaker: "Operator note", text: template.detail.operatorHandoff },
+  ];
+  const rows = [
+    { label: "Service", value: `${template.ref} - ${template.title}` },
+    { label: "Evidence link", value: template.evidencePath },
+    { label: "Handoff bundle", value: template.bundlePath },
+    { label: "Transcript source", value: `${template.channel} + Telegram fallback` },
+    { label: "Approval gate", value: "operator_required_before_customer_or_master_send" },
+  ];
+  const checklist = [
+    "Save the intake transcript before customer confirmation or master handoff.",
+    "Open the evidence link when the operator needs to inspect call or Telegram proof.",
+    "Keep photos, videos, and address data behind the same operator approval posture.",
+    "Do not treat this drawer as a live Telegram, CRM, or phone storage integration.",
+  ];
+  const humanLines = [
+    `Intake transcript + evidence link: ${template.title}`,
+    `Service: ${template.ref}`,
+    `Evidence link: ${template.evidencePath}`,
+    `Handoff bundle: ${template.bundlePath}`,
+    "",
+    "Transcript preview:",
+    ...transcript.map((entry) => `- ${entry.speaker}: ${entry.text}`),
+    "",
+    "Saved evidence outputs:",
+    ...template.detail.evidenceOutput.map((item) => `- ${item}`),
+    "",
+    "Operator checklist:",
+    ...checklist.map((item) => `- ${item}`),
+    "",
+    "Manual execution rule: this export does not write Telegram, CRM, phone storage, or scorecard state automatically.",
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_intake_evidence",
+      export_kind: "transcript_evidence_link",
+      service_ref: template.ref,
+      service_id: template.id,
+      channel: template.channel,
+      evidence_link: template.evidencePath,
+      bundle_path: template.bundlePath,
+      transcript,
+      evidence_output: template.detail.evidenceOutput,
+      telegram_intake: template.detail.telegramIntake,
+      normalized_fields: template.detail.telegramIntake.normalizedFields,
+      approval_policy: template.detail.approvalPolicy,
+      payload: payloadPreview.payload,
+      guardrails: [
+        "operator_review_required_before_customer_send",
+        "operator_review_required_before_master_handoff",
+        "no_live_channel_storage",
+        "no_crm_write",
+      ],
+    },
+    null,
+    2,
+  );
+
+  return {
+    title: "Intake transcript + evidence link",
+    description:
+      "Review the saved phone/Telegram transcript preview and canonical evidence link before handoff.",
+    modeLabel: "Evidence export mode",
+    copyLabel: "Copy intake evidence",
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows,
+    transcript,
     checklist,
   };
 }
@@ -2119,6 +2212,7 @@ const LocalServicesDispatchDemoPanel = ({
     LOCAL_SERVICE_DEMO_TEMPLATES.find((template) => template.id === activeServiceId) ??
     LOCAL_SERVICE_DEMO_TEMPLATES[0];
   const selectedPayloadPreview = buildLocalServicePayloadPreview(selectedTemplate);
+  const intakeEvidence = buildLocalServiceIntakeEvidence(selectedTemplate, selectedPayloadPreview);
   const [pilotWorkspaceState, setPilotWorkspaceState] = useState<LocalServicePilotWorkspaceState>(() =>
     readLocalServicePilotWorkspaceState(),
   );
@@ -2134,6 +2228,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [pilotAnalystMode, setPilotAnalystMode] = useState<PlaybookExportMode>("human");
   const [agentSetupOpen, setAgentSetupOpen] = useState(false);
   const [agentSetupMode, setAgentSetupMode] = useState<PlaybookExportMode>("human");
+  const [intakeEvidenceOpen, setIntakeEvidenceOpen] = useState(false);
+  const [intakeEvidenceMode, setIntakeEvidenceMode] = useState<PlaybookExportMode>("human");
   const [pilotFunnelStatusFilter, setPilotFunnelStatusFilter] = useState<LocalServicePilotStatusFilter>("all");
   const [pilotFunnelServiceFilter, setPilotFunnelServiceFilter] = useState("all");
   const [pilotFunnelColumns, setPilotFunnelColumns] = useState(DEFAULT_LOCAL_SERVICE_PILOT_COLUMNS);
@@ -2765,6 +2861,17 @@ const LocalServicesDispatchDemoPanel = ({
               <Button size="sm" variant="secondary" onClick={onOpenDispatchDrawer} className="h-8">
                 Open dispatch drawer
               </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  setIntakeEvidenceMode("human");
+                  setIntakeEvidenceOpen(true);
+                }}
+                className="h-8"
+              >
+                Open intake evidence
+              </Button>
               <Button size="sm" variant="secondary" onClick={() => onOpenPath(selectedTemplate.evidencePath)} className="h-8">
                 Evidence link
               </Button>
@@ -2823,8 +2930,21 @@ const LocalServicesDispatchDemoPanel = ({
                 </section>
 
                 <section className="rounded-md bg-background/35 px-3 py-3">
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                    Evidence output
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                      Evidence output
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setIntakeEvidenceMode("human");
+                        setIntakeEvidenceOpen(true);
+                      }}
+                      className="h-7"
+                    >
+                      Transcript + evidence
+                    </Button>
                   </div>
                   <ul className="mt-2 space-y-1.5 text-[12px] leading-relaxed text-foreground">
                     {selectedTemplate.detail.evidenceOutput.map((item) => (
@@ -3597,7 +3717,172 @@ const LocalServicesDispatchDemoPanel = ({
         onOpenOffer={() => onOpenPath(LOCAL_SERVICES_PILOT_OFFER_PATH)}
         onOpenDemoScript={() => onOpenPath(LOCAL_SERVICES_DEMO_SCRIPT_PATH)}
       />
+      <LocalServiceIntakeEvidenceSheet
+        open={intakeEvidenceOpen}
+        onOpenChange={setIntakeEvidenceOpen}
+        evidence={intakeEvidence}
+        mode={intakeEvidenceMode}
+        onModeChange={setIntakeEvidenceMode}
+        onCopy={onCopyText}
+        onOpenEvidence={() => onOpenPath(selectedTemplate.evidencePath)}
+        onOpenBundle={() => onOpenPath(selectedTemplate.bundlePath)}
+      />
     </section>
+  );
+};
+
+const LocalServiceIntakeEvidenceSheet = ({
+  open,
+  onOpenChange,
+  evidence,
+  mode,
+  onModeChange,
+  onCopy,
+  onOpenEvidence,
+  onOpenBundle,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  evidence: LocalServiceIntakeEvidence;
+  mode: PlaybookExportMode;
+  onModeChange: (mode: PlaybookExportMode) => void;
+  onCopy: (text: string, label: string) => void;
+  onOpenEvidence: () => void;
+  onOpenBundle: () => void;
+}) => {
+  const renderedText = mode === "human" ? evidence.humanText : evidence.jsonText;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col gap-0 p-0">
+        <SheetHeader className="px-7 py-5 border-b border-border/70 space-y-2.5 text-left">
+          <div className="flex items-center gap-2">
+            <FileText className="h-3.5 w-3.5 text-muted-foreground/70" strokeWidth={1.75} />
+            <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground/80">
+              Saved intake evidence
+            </span>
+          </div>
+          <SheetTitle className="font-serif text-[22px] tracking-tight leading-[1.2]">
+            {evidence.title}
+          </SheetTitle>
+          <SheetDescription className="text-[12.5px] text-muted-foreground/85 leading-relaxed">
+            {evidence.description}
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="flex-1 min-h-0 overflow-auto">
+          <section className="px-7 pt-6 pb-5 border-b border-border/50 space-y-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  {evidence.modeLabel}
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Review the transcript and canonical evidence link before copying anything into handoff notes.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant={mode === "human" ? "default" : "secondary"}
+                  onClick={() => onModeChange("human")}
+                  className="h-8"
+                >
+                  Human-readable
+                </Button>
+                <Button
+                  size="sm"
+                  variant={mode === "json" ? "default" : "secondary"}
+                  onClick={() => onModeChange("json")}
+                  className="h-8"
+                >
+                  JSON
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              {evidence.rows.map((row) => (
+                <div key={row.label} className="rounded-md border border-border/60 bg-card/30 px-3 py-2.5">
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+                    {row.label}
+                  </div>
+                  <div className="mt-1 break-words text-[12px] leading-relaxed text-foreground">
+                    {row.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="px-7 py-5 border-b border-border/50 space-y-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  Transcript preview
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Phone intake plus Telegram fallback, normalized into the same job-card evidence posture.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="secondary" onClick={onOpenEvidence} className="h-8">
+                  Evidence link
+                </Button>
+                <Button size="sm" variant="secondary" onClick={onOpenBundle} className="h-8">
+                  <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Handoff bundle
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {evidence.transcript.map((entry) => (
+                <div key={`${entry.speaker}-${entry.text}`} className="rounded-md border border-border/60 bg-card/30 px-3 py-2.5">
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+                    {entry.speaker}
+                  </div>
+                  <p className="mt-1 text-[12px] leading-relaxed text-foreground">{entry.text}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="px-7 py-5 border-b border-border/50 space-y-3">
+            <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+              Evidence guardrails
+            </div>
+            <ul className="space-y-2 text-[12.5px] leading-relaxed text-foreground">
+              {evidence.checklist.map((item) => (
+                <li key={item} className="flex gap-2">
+                  <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="px-7 py-5 space-y-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  {mode === "human" ? "Human-readable evidence note" : "JSON evidence payload"}
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Copy only as an internal evidence note; this does not save to CRM or external channels.
+                </p>
+              </div>
+              <Button size="sm" onClick={() => onCopy(renderedText, evidence.copyLabel)} className="h-8">
+                <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                {evidence.copyLabel}
+              </Button>
+            </div>
+            <pre className="max-h-[42vh] overflow-auto rounded-md border border-border/60 bg-card/30 px-3 py-3 font-mono text-[11px] leading-relaxed text-foreground">
+              {renderedText}
+            </pre>
+          </section>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 };
 

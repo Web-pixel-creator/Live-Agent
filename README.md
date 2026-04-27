@@ -84,6 +84,11 @@ Local-services expansion spec:
   modes for dispatcher, customer-confirmation, and master handoff exports.
 - the same panel includes a `Telegram intake prototype` that normalizes a
   customer message into the same approval-gated job-card payload.
+- the same panel now opens `Open intake evidence` / `Transcript + evidence`:
+  a `Saved intake evidence` drawer with `Intake transcript + evidence link`,
+  `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,
+  `local_services_intake_evidence`, and `transcript_evidence_link`. It keeps the
+  proof manual-only and does not write Telegram, CRM, phone storage, or scorecards.
 - the same panel now also exposes `Pilot readiness` with a `One-page offer`,
   `90-second demo script`, `Outreach focus`, a `Launch checklist`, and tracked
   `Pilot metrics`.

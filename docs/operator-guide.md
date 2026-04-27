@@ -56,6 +56,12 @@ handoff, keeps the `Dispatch payload preview` behind review, and exposes
 operator-approved `Human-readable` / `JSON` exports. The same detail panel now
 shows `Telegram intake prototype`, so a message-based customer request is
 normalized into the same job-card payload instead of creating a second workflow.
+It now also exposes `Open intake evidence` and `Transcript + evidence`, which
+opens a `Saved intake evidence` drawer with `Intake transcript + evidence link`,
+`Transcript preview`, `Evidence export mode`, `Copy intake evidence`,
+`local_services_intake_evidence`, and `transcript_evidence_link`. Treat it as
+operator-reviewed proof only; it does not write Telegram, CRM, phone storage, or
+the pilot scorecard.
 The same panel now carries `Pilot readiness`, including `One-page offer`,
 `90-second demo script`, `Outreach focus`, a `Launch checklist`, and tracked
 `Pilot metrics` for the first local-services pilot.

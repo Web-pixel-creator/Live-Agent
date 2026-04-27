@@ -578,6 +578,12 @@ drawer`, `Customer confirmation drawer`, and `Master/operator handoff drawer`
 with `Human-readable` and `JSON` export modes, evidence link, and handoff bundle
 jump. The detail panel also includes `Telegram intake prototype`, where a
 customer message is normalized into the same approval-gated job-card payload.
+The same detail panel now opens `Open intake evidence` / `Transcript + evidence`
+into a `Saved intake evidence` drawer. It shows `Intake transcript + evidence
+link`, `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,
+`local_services_intake_evidence`, and `transcript_evidence_link` so P2 can show
+where the job card came from without claiming live Telegram, CRM, phone storage,
+or scorecard persistence.
 The selected card now also exposes `Pilot readiness`, `One-page offer`,
 `90-second demo script`, `Outreach focus`, a `Launch checklist`, and tracked
 `Pilot metrics` so the team can explain the pilot contract in the shell before
@@ -680,7 +686,7 @@ pilot export surfaces.
 2. Convert a Telegram message into the same job-card payload. Done in shell demo.
 3. Produce customer confirmation draft. Done in shell demo.
 4. Produce operator/master handoff draft. Done in shell demo.
-5. Save transcript and evidence link.
+5. Save transcript and evidence link. Done in shell demo.
 
 ### P3 - Real Pilot Kit
 
@@ -758,20 +764,24 @@ Current shell readiness for P3:
    `Status filter`, `Filtered candidates`, `Filtered outreach list`,
    `All services`, `All statuses`, `Clear filters`, and `View only, no send`
    are visible in the shell as view-only pilot list controls.
-12. `Open pilot export`, `Pilot workspace export drawer`, `Human-readable`,
+12. `Open intake evidence`, `Transcript + evidence`, `Saved intake evidence`,
+   `Intake transcript + evidence link`, `Transcript preview`,
+   `Copy intake evidence`, `local_services_intake_evidence`, and
+   `transcript_evidence_link` are visible as the P2 proof surface.
+13. `Open pilot export`, `Pilot workspace export drawer`, `Human-readable`,
    `JSON`, and `Copy pilot workspace export` are visible in the shell.
-13. `Open metrics tracker`, `Pilot metrics tracker`, `Human-readable`, `JSON`,
+14. `Open metrics tracker`, `Pilot metrics tracker`, `Human-readable`, `JSON`,
    and `Copy pilot metrics tracker` are visible in the shell.
-14. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
+15. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
    artifact documents from the same local frontend server.
-15. `Open outreach list`, `Open outreach execution pack`, and
+16. `Open outreach list`, `Open outreach execution pack`, and
    `Open pilot scorecard` resolve to the repo-owned pilot execution documents
    from the same local frontend server.
-16. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
+17. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
    14-day pilot runbook from the same local frontend server.
-17. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
+18. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
    repo-owned first-contact execution pack from the same local frontend server.
-18. Actual external execution still remains outside the shell: recorded video,
+19. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path

@@ -71,6 +71,11 @@ and keeps a `Next manual batch` visible for the operator. It now also includes
 `Filtered candidates`, `Filtered outreach list`, `All services`,
 `All statuses`, `Clear filters`, and `View only, no send` so the operator can
 narrow the list without creating an autonomous outreach or CRM workflow.
+The selected service panel also exposes `Open intake evidence` and
+`Transcript + evidence`; the `Saved intake evidence` drawer shows
+`Intake transcript + evidence link`, `Transcript preview`, `Copy intake
+evidence`, `local_services_intake_evidence`, and `transcript_evidence_link` as
+proof-only context before handoff.
 
 ### Week 1
 
