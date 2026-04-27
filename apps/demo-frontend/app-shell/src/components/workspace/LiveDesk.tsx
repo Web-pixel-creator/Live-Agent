@@ -3278,6 +3278,11 @@ const LocalServicesDispatchDemoPanel = ({
       done: currentMetricStatus !== "not_started",
     },
   ];
+  const completedPilotExecutionStepCount = pilotExecutionChecklist.filter((step) => step.done).length;
+  const pilotExecutionProgress = `${completedPilotExecutionStepCount}/${pilotExecutionChecklist.length}`;
+  const dryRunGateLabel = testCallPassed ? "Dry run passed" : "Dry run required";
+  const manualLaunchGateLabel =
+    testCallPassed && pilotFunnelCounts.draft_ready > 0 ? "Manual launch ready" : "Manual launch blocked";
   const scorecardDraftRows = selectedOutreachProspect
     ? [
         { label: "Company", value: selectedOutreachProspect.company },
@@ -4141,11 +4146,26 @@ const LocalServicesDispatchDemoPanel = ({
                   Pilot execution checklist
                 </div>
                 <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground max-w-3xl">
-                  A 14-day pilot operating loop for founder-only execution. It mirrors the runbook and existing
-                  browser-local statuses without sending outreach, writing CRM, or mutating docs.
+                  A 14-day pilot operating loop for founder-only execution. It starts with the browser-local dry-run
+                  gate and mirrors existing statuses without sending outreach, writing CRM, or mutating docs.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
+                <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                  Pilot checklist progress {pilotExecutionProgress}
+                </span>
+                <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                  {dryRunGateLabel}
+                </span>
+                <span
+                  className={`inline-flex rounded-[5px] px-2 py-1 font-mono text-[10px] ring-1 ring-inset ${
+                    manualLaunchGateLabel === "Manual launch ready"
+                      ? "bg-[hsl(var(--tint-mint)/0.12)] text-[hsl(var(--tint-mint-fg))] ring-[hsl(var(--tint-mint)/0.22)]"
+                      : "bg-[hsl(var(--tint-amber)/0.12)] text-[hsl(var(--tint-amber-fg))] ring-[hsl(var(--tint-amber)/0.24)]"
+                  }`}
+                >
+                  {manualLaunchGateLabel}
+                </span>
                 <span className="inline-flex rounded-[5px] bg-[hsl(var(--tint-mint)/0.12)] px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.22)]">
                   Founder-only execution
                 </span>

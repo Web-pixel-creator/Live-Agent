@@ -77,7 +77,9 @@ Use it to:
    `Needs test call passed`, `Prepare first manual batch`,
    `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
    `Book discovery call`, `Start metric capture`, `Founder-only execution`,
-   `No autonomous send`, and `Open pilot runbook`
+   `No autonomous send`, `Open pilot runbook`, `Pilot checklist progress`,
+   `Dry run required`, `Dry run passed`, `Manual launch blocked`, and
+   `Manual launch ready`
 8. use `Open discovery prep` after `Reply received` to review
    `Discovery call prep`, `Questions to ask`, `Pilot success criteria`,
    `Copy discovery call prep`, and `local_services_discovery_call_prep`

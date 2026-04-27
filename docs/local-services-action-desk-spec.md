@@ -666,8 +666,11 @@ operating loop built from browser-local funnel and metric state. It shows
 `Prepare first manual batch`, `Ready for first manual batch`,
 `Record ready drafts`, `Log manual contact`, `Book discovery call`,
 `Start metric capture`, `Founder-only execution`, `No autonomous send`, and
-`Open pilot runbook`. This is still an execution guide only: no outreach send,
-CRM write, analytics sync, or Markdown mutation happens.
+`Open pilot runbook`. Its header shows `Pilot checklist progress`,
+`Dry run required` / `Dry run passed`, and `Manual launch blocked` /
+`Manual launch ready`, so first contact stays gated on the dry run and a ready
+draft. This is still an execution guide only: no outreach send, CRM write,
+analytics sync, or Markdown mutation happens.
 The same checklist now opens `Discovery call prep` through `Open discovery
 prep`. That drawer prepares the first replied-company conversation with
 `Questions to ask`, `Pilot success criteria`, `Copy discovery call prep`, and a
@@ -848,8 +851,9 @@ Current shell readiness for P3:
    `Needs test call passed`, `Prepare first manual batch`,
    `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
    `Book discovery call`, `Start metric capture`, `Founder-only execution`,
-   `No autonomous send`, and `Open pilot runbook` are visible as the 14-day
-   manual pilot operating loop.
+   `No autonomous send`, `Open pilot runbook`, `Pilot checklist progress`,
+   `Dry run required`, `Dry run passed`, `Manual launch blocked`, and
+   `Manual launch ready` are visible as the 14-day manual pilot operating loop.
 17. `Open discovery prep`, `Discovery call prep`, `Questions to ask`,
    `Pilot success criteria`, `Copy discovery call prep`, and
    `local_services_discovery_call_prep` are visible as the manual discovery

@@ -89,7 +89,10 @@ The same funnel now has `Pilot execution checklist`: `Pass test call/message`,
 `Needs test call passed`, `Prepare first manual batch`,
 `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
 `Book discovery call`, `Start metric capture`, `Founder-only execution`,
-`No autonomous send`, and `Open pilot runbook`. It
+`No autonomous send`, and `Open pilot runbook`. Its header shows
+`Pilot checklist progress`, `Dry run required` / `Dry run passed`, and
+`Manual launch blocked` / `Manual launch ready`, so first contact stays gated
+on the dry run and a ready draft. It
 shows the 14-day pilot operating loop without sending anything automatically.
 Use `Open discovery prep` after a company is marked `Reply received`. The
 `Discovery call prep` drawer gives `Questions to ask`, `Pilot success criteria`,

@@ -115,7 +115,10 @@ That same funnel now adds `Pilot execution checklist`: `Pass test call/message`,
 `Needs test call passed`, `Prepare first manual batch`,
 `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
 `Book discovery call`, `Start metric capture`, `Founder-only execution`,
-`No autonomous send`, and `Open pilot runbook`.
+`No autonomous send`, and `Open pilot runbook`. Its header shows
+`Pilot checklist progress`, `Dry run required` / `Dry run passed`, and
+`Manual launch blocked` / `Manual launch ready`, so first contact stays gated
+on the dry run and a ready draft.
 This turns the 14-day pilot runbook into a visible operating loop without
 adding autonomous outreach or CRM scope.
 The next small operating layer is now `Open discovery prep`: it opens

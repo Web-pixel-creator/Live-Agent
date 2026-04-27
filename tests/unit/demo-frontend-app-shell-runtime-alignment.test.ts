@@ -605,6 +605,12 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Log manual contact/);
   assert.match(liveDesk, /Book discovery call/);
   assert.match(liveDesk, /Start metric capture/);
+  assert.match(liveDesk, /completedPilotExecutionStepCount/);
+  assert.match(liveDesk, /Pilot checklist progress/);
+  assert.match(liveDesk, /Dry run required/);
+  assert.match(liveDesk, /Dry run passed/);
+  assert.match(liveDesk, /Manual launch blocked/);
+  assert.match(liveDesk, /Manual launch ready/);
   assert.match(liveDesk, /Founder-only execution/);
   assert.match(liveDesk, /No autonomous send/);
   assert.match(liveDesk, /type LocalServiceDiscoveryCallPrep = \{/);
@@ -943,6 +949,11 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Log manual contact/);
   assert.match(readme, /Book discovery call/);
   assert.match(readme, /Start metric capture/);
+  assert.match(readme, /Pilot checklist progress/);
+  assert.match(readme, /Dry run required/);
+  assert.match(readme, /Dry run passed/);
+  assert.match(readme, /Manual launch blocked/);
+  assert.match(readme, /Manual launch ready/);
   assert.match(readme, /Founder-only execution/);
   assert.match(readme, /No autonomous send/);
   assert.match(readme, /Open discovery prep/);
@@ -1104,6 +1115,11 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /Log manual contact/);
   assert.match(localDevelopment, /Book discovery call/);
   assert.match(localDevelopment, /Start metric capture/);
+  assert.match(localDevelopment, /Pilot checklist progress/);
+  assert.match(localDevelopment, /Dry run required/);
+  assert.match(localDevelopment, /Dry run passed/);
+  assert.match(localDevelopment, /Manual launch blocked/);
+  assert.match(localDevelopment, /Manual launch ready/);
   assert.match(localDevelopment, /Founder-only execution/);
   assert.match(localDevelopment, /No autonomous send/);
   assert.match(localDevelopment, /Open discovery prep/);
@@ -1728,6 +1744,11 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /Log manual contact/);
   assert.match(localServicesSpec, /Book discovery call/);
   assert.match(localServicesSpec, /Start metric capture/);
+  assert.match(localServicesSpec, /Pilot checklist progress/);
+  assert.match(localServicesSpec, /Dry run required/);
+  assert.match(localServicesSpec, /Dry run passed/);
+  assert.match(localServicesSpec, /Manual launch blocked/);
+  assert.match(localServicesSpec, /Manual launch ready/);
   assert.match(localServicesSpec, /Founder-only execution/);
   assert.match(localServicesSpec, /No autonomous send/);
   assert.match(localServicesSpec, /Open discovery prep/);

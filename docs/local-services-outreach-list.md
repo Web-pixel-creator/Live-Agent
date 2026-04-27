@@ -84,7 +84,10 @@ The same funnel now shows `Pilot execution checklist` with
 `Prepare first manual batch`, `Ready for first manual batch`,
 `Record ready drafts`, `Log manual contact`, `Book discovery call`,
 `Start metric capture`, `Founder-only execution`, `No autonomous send`, and
-`Open pilot runbook` so the first 14-day pilot has a visible manual loop.
+`Open pilot runbook`, plus `Pilot checklist progress`, `Dry run required` /
+`Dry run passed`, and `Manual launch blocked` / `Manual launch ready`, so the
+first 14-day pilot has a visible manual loop gated on the dry run and a ready
+draft.
 When a company replies, use `Open discovery prep` to review `Discovery call
 prep`, `Questions to ask`, `Pilot success criteria`, and
 `Copy discovery call prep`. The structured payload is

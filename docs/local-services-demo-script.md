@@ -124,44 +124,47 @@ Point at:
 22. `Record test passed`
 23. `Test call passed`
 24. `Open day-one setup`
-19. `Pilot metrics`
-20. `Open metrics tracker`
-21. `Outreach list filters`
-22. `Column settings`
-23. `Filtered outreach list`
-16. `Open intake evidence`
-17. `Transcript + evidence`
-18. `Saved intake evidence`
-19. `Pilot execution checklist`
-20. `Pass test call/message`
-21. `Needs test call passed`
-22. `Prepare first manual batch`
-23. `Open discovery prep`
-24. `Discovery call prep`
-25. `Questions to ask`
-26. `Pilot success criteria`
-27. `Copy discovery call prep`
-28. `Open day-one setup`
-29. `Day-one setup brief`
-30. `Business profile lock`
-31. `Setup tasks`
-30. `Test call plan`
-31. `Copy day-one setup brief`
-32. `Open daily log`
-33. `Pilot daily log`
-34. `Daily capture fields`
-35. `Daily operating loop`
-36. `Copy pilot daily log`
-37. `Open week-one review`
-38. `Pilot week-one review`
-39. `Continue / stop decision`
-40. `Copy week-one review`
-41. `Open evidence pack`
-42. `Pilot evidence pack`
-43. `Week-two evidence pack`
-44. `Copy evidence pack`
-45. `Open recording checklist`
-46. `Open pilot runbook`
+25. `Pilot metrics`
+26. `Open metrics tracker`
+27. `Outreach list filters`
+28. `Column settings`
+29. `Filtered outreach list`
+30. `Open intake evidence`
+31. `Transcript + evidence`
+32. `Saved intake evidence`
+33. `Pilot execution checklist`
+34. `Pass test call/message`
+35. `Needs test call passed`
+36. `Prepare first manual batch`
+37. `Pilot checklist progress`
+38. `Dry run required`
+39. `Manual launch blocked`
+40. `Open discovery prep`
+41. `Discovery call prep`
+42. `Questions to ask`
+43. `Pilot success criteria`
+44. `Copy discovery call prep`
+45. `Open day-one setup`
+46. `Day-one setup brief`
+47. `Business profile lock`
+48. `Setup tasks`
+49. `Test call plan`
+50. `Copy day-one setup brief`
+51. `Open daily log`
+52. `Pilot daily log`
+53. `Daily capture fields`
+54. `Daily operating loop`
+55. `Copy pilot daily log`
+56. `Open week-one review`
+57. `Pilot week-one review`
+58. `Continue / stop decision`
+59. `Copy week-one review`
+60. `Open evidence pack`
+61. `Pilot evidence pack`
+62. `Week-two evidence pack`
+63. `Copy evidence pack`
+64. `Open recording checklist`
+65. `Open pilot runbook`
 
 Say:
 

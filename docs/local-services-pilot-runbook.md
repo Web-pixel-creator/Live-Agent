@@ -73,8 +73,10 @@ Do not use the pilot to build:
    `Needs test call passed`, `Prepare first manual batch`,
    `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
    `Book discovery call`, `Start metric capture`, `Founder-only execution`,
-   `No autonomous send`, and `Open pilot runbook`. Treat it as the manual
-   14-day operating loop; it does not send outreach or mutate docs.
+   `No autonomous send`, `Open pilot runbook`, `Pilot checklist progress`,
+   `Dry run required`, `Dry run passed`, `Manual launch blocked`, and
+   `Manual launch ready`. Treat it as the manual 14-day operating loop; it does
+   not send outreach or mutate docs.
 9. After a company is marked `Reply received`, use `Open discovery prep` to
    review `Discovery call prep`, `Questions to ask`, `Pilot success criteria`,
    `Copy discovery call prep`, and `local_services_discovery_call_prep`. Treat

@@ -58,7 +58,10 @@ CRM, phone storage, or scorecards.
 `Prepare first manual batch`, `Ready for first manual batch`,
 `Record ready drafts`, `Log manual contact`, `Book discovery call`,
 `Start metric capture`, `Founder-only execution`, `No autonomous send`, and
-`Open pilot runbook`. It mirrors browser-local state only and does not send
+`Open pilot runbook`. Its header shows `Pilot checklist progress`,
+`Dry run required` / `Dry run passed`, and `Manual launch blocked` /
+`Manual launch ready`, so first contact stays gated on the dry run and a ready
+draft. It mirrors browser-local state only and does not send
 outreach, write CRM, sync analytics, or mutate Markdown docs.
 3.5. The same checklist now includes `Open discovery prep`, which opens
 `Discovery call prep` with `Questions to ask`, `Pilot success criteria`,

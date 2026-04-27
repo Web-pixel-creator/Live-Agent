@@ -120,7 +120,10 @@ loop with `Pass test call/message`, `Needs test call passed`,
 `Prepare first manual batch`, `Ready for first manual batch`,
 `Record ready drafts`, `Log manual contact`, `Book discovery call`,
 `Start metric capture`, `Founder-only execution`, `No autonomous send`, and
-`Open pilot runbook`. Treat it as status guidance only; it does not send,
+`Open pilot runbook`. Its header shows `Pilot checklist progress`,
+`Dry run required` / `Dry run passed`, and `Manual launch blocked` /
+`Manual launch ready`, so first contact stays gated on the dry run and a ready
+draft. Treat it as status guidance only; it does not send,
 write CRM, sync analytics, or mutate docs.
 `Open discovery prep` opens `Discovery call prep` for the replied-company call:
 review `Questions to ask`, `Pilot success criteria`, and

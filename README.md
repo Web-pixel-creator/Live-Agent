@@ -153,7 +153,10 @@ Local-services expansion spec:
   `Prepare first manual batch`, `Ready for first manual batch`,
   `Record ready drafts`, `Log manual contact`, `Book discovery call`,
   `Start metric capture`, `Founder-only execution`, `No autonomous send`, and
-  `Open pilot runbook`. It mirrors browser-local statuses only. The same
+  `Open pilot runbook`. Its header shows `Pilot checklist progress`,
+  `Dry run required` / `Dry run passed`, and `Manual launch blocked` /
+  `Manual launch ready`, so first contact stays gated on the dry run and a
+  ready draft. It mirrors browser-local statuses only. The same
   checklist now opens `Discovery call prep` through `Open discovery prep`; that
   call brief exposes `Questions to ask`, `Pilot success criteria`,
   `Copy discovery call prep`, and `local_services_discovery_call_prep` without
