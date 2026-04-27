@@ -56,12 +56,16 @@ Do not use the pilot to build:
    `Agent behavior`, `Test call/message`, and `Ready for test call/message`.
    Treat `Copy setup brief` as internal setup evidence only; it does not
    activate phone, Telegram, WhatsApp, CRM, analytics, or billing.
-6. Open `Open intake evidence` or `Transcript + evidence` and confirm
+6. Open `Test call/message panel`, review `Sample inbound`,
+   `Expected extracted fields`, and the `Pass/fail checklist`, then use
+   `Mark check passed` and `Record test passed` before any live channel is
+   connected.
+7. Open `Open intake evidence` or `Transcript + evidence` and confirm
    `Saved intake evidence`, `Intake transcript + evidence link`,
    `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,
    `local_services_intake_evidence`, and `transcript_evidence_link`. Treat it
    as proof-only; it does not write Telegram, CRM, phone storage, or scorecards.
-7. Use `Outreach list filters` and `Column settings` in the
+8. Use `Outreach list filters` and `Column settings` in the
    `Pilot funnel summary` to narrow by `Service filter` or `Status filter`,
    review `Filtered candidates`, and select from the `Filtered outreach list`.
    The list is `View only, no send`; it does not send outreach or write CRM.

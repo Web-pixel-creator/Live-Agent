@@ -609,6 +609,12 @@ and both live under `liveDesk:localServicesPilotWorkspace:v1`. The UI exposes
 `Mark ready for pilot test`, and `Reset setup progress`. This remains
 browser-local and does not activate phone, Telegram, WhatsApp, CRM, analytics,
 billing, calendar, or customer messages.
+After the ready gate, `Test call/message panel` appears in the same setup
+posture. It shows `Sample inbound`, `Expected extracted fields`, and a
+`Pass/fail checklist`; the operator marks checks with `Mark check passed`, then
+uses `Record test passed` to show `Test call passed`. `Reset test call` clears
+only `testCallChecklistByService` and `testCallPassedByService` in the same
+browser-local workspace.
 The same block now includes a `Pilot outreach wizard` that mirrors the useful
 campaign-builder pattern from the reviewed AI receptionist references:
 `Offer preview` -> `Audience from outreach list` -> `Message/test preview` ->
@@ -802,7 +808,11 @@ Current shell readiness for P3:
    `Saved setup state`, `Mark complete`, `Mark ready for pilot test`,
    `Ready for pilot test`, and `Reset setup progress` are visible as the
    browser-local setup checklist contract.
-6. 4-step `Pilot outreach wizard`, `Offer preview`,
+6. `Test call/message panel`, `Sample inbound`, `Expected extracted fields`,
+   `Pass/fail checklist`, `Mark check passed`, `Record test passed`,
+   `Test call passed`, `Reset test call`, `testCallChecklistByService`, and
+   `testCallPassedByService` are visible as the browser-local dry-run contract.
+7. 4-step `Pilot outreach wizard`, `Offer preview`,
    `Audience from outreach list`, `Message/test preview`, and
    `Operator confirmation` are visible for each local-services lane.
 7. `Preview / Test message modal`, `Copy test message`,

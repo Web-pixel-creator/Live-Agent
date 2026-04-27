@@ -152,6 +152,11 @@ click `Mark ready for pilot test`; the shell then shows `Ready for pilot test`.
 The state is saved under `setupStepCompletionByService` and `setupReadyByService`
 inside `liveDesk:localServicesPilotWorkspace:v1`, so refreshes keep the setup
 progress.
+Then review `Test call/message panel`: compare `Sample inbound` with
+`Expected extracted fields`, mark every `Pass/fail checklist` item with
+`Mark check passed`, and click `Record test passed`. The shell should show
+`Test call passed`; `Reset test call` clears only the browser-local
+`testCallChecklistByService` and `testCallPassedByService` fields.
 Use `Open outreach list`, `Open outreach execution pack`, and
 `Open pilot scorecard` when you move from demo story to actual pilot execution.
 Use `docs/local-services-pilot-runbook.md` for the manual 14-day pilot sequence

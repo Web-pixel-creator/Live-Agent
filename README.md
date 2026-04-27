@@ -106,6 +106,13 @@ Local-services expansion spec:
   inside `liveDesk:localServicesPilotWorkspace:v1`, shows `Setup progress`,
   `Saved setup state`, `Mark complete`, `Mark ready for pilot test`, and
   `Ready for pilot test`, and keeps this browser-local only.
+- after `Ready for pilot test`, the same setup route shows a
+  `Test call/message panel` with `Sample inbound`, `Expected extracted fields`,
+  `Pass/fail checklist`, `Mark check passed`, `Record test passed`,
+  `Test call passed`, and `Reset test call`. It stores
+  `testCallChecklistByService` and `testCallPassedByService` in the same
+  browser-local workspace state and still activates no live phone, Telegram,
+  WhatsApp, CRM, calendar, analytics, billing, or customer send.
 - `Pilot readiness` now also includes a `Pilot outreach wizard`:
   `Offer preview` -> `Audience from outreach list` -> `Message/test preview` ->
   `Operator confirmation`. It is now rendered as a 4-step outreach wizard and

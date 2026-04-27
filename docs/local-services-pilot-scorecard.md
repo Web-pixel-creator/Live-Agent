@@ -66,11 +66,14 @@ Use it to:
 4. open `Agent setup / training state` and `Open setup checklist`
 5. confirm `Business profile`, `Knowledge sources`, `Agent behavior`,
    `Test call/message`, and `Ready for test call/message`
-6. open `Open intake evidence` / `Transcript + evidence` and confirm
+6. open `Test call/message panel`, confirm `Sample inbound`,
+   `Expected extracted fields`, `Pass/fail checklist`, `Mark check passed`,
+   `Record test passed`, and `Test call passed`
+7. open `Open intake evidence` / `Transcript + evidence` and confirm
    `Saved intake evidence`, `Intake transcript + evidence link`,
    `Transcript preview`, `Copy intake evidence`,
    `local_services_intake_evidence`, and `transcript_evidence_link`
-7. review `Pilot execution checklist`, `Prepare first manual batch`,
+8. review `Pilot execution checklist`, `Prepare first manual batch`,
    `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
    `Book discovery call`, `Start metric capture`, `Founder-only execution`,
    `No autonomous send`, and `Open pilot runbook`

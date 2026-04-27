@@ -83,6 +83,13 @@ tracks the final `Ready for pilot test` gate, and the UI shows `Setup progress`,
 `Saved setup state`, `Mark complete`, `Mark ready for pilot test`, and
 `Reset setup progress`. This does not activate phone, Telegram, WhatsApp, CRM,
 analytics, billing, calendar, or customer sends.
+After the ready gate, use `Test call/message panel` to replay the first sample
+call or message before pilot activation. The panel shows `Sample inbound`,
+`Expected extracted fields`, and a `Pass/fail checklist`; each check uses
+`Mark check passed`, the operator records the result with `Record test passed`,
+and the shell shows `Test call passed` until `Reset test call`. The state is
+stored as `testCallChecklistByService` and `testCallPassedByService` in the same
+browser-local workspace only.
 It also carries a 4-step `Pilot outreach wizard` with `Offer preview`,
 `Audience from outreach list`, `Message/test preview`, and
 `Operator confirmation` so the pilot can be prepared without implying an

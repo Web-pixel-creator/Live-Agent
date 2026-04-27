@@ -52,7 +52,10 @@ operationally mature already:
 The demo shell can now select these accounts in the `Pilot outreach wizard`,
 open `Agent setup / training state`, confirm `Business profile`,
 `Knowledge sources`, `Agent behavior`, `Test call/message`, and
-`Ready for test call/message`, open the `Preview / Test message modal`, review
+`Ready for test call/message`, open `Test call/message panel`, confirm
+`Sample inbound`, `Expected extracted fields`, `Pass/fail checklist`,
+`Mark check passed`, `Record test passed`, and `Test call passed`, open the
+`Preview / Test message modal`, review
 `Operator confirmation summary`, click `Record ready for manual outreach`, open
 `Ask AI about pilot` for
 `Suggested questions`, `Best candidate`, `Bottleneck`, and `Next message`, and

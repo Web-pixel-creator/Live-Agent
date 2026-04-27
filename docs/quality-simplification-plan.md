@@ -64,6 +64,12 @@ It should also behave like a real onboarding checklist: store
 `liveDesk:localServicesPilotWorkspace:v1`, expose `Setup progress`,
 `Saved setup state`, `Mark complete`, `Mark ready for pilot test`, and
 `Ready for pilot test`, and keep the whole flow browser-local.
+After that ready gate, the setup route now has a `Test call/message panel` with
+`Sample inbound`, `Expected extracted fields`, `Pass/fail checklist`,
+`Mark check passed`, `Record test passed`, `Test call passed`, and
+`Reset test call`. It stores `testCallChecklistByService` and
+`testCallPassedByService` beside setup state so a founder can prove one dry run
+without connecting live channels.
 The shell now includes a fourth P0 demo card, `Measurement visit booking`, for
 windows, doors, ceilings, blinds, and fit-out requests. This is the approved
 construction-adjacent expansion because it is still a dispatcher workflow:

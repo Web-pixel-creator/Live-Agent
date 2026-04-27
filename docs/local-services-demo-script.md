@@ -32,6 +32,11 @@ Use `Mark complete` on the first four setup steps, then `Mark ready for pilot te
 The shell should show `Setup progress`, `Saved setup state`, and
 `Ready for pilot test`; this state is saved only in the browser-local pilot
 workspace.
+Next use `Test call/message panel`: compare `Sample inbound` to
+`Expected extracted fields`, complete the `Pass/fail checklist` with
+`Mark check passed`, then click `Record test passed`. The shell should show
+`Test call passed`; `Reset test call` clears only the browser-local dry-run
+state.
 
 ## 90-Second Script
 
@@ -112,7 +117,13 @@ Point at:
 15. `Mark complete`
 16. `Mark ready for pilot test`
 17. `Ready for pilot test`
-18. `Open day-one setup`
+18. `Test call/message panel`
+19. `Sample inbound`
+20. `Expected extracted fields`
+21. `Pass/fail checklist`
+22. `Record test passed`
+23. `Test call passed`
+24. `Open day-one setup`
 19. `Pilot metrics`
 20. `Open metrics tracker`
 21. `Outreach list filters`

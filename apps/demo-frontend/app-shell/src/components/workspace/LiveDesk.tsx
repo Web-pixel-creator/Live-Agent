@@ -533,6 +533,12 @@ type LocalServiceSetupStepId =
   | "ready_for_pilot_test";
 
 type LocalServiceSetupStepCompletion = Partial<Record<LocalServiceSetupStepId, boolean>>;
+type LocalServiceTestCallCheckId =
+  | "sample_input_reviewed"
+  | "expected_fields_matched"
+  | "approval_gate_confirmed"
+  | "handoff_preview_confirmed";
+type LocalServiceTestCallChecklistState = Partial<Record<LocalServiceTestCallCheckId, boolean>>;
 
 type LocalServiceOutreachProspect = {
   id: string;
@@ -559,6 +565,8 @@ type LocalServicePilotWorkspaceState = {
   metricStatusByService: Record<string, LocalServicePilotMetricStatus>;
   setupStepCompletionByService: Record<string, LocalServiceSetupStepCompletion>;
   setupReadyByService: Record<string, boolean>;
+  testCallChecklistByService: Record<string, LocalServiceTestCallChecklistState>;
+  testCallPassedByService: Record<string, boolean>;
 };
 
 type LocalServiceDemoTemplate = {
@@ -681,6 +689,12 @@ const LOCAL_SERVICE_PILOT_METRIC_STATUS_ACTIONS: { status: LocalServicePilotMetr
   { status: "review_ready", label: "Mark review ready" },
 ];
 const LOCAL_SERVICE_SETUP_READY_STEP_ID: LocalServiceSetupStepId = "ready_for_pilot_test";
+const LOCAL_SERVICE_TEST_CALL_CHECK_IDS: LocalServiceTestCallCheckId[] = [
+  "sample_input_reviewed",
+  "expected_fields_matched",
+  "approval_gate_confirmed",
+  "handoff_preview_confirmed",
+];
 
 function isLocalServicePilotStatus(value: unknown): value is LocalServicePilotStatus {
   return (
@@ -708,6 +722,15 @@ function isLocalServiceSetupStepId(value: unknown): value is LocalServiceSetupSt
     value === "agent_behavior" ||
     value === "test_call_message" ||
     value === LOCAL_SERVICE_SETUP_READY_STEP_ID
+  );
+}
+
+function isLocalServiceTestCallCheckId(value: unknown): value is LocalServiceTestCallCheckId {
+  return (
+    value === "sample_input_reviewed" ||
+    value === "expected_fields_matched" ||
+    value === "approval_gate_confirmed" ||
+    value === "handoff_preview_confirmed"
   );
 }
 
@@ -766,6 +789,25 @@ function readSetupStepCompletionByService(value: unknown): Record<string, LocalS
   );
 }
 
+function readTestCallChecklistByService(value: unknown): Record<string, LocalServiceTestCallChecklistState> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter((entry): entry is [string, Record<string, unknown>] =>
+        Boolean(entry[1]) && typeof entry[1] === "object" && !Array.isArray(entry[1]),
+      )
+      .map(([serviceId, checklist]) => [
+        serviceId,
+        Object.fromEntries(
+          Object.entries(checklist).filter(
+            (entry): entry is [LocalServiceTestCallCheckId, boolean] =>
+              isLocalServiceTestCallCheckId(entry[0]) && typeof entry[1] === "boolean",
+          ),
+        ),
+      ]),
+  );
+}
+
 function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState {
   const emptyState: LocalServicePilotWorkspaceState = {
     selectedProspectByService: {},
@@ -773,6 +815,8 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
     metricStatusByService: {},
     setupStepCompletionByService: {},
     setupReadyByService: {},
+    testCallChecklistByService: {},
+    testCallPassedByService: {},
   };
   if (typeof window === "undefined") {
     return emptyState;
@@ -789,6 +833,8 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
       metricStatusByService: readPilotMetricStatusRecord(parsed.metricStatusByService),
       setupStepCompletionByService: readSetupStepCompletionByService(parsed.setupStepCompletionByService),
       setupReadyByService: readBooleanRecord(parsed.setupReadyByService),
+      testCallChecklistByService: readTestCallChecklistByService(parsed.testCallChecklistByService),
+      testCallPassedByService: readBooleanRecord(parsed.testCallPassedByService),
     };
   } catch {
     return emptyState;
@@ -3126,14 +3172,58 @@ const LocalServicesDispatchDemoPanel = ({
   const canMarkReadyForPilot =
     setupWizardPrerequisiteSteps.length > 0 &&
     completedSetupPrerequisiteCount === setupWizardPrerequisiteSteps.length;
+  const testCallChecklist = pilotWorkspaceState.testCallChecklistByService[selectedTemplate.id] ?? {};
+  const testCallChecks: {
+    id: LocalServiceTestCallCheckId;
+    label: string;
+    value: string;
+    status: string;
+  }[] = [
+    {
+      id: "sample_input_reviewed",
+      label: "Sample inbound reviewed",
+      value: selectedTemplate.detail.sampleInput,
+      status: "Inbound source",
+    },
+    {
+      id: "expected_fields_matched",
+      label: "Expected extracted fields matched",
+      value: [
+        ...selectedTemplate.detail.telegramIntake.normalizedFields,
+        ...selectedTemplate.detail.estimateInputs,
+      ].join(", "),
+      status: "Field extraction",
+    },
+    {
+      id: "approval_gate_confirmed",
+      label: "Approval gate confirmed",
+      value: selectedTemplate.detail.approvalPolicy.join(" "),
+      status: "Operator approval",
+    },
+    {
+      id: "handoff_preview_confirmed",
+      label: "Handoff preview confirmed",
+      value: selectedTemplate.detail.operatorHandoff,
+      status: "Manual handoff",
+    },
+  ];
+  const completedTestCallCheckCount = testCallChecks.filter((check) => testCallChecklist[check.id]).length;
+  const testCallProgress = `${completedTestCallCheckCount}/${testCallChecks.length}`;
+  const testCallChecksComplete = LOCAL_SERVICE_TEST_CALL_CHECK_IDS.every((id) => testCallChecklist[id] === true);
+  const testCallPassed = pilotWorkspaceState.testCallPassedByService[selectedTemplate.id] === true;
+  const canRecordTestCallPassed = setupReadyForPilot && testCallChecksComplete;
   const setupStateLines = [
     "Saved setup state:",
     `Service: ${selectedTemplate.ref} - ${selectedTemplate.title}`,
     `Setup progress: ${setupWizardProgress}`,
     `Ready for pilot test: ${setupReadyForPilot ? "yes" : "no"}`,
+    `Test call progress: ${testCallProgress}`,
+    `Test call passed: ${testCallPassed ? "yes" : "no"}`,
     ...agentSetupBrief.setupSteps.map(
       (step) => `- ${step.label}: ${setupStepCompletion[step.id] ? "complete" : "pending"}`,
     ),
+    "Test call/message checklist:",
+    ...testCallChecks.map((check) => `- ${check.label}: ${testCallChecklist[check.id] ? "passed" : "pending"}`),
   ];
   const setupBriefWithState = `${agentSetupBrief.humanText}\n\n${setupStateLines.join("\n")}`;
   const nextManualBatch = filteredPilotFunnelRows
@@ -3225,12 +3315,17 @@ const LocalServicesDispatchDemoPanel = ({
         [stepId]: complete,
       };
       const nextReadyByService = { ...prev.setupReadyByService };
+      const nextTestCallPassedByService = { ...prev.testCallPassedByService };
       if (stepId !== LOCAL_SERVICE_SETUP_READY_STEP_ID && !complete) {
         nextCompletion[LOCAL_SERVICE_SETUP_READY_STEP_ID] = false;
         nextReadyByService[selectedTemplate.id] = false;
+        nextTestCallPassedByService[selectedTemplate.id] = false;
       }
       if (stepId === LOCAL_SERVICE_SETUP_READY_STEP_ID) {
         nextReadyByService[selectedTemplate.id] = complete;
+        if (!complete) {
+          nextTestCallPassedByService[selectedTemplate.id] = false;
+        }
       }
       return {
         ...prev,
@@ -3239,6 +3334,7 @@ const LocalServicesDispatchDemoPanel = ({
           [selectedTemplate.id]: nextCompletion,
         },
         setupReadyByService: nextReadyByService,
+        testCallPassedByService: nextTestCallPassedByService,
       };
     });
   };
@@ -3270,6 +3366,56 @@ const LocalServicesDispatchDemoPanel = ({
       },
       setupReadyByService: {
         ...prev.setupReadyByService,
+        [selectedTemplate.id]: false,
+      },
+      testCallChecklistByService: {
+        ...prev.testCallChecklistByService,
+        [selectedTemplate.id]: {},
+      },
+      testCallPassedByService: {
+        ...prev.testCallPassedByService,
+        [selectedTemplate.id]: false,
+      },
+    }));
+  };
+  const updateTestCallCheck = (checkId: LocalServiceTestCallCheckId, complete: boolean) => {
+    setPilotWorkspaceState((prev) => {
+      const currentChecklist = prev.testCallChecklistByService[selectedTemplate.id] ?? {};
+      return {
+        ...prev,
+        testCallChecklistByService: {
+          ...prev.testCallChecklistByService,
+          [selectedTemplate.id]: {
+            ...currentChecklist,
+            [checkId]: complete,
+          },
+        },
+        testCallPassedByService: {
+          ...prev.testCallPassedByService,
+          [selectedTemplate.id]: complete ? prev.testCallPassedByService[selectedTemplate.id] === true : false,
+        },
+      };
+    });
+  };
+  const recordTestCallPassed = () => {
+    if (!canRecordTestCallPassed) return;
+    setPilotWorkspaceState((prev) => ({
+      ...prev,
+      testCallPassedByService: {
+        ...prev.testCallPassedByService,
+        [selectedTemplate.id]: true,
+      },
+    }));
+  };
+  const resetTestCall = () => {
+    setPilotWorkspaceState((prev) => ({
+      ...prev,
+      testCallChecklistByService: {
+        ...prev.testCallChecklistByService,
+        [selectedTemplate.id]: {},
+      },
+      testCallPassedByService: {
+        ...prev.testCallPassedByService,
         [selectedTemplate.id]: false,
       },
     }));
@@ -3368,6 +3514,7 @@ const LocalServicesDispatchDemoPanel = ({
         )}
 
         {setupWizardMode && (
+          <>
           <section
             aria-label="7-minute setup wizard"
             className="rounded-md border border-[hsl(var(--tint-violet)/0.28)] bg-[hsl(var(--tint-violet)/0.08)] px-4 py-3"
@@ -3499,6 +3646,151 @@ const LocalServicesDispatchDemoPanel = ({
               })}
             </div>
           </section>
+          <section
+            aria-label="Test call/message panel"
+            className="rounded-md border border-[hsl(var(--tint-mint)/0.26)] bg-[hsl(var(--tint-mint)/0.07)] px-4 py-3"
+          >
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--tint-mint-fg))]">
+                  <PhoneCall className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  Test call/message panel
+                </div>
+                <p className="mt-1.5 text-[12px] leading-relaxed text-foreground max-w-3xl">
+                  Operator test step after setup: replay the sample inbound call or message, compare extracted fields,
+                  verify the approval gate, and record the first pass before pilot activation.
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <span className="inline-flex rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.24)]">
+                    Test call progress {testCallProgress}
+                  </span>
+                  <span
+                    className={`inline-flex rounded-[5px] px-2 py-1 font-mono text-[10px] ring-1 ring-inset ${
+                      testCallPassed
+                        ? "bg-[hsl(var(--tint-mint)/0.12)] text-[hsl(var(--tint-mint-fg))] ring-[hsl(var(--tint-mint)/0.22)]"
+                        : "bg-background/45 text-muted-foreground ring-border/60"
+                    }`}
+                  >
+                    {testCallPassed ? "Test call passed" : "Test call pending"}
+                  </span>
+                  <span className="inline-flex rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.24)]">
+                    browser-local
+                  </span>
+                  <span className="inline-flex rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.24)]">
+                    No live channel activation
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  disabled={!canRecordTestCallPassed}
+                  onClick={recordTestCallPassed}
+                  className="h-8"
+                >
+                  <Check className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  {testCallPassed ? "Test call passed" : "Record test passed"}
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => onCopyText(setupBriefWithState, "Copy test call brief")} className="h-8">
+                  <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Copy test call brief
+                </Button>
+                <Button size="sm" variant="ghost" onClick={resetTestCall} className="h-8">
+                  Reset test call
+                </Button>
+              </div>
+            </div>
+            <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,0.85fr)_minmax(320px,1.05fr)]">
+              <section className="rounded-md border border-border/40 bg-background/35 px-3 py-3">
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                  <MessageSquareText className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  Sample inbound
+                </div>
+                <p className="mt-2 rounded-md border border-border/50 bg-card/25 px-3 py-2 text-[12px] leading-relaxed text-foreground">
+                  {selectedTemplate.detail.sampleInput}
+                </p>
+                <p className="mt-2 rounded-md border border-border/50 bg-card/25 px-3 py-2 text-[12px] leading-relaxed text-foreground">
+                  {selectedTemplate.detail.telegramIntake.inboundMessage}
+                </p>
+              </section>
+              <section className="rounded-md border border-border/40 bg-background/35 px-3 py-3">
+                <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                  Expected extracted fields
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {[...selectedTemplate.detail.telegramIntake.normalizedFields, ...selectedTemplate.detail.estimateInputs].map(
+                    (field) => (
+                      <span
+                        key={field}
+                        className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground"
+                      >
+                        {field}
+                      </span>
+                    ),
+                  )}
+                </div>
+                <div className="mt-3 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                  Approval gate
+                </div>
+                <ul className="mt-2 space-y-1.5 text-[12px] leading-relaxed text-foreground">
+                  {selectedTemplate.detail.approvalPolicy.map((item) => (
+                    <li key={item} className="flex gap-2">
+                      <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+              <section className="rounded-md border border-border/40 bg-background/35 px-3 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Pass/fail checklist
+                  </div>
+                  <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                    {setupReadyForPilot ? "Setup ready" : "Complete setup first"}
+                  </span>
+                </div>
+                <div className="mt-2 space-y-2">
+                  {testCallChecks.map((check) => {
+                    const complete = testCallChecklist[check.id] === true;
+                    return (
+                      <div
+                        key={check.id}
+                        className={`rounded-md border px-3 py-2.5 ${
+                          complete
+                            ? "border-[hsl(var(--tint-mint)/0.24)] bg-[hsl(var(--tint-mint)/0.08)]"
+                            : "border-border/40 bg-card/20"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-[11.5px] font-medium text-foreground">{check.label}</div>
+                            <div className="mt-0.5 font-mono text-[10px] text-muted-foreground/70">
+                              {check.status}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            aria-pressed={complete}
+                            onClick={() => updateTestCallCheck(check.id, !complete)}
+                            className={`inline-flex h-7 shrink-0 items-center rounded-[5px] px-2 text-[10px] font-medium ring-1 ring-inset transition-smooth ${
+                              complete
+                                ? "bg-[hsl(var(--tint-mint)/0.12)] text-[hsl(var(--tint-mint-fg))] ring-[hsl(var(--tint-mint)/0.22)]"
+                                : "bg-secondary/45 text-muted-foreground ring-border/60 hover:text-foreground"
+                            }`}
+                          >
+                            {complete ? "Check passed" : "Mark check passed"}
+                          </button>
+                        </div>
+                        <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">{check.value}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            </div>
+          </section>
+          </>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
@@ -4298,6 +4590,14 @@ const LocalServicesDispatchDemoPanel = ({
                       <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
                         Saved setup state
                       </span>
+                      <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                        Test call progress {testCallProgress}
+                      </span>
+                      {testCallPassed && (
+                        <span className="inline-flex rounded-[5px] bg-[hsl(var(--tint-mint)/0.12)] px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.22)]">
+                          Test call passed
+                        </span>
+                      )}
                       <Button
                         size="sm"
                         variant="secondary"

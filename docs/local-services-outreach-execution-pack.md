@@ -208,11 +208,15 @@ Allowed reply statuses:
    `Test call/message`, `Ready for test call/message`, `Training cards`, and
    `Copy setup brief`. Explain that it is setup evidence only and makes
    `No channel activation`.
-9. Open `Operator confirmation summary`, show `Ready for manual outreach`, and
+9. Open `Test call/message panel`, show `Sample inbound`,
+   `Expected extracted fields`, `Pass/fail checklist`, `Mark check passed`,
+   `Record test passed`, and `Test call passed`. Explain that it is a dry run
+   only and still does not connect live channels.
+10. Open `Operator confirmation summary`, show `Ready for manual outreach`, and
    explain that it is a final human approval state, not an autonomous send.
-10. Click `Record ready for manual outreach` only to mark `Draft ready` locally;
+11. Click `Record ready for manual outreach` only to mark `Draft ready` locally;
    explain that it does not send outreach or write CRM.
-11. Open `Ask AI about pilot` to show `Suggested questions`, `Best candidate`,
+12. Open `Ask AI about pilot` to show `Suggested questions`, `Best candidate`,
    `Bottleneck`, `Next message`, and `Copy analyst brief`; explain that this is
    deterministic internal planning and makes `No external LLM call`.
 12. Show `Outreach list filters`, `Column settings`, `Service filter`,
