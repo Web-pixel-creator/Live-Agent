@@ -90,6 +90,11 @@ batch`, `Ready for first manual batch`, `Record ready drafts`,
 `Log manual contact`, `Book discovery call`, `Start metric capture`,
 `Founder-only execution`, `No autonomous send`, and `Open pilot runbook`. It
 shows the 14-day pilot operating loop without sending anything automatically.
+Use `Open discovery prep` after a company is marked `Reply received`. The
+`Discovery call prep` drawer gives `Questions to ask`, `Pilot success criteria`,
+`Human-readable` / `JSON` modes, and `Copy discovery call prep`; the structured
+payload is `local_services_discovery_call_prep`. It does not book a calendar
+slot, send follow-up, write CRM, sync analytics, or mutate docs.
 That wizard now includes a `Pilot scorecard action`: select `AC MASTER`,
 `Santexniki.uz`, `Service-Pro`, or another lane-specific candidate from the
 repo-owned outreach list, review the test message, and `Record scorecard draft`

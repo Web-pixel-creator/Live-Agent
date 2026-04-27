@@ -81,6 +81,11 @@ The same funnel now shows `Pilot execution checklist` with
 `Record ready drafts`, `Log manual contact`, `Book discovery call`,
 `Start metric capture`, `Founder-only execution`, `No autonomous send`, and
 `Open pilot runbook` so the first 14-day pilot has a visible manual loop.
+When a company replies, use `Open discovery prep` to review `Discovery call
+prep`, `Questions to ask`, `Pilot success criteria`, and
+`Copy discovery call prep`. The structured payload is
+`local_services_discovery_call_prep`; it remains manual-only and does not book
+calendar slots, send follow-up, write CRM, sync analytics, or mutate this list.
 
 ### Week 1
 

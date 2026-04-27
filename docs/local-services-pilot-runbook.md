@@ -70,7 +70,12 @@ Do not use the pilot to build:
    `Book discovery call`, `Start metric capture`, `Founder-only execution`,
    `No autonomous send`, and `Open pilot runbook`. Treat it as the manual
    14-day operating loop; it does not send outreach or mutate docs.
-9. Use the shell `Pilot outreach wizard` and `Preview / Test message modal` to
+9. After a company is marked `Reply received`, use `Open discovery prep` to
+   review `Discovery call prep`, `Questions to ask`, `Pilot success criteria`,
+   `Copy discovery call prep`, and `local_services_discovery_call_prep`. Treat
+   it as a founder call brief only; it does not book calendars, send follow-up,
+   write CRM, sync analytics, or mutate docs.
+10. Use the shell `Pilot outreach wizard` and `Preview / Test message modal` to
    inspect the exact message. Open `Operator confirmation summary` and confirm
    `Ready for manual outreach`. Click `Record ready for manual outreach` to set
    the browser-local status to `Draft ready`, then keep real outreach outside
@@ -78,7 +83,7 @@ Do not use the pilot to build:
    Use `Ask AI about pilot` only as an internal deterministic analyst brief for
    `Suggested questions`, `Best candidate`, `Bottleneck`, and `Next message`;
    it does not call an external LLM, send outreach, or write CRM.
-8. Open `Open metrics tracker` for the selected lane and mark `Baseline
+11. Open `Open metrics tracker` for the selected lane and mark `Baseline
    captured` only after real baseline data or owner estimates are collected.
 
 ## Day Zero: Outreach

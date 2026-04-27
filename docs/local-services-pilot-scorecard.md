@@ -74,12 +74,15 @@ Use it to:
    `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
    `Book discovery call`, `Start metric capture`, `Founder-only execution`,
    `No autonomous send`, and `Open pilot runbook`
-8. review the `Test message preview`
-9. open `Operator confirmation summary`
-10. click `Record ready for manual outreach` to mark `Draft ready` locally
-11. open `Ask AI about pilot` if the operator needs `Suggested questions`,
+8. use `Open discovery prep` after `Reply received` to review
+   `Discovery call prep`, `Questions to ask`, `Pilot success criteria`,
+   `Copy discovery call prep`, and `local_services_discovery_call_prep`
+9. review the `Test message preview`
+10. open `Operator confirmation summary`
+11. click `Record ready for manual outreach` to mark `Draft ready` locally
+12. open `Ask AI about pilot` if the operator needs `Suggested questions`,
    `Best candidate`, `Bottleneck`, or `Next message`
-12. keep real outreach manual-only until a human sends the message outside the shell
+13. keep real outreach manual-only until a human sends the message outside the shell
 
 This shell action is intentionally local to the demo session. It does not send a
 message, activate phone or Telegram, update CRM, call an external LLM, or change
@@ -123,6 +126,13 @@ file automatically.
 service lane. Use `Human-readable` for weekly operator review and `JSON` when
 pasting reviewed numbers into a spreadsheet. `Copy pilot metrics tracker`
 copies the reviewed metric plan only; it does not sync analytics, update CRM, or
+mutate this Markdown file automatically.
+
+`Open discovery prep` opens the `Discovery call prep` drawer for a replied
+company. Use `Human-readable` for the founder call, `JSON` for structured
+handoff notes, and `Copy discovery call prep` only after the selected company
+and status are current. The payload is `local_services_discovery_call_prep` and
+does not create calendar bookings, send follow-up, write CRM, sync analytics, or
 mutate this Markdown file automatically.
 
 ## Discovery Call Notes

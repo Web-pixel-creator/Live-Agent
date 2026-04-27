@@ -137,7 +137,11 @@ Local-services expansion spec:
   operating loop with `Prepare first manual batch`, `Ready for first manual
   batch`, `Record ready drafts`, `Log manual contact`, `Book discovery call`,
   `Start metric capture`, `Founder-only execution`, `No autonomous send`, and
-  `Open pilot runbook`. It mirrors browser-local statuses only.
+  `Open pilot runbook`. It mirrors browser-local statuses only. The same
+  checklist now opens `Discovery call prep` through `Open discovery prep`; that
+  call brief exposes `Questions to ask`, `Pilot success criteria`,
+  `Copy discovery call prep`, and `local_services_discovery_call_prep` without
+  creating a calendar event, sending follow-up, or writing CRM.
 - the funnel summary now opens a `Pilot workspace export drawer` with
   `Human-readable` and `JSON` modes plus `Copy pilot workspace export`; it is a
   browser-local planning artifact and does not send outreach or write CRM.

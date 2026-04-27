@@ -230,8 +230,12 @@ Allowed reply statuses:
    `Book discovery call`, `Start metric capture`, `Founder-only execution`,
    `No autonomous send`, and `Open pilot runbook`; explain that this is the
    manual 14-day operating loop, not autonomous outreach.
-15. Show `Pilot metrics` and `Open metrics tracker`.
-16. End with one question: "Would this save missed requests or manager time if we
+15. Show `Open discovery prep`, `Discovery call prep`, `Questions to ask`,
+   `Pilot success criteria`, `Copy discovery call prep`, and
+   `local_services_discovery_call_prep`; explain that this prepares the first
+   replied-company call only and does not book a calendar slot or write CRM.
+16. Show `Pilot metrics` and `Open metrics tracker`.
+17. End with one question: "Would this save missed requests or manager time if we
    tested it for 14 days?"
 
 ## After Each Contact

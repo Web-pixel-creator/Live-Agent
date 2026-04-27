@@ -103,6 +103,11 @@ loop with `Prepare first manual batch`, `Ready for first manual batch`,
 `Start metric capture`, `Founder-only execution`, `No autonomous send`, and
 `Open pilot runbook`. Treat it as status guidance only; it does not send,
 write CRM, sync analytics, or mutate docs.
+`Open discovery prep` opens `Discovery call prep` for the replied-company call:
+review `Questions to ask`, `Pilot success criteria`, and
+`Copy discovery call prep` before manually booking or following up. The payload
+is `local_services_discovery_call_prep`; it is not a calendar action, CRM write,
+analytics sync, or outbound message.
 The wizard now has an operator-local `Pilot scorecard action`: choose a
 lane-specific company from the outreach list, inspect the `Test message preview`,
 and `Record scorecard draft` as `Not contacted`. This records demo-session

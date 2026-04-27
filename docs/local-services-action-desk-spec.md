@@ -649,6 +649,12 @@ operating loop built from browser-local funnel and metric state. It shows
 `Start metric capture`, `Founder-only execution`, `No autonomous send`, and
 `Open pilot runbook`. This is still an execution guide only: no outreach send,
 CRM write, analytics sync, or Markdown mutation happens.
+The same checklist now opens `Discovery call prep` through `Open discovery
+prep`. That drawer prepares the first replied-company conversation with
+`Questions to ask`, `Pilot success criteria`, `Copy discovery call prep`, and a
+structured `local_services_discovery_call_prep` payload. It remains
+operator-reviewed only: no calendar booking, CRM write, analytics sync,
+outbound send, or Markdown mutation happens.
 The same funnel now opens a `Pilot workspace export drawer` through
 `Open pilot export`. The drawer has `Human-readable` and `JSON` modes, exposes
 `Copy pilot workspace export`, and carries explicit guardrails: no outbound
@@ -780,13 +786,17 @@ Current shell readiness for P3:
    `Book discovery call`, `Start metric capture`, `Founder-only execution`,
    `No autonomous send`, and `Open pilot runbook` are visible as the 14-day
    manual pilot operating loop.
-14. `Open pilot export`, `Pilot workspace export drawer`, `Human-readable`,
+14. `Open discovery prep`, `Discovery call prep`, `Questions to ask`,
+   `Pilot success criteria`, `Copy discovery call prep`, and
+   `local_services_discovery_call_prep` are visible as the manual discovery
+   call preparation surface.
+15. `Open pilot export`, `Pilot workspace export drawer`, `Human-readable`,
    `JSON`, and `Copy pilot workspace export` are visible in the shell.
-15. `Open metrics tracker`, `Pilot metrics tracker`, `Human-readable`, `JSON`,
+16. `Open metrics tracker`, `Pilot metrics tracker`, `Human-readable`, `JSON`,
    and `Copy pilot metrics tracker` are visible in the shell.
-16. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
+17. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
    artifact documents from the same local frontend server.
-17. `Open outreach list`, `Open outreach execution pack`, and
+18. `Open outreach list`, `Open outreach execution pack`, and
    `Open pilot scorecard` resolve to the repo-owned pilot execution documents
    from the same local frontend server.
 18. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned

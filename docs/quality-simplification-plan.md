@@ -102,6 +102,12 @@ batch`, `Ready for first manual batch`, `Record ready drafts`,
 `Founder-only execution`, `No autonomous send`, and `Open pilot runbook`.
 This turns the 14-day pilot runbook into a visible operating loop without
 adding autonomous outreach or CRM scope.
+The next small operating layer is now `Open discovery prep`: it opens
+`Discovery call prep` with `Questions to ask`, `Pilot success criteria`,
+`Copy discovery call prep`, and the structured
+`local_services_discovery_call_prep` payload. This keeps the first replied
+company call inside the operator workflow without adding calendar, CRM,
+analytics, or outbound-message scope.
 That funnel now has `Open pilot export`, which opens a `Pilot workspace export
 drawer` with `Human-readable` / `JSON` modes and `Copy pilot workspace export`.
 The export is intentionally manual-only: no outbound message, no CRM write, and

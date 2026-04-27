@@ -481,6 +481,21 @@ type LocalServicePilotAnalystBrief = {
   guardrails: string[];
 };
 
+type LocalServiceDiscoveryCallPrep = {
+  title: string;
+  description: string;
+  modeLabel: string;
+  copyLabel: string;
+  statusLabel: string;
+  callReadiness: string;
+  humanText: string;
+  jsonText: string;
+  rows: { label: string; value: string }[];
+  discoveryQuestions: string[];
+  successCriteria: string[];
+  guardrails: string[];
+};
+
 type LocalServiceAgentSetupBrief = {
   title: string;
   description: string;
@@ -1421,6 +1436,120 @@ function buildLocalServicePilotConfirmationSummary(
   };
 }
 
+function buildLocalServiceDiscoveryCallPrep(
+  template: LocalServiceDemoTemplate,
+  prospect: LocalServiceOutreachProspect | undefined,
+  status: LocalServicePilotStatus,
+  metricStatus: LocalServicePilotMetricStatus,
+): LocalServiceDiscoveryCallPrep {
+  const statusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[status];
+  const metricStatusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus];
+  const company = prospect?.company ?? "No prospect selected";
+  const segment = prospect?.segment ?? "unknown";
+  const readyToBook = status === "reply_received";
+  const callReadiness = readyToBook
+    ? "Reply received - ready to book discovery call"
+    : "Needs reply before booking discovery call";
+  const discoveryQuestions = [
+    `What happens today when a ${template.title.toLowerCase()} request comes by phone or Telegram after hours?`,
+    "How many requests per week are missed, delayed, or lost because the first response is late?",
+    "Which details must the assistant collect before a dispatcher or owner can approve the booking?",
+    "What price, slot, master, or address fields must always stay human-approved?",
+    "Can we test a 14-day pilot on real missed calls/messages without changing the existing CRM?",
+  ];
+  const successCriteria = template.detail.pilotKit.metrics.map(
+    (metric) => `${metric.label}: baseline ${metric.baseline}; target ${metric.target}`,
+  );
+  const guardrails = [
+    "operator_reviews_call_notes_before_customer_followup",
+    "no_calendar_booking_created",
+    "no_crm_write",
+    "no_outbound_message_sent",
+    "manual_scorecard_sync_required",
+  ];
+  const humanLines = [
+    `Discovery call prep: ${template.title}`,
+    `Selected company: ${company}`,
+    `Segment: ${segment}`,
+    `Current status: ${statusLabel}`,
+    `Call readiness: ${callReadiness}`,
+    `Metric status: ${metricStatusLabel}`,
+    "",
+    "Call objective:",
+    "Confirm a real 14-day pilot with phone-first intake, operator-approved booking, and manual scorecard sync.",
+    "",
+    "Questions to ask:",
+    ...discoveryQuestions.map((question) => `- ${question}`),
+    "",
+    "Pilot success criteria:",
+    ...successCriteria.map((criterion) => `- ${criterion}`),
+    "",
+    "Next operator action:",
+    readyToBook
+      ? "Book the discovery call manually, then update the pilot scorecard after the conversation."
+      : "Wait for a real reply before booking; use the message preview and confirmation surfaces first.",
+    "",
+    "Guardrails:",
+    ...guardrails.map((guardrail) => `- ${guardrail}`),
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_discovery_call_prep",
+      export_kind: "operator_review_call_brief",
+      service_id: template.id,
+      service_ref: template.ref,
+      service_title: template.title,
+      prospect: prospect
+        ? {
+            id: prospect.id,
+            company: prospect.company,
+            segment: prospect.segment,
+            channel_fit: prospect.channelFit,
+            why_now: prospect.whyNow,
+            scorecard_focus: prospect.scorecardFocus,
+            next_step: prospect.nextStep,
+          }
+        : null,
+      current_status: status,
+      current_status_label: statusLabel,
+      call_readiness: callReadiness,
+      ready_to_book_discovery_call: readyToBook,
+      metric_status: metricStatus,
+      metric_status_label: metricStatusLabel,
+      call_objective:
+        "Confirm a 14-day phone-first pilot with operator-approved booking and manual scorecard sync.",
+      discovery_questions: discoveryQuestions,
+      success_criteria: successCriteria,
+      guardrails,
+    },
+    null,
+    2,
+  );
+
+  return {
+    title: "Discovery call prep",
+    description:
+      "Operator-reviewed call brief for a company that replied. It prepares the first pilot conversation without creating a calendar event, writing CRM, or sending follow-up.",
+    modeLabel: "Discovery prep mode",
+    copyLabel: "Copy discovery call prep",
+    statusLabel,
+    callReadiness,
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: [
+      { label: "Service", value: `${template.ref} - ${template.title}` },
+      { label: "Selected company", value: company },
+      { label: "Current status", value: statusLabel },
+      { label: "Call readiness", value: callReadiness },
+      { label: "Metric status", value: metricStatusLabel },
+      { label: "Guardrail", value: "Manual booking only; no calendar, CRM, or outbound send" },
+    ],
+    discoveryQuestions,
+    successCriteria,
+    guardrails,
+  };
+}
+
 function buildLocalServicePilotAnalystBrief(
   template: LocalServiceDemoTemplate,
   prospect: LocalServiceOutreachProspect | undefined,
@@ -2234,6 +2363,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [pilotOperatorConfirmationMode, setPilotOperatorConfirmationMode] = useState<PlaybookExportMode>("human");
   const [pilotAnalystOpen, setPilotAnalystOpen] = useState(false);
   const [pilotAnalystMode, setPilotAnalystMode] = useState<PlaybookExportMode>("human");
+  const [discoveryCallPrepOpen, setDiscoveryCallPrepOpen] = useState(false);
+  const [discoveryCallPrepMode, setDiscoveryCallPrepMode] = useState<PlaybookExportMode>("human");
   const [agentSetupOpen, setAgentSetupOpen] = useState(false);
   const [agentSetupMode, setAgentSetupMode] = useState<PlaybookExportMode>("human");
   const [intakeEvidenceOpen, setIntakeEvidenceOpen] = useState(false);
@@ -2348,6 +2479,16 @@ const LocalServicesDispatchDemoPanel = ({
       ),
     [currentPilotStatus, pilotFunnelCounts, selectedOutreachProspect, selectedTemplate],
   );
+  const discoveryCallPrep = useMemo(
+    () =>
+      buildLocalServiceDiscoveryCallPrep(
+        selectedTemplate,
+        selectedOutreachProspect,
+        currentPilotStatus,
+        currentMetricStatus,
+      ),
+    [currentMetricStatus, currentPilotStatus, selectedOutreachProspect, selectedTemplate],
+  );
   const agentSetupBrief = useMemo(() => buildLocalServiceAgentSetupBrief(selectedTemplate), [selectedTemplate]);
   const nextManualBatch = filteredPilotFunnelRows
     .filter((item) => item.status !== "reply_received" && item.status !== "rejected_for_now")
@@ -2378,7 +2519,7 @@ const LocalServicesDispatchDemoPanel = ({
       label: "Book discovery call",
       status: `${pilotFunnelCounts.reply_received} reply received`,
       owner: "Founder",
-      detail: "When a company replies, open the runbook and scorecard to prepare the discovery call.",
+      detail: "When a company replies, open Discovery call prep before booking the conversation manually.",
       done: pilotFunnelCounts.reply_received > 0,
     },
     {
@@ -2852,6 +2993,17 @@ const LocalServicesDispatchDemoPanel = ({
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setDiscoveryCallPrepMode("human");
+                  setDiscoveryCallPrepOpen(true);
+                }}
+                className="h-7"
+              >
+                Open discovery prep
+              </Button>
               <Button
                 size="sm"
                 variant="ghost"
@@ -3830,6 +3982,17 @@ const LocalServicesDispatchDemoPanel = ({
         onOpenPreview={() => setPilotMessagePreviewOpen(true)}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
+      />
+      <LocalServiceDiscoveryCallPrepSheet
+        open={discoveryCallPrepOpen}
+        onOpenChange={setDiscoveryCallPrepOpen}
+        prep={discoveryCallPrep}
+        mode={discoveryCallPrepMode}
+        onModeChange={setDiscoveryCallPrepMode}
+        onCopy={onCopyText}
+        onOpenMetrics={() => setPilotMetricsTrackerOpen(true)}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+        onOpenRunbook={() => onOpenPath(LOCAL_SERVICES_PILOT_RUNBOOK_PATH)}
       />
       <LocalServiceAgentSetupSheet
         open={agentSetupOpen}
@@ -4816,6 +4979,186 @@ const LocalServicePilotAnalystSheet = ({
               <Button size="sm" onClick={() => onCopy(renderedText, brief.copyLabel)} className="h-8">
                 <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
                 {brief.copyLabel}
+              </Button>
+            </div>
+            <pre className="max-h-[36vh] overflow-auto rounded-md border border-border/60 bg-card/30 px-3 py-3 font-mono text-[11px] leading-relaxed text-foreground">
+              {renderedText}
+            </pre>
+          </section>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+};
+
+const LocalServiceDiscoveryCallPrepSheet = ({
+  open,
+  onOpenChange,
+  prep,
+  mode,
+  onModeChange,
+  onCopy,
+  onOpenMetrics,
+  onOpenScorecard,
+  onOpenRunbook,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  prep: LocalServiceDiscoveryCallPrep;
+  mode: PlaybookExportMode;
+  onModeChange: (mode: PlaybookExportMode) => void;
+  onCopy: (text: string, label: string) => void;
+  onOpenMetrics: () => void;
+  onOpenScorecard: () => void;
+  onOpenRunbook: () => void;
+}) => {
+  const renderedText = mode === "human" ? prep.humanText : prep.jsonText;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col gap-0 p-0">
+        <SheetHeader className="px-7 py-5 border-b border-border/70 space-y-2.5 text-left">
+          <div className="flex items-center gap-2">
+            <CalendarCheck className="h-3.5 w-3.5 text-muted-foreground/70" strokeWidth={1.75} />
+            <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground/80">
+              Discovery call
+            </span>
+          </div>
+          <SheetTitle className="font-serif text-[22px] tracking-tight leading-[1.2]">
+            {prep.title}
+          </SheetTitle>
+          <SheetDescription className="text-[12.5px] text-muted-foreground/85 leading-relaxed">
+            {prep.description}
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="flex-1 min-h-0 overflow-auto">
+          <section className="px-7 pt-6 pb-5 border-b border-border/50 space-y-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  {prep.modeLabel}
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Prepare the founder call as an internal brief before any manual booking or follow-up.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant={mode === "human" ? "default" : "secondary"}
+                  onClick={() => onModeChange("human")}
+                  className="h-8"
+                >
+                  Human-readable
+                </Button>
+                <Button
+                  size="sm"
+                  variant={mode === "json" ? "default" : "secondary"}
+                  onClick={() => onModeChange("json")}
+                  className="h-8"
+                >
+                  JSON
+                </Button>
+              </div>
+            </div>
+
+            <div className="inline-flex rounded-[5px] bg-[hsl(var(--tint-amber)/0.13)] px-2 py-1 text-[10px] text-[hsl(var(--tint-amber-fg))] ring-1 ring-inset ring-[hsl(var(--tint-amber)/0.22)]">
+              {prep.callReadiness}
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              {prep.rows.map((row) => (
+                <div key={row.label} className="rounded-md border border-border/60 bg-card/30 px-3 py-2.5">
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+                    {row.label}
+                  </div>
+                  <div className="mt-1 break-words text-[12px] leading-relaxed text-foreground">
+                    {row.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="px-7 py-5 border-b border-border/50 space-y-3">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  Questions to ask
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Keep the conversation focused on real missed revenue, approval rules, and pilot fit.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="secondary" onClick={onOpenRunbook} className="h-8">
+                  <FileText className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Open pilot runbook
+                </Button>
+                <Button size="sm" variant="secondary" onClick={onOpenMetrics} className="h-8">
+                  <Clock className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Open metrics tracker
+                </Button>
+                <Button size="sm" variant="secondary" onClick={onOpenScorecard} className="h-8">
+                  <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Open pilot scorecard
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {prep.discoveryQuestions.map((question) => (
+                <div
+                  key={question}
+                  className="rounded-md border border-border/60 bg-card/30 px-3 py-2.5 text-[12.5px] leading-relaxed text-foreground"
+                >
+                  {question}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="px-7 py-5 border-b border-border/50 space-y-3">
+            <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+              Pilot success criteria
+            </div>
+            <ul className="space-y-2 text-[12.5px] leading-relaxed text-foreground">
+              {prep.successCriteria.map((criterion) => (
+                <li key={criterion} className="flex gap-2">
+                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                  <span>{criterion}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="px-7 py-5 border-b border-border/50 space-y-3">
+            <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+              Guardrails
+            </div>
+            <ul className="space-y-2 text-[12.5px] leading-relaxed text-foreground">
+              {prep.guardrails.map((guardrail) => (
+                <li key={guardrail} className="flex gap-2">
+                  <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                  <span>{guardrail}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="px-7 py-5 space-y-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  {mode === "human" ? "Human-readable call brief" : "JSON call brief"}
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Copy after the operator confirms the selected company and current funnel state.
+                </p>
+              </div>
+              <Button size="sm" onClick={() => onCopy(renderedText, prep.copyLabel)} className="h-8">
+                <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                {prep.copyLabel}
               </Button>
             </div>
             <pre className="max-h-[36vh] overflow-auto rounded-md border border-border/60 bg-card/30 px-3 py-3 font-mono text-[11px] leading-relaxed text-foreground">
