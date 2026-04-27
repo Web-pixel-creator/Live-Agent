@@ -170,7 +170,10 @@ Local-services expansion spec:
   not CRM, billing, or customer-message automation.
 - `Pilot readiness` now links to repo-owned pilot artifacts at
   `/workspace-docs/local-services-pilot-offer.md` and
-  `/workspace-docs/local-services-demo-script.md`.
+  `/workspace-docs/local-services-demo-script.md`. It now also exposes
+  `Open recording checklist` for the repo-owned
+  `/workspace-docs/local-services-demo-recording-checklist.md`, so the first
+  90-second product walkthrough can be recorded without inventing claims.
 - the same support layer now also links to
   `/workspace-docs/local-services-outreach-list.md` and
   `/workspace-docs/local-services-pilot-scorecard.md` for pilot execution.

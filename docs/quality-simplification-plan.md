@@ -142,6 +142,10 @@ change, customer send, or Markdown mutation.
 That same block should link to repo-owned pilot artifacts through
 `/workspace-docs/local-services-pilot-offer.md` and
 `/workspace-docs/local-services-demo-script.md`.
+The same artifact layer should now include `Open recording checklist` and
+`/workspace-docs/local-services-demo-recording-checklist.md`, so the first
+90-second video can be recorded from one bounded shot list with explicit
+do-not-claim rules.
 The next execution layer should also stay repo-owned through
 `/workspace-docs/local-services-outreach-list.md` and
 `/workspace-docs/local-services-pilot-scorecard.md`.

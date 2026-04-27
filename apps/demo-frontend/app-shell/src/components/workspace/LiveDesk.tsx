@@ -619,6 +619,8 @@ type LocalServicePilotExecutionStep = {
 
 const LOCAL_SERVICES_PILOT_OFFER_PATH = "/workspace-docs/local-services-pilot-offer.md";
 const LOCAL_SERVICES_DEMO_SCRIPT_PATH = "/workspace-docs/local-services-demo-script.md";
+const LOCAL_SERVICES_DEMO_RECORDING_CHECKLIST_PATH =
+  "/workspace-docs/local-services-demo-recording-checklist.md";
 const LOCAL_SERVICES_OUTREACH_LIST_PATH = "/workspace-docs/local-services-outreach-list.md";
 const LOCAL_SERVICES_PILOT_SCORECARD_PATH = "/workspace-docs/local-services-pilot-scorecard.md";
 const LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH = "/workspace-docs/local-services-outreach-execution-pack.md";
@@ -3853,6 +3855,14 @@ const LocalServicesDispatchDemoPanel = ({
                       className="h-7"
                     >
                       Open demo script
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onOpenPath(LOCAL_SERVICES_DEMO_RECORDING_CHECKLIST_PATH)}
+                      className="h-7"
+                    >
+                      Open recording checklist
                     </Button>
                     <Button
                       size="sm"

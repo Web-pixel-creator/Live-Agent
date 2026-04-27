@@ -166,6 +166,11 @@ Required setup:
 
 If these are not clear, do not start the pilot.
 
+For the public walkthrough, use
+`docs/local-services-demo-recording-checklist.md` before recording. It keeps the
+90-second video tied to visible product proof and prevents unsupported claims
+about live phone, Telegram, CRM, calendar, billing, or revenue lift.
+
 ## Daily Operating Loop
 
 Do this once per day during the pilot:

@@ -142,6 +142,7 @@ const debugArtifactCatalog = [
 const workspaceDocAllowlist = [
   "local-services-pilot-offer.md",
   "local-services-demo-script.md",
+  "local-services-demo-recording-checklist.md",
   "local-services-outreach-list.md",
   "local-services-pilot-scorecard.md",
   "local-services-pilot-runbook.md",

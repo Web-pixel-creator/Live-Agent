@@ -688,8 +688,11 @@ The final pilot block now opens `Pilot evidence pack` through
 pack only: no private customer data in public docs, no autonomous pilot
 decision, CRM write, billing change, customer send, or Markdown mutation.
 The shell now also opens repo-owned pilot artifacts through
-`/workspace-docs/local-services-pilot-offer.md` and
-`/workspace-docs/local-services-demo-script.md`.
+`/workspace-docs/local-services-pilot-offer.md`,
+`/workspace-docs/local-services-demo-script.md`, and
+`/workspace-docs/local-services-demo-recording-checklist.md`. The recording
+checklist gives the founder one safe 90-second shot list and explicit
+do-not-claim rules before any real pilot evidence exists.
 It now also opens the execution documents
 `/workspace-docs/local-services-outreach-list.md` and
 `/workspace-docs/local-services-pilot-scorecard.md`.
@@ -728,8 +731,9 @@ pilot export surfaces.
 
 1. Create a one-page offer for Tashkent service companies. Done as a repo-owned
    doc.
-2. Create a 90-second demo script. Done as a repo-owned doc. Actual recorded
-   video still pending.
+2. Create a 90-second demo script. Done as a repo-owned doc. The recording
+   checklist is also repo-owned; actual recorded video still remains outside
+   the shell.
 3. Prepare a 10-company outreach list. Done as a repo-owned doc.
 4. Add a pilot scorecard for qualification, outreach, and 14-day tracking. Done
    as a repo-owned doc.
@@ -830,16 +834,20 @@ Current shell readiness for P3:
 20. `Open evidence pack`, `Pilot evidence pack`, `Week-two evidence pack`,
    `Copy evidence pack`, and `local_services_pilot_evidence_pack` are visible
    in the shell.
-21. `Open offer doc` and `Open demo script` resolve to the repo-owned pilot
-   artifact documents from the same local frontend server.
+21. `Open offer doc`, `Open demo script`, and `Open recording checklist`
+   resolve to the repo-owned pilot artifact documents from the same local
+   frontend server.
 22. `Open outreach list`, `Open outreach execution pack`, and
    `Open pilot scorecard` resolve to the repo-owned pilot execution documents
    from the same local frontend server.
-18. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
+23. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
    14-day pilot runbook from the same local frontend server.
-19. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
+24. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
    repo-owned first-contact execution pack from the same local frontend server.
-20. Actual external execution still remains outside the shell: recorded video,
+25. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
+   the repo-owned 90-second recording checklist from the same local frontend
+   server.
+26. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path

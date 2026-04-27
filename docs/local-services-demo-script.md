@@ -122,11 +122,16 @@ Point at:
 42. `Pilot evidence pack`
 43. `Week-two evidence pack`
 44. `Copy evidence pack`
-45. `Open pilot runbook`
+45. `Open recording checklist`
+46. `Open pilot runbook`
 
 Say:
 
-`This makes the product sales-ready as well: we can explain the offer, show the 7-minute setup path, review business profile, knowledge sources, behavior, test call readiness, prove the saved intake transcript and evidence link, then filter the outreach list by service or status, choose visible scorecard columns, show the 14-day manual pilot checklist, prepare the discovery call brief, turn that into the day-one setup brief, capture the daily operating-loop note, prepare the week-one continue/stop review, and assemble a redacted week-two evidence pack before copying reviewed setup, discovery, daily, review, evidence, or metrics notes manually. Nothing here activates phone, Telegram, WhatsApp, CRM, analytics, billing, outreach sends, calendar bookings, customer messages, or CRM writes.`
+`This makes the product sales-ready as well: we can explain the offer, show the 7-minute setup path, review business profile, knowledge sources, behavior, test call readiness, prove the saved intake transcript and evidence link, then filter the outreach list by service or status, choose visible scorecard columns, show the 14-day manual pilot checklist, prepare the discovery call brief, turn that into the day-one setup brief, capture the daily operating-loop note, prepare the week-one continue/stop review, assemble a redacted week-two evidence pack, and open the recording checklist before copying reviewed setup, discovery, daily, review, evidence, or metrics notes manually. Nothing here activates phone, Telegram, WhatsApp, CRM, analytics, billing, outreach sends, calendar bookings, customer messages, or CRM writes.`
+
+Use `docs/local-services-demo-recording-checklist.md` when recording the actual
+walkthrough. It gives the shot list, required on-screen proof, and do-not-claim
+rules for the first 90-second video.
 
 Optional second click if the prospect is construction-adjacent: open
 `Measurement visit booking` and point at the no-final-price approval rule.

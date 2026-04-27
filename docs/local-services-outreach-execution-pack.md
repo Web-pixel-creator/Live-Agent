@@ -254,7 +254,11 @@ Allowed reply statuses:
    `local_services_pilot_evidence_pack`; explain that this is a redacted manual
    proof pack, not public customer-data storage, CRM, billing, or customer-send
    automation.
-21. End with one question: "Would this save missed requests or manager time if we
+21. Show `Open recording checklist` if the prospect or partner needs a short
+   product walkthrough. Explain that it is a 90-second recording checklist with
+   required on-screen proof and do-not-claim rules, not a live automation
+   claim.
+22. End with one question: "Would this save missed requests or manager time if we
    tested it for 14 days?"
 
 ## After Each Contact
