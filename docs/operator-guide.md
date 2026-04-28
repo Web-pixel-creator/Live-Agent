@@ -259,6 +259,12 @@ fields, approval pauses, metric capture, and manual result logging for the
 first operator-supervised request. `day_one_run_sheet_outcome_capture` points
 the sheet's `Open daily log` action at `Pilot daily log`, where the operator
 records the actual result before scorecard sync.
+Use `Open day-one recap` after a real first run. `Day-one recap` and
+`Copy day-one recap` export `local_services_day_one_recap` /
+`manual_day_one_recap`, including `day_one_recap_to_week_one_review`, so the
+operator can move a reviewed first-day result into week-one review without
+creating bookings, sending customers, writing CRM, syncing analytics, billing,
+or activating channels.
 The concept remains a NEWO-style AI employee platform for service categories;
 the manual batch only decides whether to continue, revise, or stop expansion.
 Use `docs/local-services-pilot-runbook.md` for the actual 14-day operating

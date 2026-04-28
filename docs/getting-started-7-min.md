@@ -196,8 +196,11 @@ activation. `Open run sheet` then opens `Day-one operator run sheet`;
 `manual_day_one_operator_run_sheet` for the first operator-supervised request:
 sample inbound, owner script, expected fields, approval pauses, metric capture,
 and manual result logging only. `day_one_run_sheet_outcome_capture` then uses
-`Open daily log` as the actual first-request outcome capture surface. This does
-not narrow the
+`Open daily log` as the actual first-request outcome capture surface. Use
+`Open day-one recap` after the first real run; `Day-one recap` and
+`Copy day-one recap` export `local_services_day_one_recap` /
+`manual_day_one_recap` and hand the result into
+`day_one_recap_to_week_one_review`. This does not narrow the
 product to a solo tool; it keeps
 the NEWO-style AI employee platform path grounded in real category proof.
 Use `Open offer doc`, `Open demo script`, and `Open recording checklist` to

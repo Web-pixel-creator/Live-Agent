@@ -782,7 +782,10 @@ sheet` adds `Day-one operator run sheet`, `Copy run sheet`,
 inbound, owner script, expected fields, approval pauses, metric capture, and
 manual result logging. `day_one_run_sheet_outcome_capture` binds that worksheet
 to `Open daily log` / `Pilot daily log` as the actual first-request outcome
-capture surface. They do not
+capture surface. `Open day-one recap` adds `Day-one recap`,
+`Copy day-one recap`, `local_services_day_one_recap`, `manual_day_one_recap`,
+and `day_one_recap_to_week_one_review` as the reviewed first-day handoff into
+week-one review. They do not
 send outreach, create
 bookings, write CRM, sync analytics, bill, or mutate Markdown docs. This
 preserves the NEWO-style AI employee platform direction: local manual proof
@@ -1009,9 +1012,13 @@ Current shell readiness for P3:
    worksheet contract.
 40. `day_one_run_sheet_outcome_capture`, `Open daily log`, and
    `Pilot daily log` are visible as the run-sheet outcome capture contract.
-41. `contactProofByProspectKey` and `Founder proof recorded` are present in the
+41. `Open day-one recap`, `Day-one recap`, `Copy day-one recap`,
+   `local_services_day_one_recap`, `manual_day_one_recap`, and
+   `day_one_recap_to_week_one_review` are visible as the first-day recap to
+   week-one review handoff contract.
+42. `contactProofByProspectKey` and `Founder proof recorded` are present in the
    browser-local pilot workspace contract, without any external side effect.
-42. `local_services_first_contact_batch_review`, `founder_manual_validation_review`,
+43. `local_services_first_contact_batch_review`, `founder_manual_validation_review`,
    and `no_booking_created` are present in the first-batch review export
    contract.
 43. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned

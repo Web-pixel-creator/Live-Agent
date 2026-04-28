@@ -3133,6 +3133,192 @@ function buildLocalServiceDayOneOperatorRunSheet(
   };
 }
 
+function buildLocalServiceDayOneRecapExport(
+  template: LocalServiceDemoTemplate,
+  rows: LocalServiceFounderContactRow[],
+  counts: {
+    channelChecked: number;
+    manualMessageSent: number;
+    repliesOrRejections: number;
+    discoveryCalls: number;
+    demosBooked: number;
+    pilotCandidates: number;
+  },
+  proofProgress: string,
+  score: LocalServiceCategoryPilotScore | undefined,
+  actionLayer: LocalServiceLeadingCategoryActionLayer,
+  readiness: LocalServiceLeadingCategoryPilotReadiness,
+  firstRequestOutcomes: Record<string, LocalServiceFirstRequestOutcome>,
+  metricStatus: LocalServicePilotMetricStatus,
+  activityLog: LocalServicePilotActivityEvent[],
+): LocalServicePilotWorkspaceExport {
+  const laneRows = rows.filter((row) => row.serviceId === actionLayer.serviceId);
+  const targetRow =
+    laneRows.find((row) => row.pilotCandidate) ??
+    laneRows.find((row) => row.demoBooked) ??
+    laneRows.find((row) => row.discoveryCallCompleted) ??
+    laneRows.find((row) => row.status === "reply_received") ??
+    laneRows[0];
+  const targetCompany = targetRow
+    ? `${targetRow.prospect.company} (${targetRow.prospect.segment})`
+    : "No day-one company selected yet";
+  const firstRequestOutcome = targetRow
+    ? firstRequestOutcomes[targetRow.key] ?? "not_recorded"
+    : "not_recorded";
+  const firstRequestOutcomeLabel =
+    LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_LABELS[firstRequestOutcome];
+  const metricStatusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus];
+  const latestLaneActivity = activityLog.find((event) => event.serviceId === actionLayer.serviceId);
+  const recapStatus =
+    firstRequestOutcome === "not_recorded"
+      ? "Needs first request outcome before recap"
+      : readiness.readyToPilot
+        ? "Ready for owner recap and week-one tracking"
+        : "Recap captured, readiness still blocked";
+  const dayOneFields = [
+    {
+      label: "Request result",
+      value: firstRequestOutcomeLabel,
+      source: "firstRequestOutcomeByProspectKey",
+    },
+    {
+      label: "Operator edits",
+      value: "what had to be corrected before owner approval",
+      source: "manual recap note",
+    },
+    {
+      label: "Approval pause",
+      value: "where human approval was required before customer or master handoff",
+      source: "run sheet",
+    },
+    {
+      label: "Metric delta",
+      value: "missed-call recovery, reply speed, booking/dispatch, or rewrite work",
+      source: "daily log",
+    },
+  ];
+  const nextDayActions = [
+    firstRequestOutcome === "booked_manually"
+      ? "Prepare one redacted proof item for the evidence pack."
+      : "Use follow-up or rejection reason to adjust the next manual run.",
+    "Sync the recap into the private pilot scorecard or daily log manually.",
+    "Do not move to week-one review until at least one real pilot day is recorded.",
+  ];
+  const guardrails = [
+    "manual_day_one_recap",
+    "day_one_recap_to_week_one_review",
+    "manual_scorecard_sync_required",
+    "no_calendar_booking_created",
+    "no_customer_send",
+    "no_crm_write",
+    "no_analytics_sync",
+    "no_billing_action",
+    "no_channel_activation",
+  ];
+  const humanLines = [
+    `Day-one recap: ${actionLayer.serviceTitle}`,
+    "Export surface: local_services_day_one_recap",
+    "Export kind: manual_day_one_recap",
+    `Recap status: ${recapStatus}`,
+    `Target company: ${targetCompany}`,
+    `First request outcome: ${firstRequestOutcomeLabel}`,
+    "Outcome state key: firstRequestOutcomeByProspectKey",
+    `Metric status: ${metricStatusLabel}`,
+    `Latest lane activity: ${latestLaneActivity ? `${latestLaneActivity.label}: ${latestLaneActivity.value}` : "No lane activity recorded yet"}`,
+    "",
+    "Day-one recap fields:",
+    ...dayOneFields.map((field) => `- ${field.label}: ${field.value} (${field.source})`),
+    "",
+    "Next-day actions:",
+    ...nextDayActions.map((action) => `- ${action}`),
+    "",
+    "Proof summary:",
+    `- Category signal: ${score ? `${score.signalLabel}; ${score.proofSummary}` : "No category score yet"}`,
+    `- First-batch proof: ${proofProgress}`,
+    `- Manual sends: ${counts.manualMessageSent}/10`,
+    `- Replies or rejections: ${counts.repliesOrRejections}/3`,
+    `- Discovery calls: ${counts.discoveryCalls}/1`,
+    `- Pilot candidates: ${counts.pilotCandidates}/1`,
+    "",
+    "Guardrails:",
+    ...guardrails.map((guardrail) => `- ${guardrail}`),
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_day_one_recap",
+      export_kind: "manual_day_one_recap",
+      service_id: actionLayer.serviceId,
+      service_title: actionLayer.serviceTitle,
+      recap_status: firstRequestOutcome === "not_recorded" ? "needs_first_request_outcome" : "captured",
+      target_company: targetRow
+        ? {
+            key: targetRow.key,
+            company: targetRow.prospect.company,
+            segment: targetRow.prospect.segment,
+            channel_fit: targetRow.prospect.channelFit,
+            status: targetRow.status,
+            proof_status: targetRow.proofStatus,
+          }
+        : null,
+      first_request_outcome: firstRequestOutcome,
+      first_request_outcome_label: firstRequestOutcomeLabel,
+      outcome_state_key: "firstRequestOutcomeByProspectKey",
+      metric_status: metricStatus,
+      metric_status_label: metricStatusLabel,
+      latest_lane_activity: latestLaneActivity ?? null,
+      day_one_recap_fields: dayOneFields,
+      next_day_actions: nextDayActions,
+      proof_summary: {
+        category_signal: score?.signalLabel ?? "Unproven",
+        category_proof_summary: score?.proofSummary ?? "No category score yet",
+        proof_progress: proofProgress,
+        proof_counts: counts,
+        ready_to_pilot: readiness.readyToPilot,
+      },
+      week_one_review_handoff: {
+        source_surface: "local_services_day_one_recap",
+        target_surface: "local_services_pilot_week_one_review",
+        contract: "day_one_recap_to_week_one_review",
+      },
+      guardrails,
+    },
+    null,
+    2,
+  );
+
+  return {
+    title: "Day-one recap",
+    description:
+      "Summarize the first operator-supervised local-services run before the result moves into the daily log, scorecard, or week-one review.",
+    eyebrow: "Day-one recap",
+    modeLabel: "Recap mode",
+    copyLabel: "Copy day-one recap",
+    reviewTitle: "First-day recap checklist",
+    reviewDescription:
+      "Use this after a real manual run. It records what happened; it does not send, book, bill, sync, or activate channels.",
+    executionActionLabel: "Open week-one review",
+    scorecardActionLabel: "Open pilot scorecard",
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: [
+      { label: "Recap status", value: recapStatus },
+      { label: "Service", value: actionLayer.serviceTitle },
+      { label: "Target company", value: targetCompany },
+      { label: "First request outcome", value: firstRequestOutcomeLabel },
+      { label: "Metric status", value: metricStatusLabel },
+      { label: "Week-one handoff", value: "day_one_recap_to_week_one_review" },
+      { label: "Guardrail", value: "Manual recap only; no external side effects" },
+    ],
+    checklist: [
+      "Record the first request outcome before copying the recap.",
+      "Write operator edits and approval pauses in the private daily log or scorecard.",
+      "Sync metric deltas manually; do not treat this as analytics sync.",
+      "Use this recap as the handoff into week-one review only after a real day-one run.",
+      "Do not create bookings, send customer messages, write CRM, bill, or activate channels.",
+    ],
+  };
+}
+
 function buildLocalServicePilotMetricsTrackerExport(
   template: LocalServiceDemoTemplate,
   status: LocalServicePilotMetricStatus,
@@ -4980,6 +5166,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [pilotKickoffGateMode, setPilotKickoffGateMode] = useState<PlaybookExportMode>("human");
   const [dayOneOperatorRunSheetOpen, setDayOneOperatorRunSheetOpen] = useState(false);
   const [dayOneOperatorRunSheetMode, setDayOneOperatorRunSheetMode] = useState<PlaybookExportMode>("human");
+  const [dayOneRecapOpen, setDayOneRecapOpen] = useState(false);
+  const [dayOneRecapMode, setDayOneRecapMode] = useState<PlaybookExportMode>("human");
   const [pilotMessagePreviewOpen, setPilotMessagePreviewOpen] = useState(false);
   const [pilotMessagePreviewMode, setPilotMessagePreviewMode] = useState<PlaybookExportMode>("human");
   const [pilotOperatorConfirmationOpen, setPilotOperatorConfirmationOpen] = useState(false);
@@ -5347,6 +5535,18 @@ const LocalServicesDispatchDemoPanel = ({
     leadingCategoryTestCallPassed,
     leadingCategoryTestCallProgress,
     leadingCategoryMetricStatus,
+  );
+  const dayOneRecapExport = buildLocalServiceDayOneRecapExport(
+    leadingCategoryTemplate,
+    founderContactRows,
+    founderContactCounts,
+    founderProofProgress,
+    leadingCategoryPilotScore,
+    leadingCategoryActionLayer,
+    leadingCategoryPilotReadiness,
+    pilotWorkspaceState.firstRequestOutcomeByProspectKey,
+    leadingCategoryMetricStatus,
+    pilotWorkspaceState.activityLog,
   );
   const filteredPilotFunnelRows = useMemo(
     () =>
@@ -7042,6 +7242,18 @@ const LocalServicesDispatchDemoPanel = ({
                             <Button
                               size="sm"
                               variant="secondary"
+                              onClick={() => {
+                                setDayOneRecapMode("human");
+                                setDayOneRecapOpen(true);
+                              }}
+                              className="h-7"
+                            >
+                              <FileText className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                              Open day-one recap
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
                               onClick={() => onOpenSetupWizard(leadingCategoryActionLayer.serviceId)}
                               className="h-7"
                             >
@@ -8431,6 +8643,19 @@ const LocalServicesDispatchDemoPanel = ({
         onOpenExecutionPack={() => {
           setPilotDailyLogMode("human");
           setPilotDailyLogOpen(true);
+        }}
+      />
+      <LocalServicePilotWorkspaceExportDrawer
+        open={dayOneRecapOpen}
+        onOpenChange={setDayOneRecapOpen}
+        exportView={dayOneRecapExport}
+        mode={dayOneRecapMode}
+        onModeChange={setDayOneRecapMode}
+        onCopy={onCopyText}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+        onOpenExecutionPack={() => {
+          setPilotWeekOneReviewMode("human");
+          setPilotWeekOneReviewOpen(true);
         }}
       />
       <LocalServicePilotMessagePreviewSheet

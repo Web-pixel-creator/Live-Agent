@@ -131,7 +131,11 @@ Do not use the pilot to build:
 18. Check `Outcome chain summary` before owner review; it should connect
     `Scorecard draft`, `Daily log`, `Week-one review`, and `Evidence pack` to
     the same browser-local first request outcome.
-19. Open `Open evidence pack` at day 14 for serious pilots. Review
+19. After the first real day-one run, open `Open day-one recap`. Review
+    `Day-one recap`, `Copy day-one recap`, `local_services_day_one_recap`, and
+    `day_one_recap_to_week_one_review`, then copy the reviewed recap into the
+    private scorecard before week-one review.
+20. Open `Open evidence pack` at day 14 for serious pilots. Review
     `Pilot evidence pack`, `Week-two evidence pack`, and `Copy evidence pack`,
     confirm `First request outcome` / `firstRequestOutcomeByProspectKey`, then
     copy `local_services_pilot_evidence_pack` into the private scorecard or

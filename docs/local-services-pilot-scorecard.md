@@ -206,6 +206,13 @@ proof pack. It does not store private customer data in public docs, decide
 autonomously, update CRM, change billing, send customer messages, or mutate this
 Markdown file automatically.
 
+`Open day-one recap` opens the `Day-one recap` drawer after a real first-day
+run. `Copy day-one recap` exports `local_services_day_one_recap` /
+`manual_day_one_recap`; `day_one_recap_to_week_one_review` is the handoff into
+week-one review. It does not create bookings, send customer messages, write CRM,
+sync analytics, bill, activate channels, or mutate this Markdown file
+automatically.
+
 `Open discovery prep` opens the `Discovery call prep` drawer for a replied
 company. Use `Human-readable` for the founder call, `JSON` for structured
 handoff notes, and `Copy discovery call prep` only after the selected company

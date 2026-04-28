@@ -269,8 +269,11 @@ Local-services expansion spec:
   approval pauses, metric capture, and manual result logging. Its JSON contract
   is `manual_day_one_operator_run_sheet`; `day_one_run_sheet_outcome_capture`
   links the sheet to `Open daily log` so the first manual request gets recorded
-  before weekly scorecard sync. It still cannot activate phone, Telegram,
-  WhatsApp, bookings, CRM, analytics, billing, or customer sends.
+  before weekly scorecard sync. `Open day-one recap`, `Day-one recap`,
+  `Copy day-one recap`, and `local_services_day_one_recap` then summarize the
+  first real run and hand it into `day_one_recap_to_week_one_review`. It still
+  cannot activate phone, Telegram, WhatsApp, bookings, CRM, analytics, billing,
+  or customer sends.
   The frame stays NEWO-style AI
   employee platform expansion by category; the manual batch is a validation
   gate, not a solo-only product scope.
