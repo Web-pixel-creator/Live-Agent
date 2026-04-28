@@ -221,6 +221,10 @@ replies, discovery, setup/test state, and metric baseline. `Open proposal
 preview`, `Paid pilot proposal preview`, `Copy proposal preview`, and
 `local_services_paid_pilot_proposal_preview` are the next gated layer: a private
 operator proposal draft that stays blocked until readiness proof is complete.
+`Open approval handoff`, `Proposal approval handoff`, `Copy approval handoff`,
+and `local_services_proposal_approval_handoff` are the final manual approval
+layer before external execution: price, scope, owner send, CRM payload, booking
+policy, and billing-disabled state must be confirmed outside automation.
 This is the current
 simplification target: prove demand through 10 manual contacts before adding
 more integrations. The target product remains a NEWO-style AI employee platform

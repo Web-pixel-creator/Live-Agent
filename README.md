@@ -239,7 +239,11 @@ Local-services expansion spec:
   `Paid pilot proposal preview`, `Copy proposal preview`, and
   `local_services_paid_pilot_proposal_preview` then show the first paid-pilot
   offer as a private operator-approved draft; it still cannot send, book, write
-  CRM, sync analytics, bill, or activate channels.
+  CRM, sync analytics, bill, or activate channels. `Open approval handoff`,
+  `Proposal approval handoff`, `Copy approval handoff`, and
+  `local_services_proposal_approval_handoff` add the manual price, scope,
+  owner approval, CRM payload, booking-policy, and billing-disabled checklist
+  before any paid-pilot proposal leaves the shell.
   The frame stays NEWO-style AI
   employee platform expansion by category; the manual batch is a validation
   gate, not a solo-only product scope.

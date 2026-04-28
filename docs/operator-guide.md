@@ -228,6 +228,10 @@ Use `Open proposal preview` only after proof review to inspect `Paid pilot
 proposal preview`; `Copy proposal preview` is a private operator-approved draft,
 not permission to send a proposal, create a booking, write CRM, sync analytics,
 charge, or activate a channel.
+Use `Open approval handoff` after the proposal preview to inspect `Proposal
+approval handoff`; `Copy approval handoff` is the manual approval checklist for
+price, scope, owner send, CRM payload, booking policy, and billing-disabled
+state. It is still not a sent proposal or launched paid pilot.
 The concept remains a NEWO-style AI employee platform for service categories;
 the manual batch only decides whether to continue, revise, or stop expansion.
 Use `docs/local-services-pilot-runbook.md` for the actual 14-day operating

@@ -131,6 +131,9 @@ gate without opening multiple drawers. `Open proposal preview`,
 `Paid pilot proposal preview`, `Copy proposal preview`, and
 `local_services_paid_pilot_proposal_preview` show the proposed paid-pilot offer
 as a private operator approval artifact, not a live send or billing action.
+`Open approval handoff`, `Proposal approval handoff`, `Copy approval handoff`,
+and `local_services_proposal_approval_handoff` then show who must approve price,
+scope, owner send, CRM payload, booking policy, and billing-disabled state.
 These controls update only
 `liveDesk:localServicesPilotWorkspace:v1` in browser-local state and the manual
 activity log; they do not send outreach, create bookings, write CRM, sync

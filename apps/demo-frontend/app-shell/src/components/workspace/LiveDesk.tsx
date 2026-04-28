@@ -2507,6 +2507,205 @@ function buildLocalServicePaidPilotProposalPreview(
   };
 }
 
+function buildLocalServiceProposalApprovalHandoff(
+  template: LocalServiceDemoTemplate,
+  rows: LocalServiceFounderContactRow[],
+  counts: {
+    channelChecked: number;
+    manualMessageSent: number;
+    repliesOrRejections: number;
+    discoveryCalls: number;
+    demosBooked: number;
+    pilotCandidates: number;
+  },
+  proofProgress: string,
+  score: LocalServiceCategoryPilotScore | undefined,
+  actionLayer: LocalServiceLeadingCategoryActionLayer,
+  readiness: LocalServiceLeadingCategoryPilotReadiness,
+  metricStatus: LocalServicePilotMetricStatus,
+): LocalServicePilotWorkspaceExport {
+  const laneRows = rows.filter((row) => row.serviceId === actionLayer.serviceId);
+  const targetRow =
+    laneRows.find((row) => row.pilotCandidate) ??
+    laneRows.find((row) => row.demoBooked) ??
+    laneRows.find((row) => row.discoveryCallCompleted) ??
+    laneRows.find((row) => row.status === "reply_received") ??
+    laneRows[0];
+  const targetCompany = targetRow
+    ? `${targetRow.prospect.company} (${targetRow.prospect.segment})`
+    : "No paid-pilot prospect selected yet";
+  const approvalStatus = readiness.readyToPilot
+    ? "Waiting for operator approval"
+    : "Approval handoff blocked by readiness gate";
+  const approvalItems = [
+    {
+      label: "Price and commercial terms",
+      owner: "Founder / business owner",
+      required: true,
+      detail: "Founder manually confirms pilot price, included volume, payment method, and cancellation terms.",
+    },
+    {
+      label: "Pilot scope and success metric",
+      owner: "Operator",
+      required: true,
+      detail: `Scope stays limited to ${template.title}; metric baseline is ${LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus]}.`,
+    },
+    {
+      label: "Owner send approval",
+      owner: "Operator + owner",
+      required: true,
+      detail: "Customer-facing proposal send remains manual and approved outside this shell.",
+    },
+    {
+      label: "CRM payload review",
+      owner: "Operator",
+      required: true,
+      detail: `Review handoff fields only: ${template.detail.handoffFields.join("; ")}.`,
+    },
+    {
+      label: "Booking policy review",
+      owner: "Owner",
+      required: true,
+      detail: "No appointment, technician, dispatcher, calendar slot, or callback is created from this handoff.",
+    },
+    {
+      label: "Billing disabled confirmation",
+      owner: "Founder",
+      required: true,
+      detail: "Billing remains disabled; any invoice, payment link, or subscription setup happens outside the product.",
+    },
+  ];
+  const crmPayloadPreview = {
+    service_lane: template.title,
+    target_company: targetRow?.prospect.company ?? null,
+    segment: targetRow?.prospect.segment ?? null,
+    channel_fit: targetRow?.prospect.channelFit ?? template.channel,
+    offer_summary: template.detail.pilotKit.offerSummary,
+    handoff_fields: template.detail.handoffFields,
+    operator_handoff: template.detail.operatorHandoff,
+    readiness_label: readiness.readinessLabel,
+    proof_progress: proofProgress,
+  };
+  const blockerLines =
+    readiness.blockers.length > 0 ? readiness.blockers.map((item) => `- ${item}`) : ["- none"];
+  const humanLines = [
+    `Proposal approval handoff: ${actionLayer.serviceTitle}`,
+    "Export surface: local_services_proposal_approval_handoff",
+    "Export kind: manual_paid_pilot_approval_handoff",
+    `Approval status: ${approvalStatus}`,
+    `Target prospect: ${targetCompany}`,
+    `Paid pilot gate: ${readiness.paidPilotGate}`,
+    "",
+    "Approval checklist:",
+    ...approvalItems.map((item) => `- ${item.label} | owner: ${item.owner} | ${item.detail}`),
+    "",
+    "CRM payload preview:",
+    ...Object.entries(crmPayloadPreview).map(([key, value]) =>
+      `- ${key}: ${Array.isArray(value) ? value.join("; ") : value ?? "none"}`,
+    ),
+    "",
+    "Readiness blockers:",
+    ...blockerLines,
+    "",
+    "Proof summary:",
+    `- Category signal: ${score ? `${score.signalLabel}; ${score.proofSummary}` : "No category score yet"}`,
+    `- First-batch proof: ${proofProgress}`,
+    `- Manual sends: ${counts.manualMessageSent}/10`,
+    `- Replies or rejections: ${counts.repliesOrRejections}/3`,
+    `- Discovery calls: ${counts.discoveryCalls}/1`,
+    `- Pilot candidates: ${counts.pilotCandidates}/1`,
+    "",
+    "Hard stop:",
+    "- Do not send a proposal, create a booking, write CRM, sync analytics, bill, or activate channels from this handoff.",
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_proposal_approval_handoff",
+      export_kind: "manual_paid_pilot_approval_handoff",
+      service_id: actionLayer.serviceId,
+      service_title: actionLayer.serviceTitle,
+      approval_status: readiness.readyToPilot ? "waiting_operator_approval" : "blocked_by_readiness_gate",
+      paid_pilot_gate: readiness.paidPilotGate,
+      target_prospect: targetRow
+        ? {
+            key: targetRow.key,
+            company: targetRow.prospect.company,
+            segment: targetRow.prospect.segment,
+            channel_fit: targetRow.prospect.channelFit,
+            status: targetRow.status,
+            proof_status: targetRow.proofStatus,
+          }
+        : null,
+      approvals_required: approvalItems.map((item) => ({
+        label: item.label,
+        owner: item.owner,
+        required: item.required,
+        detail: item.detail,
+      })),
+      crm_payload_preview: crmPayloadPreview,
+      readiness: {
+        label: readiness.readinessLabel,
+        progress: readiness.progressLabel,
+        ready_to_pilot: readiness.readyToPilot,
+        blockers: readiness.blockers,
+        ready_signals: readiness.readySignals,
+      },
+      proof_summary: {
+        category_signal: score?.signalLabel ?? "Unproven",
+        category_proof_summary: score?.proofSummary ?? "No category score yet",
+        proof_progress: proofProgress,
+        proof_counts: counts,
+        metric_status: metricStatus,
+        metric_status_label: LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus],
+      },
+      guardrails: [
+        "proposal_send_requires_operator_approval",
+        "no_customer_send",
+        "no_booking_created",
+        "no_crm_write",
+        "no_analytics_sync",
+        "no_billing_action",
+        "no_channel_activation",
+      ],
+    },
+    null,
+    2,
+  );
+
+  return {
+    title: "Proposal approval handoff",
+    description:
+      "Review the human approval handoff for a paid pilot before any proposal send, booking, CRM write, analytics sync, billing, or channel activation.",
+    eyebrow: "Approval handoff",
+    modeLabel: "Approval handoff mode",
+    copyLabel: "Copy approval handoff",
+    reviewTitle: "Manual approval checklist",
+    reviewDescription:
+      "This handoff is private operator evidence. It lists required approvals and blocks all external side effects.",
+    executionActionLabel: "Open founder execution log",
+    scorecardActionLabel: "Open pilot scorecard",
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: [
+      { label: "Approval status", value: approvalStatus },
+      { label: "Service", value: actionLayer.serviceTitle },
+      { label: "Target prospect", value: targetCompany },
+      { label: "Readiness", value: `${readiness.readinessLabel} / ${readiness.progressLabel}` },
+      { label: "Price owner", value: "Founder / business owner" },
+      { label: "CRM payload", value: "Preview only; no write" },
+      { label: "Booking policy", value: "Manual owner approval required" },
+      { label: "Billing", value: "Disabled from this handoff" },
+    ],
+    checklist: [
+      "Confirm readiness proof and proposal preview were reviewed before this handoff.",
+      "Confirm price, scope, pilot volume, and payment terms are filled manually by the founder or owner.",
+      "Confirm CRM payload fields are only previewed and are not written from the shell.",
+      "Confirm booking, calendar, dispatcher assignment, and customer message are still manual approvals.",
+      "Do not treat this handoff as a launched pilot, sent proposal, invoice, or active channel.",
+    ],
+  };
+}
+
 function buildLocalServicePilotMetricsTrackerExport(
   template: LocalServiceDemoTemplate,
   status: LocalServicePilotMetricStatus,
@@ -4305,6 +4504,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [readinessProofMode, setReadinessProofMode] = useState<PlaybookExportMode>("human");
   const [paidPilotProposalPreviewOpen, setPaidPilotProposalPreviewOpen] = useState(false);
   const [paidPilotProposalPreviewMode, setPaidPilotProposalPreviewMode] = useState<PlaybookExportMode>("human");
+  const [proposalApprovalHandoffOpen, setProposalApprovalHandoffOpen] = useState(false);
+  const [proposalApprovalHandoffMode, setProposalApprovalHandoffMode] = useState<PlaybookExportMode>("human");
   const [pilotMessagePreviewOpen, setPilotMessagePreviewOpen] = useState(false);
   const [pilotMessagePreviewMode, setPilotMessagePreviewMode] = useState<PlaybookExportMode>("human");
   const [pilotOperatorConfirmationOpen, setPilotOperatorConfirmationOpen] = useState(false);
@@ -4626,6 +4827,16 @@ const LocalServicesDispatchDemoPanel = ({
     leadingCategoryActionLayer,
     leadingCategoryPilotReadiness,
     leadingCategoryReadinessActionPlan,
+    leadingCategoryMetricStatus,
+  );
+  const proposalApprovalHandoffExport = buildLocalServiceProposalApprovalHandoff(
+    leadingCategoryTemplate,
+    founderContactRows,
+    founderContactCounts,
+    founderProofProgress,
+    leadingCategoryPilotScore,
+    leadingCategoryActionLayer,
+    leadingCategoryPilotReadiness,
     leadingCategoryMetricStatus,
   );
   const filteredPilotFunnelRows = useMemo(
@@ -6215,6 +6426,18 @@ const LocalServicesDispatchDemoPanel = ({
                             <Button
                               size="sm"
                               variant="secondary"
+                              onClick={() => {
+                                setProposalApprovalHandoffMode("human");
+                                setProposalApprovalHandoffOpen(true);
+                              }}
+                              className="h-7"
+                            >
+                              <ShieldCheck className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                              Open approval handoff
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
                               onClick={() => onOpenSetupWizard(leadingCategoryActionLayer.serviceId)}
                               className="h-7"
                             >
@@ -7513,6 +7736,16 @@ const LocalServicesDispatchDemoPanel = ({
         exportView={paidPilotProposalPreviewExport}
         mode={paidPilotProposalPreviewMode}
         onModeChange={setPaidPilotProposalPreviewMode}
+        onCopy={onCopyText}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+        onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH)}
+      />
+      <LocalServicePilotWorkspaceExportDrawer
+        open={proposalApprovalHandoffOpen}
+        onOpenChange={setProposalApprovalHandoffOpen}
+        exportView={proposalApprovalHandoffExport}
+        mode={proposalApprovalHandoffMode}
+        onModeChange={setProposalApprovalHandoffMode}
         onCopy={onCopyText}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH)}

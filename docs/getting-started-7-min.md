@@ -171,7 +171,10 @@ drawer`; `Copy readiness proof` exports `local_services_readiness_proof_drawer`
 as a private evidence note. Use `Open proposal preview` to inspect `Paid pilot
 proposal preview`; `Copy proposal preview` exports
 `local_services_paid_pilot_proposal_preview` as a private operator-approved
-draft, not as a customer send or billing action. This does not narrow the
+draft, not as a customer send or billing action. Use `Open approval handoff` to
+inspect `Proposal approval handoff`; `Copy approval handoff` exports
+`local_services_proposal_approval_handoff` as the manual price, scope, owner
+send, CRM payload, booking-policy, and billing-disabled checklist. This does not narrow the
 product to a solo tool; it keeps
 the NEWO-style AI employee platform path grounded in real category proof.
 Use `Open offer doc`, `Open demo script`, and `Open recording checklist` to
