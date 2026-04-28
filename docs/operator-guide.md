@@ -212,9 +212,11 @@ demo booking, and pilot candidate. It is still manual-only and must not be
 treated as proof of external delivery. `Category pilot score`,
 `Leading category`, and `No category expansion without proof` rank AC,
 plumbing, cleaning, and measurement from the same manual markers before a lane
-gets more integration work. The concept remains a NEWO-style AI employee
-platform for service categories; the manual batch only decides whether to
-continue, revise, or stop expansion.
+gets more integration work. `Leading category action layer` gives the operator
+the `Next manual batch`, `Discovery questions`, `Pilot setup checklist`,
+`Integration hold`, and `Focus leading category` action. The concept remains a
+NEWO-style AI employee platform for service categories; the manual batch only
+decides whether to continue, revise, or stop expansion.
 Use `docs/local-services-pilot-runbook.md` for the actual 14-day operating
 sequence: day-minus-one prep, manual outreach, discovery call, pilot setup,
 daily metric capture, week-one review, week-two review, and evidence pack. It

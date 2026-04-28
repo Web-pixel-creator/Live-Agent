@@ -227,6 +227,9 @@ Allowed reply statuses:
    Also show `Category pilot score`, `Leading category`, and
    `No category expansion without proof`; explain that AC, plumbing, cleaning,
    and measurement are ranked by manual proof before category expansion.
+   Show `Leading category action layer`, `Next manual batch`,
+   `Discovery questions`, `Pilot setup checklist`, `Integration hold`, and
+   `Focus leading category`; explain that this is planning only, not automation.
 14. Open `Open intake evidence` / `Transcript + evidence` and show
    `Saved intake evidence`, `Intake transcript + evidence link`,
    `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,

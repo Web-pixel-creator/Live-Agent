@@ -24,6 +24,9 @@ Use `Category pilot score` and `Leading category` as the tie-breaker across AC,
 plumbing, cleaning, and measurement. The rule is
 `No category expansion without proof`: do not deepen a lane until its score is
 backed by manual sends, replies, discovery calls, demos, or pilot willingness.
+`Leading category action layer` should then drive the `Next manual batch`,
+`Discovery questions`, `Pilot setup checklist`, and `Integration hold` before
+any lane gets more engineering.
 
 ## Goal
 

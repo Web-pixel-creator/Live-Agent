@@ -687,6 +687,18 @@ type LocalServiceCategoryPilotScore = {
   };
 };
 
+type LocalServiceLeadingCategoryActionLayer = {
+  serviceId: string;
+  serviceTitle: string;
+  signalLabel: LocalServiceCategoryPilotScore["signalLabel"];
+  posture: string;
+  action: string;
+  nextManualBatch: { company: string; segment: string; statusLabel: string; nextStep: string }[];
+  discoveryQuestions: string[];
+  pilotSetupChecklist: string[];
+  integrationHold: string[];
+};
+
 type LocalServicePilotStatusFilter = LocalServicePilotStatus | "all";
 type LocalServicePilotColumnKey = "service" | "status" | "channelFit" | "nextStep";
 type LocalServicePilotExecutionStep = {
@@ -1496,6 +1508,7 @@ function buildLocalServiceFounderBatchReviewExport(
   proofProgress: string,
   decisionGate: LocalServiceFounderDecisionGate,
   categoryScores: LocalServiceCategoryPilotScore[],
+  actionLayer: LocalServiceLeadingCategoryActionLayer,
   activityLog: LocalServicePilotActivityEvent[] = [],
 ): LocalServicePilotWorkspaceExport {
   const contactLines = rows.map(
@@ -1516,6 +1529,20 @@ function buildLocalServiceFounderBatchReviewExport(
       `${score.rank}. ${score.serviceTitle} | score ${score.score} | ${score.signalLabel} | ${score.proofSummary} | next: ${score.nextAction}`,
   );
   const leadCategory = categoryScores[0];
+  const actionLayerLines = [
+    `Posture: ${actionLayer.posture}`,
+    `Action: ${actionLayer.action}`,
+    "Next manual batch:",
+    ...actionLayer.nextManualBatch.map(
+      (item) => `- ${item.company} (${item.segment}) -> ${item.statusLabel}; next: ${item.nextStep}`,
+    ),
+    "Discovery questions:",
+    ...actionLayer.discoveryQuestions.map((question) => `- ${question}`),
+    "Pilot setup checklist:",
+    ...actionLayer.pilotSetupChecklist.map((item) => `- ${item}`),
+    "Integration hold:",
+    ...actionLayer.integrationHold.map((item) => `- ${item}`),
+  ];
   const humanLines = [
     "First contact batch review drawer: Local services founder validation",
     "Export scope: browser-local proof review for the first 10 manual contacts",
@@ -1537,6 +1564,9 @@ function buildLocalServiceFounderBatchReviewExport(
     "",
     "Category pilot score:",
     ...categoryLines,
+    "",
+    "Leading category action layer:",
+    ...actionLayerLines,
     "",
     "First 10 contact review:",
     ...contactLines,
@@ -1587,6 +1617,18 @@ function buildLocalServiceFounderBatchReviewExport(
           next_action: score.nextAction,
           counts: score.counts,
         })),
+      },
+      leading_category_action_layer: {
+        export_surface: "local_services_leading_category_action_layer",
+        service_id: actionLayer.serviceId,
+        service_title: actionLayer.serviceTitle,
+        signal_label: actionLayer.signalLabel,
+        posture: actionLayer.posture,
+        action: actionLayer.action,
+        next_manual_batch: actionLayer.nextManualBatch,
+        discovery_questions: actionLayer.discoveryQuestions,
+        pilot_setup_checklist: actionLayer.pilotSetupChecklist,
+        integration_hold: actionLayer.integrationHold,
       },
       proof_checklist: proofChecklist,
       first_contacts: rows.map((row, index) => ({
@@ -1823,6 +1865,77 @@ function buildLocalServiceCategoryPilotScores(
   })
     .sort((a, b) => b.score - a.score || b.counts.manualMessageSent - a.counts.manualMessageSent)
     .map((score, index) => ({ ...score, rank: index + 1 }));
+}
+
+function buildLocalServiceLeadingCategoryActionLayer(
+  score: LocalServiceCategoryPilotScore | undefined,
+  rows: LocalServiceFounderContactRow[],
+): LocalServiceLeadingCategoryActionLayer {
+  const fallbackTemplate = LOCAL_SERVICE_DEMO_TEMPLATES[0];
+  const template =
+    LOCAL_SERVICE_DEMO_TEMPLATES.find((item) => item.id === score?.serviceId) ?? fallbackTemplate;
+  const laneRows = rows.filter((row) => row.serviceId === template.id);
+  const pendingLaneRows = laneRows.filter(
+    (row) =>
+      !row.manualMessageSent ||
+      row.status === "not_contacted" ||
+      row.status === "draft_ready" ||
+      row.status === "contacted_manually",
+  );
+  const nextManualBatch = (pendingLaneRows.length > 0 ? pendingLaneRows : laneRows).slice(0, 3).map((row) => ({
+    company: row.prospect.company,
+    segment: row.prospect.segment,
+    statusLabel: row.statusLabel,
+    nextStep: row.prospect.nextStep,
+  }));
+  const signalLabel = score?.signalLabel ?? "Unproven";
+  const posture =
+    signalLabel === "Lead category"
+      ? "Pilot-ready lane, but still operator-approved only."
+      : signalLabel === "Active signal"
+        ? "Promising lane; run one more focused batch before integration work."
+        : signalLabel === "Needs more proof"
+          ? "Useful early signal; keep outreach manual and capture rejection reasons."
+          : "Unproven lane; do not build category-specific automation yet.";
+  const action =
+    signalLabel === "Lead category"
+      ? `Prepare one operator-approved ${template.title} pilot and stop adding new categories.`
+      : signalLabel === "Active signal"
+        ? `Focus the next manual batch on ${template.title} and validate owner pain before build-out.`
+        : signalLabel === "Needs more proof"
+          ? `Finish manual sends for ${template.title}, then compare replies before changing the offer.`
+          : `Keep ${template.title} as research only until real owner replies appear.`;
+  const discoveryQuestions = [
+    `Where do ${template.title.toLowerCase()} requests arrive first: phone, Telegram, Instagram, marketplace, or walk-in?`,
+    "How many requests per week are missed, delayed, or lost because the first response is late?",
+    "Which details must the assistant collect before a dispatcher or owner can approve the quote, slot, or master?",
+    "What price, slot, address, material, or final promise must always stay human-approved?",
+    `What would make a 14-day ${template.title} pilot worth paying for?`,
+  ];
+  const pilotSetupChecklist = [
+    `Focus only on ${template.title} until the next manual batch changes the score.`,
+    "Pick one owner/operator and one real channel to observe before any live integration.",
+    "Prepare a 7-minute demo using the lane offer, sample input, and approval policy.",
+    "Run the test call/message gate before any customer-facing pilot traffic.",
+    "Copy discovery call prep only after a real reply appears.",
+  ];
+  const integrationHold = [
+    "No live phone, Telegram, WhatsApp, CRM, calendar, analytics, billing, or marketplace integration before proof.",
+    "No category-specific workflow build-out while the lane is Needs more proof or Unproven.",
+    "No booking, price, master assignment, material availability, or customer promise without operator approval.",
+  ];
+
+  return {
+    serviceId: template.id,
+    serviceTitle: template.title,
+    signalLabel,
+    posture,
+    action,
+    nextManualBatch,
+    discoveryQuestions,
+    pilotSetupChecklist,
+    integrationHold,
+  };
 }
 
 function buildLocalServicePilotMetricsTrackerExport(
@@ -3762,6 +3875,10 @@ const LocalServicesDispatchDemoPanel = ({
     [founderContactRows],
   );
   const leadingCategoryPilotScore = categoryPilotScores[0];
+  const leadingCategoryActionLayer = useMemo(
+    () => buildLocalServiceLeadingCategoryActionLayer(leadingCategoryPilotScore, founderContactRows),
+    [founderContactRows, leadingCategoryPilotScore],
+  );
   const founderReviewReadyServices = LOCAL_SERVICE_DEMO_TEMPLATES.filter(
     (template) => (pilotWorkspaceState.metricStatusByService[template.id] ?? "not_started") === "review_ready",
   ).length;
@@ -3811,6 +3928,8 @@ const LocalServicesDispatchDemoPanel = ({
         ? `${leadingCategoryPilotScore.serviceTitle} / ${leadingCategoryPilotScore.score} / ${leadingCategoryPilotScore.signalLabel}`
         : "none"
     }`,
+    `Leading category action layer: ${leadingCategoryActionLayer.posture}`,
+    `Leading category action: ${leadingCategoryActionLayer.action}`,
     "No category expansion without proof.",
     `Manual sends logged: ${founderContactCounts.manualMessageSent}/10`,
     `Replies or clear rejections: ${founderContactCounts.repliesOrRejections}/3`,
@@ -3822,6 +3941,20 @@ const LocalServicesDispatchDemoPanel = ({
       (score) =>
         `${score.rank}. ${score.serviceTitle} | ${score.score} | ${score.signalLabel} | ${score.proofSummary} | next: ${score.nextAction}`,
     ),
+    "",
+    "Next manual batch:",
+    ...leadingCategoryActionLayer.nextManualBatch.map(
+      (item) => `- ${item.company} | ${item.segment} | ${item.statusLabel} | next: ${item.nextStep}`,
+    ),
+    "",
+    "Discovery questions:",
+    ...leadingCategoryActionLayer.discoveryQuestions.map((question) => `- ${question}`),
+    "",
+    "Pilot setup checklist:",
+    ...leadingCategoryActionLayer.pilotSetupChecklist.map((item) => `- ${item}`),
+    "",
+    "Integration hold:",
+    ...leadingCategoryActionLayer.integrationHold.map((item) => `- ${item}`),
     "",
     "First 10 contacts:",
     ...founderContactRows.map(
@@ -3836,6 +3969,7 @@ const LocalServicesDispatchDemoPanel = ({
     founderProofProgress,
     founderDecisionGate,
     categoryPilotScores,
+    leadingCategoryActionLayer,
     pilotWorkspaceState.activityLog,
   );
   const filteredPilotFunnelRows = useMemo(
@@ -5276,6 +5410,80 @@ const LocalServicesDispatchDemoPanel = ({
                         </div>
                       </div>
                     ))}
+                  </div>
+                  <div className="mt-3 rounded-md border border-border/50 bg-card/25 px-3 py-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          Leading category action layer
+                        </div>
+                        <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                          Converts the leading score into the next manual batch, discovery questions, pilot setup
+                          checklist, and integration hold.
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => {
+                          onSelectService(leadingCategoryActionLayer.serviceId);
+                          setPilotFunnelServiceFilter(leadingCategoryActionLayer.serviceId);
+                        }}
+                        className="h-7"
+                      >
+                        Focus leading category
+                      </Button>
+                    </div>
+                    <div className="mt-3 rounded-[5px] bg-background/35 px-2 py-1.5 text-[11px]">
+                      <span className="text-muted-foreground">Action: </span>
+                      <span className="text-foreground">{leadingCategoryActionLayer.action}</span>
+                    </div>
+                    <div className="mt-3 grid gap-2">
+                      <div className="rounded-md border border-border/50 bg-background/35 px-3 py-2.5">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          Next manual batch
+                        </div>
+                        <div className="mt-2 grid gap-1.5 text-[11px] text-muted-foreground">
+                          {leadingCategoryActionLayer.nextManualBatch.map((item) => (
+                            <div key={`${item.company}:${item.statusLabel}`} className="rounded-[5px] bg-card/30 px-2 py-1.5">
+                              <span className="font-semibold text-foreground">{item.company}</span>
+                              <span> / {item.segment} / </span>
+                              <span>{item.statusLabel}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="rounded-md border border-border/50 bg-background/35 px-3 py-2.5">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          Discovery questions
+                        </div>
+                        <ul className="mt-2 space-y-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                          {leadingCategoryActionLayer.discoveryQuestions.slice(0, 3).map((question) => (
+                            <li key={question}>{question}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="rounded-md border border-border/50 bg-background/35 px-3 py-2.5">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          Pilot setup checklist
+                        </div>
+                        <ul className="mt-2 space-y-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                          {leadingCategoryActionLayer.pilotSetupChecklist.slice(0, 3).map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="rounded-md border border-border/50 bg-background/35 px-3 py-2.5">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          Integration hold
+                        </div>
+                        <ul className="mt-2 space-y-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                          {leadingCategoryActionLayer.integrationHold.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <div className="mt-3 rounded-md bg-secondary/35 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">

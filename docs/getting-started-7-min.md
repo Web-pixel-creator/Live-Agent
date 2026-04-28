@@ -159,9 +159,11 @@ category expansion honest, `Open batch review` opens the `First contact batch
 review drawer`, and `Copy batch review` / `Copy founder workspace` exports only
 a redacted manual summary. `Category pilot score`, `Leading category`, and
 `No category expansion without proof` compare AC, plumbing, cleaning, and
-measurement from the same proof markers. This does not narrow the product to a
-solo tool; it keeps the NEWO-style AI employee platform path grounded in real
-category proof.
+measurement from the same proof markers. `Leading category action layer`
+immediately shows `Next manual batch`, `Discovery questions`,
+`Pilot setup checklist`, `Integration hold`, and `Focus leading category`. This
+does not narrow the product to a solo tool; it keeps the NEWO-style AI employee
+platform path grounded in real category proof.
 Use `Open offer doc`, `Open demo script`, and `Open recording checklist` to
 open the repo-owned pilot artifacts without leaving the local frontend server.
 The recording checklist is the safe 90-second walkthrough plan; it avoids claims

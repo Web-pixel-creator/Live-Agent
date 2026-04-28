@@ -72,6 +72,9 @@ Do not use the pilot to build:
    The first-10-contact workspace also shows `Category pilot score`,
    `Leading category`, and `No category expansion without proof`; use that
    proof-based ranking before deepening AC, plumbing, cleaning, or measurement.
+   `Leading category action layer` then gives `Next manual batch`,
+   `Discovery questions`, `Pilot setup checklist`, `Integration hold`, and
+   `Focus leading category`.
 9. Review `Pilot execution checklist`: `Pass test call/message`,
    `Needs test call passed`, `Prepare first manual batch`,
    `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,

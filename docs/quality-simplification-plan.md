@@ -206,11 +206,13 @@ workspace`, `Pilot proof checklist`, `Stop / Continue decision gate`,
 `Open batch review`, `First contact batch review drawer`, `Copy batch review`,
 and `Copy founder workspace`. It now adds `Category pilot score`,
 `Leading category`, and `No category expansion without proof` so AC, plumbing,
-cleaning, and measurement are ranked from observed proof. This is the current
-simplification target: prove demand through 10 manual contacts before adding
-more integrations. The target product remains a NEWO-style AI employee platform
-for selected service categories; the manual batch is the category validation
-gate, not the final product shape.
+cleaning, and measurement are ranked from observed proof. `Leading category
+action layer` converts that rank into `Next manual batch`, `Discovery
+questions`, `Pilot setup checklist`, `Integration hold`, and `Focus leading
+category`. This is the current simplification target: prove demand through 10
+manual contacts before adding more integrations. The target product remains a
+NEWO-style AI employee platform for selected service categories; the manual
+batch is the category validation gate, not the final product shape.
 
 ## Success Criteria
 

@@ -151,6 +151,9 @@ The first-10-contact workspace also shows `Category pilot score`,
 `Leading category`, and `No category expansion without proof`. Use that ranking
 before changing this scorecard into a category-specific integration plan; AC,
 plumbing, cleaning, and measurement must compete on manual proof markers.
+`Leading category action layer` then provides the `Next manual batch`,
+`Discovery questions`, `Pilot setup checklist`, `Integration hold`, and
+`Focus leading category` action that should guide the next scorecard update.
 
 `Open metrics tracker` opens the `Pilot metrics tracker` for the selected
 service lane. Use `Human-readable` for weekly operator review and `JSON` when

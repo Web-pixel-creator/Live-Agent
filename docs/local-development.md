@@ -117,7 +117,9 @@ contact batch review drawer`, `Copy batch review`, `Copy founder workspace`,
 `Pilot candidate`. It also includes `Category pilot score`, `Leading category`,
 and `No category expansion without proof` so AC, plumbing, cleaning, and
 measurement are compared from the same proof markers before any category
-expansion. These controls update only
+expansion. `Leading category action layer` turns the top lane into `Next manual
+batch`, `Discovery questions`, `Pilot setup checklist`, `Integration hold`, and
+`Focus leading category`. These controls update only
 `liveDesk:localServicesPilotWorkspace:v1` in browser-local state and the manual
 activity log; they do not send outreach, create bookings, write CRM, sync
 analytics, bill, or mutate Markdown docs. The platform frame remains
