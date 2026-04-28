@@ -247,7 +247,13 @@ Local-services expansion spec:
   `Pilot kickoff gate`, `Copy kickoff gate`, and
   `local_services_pilot_kickoff_gate` decide whether the proposal can move into
   manual day-one setup while keeping phone, messaging, CRM, analytics, billing,
-  booking, and customer-send actions disabled.
+  booking, and customer-send actions disabled. `Open run sheet`,
+  `Day-one operator run sheet`, `Copy run sheet`, and
+  `local_services_day_one_operator_run_sheet` then give the operator a
+  first-day worksheet for sample inbound, owner script, expected fields,
+  approval pauses, metric capture, and manual result logging. Its JSON contract
+  is `manual_day_one_operator_run_sheet`, and it still cannot activate phone,
+  Telegram, WhatsApp, bookings, CRM, analytics, billing, or customer sends.
   The frame stays NEWO-style AI
   employee platform expansion by category; the manual batch is a validation
   gate, not a solo-only product scope.

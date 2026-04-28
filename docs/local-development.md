@@ -137,6 +137,11 @@ scope, owner send, CRM payload, booking policy, and billing-disabled state.
 `Open kickoff gate`, `Pilot kickoff gate`, `Copy kickoff gate`, and
 `local_services_pilot_kickoff_gate` decide whether that approval can advance to
 manual day-one setup without activating channels or external systems.
+`Open run sheet`, `Day-one operator run sheet`, `Copy run sheet`,
+`local_services_day_one_operator_run_sheet`, and
+`manual_day_one_operator_run_sheet` add the first-day operator worksheet:
+sample inbound, owner script, expected fields, approval pauses, metric capture,
+and manual result logging only.
 These controls update only
 `liveDesk:localServicesPilotWorkspace:v1` in browser-local state and the manual
 activity log; they do not send outreach, create bookings, write CRM, sync

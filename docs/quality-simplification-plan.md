@@ -229,6 +229,11 @@ policy, and billing-disabled state must be confirmed outside automation.
 `local_services_pilot_kickoff_gate` turn that approval layer into a day-one
 decision without adding automation: proceed to setup only when proof, proposal
 approval, setup, dry-run, owner conversation, and metric baseline are ready.
+`Open run sheet`, `Day-one operator run sheet`, `Copy run sheet`, and
+`local_services_day_one_operator_run_sheet` then turn the gate into a
+first-day operator worksheet with `manual_day_one_operator_run_sheet`, sample
+inbound, owner script, expected fields, approval pauses, metric capture, and
+manual result logging.
 This is the current
 simplification target: prove demand through 10 manual contacts before adding
 more integrations. The target product remains a NEWO-style AI employee platform

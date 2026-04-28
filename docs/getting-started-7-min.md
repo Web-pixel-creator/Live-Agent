@@ -178,7 +178,11 @@ send, CRM payload, booking-policy, and billing-disabled checklist. Use
 `Open kickoff gate` to inspect `Pilot kickoff gate`; `Copy kickoff gate`
 exports `local_services_pilot_kickoff_gate` as the manual day-one setup decision
 before any phone, messaging, CRM, analytics, billing, booking, or customer-send
-activation. This does not narrow the
+activation. `Open run sheet` then opens `Day-one operator run sheet`;
+`Copy run sheet` exports `local_services_day_one_operator_run_sheet` /
+`manual_day_one_operator_run_sheet` for the first operator-supervised request:
+sample inbound, owner script, expected fields, approval pauses, metric capture,
+and manual result logging only. This does not narrow the
 product to a solo tool; it keeps
 the NEWO-style AI employee platform path grounded in real category proof.
 Use `Open offer doc`, `Open demo script`, and `Open recording checklist` to

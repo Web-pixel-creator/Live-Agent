@@ -2886,6 +2886,187 @@ function buildLocalServicePilotKickoffGate(
   };
 }
 
+function buildLocalServiceDayOneOperatorRunSheet(
+  template: LocalServiceDemoTemplate,
+  rows: LocalServiceFounderContactRow[],
+  counts: {
+    channelChecked: number;
+    manualMessageSent: number;
+    repliesOrRejections: number;
+    discoveryCalls: number;
+    demosBooked: number;
+    pilotCandidates: number;
+  },
+  proofProgress: string,
+  score: LocalServiceCategoryPilotScore | undefined,
+  actionLayer: LocalServiceLeadingCategoryActionLayer,
+  readiness: LocalServiceLeadingCategoryPilotReadiness,
+  setupReady: boolean,
+  testCallPassed: boolean,
+  testCallProgress: string,
+  metricStatus: LocalServicePilotMetricStatus,
+): LocalServicePilotWorkspaceExport {
+  const laneRows = rows.filter((row) => row.serviceId === actionLayer.serviceId);
+  const targetRow =
+    laneRows.find((row) => row.pilotCandidate) ??
+    laneRows.find((row) => row.demoBooked) ??
+    laneRows.find((row) => row.discoveryCallCompleted) ??
+    laneRows.find((row) => row.status === "reply_received") ??
+    laneRows[0];
+  const targetCompany = targetRow
+    ? `${targetRow.prospect.company} (${targetRow.prospect.segment})`
+    : "No replied pilot company selected yet";
+  const targetStatus = targetRow?.statusLabel ?? "No company selected";
+  const metricStatusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus];
+  const runReadiness =
+    readiness.readyToPilot && setupReady && testCallPassed
+      ? "Ready for manual day-one run"
+      : testCallPassed
+        ? "Needs owner-approved setup and readiness proof before day-one run"
+        : `Needs passing dry run (${testCallProgress})`;
+  const sampleInbound = [
+    `Phone test: ${template.detail.sampleInput}`,
+    `Telegram/media test: ${template.detail.telegramIntake.inboundMessage}`,
+  ];
+  const ownerScript = [
+    `Confirm the request is for ${template.title}.`,
+    "Confirm service area, urgency, preferred time window, budget expectation, and approval owner.",
+    "Repeat that price, slot, dispatcher assignment, and customer confirmation stay human-approved.",
+  ];
+  const expectedFields = [
+    ...template.detail.telegramIntake.normalizedFields,
+    ...template.detail.estimateInputs,
+    ...template.detail.handoffFields,
+  ];
+  const approvalPauses = template.detail.approvalPolicy;
+  const metricCapture = template.detail.pilotKit.metrics.map(
+    (metric) => `${metric.label}: baseline=${metric.baseline}; target=${metric.target}`,
+  );
+  const manualLogging = [
+    "Record whether the request was qualified, rejected, or needs follow-up.",
+    "Record every owner edit before approval.",
+    "Update the pilot scorecard manually after the run; do not sync CRM from this sheet.",
+  ];
+  const guardrails = [
+    "manual_day_one_operator_run_sheet",
+    "manual_day_one_run_only",
+    "no_phone_channel_activation",
+    "no_telegram_or_whatsapp_activation",
+    "no_calendar_booking_created",
+    "no_customer_send",
+    "no_crm_write",
+    "no_analytics_sync",
+    "no_billing_action",
+  ];
+  const checklist = [
+    `Target company: ${targetCompany}`,
+    `Readiness state: ${runReadiness}`,
+    `Proof reviewed: ${proofProgress}`,
+    `Setup ready: ${setupReady ? "yes" : "no"}`,
+    `Dry run passed: ${testCallPassed ? "yes" : "no"} (${testCallProgress})`,
+    `Metric baseline: ${metricStatusLabel}`,
+    "First real action remains manual and owner-approved.",
+  ];
+  const humanLines = [
+    `Day-one operator run sheet: ${actionLayer.serviceTitle}`,
+    "Export surface: local_services_day_one_operator_run_sheet",
+    "Export kind: manual_day_one_operator_run_sheet",
+    `Run readiness: ${runReadiness}`,
+    `Target company: ${targetCompany}`,
+    `Current status: ${targetStatus}`,
+    `Category proof: ${score ? `${score.signalLabel}; ${score.proofSummary}` : "No category score yet"}`,
+    `Proof progress: ${proofProgress}`,
+    `Metric status: ${metricStatusLabel}`,
+    "",
+    "Sample inbound:",
+    ...sampleInbound.map((item) => `- ${item}`),
+    "",
+    "Owner script:",
+    ...ownerScript.map((item) => `- ${item}`),
+    "",
+    "Expected fields:",
+    ...expectedFields.map((field) => `- ${field}`),
+    "",
+    "Approval pauses:",
+    ...approvalPauses.map((pause) => `- ${pause}`),
+    "",
+    "Metric capture:",
+    ...metricCapture.map((metric) => `- ${metric}`),
+    "",
+    "Manual result logging:",
+    ...manualLogging.map((item) => `- ${item}`),
+    "",
+    "Guardrails:",
+    ...guardrails.map((guardrail) => `- ${guardrail}`),
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_day_one_operator_run_sheet",
+      export_kind: "manual_day_one_operator_run_sheet",
+      service_id: actionLayer.serviceId,
+      service_title: actionLayer.serviceTitle,
+      run_readiness: runReadiness,
+      target_company: targetRow
+        ? {
+            key: targetRow.key,
+            company: targetRow.prospect.company,
+            segment: targetRow.prospect.segment,
+            channel_fit: targetRow.prospect.channelFit,
+            status: targetRow.status,
+            proof_status: targetRow.proofStatus,
+          }
+        : null,
+      sample_inbound: sampleInbound,
+      owner_script: ownerScript,
+      expected_fields: expectedFields,
+      approval_pauses: approvalPauses,
+      metric_capture: metricCapture,
+      manual_result_logging: manualLogging,
+      proof_summary: {
+        category_signal: score?.signalLabel ?? "Unproven",
+        category_proof_summary: score?.proofSummary ?? "No category score yet",
+        proof_progress: proofProgress,
+        proof_counts: counts,
+        ready_to_pilot: readiness.readyToPilot,
+        setup_ready: setupReady,
+        test_call_passed: testCallPassed,
+        test_call_progress: testCallProgress,
+        metric_status: metricStatus,
+        metric_status_label: metricStatusLabel,
+      },
+      guardrails,
+    },
+    null,
+    2,
+  );
+
+  return {
+    title: "Day-one operator run sheet",
+    description:
+      "Manual first-day operating sheet for one owner-approved request. It tells the operator what to ask, capture, pause on, and log without activating channels or writing external systems.",
+    eyebrow: "Day-one run sheet",
+    modeLabel: "Run sheet mode",
+    copyLabel: "Copy run sheet",
+    reviewTitle: "Manual first-day run checklist",
+    reviewDescription:
+      "Use this after the kickoff gate. It is a run worksheet only: no phone, Telegram, WhatsApp, booking, CRM, analytics, billing, or customer-send side effect.",
+    executionActionLabel: "Open founder execution log",
+    scorecardActionLabel: "Open pilot scorecard",
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: [
+      { label: "Run readiness", value: runReadiness },
+      { label: "Service", value: actionLayer.serviceTitle },
+      { label: "Target company", value: targetCompany },
+      { label: "Current status", value: targetStatus },
+      { label: "Sample inbound", value: sampleInbound[0] },
+      { label: "Metric baseline", value: metricStatusLabel },
+      { label: "Guardrail", value: "Manual run only; no external side effects" },
+    ],
+    checklist,
+  };
+}
+
 function buildLocalServicePilotMetricsTrackerExport(
   template: LocalServiceDemoTemplate,
   status: LocalServicePilotMetricStatus,
@@ -4688,6 +4869,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [proposalApprovalHandoffMode, setProposalApprovalHandoffMode] = useState<PlaybookExportMode>("human");
   const [pilotKickoffGateOpen, setPilotKickoffGateOpen] = useState(false);
   const [pilotKickoffGateMode, setPilotKickoffGateMode] = useState<PlaybookExportMode>("human");
+  const [dayOneOperatorRunSheetOpen, setDayOneOperatorRunSheetOpen] = useState(false);
+  const [dayOneOperatorRunSheetMode, setDayOneOperatorRunSheetMode] = useState<PlaybookExportMode>("human");
   const [pilotMessagePreviewOpen, setPilotMessagePreviewOpen] = useState(false);
   const [pilotMessagePreviewMode, setPilotMessagePreviewMode] = useState<PlaybookExportMode>("human");
   const [pilotOperatorConfirmationOpen, setPilotOperatorConfirmationOpen] = useState(false);
@@ -5027,6 +5210,19 @@ const LocalServicesDispatchDemoPanel = ({
     leadingCategoryMetricStatus,
   );
   const pilotKickoffGateExport = buildLocalServicePilotKickoffGate(
+    leadingCategoryTemplate,
+    founderContactRows,
+    founderContactCounts,
+    founderProofProgress,
+    leadingCategoryPilotScore,
+    leadingCategoryActionLayer,
+    leadingCategoryPilotReadiness,
+    leadingCategorySetupReady,
+    leadingCategoryTestCallPassed,
+    leadingCategoryTestCallProgress,
+    leadingCategoryMetricStatus,
+  );
+  const dayOneOperatorRunSheet = buildLocalServiceDayOneOperatorRunSheet(
     leadingCategoryTemplate,
     founderContactRows,
     founderContactCounts,
@@ -6650,6 +6846,18 @@ const LocalServicesDispatchDemoPanel = ({
                             <Button
                               size="sm"
                               variant="secondary"
+                              onClick={() => {
+                                setDayOneOperatorRunSheetMode("human");
+                                setDayOneOperatorRunSheetOpen(true);
+                              }}
+                              className="h-7"
+                            >
+                              <ClipboardCheck className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                              Open run sheet
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
                               onClick={() => onOpenSetupWizard(leadingCategoryActionLayer.serviceId)}
                               className="h-7"
                             >
@@ -7968,6 +8176,16 @@ const LocalServicesDispatchDemoPanel = ({
         exportView={pilotKickoffGateExport}
         mode={pilotKickoffGateMode}
         onModeChange={setPilotKickoffGateMode}
+        onCopy={onCopyText}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+        onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH)}
+      />
+      <LocalServicePilotWorkspaceExportDrawer
+        open={dayOneOperatorRunSheetOpen}
+        onOpenChange={setDayOneOperatorRunSheetOpen}
+        exportView={dayOneOperatorRunSheet}
+        mode={dayOneOperatorRunSheetMode}
+        onModeChange={setDayOneOperatorRunSheetMode}
         onCopy={onCopyText}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH)}
