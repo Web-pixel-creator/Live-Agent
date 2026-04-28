@@ -790,6 +790,12 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /contactProofByProspectKey/);
   assert.match(liveDesk, /First 10 contacts workspace/);
   assert.match(liveDesk, /Pilot proof checklist/);
+  assert.match(liveDesk, /Open batch review/);
+  assert.match(liveDesk, /First contact batch review drawer/);
+  assert.match(liveDesk, /Copy batch review/);
+  assert.match(liveDesk, /local_services_first_contact_batch_review/);
+  assert.match(liveDesk, /founder_manual_validation_review/);
+  assert.match(liveDesk, /no_booking_created/);
   assert.match(liveDesk, /Copy founder workspace/);
   assert.match(liveDesk, /Founder proof recorded/);
   assert.match(liveDesk, /local_services_founder_contact_workspace/);
@@ -1081,6 +1087,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /first-10-contact worksheet/);
   assert.match(readme, /First 10 contacts workspace/);
   assert.match(readme, /Pilot proof checklist/);
+  assert.match(readme, /Open batch review/);
+  assert.match(readme, /Copy batch review/);
   assert.match(readme, /Copy founder workspace/);
   assert.match(readme, /docs\/local-services-pilot-runbook\.md/);
   assert.match(readme, /docs\/local-services-outreach-execution-pack\.md/);
@@ -1268,6 +1276,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /first-10-contact worksheet/);
   assert.match(localDevelopment, /First 10 contacts workspace/);
   assert.match(localDevelopment, /Pilot proof\s+checklist/);
+  assert.match(localDevelopment, /Open batch review/);
+  assert.match(localDevelopment, /First contact batch review drawer/);
+  assert.match(localDevelopment, /Copy batch review/);
   assert.match(localDevelopment, /Copy founder workspace/);
   assert.match(localDevelopment, /liveDesk:localServicesPilotWorkspace:v1/);
   assert.match(localDevelopment, /http:\/\/localhost:3000\/app\?demo=local-services-dispatch&service=ac-repair-dispatch&recording=90s/);
@@ -1436,6 +1447,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /first-10-contact worksheet/);
   assert.match(operatorGuide, /First 10 contacts workspace/);
   assert.match(operatorGuide, /Pilot proof checklist/);
+  assert.match(operatorGuide, /Open batch\s+review/);
+  assert.match(operatorGuide, /First contact batch review drawer/);
+  assert.match(operatorGuide, /Copy batch review/);
   assert.match(operatorGuide, /Copy\s+founder workspace/);
   assert.match(operatorGuide, /docs\/local-services-pilot-runbook\.md/);
   assert.match(operatorGuide, /docs\/local-services-outreach-execution-pack\.md/);
@@ -1602,6 +1616,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /first-10-contact worksheet/);
   assert.match(simplificationPlan, /First 10 contacts\s+workspace/);
   assert.match(simplificationPlan, /Pilot proof checklist/);
+  assert.match(simplificationPlan, /Open batch review/);
+  assert.match(simplificationPlan, /First contact batch\s+review drawer/);
+  assert.match(simplificationPlan, /Copy batch review/);
   assert.match(simplificationPlan, /Copy founder workspace/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-pilot-runbook\.md/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-outreach-execution-pack\.md/);
@@ -1766,6 +1783,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /replies, demo bookings, discovery-call pain/);
   assert.match(gettingStarted, /First 10 contacts workspace/);
   assert.match(gettingStarted, /Pilot proof checklist/);
+  assert.match(gettingStarted, /Open batch review/);
+  assert.match(gettingStarted, /First\s+contact batch review drawer/);
+  assert.match(gettingStarted, /Copy batch review/);
   assert.match(gettingStarted, /Copy founder workspace/);
   assert.match(gettingStarted, /Open offer doc/);
   assert.match(gettingStarted, /Open demo script/);
@@ -1973,9 +1993,15 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /first-10-contact worksheet/);
   assert.match(localServicesSpec, /First 10 contacts workspace/);
   assert.match(localServicesSpec, /Pilot proof checklist/);
+  assert.match(localServicesSpec, /Open batch review/);
+  assert.match(localServicesSpec, /First contact batch review drawer/);
+  assert.match(localServicesSpec, /Copy batch review/);
   assert.match(localServicesSpec, /Copy founder\s+workspace/);
   assert.match(localServicesSpec, /contactProofByProspectKey/);
   assert.match(localServicesSpec, /Founder proof recorded/);
+  assert.match(localServicesSpec, /local_services_first_contact_batch_review/);
+  assert.match(localServicesSpec, /founder_manual_validation_review/);
+  assert.match(localServicesSpec, /no_booking_created/);
   assert.match(localServicesSpec, /\/workspace-docs\/local-services-pilot-runbook\.md/);
   assert.match(localServicesSpec, /\/workspace-docs\/local-services-outreach-execution-pack\.md/);
   assert.match(localServicesSpec, /Open outreach execution pack/);
@@ -2407,6 +2433,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(founderExecutionLog, /Manual contact only\. No external side effects\./);
   assert.match(founderExecutionLog, /Do not store private customer names/);
   assert.match(founderExecutionLog, /First 10 contacts workspace/);
+  assert.match(founderExecutionLog, /Open batch review/);
+  assert.match(founderExecutionLog, /First contact batch\s+review drawer/);
+  assert.match(founderExecutionLog, /Copy batch review/);
   assert.match(founderExecutionLog, /liveDesk:localServicesPilotWorkspace:v1/);
   assert.match(outreachExecutionPack, /Preview \/ Test message modal/);
   assert.match(outreachExecutionPack, /Agent setup \/ training state/);

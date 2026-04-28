@@ -13,6 +13,9 @@ The product shell mirrors this worksheet in `First 10 contacts workspace` on
 workspace stores only browser-local proof markers in
 `liveDesk:localServicesPilotWorkspace:v1`; it does not send outreach, create
 bookings, write CRM, sync analytics, bill, or mutate this Markdown file.
+Use `Open batch review` in that workspace to open the `First contact batch
+review drawer` and `Copy batch review` only after the browser-local markers
+match the private founder notes.
 
 ## Goal
 

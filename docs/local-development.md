@@ -111,7 +111,8 @@ It is a redacted first-10-contact worksheet for real pilot evidence capture;
 it does not send outreach, write CRM, book calendars, bill, sync analytics, or
 store private customer data in public docs.
 3.12. The same route now includes `First 10 contacts workspace`, `Pilot proof
-checklist`, `Copy founder workspace`, `Channel checked`, `Manual sent`,
+checklist`, `Open batch review`, `First contact batch review drawer`,
+`Copy batch review`, `Copy founder workspace`, `Channel checked`, `Manual sent`,
 `Discovery call`, `Demo booked`, and `Pilot candidate`. These controls update
 only `liveDesk:localServicesPilotWorkspace:v1` in browser-local state and the
 manual activity log; they do not send outreach, create bookings, write CRM,

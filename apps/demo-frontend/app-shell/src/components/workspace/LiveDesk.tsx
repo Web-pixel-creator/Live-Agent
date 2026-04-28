@@ -647,6 +647,15 @@ type LocalServicePilotFunnelRow = {
   statusLabel: string;
 };
 
+type LocalServiceFounderContactRow = LocalServicePilotFunnelRow & {
+  channelChecked: boolean;
+  manualMessageSent: boolean;
+  discoveryCallCompleted: boolean;
+  demoBooked: boolean;
+  pilotCandidate: boolean;
+  proofStatus: string;
+};
+
 type LocalServicePilotStatusFilter = LocalServicePilotStatus | "all";
 type LocalServicePilotColumnKey = "service" | "status" | "channelFit" | "nextStep";
 type LocalServicePilotExecutionStep = {
@@ -1434,6 +1443,146 @@ function buildLocalServicePilotWorkspaceExport(
     reviewTitle: "Operator review checklist",
     reviewDescription:
       "This export is a planning artifact only: no outbound message, no CRM write, no scorecard mutation.",
+    scorecardActionLabel: "Open pilot scorecard",
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: rowsSummary,
+    checklist,
+  };
+}
+
+function buildLocalServiceFounderBatchReviewExport(
+  rows: LocalServiceFounderContactRow[],
+  counts: {
+    channelChecked: number;
+    manualMessageSent: number;
+    repliesOrRejections: number;
+    discoveryCalls: number;
+    demosBooked: number;
+    pilotCandidates: number;
+  },
+  proofChecklist: { label: string; status: string; done: boolean }[],
+  proofProgress: string,
+  activityLog: LocalServicePilotActivityEvent[] = [],
+): LocalServicePilotWorkspaceExport {
+  const contactLines = rows.map(
+    (row, index) =>
+      `${index + 1}. ${row.prospect.company} | ${row.serviceTitle} | ${row.prospect.segment} | ${row.statusLabel} | ${row.proofStatus} | next: ${row.prospect.nextStep}`,
+  );
+  const checklistLines = proofChecklist.map((item) => `- ${item.done ? "done" : "pending"} | ${item.label}: ${item.status}`);
+  const recentProofEvents = activityLog.filter((event) => event.kind === "contact_proof").slice(0, 8);
+  const activityLines =
+    recentProofEvents.length > 0
+      ? recentProofEvents.map(
+          (event) =>
+            `- ${event.createdAt} | ${event.serviceTitle} | ${event.company ?? "service"} | ${event.label}: ${event.value}`,
+        )
+      : ["- No contact proof events recorded yet."];
+  const humanLines = [
+    "First contact batch review drawer: Local services founder validation",
+    "Export scope: browser-local proof review for the first 10 manual contacts",
+    `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
+    `Proof progress: ${proofProgress}`,
+    `Channel checked: ${counts.channelChecked}/10`,
+    `Manual sends logged: ${counts.manualMessageSent}/10`,
+    `Replies or clear rejections: ${counts.repliesOrRejections}/3`,
+    `Discovery calls: ${counts.discoveryCalls}/1`,
+    `Demos booked: ${counts.demosBooked}/1`,
+    `Pilot candidates: ${counts.pilotCandidates}/1`,
+    "",
+    "Pilot proof checklist:",
+    ...checklistLines,
+    "",
+    "First 10 contact review:",
+    ...contactLines,
+    "",
+    "Recent proof activity:",
+    ...activityLines,
+    "",
+    "Manual execution rule: this review does not send outreach, create bookings, write CRM, sync analytics, bill, or mutate Markdown docs.",
+    "Operator action: copy only after confirming the browser-local markers match real manual outreach notes.",
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_first_contact_batch_review",
+      export_kind: "founder_manual_validation_review",
+      storage_key: LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY,
+      proof_progress: proofProgress,
+      proof_counts: counts,
+      proof_checklist: proofChecklist,
+      first_contacts: rows.map((row, index) => ({
+        index: index + 1,
+        key: row.key,
+        service_id: row.serviceId,
+        service_title: row.serviceTitle,
+        prospect_id: row.prospect.id,
+        company: row.prospect.company,
+        segment: row.prospect.segment,
+        channel_fit: row.prospect.channelFit,
+        why_now: row.prospect.whyNow,
+        scorecard_focus: row.prospect.scorecardFocus,
+        next_step: row.prospect.nextStep,
+        status: row.status,
+        status_label: row.statusLabel,
+        proof_status: row.proofStatus,
+        proof: {
+          channel_checked: row.channelChecked,
+          manual_message_sent: row.manualMessageSent,
+          discovery_call_completed: row.discoveryCallCompleted,
+          demo_booked: row.demoBooked,
+          pilot_candidate: row.pilotCandidate,
+        },
+      })),
+      recent_proof_activity: recentProofEvents.map((event) => ({
+        id: event.id,
+        label: event.label,
+        value: event.value,
+        service_id: event.serviceId,
+        service_title: event.serviceTitle,
+        prospect_id: event.prospectId,
+        company: event.company,
+        created_at: event.createdAt,
+      })),
+      guardrails: [
+        "operator_review_required_before_copy",
+        "no_outbound_message_sent",
+        "no_booking_created",
+        "no_crm_write",
+        "no_analytics_sync",
+        "no_billing_action",
+        "no_markdown_mutation",
+      ],
+    },
+    null,
+    2,
+  );
+  const rowsSummary = [
+    { label: "Review scope", value: "First 10 manual contacts" },
+    { label: "Proof progress", value: proofProgress },
+    { label: "Manual sends", value: `${counts.manualMessageSent}/10` },
+    { label: "Replies / rejections", value: `${counts.repliesOrRejections}/3` },
+    { label: "Discovery calls", value: `${counts.discoveryCalls}/1` },
+    { label: "Pilot candidates", value: `${counts.pilotCandidates}/1` },
+  ];
+  const checklist = [
+    "Confirm the first 10 contact markers match real manual actions outside the shell.",
+    "Confirm no private customer names, phone numbers, addresses, or deal terms are stored in this browser-local export.",
+    "Copy the review into private founder notes only after operator review.",
+    "Stop product expansion if replies, discovery calls, or pilot candidates do not appear after this batch.",
+    "Do not treat this review as proof that the product sent outreach.",
+  ];
+
+  return {
+    title: "First contact batch review drawer",
+    description:
+      "Review the first 10 manual contact proof markers before copying a private founder note or deciding whether to continue.",
+    eyebrow: "First batch review",
+    modeLabel: "Batch review mode",
+    copyLabel: "Copy batch review",
+    reviewTitle: "Founder validation checklist",
+    reviewDescription:
+      "This is a browser-local review artifact only: no outbound message, no booking, no CRM write, no analytics sync.",
+    executionActionLabel: "Open founder execution log",
     scorecardActionLabel: "Open pilot scorecard",
     humanText: humanLines.join("\n"),
     jsonText,
@@ -3232,6 +3381,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [pilotWeekOneReviewMode, setPilotWeekOneReviewMode] = useState<PlaybookExportMode>("human");
   const [pilotEvidencePackOpen, setPilotEvidencePackOpen] = useState(false);
   const [pilotEvidencePackMode, setPilotEvidencePackMode] = useState<PlaybookExportMode>("human");
+  const [founderBatchReviewOpen, setFounderBatchReviewOpen] = useState(false);
+  const [founderBatchReviewMode, setFounderBatchReviewMode] = useState<PlaybookExportMode>("human");
   const [pilotMessagePreviewOpen, setPilotMessagePreviewOpen] = useState(false);
   const [pilotMessagePreviewMode, setPilotMessagePreviewMode] = useState<PlaybookExportMode>("human");
   const [pilotOperatorConfirmationOpen, setPilotOperatorConfirmationOpen] = useState(false);
@@ -3322,7 +3473,7 @@ const LocalServicesDispatchDemoPanel = ({
       }),
     [allPilotProspects, pilotWorkspaceState.statusByProspectKey],
   );
-  const founderContactRows = useMemo(
+  const founderContactRows = useMemo<LocalServiceFounderContactRow[]>(
     () =>
       pilotFunnelRows.slice(0, 10).map((row) => {
         const proof = pilotWorkspaceState.contactProofByProspectKey[row.key] ?? {};
@@ -3419,6 +3570,13 @@ const LocalServicesDispatchDemoPanel = ({
         `${index + 1}. ${row.prospect.company} | ${row.serviceTitle} | ${row.statusLabel} | ${row.proofStatus} | next: ${row.prospect.nextStep}`,
     ),
   ].join("\n");
+  const founderBatchReviewExport = buildLocalServiceFounderBatchReviewExport(
+    founderContactRows,
+    founderContactCounts,
+    founderProofChecklist,
+    founderProofProgress,
+    pilotWorkspaceState.activityLog,
+  );
   const filteredPilotFunnelRows = useMemo(
     () =>
       pilotFunnelRows.filter((row) => {
@@ -4599,6 +4757,17 @@ const LocalServicesDispatchDemoPanel = ({
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    setFounderBatchReviewMode("human");
+                    setFounderBatchReviewOpen(true);
+                  }}
+                  className="h-7"
+                >
+                  Open batch review
+                </Button>
                 <Button
                   size="sm"
                   variant="secondary"
@@ -5970,6 +6139,16 @@ const LocalServicesDispatchDemoPanel = ({
         onCopy={onCopyText}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_PILOT_RUNBOOK_PATH)}
+      />
+      <LocalServicePilotWorkspaceExportDrawer
+        open={founderBatchReviewOpen}
+        onOpenChange={setFounderBatchReviewOpen}
+        exportView={founderBatchReviewExport}
+        mode={founderBatchReviewMode}
+        onModeChange={setFounderBatchReviewMode}
+        onCopy={onCopyText}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+        onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH)}
       />
       <LocalServicePilotMessagePreviewSheet
         open={pilotMessagePreviewOpen}

@@ -154,8 +154,9 @@ status. It is not CRM, outreach send, booking, billing, analytics, or public
 customer-data storage.
 Use the in-app `First 10 contacts workspace` for the same validation pass when
 you need a live browser-local view. `Pilot proof checklist` shows whether the
-first batch has enough proof to continue, and `Copy founder workspace` exports
-only a redacted manual summary.
+first batch has enough proof to continue, `Open batch review` opens the `First
+contact batch review drawer`, and `Copy batch review` / `Copy founder workspace`
+exports only a redacted manual summary.
 Use `Open offer doc`, `Open demo script`, and `Open recording checklist` to
 open the repo-owned pilot artifacts without leaving the local frontend server.
 The recording checklist is the safe 90-second walkthrough plan; it avoids claims
