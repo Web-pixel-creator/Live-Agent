@@ -8,6 +8,12 @@ a private spreadsheet or CRM, then copy only safe summaries here.
 This log is not a CRM, not an outreach sender, not a booking system, and not a
 customer-data store.
 
+The product shell mirrors this worksheet in `First 10 contacts workspace` on
+`/app?demo=local-services-dispatch&service=ac-repair-dispatch`. That in-app
+workspace stores only browser-local proof markers in
+`liveDesk:localServicesPilotWorkspace:v1`; it does not send outreach, create
+bookings, write CRM, sync analytics, bill, or mutate this Markdown file.
+
 ## Goal
 
 Contact 10 real companies manually and decide whether `AI Dispatcher for Local

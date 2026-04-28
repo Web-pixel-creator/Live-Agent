@@ -201,6 +201,10 @@ The same support layer now exposes `Open founder execution log` and
 first-10-contact worksheet for real pilot evidence capture. It stays outside
 autonomous send, CRM, calendar, billing, analytics, and public customer-data
 storage.
+The product shell now mirrors that worksheet with an in-app `First 10 contacts
+workspace`, `Pilot proof checklist`, and `Copy founder workspace`. This is the
+current simplification target: prove demand through 10 manual contacts before
+adding more integrations.
 
 ## Success Criteria
 

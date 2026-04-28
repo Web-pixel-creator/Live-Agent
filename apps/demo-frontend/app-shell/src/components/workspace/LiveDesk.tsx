@@ -558,7 +558,14 @@ type LocalServicePilotStatus =
   | "rejected_for_now";
 
 type LocalServicePilotMetricStatus = "not_started" | "baseline_captured" | "tracking_live" | "review_ready";
-type LocalServicePilotActivityKind = "status_change" | "metric_change";
+type LocalServiceFounderContactField =
+  | "channelChecked"
+  | "manualMessageSent"
+  | "discoveryCallCompleted"
+  | "demoBooked"
+  | "pilotCandidate";
+type LocalServiceFounderContactProof = Partial<Record<LocalServiceFounderContactField, boolean>>;
+type LocalServicePilotActivityKind = "status_change" | "metric_change" | "contact_proof";
 type LocalServicePilotActivityEvent = {
   id: string;
   kind: LocalServicePilotActivityKind;
@@ -579,6 +586,7 @@ type LocalServicePilotWorkspaceState = {
   setupReadyByService: Record<string, boolean>;
   testCallChecklistByService: Record<string, LocalServiceTestCallChecklistState>;
   testCallPassedByService: Record<string, boolean>;
+  contactProofByProspectKey: Record<string, LocalServiceFounderContactProof>;
   activityLog: LocalServicePilotActivityEvent[];
 };
 
@@ -702,6 +710,13 @@ const LOCAL_SERVICE_PILOT_METRIC_STATUS_ACTIONS: { status: LocalServicePilotMetr
   { status: "tracking_live", label: "Mark tracking live" },
   { status: "review_ready", label: "Mark review ready" },
 ];
+const LOCAL_SERVICE_FOUNDER_CONTACT_FIELD_LABELS: Record<LocalServiceFounderContactField, string> = {
+  channelChecked: "Channel checked",
+  manualMessageSent: "Manual sent",
+  discoveryCallCompleted: "Discovery call",
+  demoBooked: "Demo booked",
+  pilotCandidate: "Pilot candidate",
+};
 const LOCAL_SERVICE_SETUP_READY_STEP_ID: LocalServiceSetupStepId = "ready_for_pilot_test";
 const LOCAL_SERVICE_TEST_CALL_CHECK_IDS: LocalServiceTestCallCheckId[] = [
   "sample_input_reviewed",
@@ -730,7 +745,7 @@ function isLocalServicePilotMetricStatus(value: unknown): value is LocalServiceP
 }
 
 function isLocalServicePilotActivityKind(value: unknown): value is LocalServicePilotActivityKind {
-  return value === "status_change" || value === "metric_change";
+  return value === "status_change" || value === "metric_change" || value === "contact_proof";
 }
 
 function isLocalServiceSetupStepId(value: unknown): value is LocalServiceSetupStepId {
@@ -826,6 +841,25 @@ function readTestCallChecklistByService(value: unknown): Record<string, LocalSer
   );
 }
 
+function readFounderContactProofByProspectKey(value: unknown): Record<string, LocalServiceFounderContactProof> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter((entry): entry is [string, Record<string, unknown>] =>
+        Boolean(entry[1]) && typeof entry[1] === "object" && !Array.isArray(entry[1]),
+      )
+      .map(([prospectKey, proof]) => [
+        prospectKey,
+        Object.fromEntries(
+          Object.entries(proof).filter(
+            (entry): entry is [LocalServiceFounderContactField, boolean] =>
+              entry[0] in LOCAL_SERVICE_FOUNDER_CONTACT_FIELD_LABELS && typeof entry[1] === "boolean",
+          ),
+        ),
+      ]),
+  );
+}
+
 function readPilotActivityLog(value: unknown): LocalServicePilotActivityEvent[] {
   if (!Array.isArray(value)) return [];
   return value
@@ -880,6 +914,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
     setupReadyByService: {},
     testCallChecklistByService: {},
     testCallPassedByService: {},
+    contactProofByProspectKey: {},
     activityLog: [],
   };
   if (typeof window === "undefined") {
@@ -899,6 +934,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
       setupReadyByService: readBooleanRecord(parsed.setupReadyByService),
       testCallChecklistByService: readTestCallChecklistByService(parsed.testCallChecklistByService),
       testCallPassedByService: readBooleanRecord(parsed.testCallPassedByService),
+      contactProofByProspectKey: readFounderContactProofByProspectKey(parsed.contactProofByProspectKey),
       activityLog: readPilotActivityLog(parsed.activityLog),
     };
   } catch {
@@ -3286,6 +3322,103 @@ const LocalServicesDispatchDemoPanel = ({
       }),
     [allPilotProspects, pilotWorkspaceState.statusByProspectKey],
   );
+  const founderContactRows = useMemo(
+    () =>
+      pilotFunnelRows.slice(0, 10).map((row) => {
+        const proof = pilotWorkspaceState.contactProofByProspectKey[row.key] ?? {};
+        const manualMessageSent =
+          proof.manualMessageSent === true || row.status === "contacted_manually" || row.status === "reply_received";
+        const channelChecked = proof.channelChecked === true || manualMessageSent || row.status !== "not_contacted";
+        const discoveryCallCompleted = proof.discoveryCallCompleted === true;
+        const demoBooked = proof.demoBooked === true;
+        const pilotCandidate = proof.pilotCandidate === true;
+        const proofStatus = pilotCandidate
+          ? "Pilot candidate"
+          : demoBooked
+            ? "Demo booked"
+            : discoveryCallCompleted
+              ? "Discovery call done"
+              : row.status === "reply_received"
+                ? "Reply captured"
+                : row.status === "rejected_for_now"
+                  ? "Clear rejection"
+                  : manualMessageSent
+                    ? "Manual send logged"
+                    : channelChecked
+                      ? "Channel checked"
+                      : "No proof yet";
+        return {
+          ...row,
+          channelChecked,
+          manualMessageSent,
+          discoveryCallCompleted,
+          demoBooked,
+          pilotCandidate,
+          proofStatus,
+        };
+      }),
+    [pilotFunnelRows, pilotWorkspaceState.contactProofByProspectKey],
+  );
+  const founderContactCounts = useMemo(
+    () => ({
+      channelChecked: founderContactRows.filter((row) => row.channelChecked).length,
+      manualMessageSent: founderContactRows.filter((row) => row.manualMessageSent).length,
+      repliesOrRejections: founderContactRows.filter(
+        (row) => row.status === "reply_received" || row.status === "rejected_for_now",
+      ).length,
+      discoveryCalls: founderContactRows.filter((row) => row.discoveryCallCompleted).length,
+      demosBooked: founderContactRows.filter((row) => row.demoBooked).length,
+      pilotCandidates: founderContactRows.filter((row) => row.pilotCandidate).length,
+    }),
+    [founderContactRows],
+  );
+  const founderReviewReadyServices = LOCAL_SERVICE_DEMO_TEMPLATES.filter(
+    (template) => (pilotWorkspaceState.metricStatusByService[template.id] ?? "not_started") === "review_ready",
+  ).length;
+  const founderProofChecklist = [
+    {
+      label: "10 manual contacts attempted",
+      status: `${founderContactCounts.manualMessageSent}/10 manual sends logged`,
+      done: founderContactCounts.manualMessageSent >= 10,
+    },
+    {
+      label: "3 replies or clear rejections",
+      status: `${founderContactCounts.repliesOrRejections}/3 replies or rejections`,
+      done: founderContactCounts.repliesOrRejections >= 3,
+    },
+    {
+      label: "1 discovery call completed",
+      status: `${founderContactCounts.discoveryCalls}/1 discovery call`,
+      done: founderContactCounts.discoveryCalls >= 1,
+    },
+    {
+      label: "1 pilot candidate found",
+      status: `${founderContactCounts.pilotCandidates}/1 candidate`,
+      done: founderContactCounts.pilotCandidates >= 1,
+    },
+    {
+      label: "Week-one review ready",
+      status: `${founderReviewReadyServices}/${LOCAL_SERVICE_DEMO_TEMPLATES.length} service lanes ready`,
+      done: founderReviewReadyServices > 0,
+    },
+  ];
+  const founderProofProgress = `${founderProofChecklist.filter((item) => item.done).length}/${founderProofChecklist.length}`;
+  const founderContactWorkspaceText = [
+    "local_services_founder_contact_workspace",
+    `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
+    "Manual-only worksheet. No outbound send, CRM write, calendar event, billing action, analytics sync, or Markdown mutation.",
+    `Proof progress: ${founderProofProgress}`,
+    `Manual sends logged: ${founderContactCounts.manualMessageSent}/10`,
+    `Replies or clear rejections: ${founderContactCounts.repliesOrRejections}/3`,
+    `Discovery calls: ${founderContactCounts.discoveryCalls}/1`,
+    `Pilot candidates: ${founderContactCounts.pilotCandidates}/1`,
+    "",
+    "First 10 contacts:",
+    ...founderContactRows.map(
+      (row, index) =>
+        `${index + 1}. ${row.prospect.company} | ${row.serviceTitle} | ${row.statusLabel} | ${row.proofStatus} | next: ${row.prospect.nextStep}`,
+    ),
+  ].join("\n");
   const filteredPilotFunnelRows = useMemo(
     () =>
       pilotFunnelRows.filter((row) => {
@@ -3540,24 +3673,43 @@ const LocalServicesDispatchDemoPanel = ({
     }
   }, [pilotWorkspaceState]);
 
-  const updatePilotWorkspaceStatus = (status: LocalServicePilotStatus) => {
+  const updatePilotWorkspaceStatusForTarget = (
+    target: {
+      key: string;
+      serviceId: string;
+      serviceTitle: string;
+      prospect?: LocalServiceOutreachProspect;
+    },
+    status: LocalServicePilotStatus,
+  ) => {
     const nextStatusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[status];
     setPilotWorkspaceState((prev) => ({
       ...prev,
       statusByProspectKey: {
         ...prev.statusByProspectKey,
-        [scorecardDraftKey]: status,
+        [target.key]: status,
       },
       activityLog: appendLocalServicePilotActivity(prev.activityLog, {
         kind: "status_change",
         label: "Pilot status recorded",
         value: nextStatusLabel,
-        serviceId: selectedTemplate.id,
-        serviceTitle: selectedTemplate.title,
-        prospectId: selectedOutreachProspect?.id,
-        company: selectedOutreachProspect?.company,
+        serviceId: target.serviceId,
+        serviceTitle: target.serviceTitle,
+        prospectId: target.prospect?.id,
+        company: target.prospect?.company,
       }),
     }));
+  };
+  const updatePilotWorkspaceStatus = (status: LocalServicePilotStatus) => {
+    updatePilotWorkspaceStatusForTarget(
+      {
+        key: scorecardDraftKey,
+        serviceId: selectedTemplate.id,
+        serviceTitle: selectedTemplate.title,
+        prospect: selectedOutreachProspect,
+      },
+      status,
+    );
   };
   const recordReadyForManualOutreach = () => updatePilotWorkspaceStatus("draft_ready");
 
@@ -3579,6 +3731,43 @@ const LocalServicesDispatchDemoPanel = ({
         company: selectedOutreachProspect?.company,
       }),
     }));
+  };
+  const updateFounderContactProof = (
+    row: LocalServicePilotFunnelRow,
+    field: LocalServiceFounderContactField,
+    checked: boolean,
+  ) => {
+    const fieldLabel = LOCAL_SERVICE_FOUNDER_CONTACT_FIELD_LABELS[field];
+    setPilotWorkspaceState((prev) => {
+      const currentProof = prev.contactProofByProspectKey[row.key] ?? {};
+      const nextStatusByProspectKey = { ...prev.statusByProspectKey };
+      if (field === "manualMessageSent" && checked) {
+        const currentStatus = nextStatusByProspectKey[row.key] ?? "not_contacted";
+        if (currentStatus === "not_contacted" || currentStatus === "draft_ready") {
+          nextStatusByProspectKey[row.key] = "contacted_manually";
+        }
+      }
+      return {
+        ...prev,
+        statusByProspectKey: nextStatusByProspectKey,
+        contactProofByProspectKey: {
+          ...prev.contactProofByProspectKey,
+          [row.key]: {
+            ...currentProof,
+            [field]: checked,
+          },
+        },
+        activityLog: appendLocalServicePilotActivity(prev.activityLog, {
+          kind: "contact_proof",
+          label: "Founder proof recorded",
+          value: `${fieldLabel}: ${checked ? "yes" : "no"}`,
+          serviceId: row.serviceId,
+          serviceTitle: row.serviceTitle,
+          prospectId: row.prospect.id,
+          company: row.prospect.company,
+        }),
+      };
+    });
   };
   const updateSetupStepCompletion = (stepId: LocalServiceSetupStepId, complete: boolean) => {
     setPilotWorkspaceState((prev) => {
@@ -4390,6 +4579,186 @@ const LocalServicesDispatchDemoPanel = ({
                     </button>
                   ))
                 )}
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-3"
+            aria-label="First 10 contacts workspace"
+          >
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                  <PhoneCall className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  First 10 contacts workspace
+                </div>
+                <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground max-w-3xl">
+                  Browser-local worksheet for the first real Tashkent pilot attempts. It records proof posture only:
+                  channel checked, manual send, reply/rejection, discovery call, demo booking, and pilot candidate.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => onCopyText(founderContactWorkspaceText, "Founder contact workspace copied")}
+                  className="h-7"
+                >
+                  Copy founder workspace
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onOpenPath(LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH)}
+                  className="h-7"
+                >
+                  Open founder execution log
+                </Button>
+                <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                  Proof progress {founderProofProgress}
+                </span>
+                <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                  Manual-only worksheet
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
+              {[
+                { label: "Channel checked", value: `${founderContactCounts.channelChecked}/10` },
+                { label: "Manual sent", value: `${founderContactCounts.manualMessageSent}/10` },
+                { label: "Replies / rejections", value: `${founderContactCounts.repliesOrRejections}/3` },
+                { label: "Discovery calls", value: `${founderContactCounts.discoveryCalls}/1` },
+                { label: "Demos booked", value: `${founderContactCounts.demosBooked}/1` },
+                { label: "Pilot candidates", value: `${founderContactCounts.pilotCandidates}/1` },
+              ].map((item) => (
+                <div key={item.label} className="rounded-md border border-border/50 bg-card/25 px-3 py-2.5">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    {item.label}
+                  </div>
+                  <div className="mt-1 font-mono text-[18px] text-foreground">{item.value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1.25fr)_minmax(300px,0.75fr)]">
+              <div className="rounded-md border border-border/50 bg-card/25 px-3 py-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                      First 10 manual contacts
+                    </div>
+                    <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                      Mark only what happened outside the product. These buttons update browser-local state and activity
+                      log only.
+                    </p>
+                  </div>
+                  <span className="inline-flex w-fit rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                    No outbound side effect
+                  </span>
+                </div>
+
+                <div className="mt-3 grid gap-2">
+                  {founderContactRows.map((row, index) => (
+                    <div key={row.key} className="rounded-md border border-border/50 bg-background/35 px-3 py-2.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-[5px] bg-secondary/45 px-1.5 font-mono text-[10px] text-muted-foreground">
+                          {index + 1}
+                        </span>
+                        <span className="text-[12px] font-semibold text-foreground">{row.prospect.company}</span>
+                        <span className="rounded-[5px] bg-secondary/45 px-2 py-0.5 text-[10px] text-muted-foreground">
+                          {row.serviceTitle}
+                        </span>
+                        <span className="rounded-[5px] bg-card/45 px-2 py-0.5 text-[10px] text-muted-foreground">
+                          {row.prospect.segment}
+                        </span>
+                        <span className="ml-auto rounded-[5px] bg-[hsl(var(--tint-mint)/0.12)] px-2 py-0.5 text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.22)]">
+                          {row.proofStatus}
+                        </span>
+                      </div>
+                      <div className="mt-2 grid gap-2 text-[11px] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
+                        <div className="rounded-[5px] bg-card/30 px-2 py-1.5">
+                          <span className="text-muted-foreground">Next action: </span>
+                          <span className="text-foreground">{row.prospect.nextStep}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(
+                            [
+                              ["channelChecked", row.channelChecked],
+                              ["manualMessageSent", row.manualMessageSent],
+                              ["discoveryCallCompleted", row.discoveryCallCompleted],
+                              ["demoBooked", row.demoBooked],
+                              ["pilotCandidate", row.pilotCandidate],
+                            ] as [LocalServiceFounderContactField, boolean][]
+                          ).map(([field, checked]) => (
+                            <Button
+                              key={field}
+                              size="sm"
+                              variant={checked ? "default" : "secondary"}
+                              onClick={() => updateFounderContactProof(row, field, !checked)}
+                              className="h-7"
+                            >
+                              {LOCAL_SERVICE_FOUNDER_CONTACT_FIELD_LABELS[field]}
+                            </Button>
+                          ))}
+                          <Button
+                            size="sm"
+                            variant={row.status === "reply_received" ? "default" : "secondary"}
+                            onClick={() => updatePilotWorkspaceStatusForTarget(row, "reply_received")}
+                            className="h-7"
+                          >
+                            Reply
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={row.status === "rejected_for_now" ? "default" : "secondary"}
+                            onClick={() => updatePilotWorkspaceStatusForTarget(row, "rejected_for_now")}
+                            className="h-7"
+                          >
+                            Rejected
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-md border border-border/50 bg-card/25 px-3 py-3">
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                  <ClipboardCheck className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  Pilot proof checklist
+                </div>
+                <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground">
+                  Stop building if this list does not move after 10 targeted manual contacts. Continue only when real
+                  owner pain appears.
+                </p>
+                <div className="mt-3 grid gap-2">
+                  {founderProofChecklist.map((item) => {
+                    const ProofIcon = item.done ? CheckCircle2 : Clock;
+                    return (
+                      <div key={item.label} className="rounded-md border border-border/50 bg-background/35 px-3 py-2">
+                        <div className="flex items-start gap-2">
+                          <ProofIcon
+                            className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${
+                              item.done ? "text-[hsl(var(--tint-mint-fg))]" : "text-muted-foreground"
+                            }`}
+                            strokeWidth={1.8}
+                          />
+                          <div className="min-w-0">
+                            <div className="text-[12px] font-semibold text-foreground">{item.label}</div>
+                            <div className="mt-1 font-mono text-[10px] text-muted-foreground">{item.status}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-3 rounded-md bg-secondary/35 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+                  Manual execution rule: this workspace does not send outreach, create bookings, write CRM, sync
+                  analytics, bill, or mutate Markdown docs.
+                </div>
               </div>
             </div>
           </div>

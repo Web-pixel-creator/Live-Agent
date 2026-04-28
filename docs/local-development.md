@@ -110,12 +110,18 @@ automation.
 It is a redacted first-10-contact worksheet for real pilot evidence capture;
 it does not send outreach, write CRM, book calendars, bill, sync analytics, or
 store private customer data in public docs.
-3.12. Append `&recording=90s` to the local-services route to enter
+3.12. The same route now includes `First 10 contacts workspace`, `Pilot proof
+checklist`, `Copy founder workspace`, `Channel checked`, `Manual sent`,
+`Discovery call`, `Demo booked`, and `Pilot candidate`. These controls update
+only `liveDesk:localServicesPilotWorkspace:v1` in browser-local state and the
+manual activity log; they do not send outreach, create bookings, write CRM,
+sync analytics, bill, or mutate Markdown docs.
+3.13. Append `&recording=90s` to the local-services route to enter
 `90-second recording mode`. The route is
 `http://localhost:3000/app?demo=local-services-dispatch&service=ac-repair-dispatch&recording=90s`.
 The shell shows `Recording path` and hides the outreach table and scorecard
 controls during recording.
-3.13. Append `&setup=7min` to the local-services route to enter
+3.14. Append `&setup=7min` to the local-services route to enter
 `7-minute setup wizard`. The route is
 `http://localhost:3000/app?demo=local-services-dispatch&service=ac-repair-dispatch&setup=7min`.
 The shell shows `Setup path`, `Open setup checklist`, `Open day-one setup`, and

@@ -732,6 +732,12 @@ It also opens `/workspace-docs/local-services-founder-execution-log.md` through
 `Open founder execution log`. This is a redacted first-10-contact worksheet for
 real pilot evidence capture, not CRM, outreach send, booking, billing, or public
 customer-data storage.
+The normal local-services route now mirrors that worksheet directly in the
+operator shell with `First 10 contacts workspace`, `Pilot proof checklist`, and
+`Copy founder workspace`. The controls are browser-local proof markers for
+channel check, manual send, discovery call, demo booking, and pilot candidate;
+they do not send outreach, create bookings, write CRM, sync analytics, bill, or
+mutate Markdown docs.
 The real 14-day pilot execution sequence now lives in
 `docs/local-services-pilot-runbook.md` and is served locally at
 `/workspace-docs/local-services-pilot-runbook.md`. It stays outside the product
@@ -904,24 +910,29 @@ Current shell readiness for P3:
 28. `/workspace-docs/local-services-founder-execution-log.md` resolves to the
    repo-owned redacted first-10-contact worksheet from the same local frontend
    server.
-29. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
+29. `First 10 contacts workspace`, `Pilot proof checklist`, `Copy founder
+   workspace`, `Channel checked`, `Manual sent`, `Discovery call`, `Demo booked`,
+   and `Pilot candidate` are visible as browser-local validation controls.
+30. `contactProofByProspectKey` and `Founder proof recorded` are present in the
+   browser-local pilot workspace contract, without any external side effect.
+31. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
    14-day pilot runbook from the same local frontend server.
-30. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
+32. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
    repo-owned first-contact execution pack from the same local frontend server.
-31. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
+33. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
    the repo-owned 90-second recording checklist from the same local frontend
    server.
-32. `?recording=90s`, `90-second recording mode`, `Recording path`, and
+34. `?recording=90s`, `90-second recording mode`, `Recording path`, and
    `90s recording` are visible as the demo-recording posture, and outreach
    tables plus scorecard controls are hidden during recording.
-33. `?setup=7min`, `7-minute setup wizard`, `Setup path`, and `7-min setup`
+35. `?setup=7min`, `7-minute setup wizard`, `Setup path`, and `7-min setup`
    are visible as the setup-first posture, and outreach tables plus scorecard
    controls are hidden while setup mode is active.
-34. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
+36. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
    `Saved setup state`, `Mark complete`, `Mark ready for pilot test`,
    `Ready for pilot test`, and `Reset setup progress` are visible as the
    stateful setup checklist contract.
-35. Actual external execution still remains outside the shell: recorded video,
+37. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path

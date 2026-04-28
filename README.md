@@ -216,6 +216,10 @@ Local-services expansion spec:
   `/workspace-docs/local-services-founder-execution-log.md`, a redacted
   first-10-contact worksheet for real pilot evidence capture; it is not CRM,
   outreach send, booking, billing, or public customer-data storage.
+- the `/app?demo=local-services-dispatch&service=ac-repair-dispatch` shell now
+  also exposes `First 10 contacts workspace`, `Pilot proof checklist`, and
+  `Copy founder workspace` so the first manual validation batch can be tracked
+  in browser-local state before touching private CRM or spreadsheets.
 - real pilot execution is now guided by `docs/local-services-pilot-runbook.md`;
   it defines day-minus-one prep, manual outreach, discovery calls, pilot setup,
   daily metrics, week-one review, week-two review, and the evidence pack.

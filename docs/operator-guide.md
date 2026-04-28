@@ -203,6 +203,11 @@ moves from positioning into real pilot execution. The founder execution log is
 served at `/workspace-docs/local-services-founder-execution-log.md`; it is a
 redacted first-10-contact worksheet, not CRM, outreach send, booking, billing,
 analytics, or public customer-data storage.
+Use the in-app `First 10 contacts workspace` before private spreadsheets when
+the founder is validating demand. It shows `Pilot proof checklist`, `Copy
+founder workspace`, and browser-local proof buttons for channel check, manual
+send, discovery call, demo booking, and pilot candidate. It is still manual-only
+and must not be treated as proof of external delivery.
 Use `docs/local-services-pilot-runbook.md` for the actual 14-day operating
 sequence: day-minus-one prep, manual outreach, discovery call, pilot setup,
 daily metric capture, week-one review, week-two review, and evidence pack. It
