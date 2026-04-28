@@ -104,8 +104,10 @@ Use it to:
 15. click `Record ready for manual outreach` to mark `Draft ready` locally
 16. open `Ask AI about pilot` if the operator needs `Suggested questions`,
    `Best candidate`, `Bottleneck`, or `Next message`
-17. keep real outreach manual-only until a human sends the message outside the shell
-18. open `Open founder execution log` when the operator needs the redacted
+17. record `First request outcome` after the first operator-supervised request:
+   `Qualified`, `Needs follow-up`, `Rejected`, or `Booked manually`
+18. keep real outreach manual-only until a human sends the message outside the shell
+19. open `Open founder execution log` when the operator needs the redacted
     first-10-contact worksheet before updating private pilot evidence
 
 This shell action is intentionally local to the demo session. It does not send a
@@ -129,6 +131,18 @@ These are operator notes only. `Contacted manually` means the operator says they
 contacted the company outside the shell; it is not evidence that the product sent
 anything.
 
+Stored first-request outcome values:
+
+1. `Qualified`
+2. `Needs follow-up`
+3. `Rejected`
+4. `Booked manually`
+
+The shell labels this as `Manual outcome state` and stores it in
+`firstRequestOutcomeByProspectKey`. It is only a browser-local note for the
+operator. It does not create a booking, write CRM, send a customer message, or
+mutate this Markdown scorecard.
+
 The shell also shows a `Pilot funnel summary` for all candidates in the
 outreach list. Use it to see:
 
@@ -138,7 +152,7 @@ outreach list. Use it to see:
 4. `Outreach list filters`
 5. `Column settings`
 6. `Filtered outreach list`
-4. the current manual execution rule
+7. the current manual execution rule
 
 `Open pilot export` opens the `Pilot workspace export drawer`. Use
 `Human-readable` when manually updating this scorecard and `JSON` when pasting

@@ -99,6 +99,11 @@ It now continues into `Pilot scorecard action`: select a company from the
 repo-owned outreach list, review the message, and `Record scorecard draft` as a
 demo-session `Not contacted` entry. This gives the operator a real next action
 without creating an external send or CRM write.
+The same scorecard card now includes `First request outcome` and
+`Manual outcome state`: `Qualified`, `Needs follow-up`, `Rejected`, and
+`Booked manually` are stored in `firstRequestOutcomeByProspectKey` only. This
+keeps the pilot loop concrete without creating a booking, CRM write, or
+Markdown scorecard mutation.
 That state is now persisted in browser `localStorage` with
 `liveDesk:localServicesPilotWorkspace:v1`, covering the selected outreach
 candidate and the operator-only statuses `Draft ready`, `Contacted manually`,

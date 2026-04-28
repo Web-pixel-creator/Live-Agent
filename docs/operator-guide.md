@@ -154,6 +154,11 @@ lane-specific company from the outreach list, inspect the `Test message preview`
 and `Record scorecard draft` as `Not contacted`. This records demo-session
 intent only; real outreach still requires manual operator action outside the
 shell.
+The same card now has `First request outcome` / `Manual outcome state`: choose
+`Qualified`, `Needs follow-up`, `Rejected`, or `Booked manually` after the first
+operator-supervised request. The value is stored only in
+`firstRequestOutcomeByProspectKey`; it does not create bookings, write CRM, or
+mutate the Markdown scorecard.
 The selected company and pilot status are persisted in browser `localStorage`
 under `liveDesk:localServicesPilotWorkspace:v1`. Use the status buttons only as
 operator notes: `Draft ready`, `Contacted manually`, `Reply received`, and

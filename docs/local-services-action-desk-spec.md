@@ -646,6 +646,11 @@ operator selects a company from the repo-owned outreach list, inspects the test
 message, and clicks `Record scorecard draft`. The draft is intentionally local
 to the demo session and remains `Not contacted` until a human performs outreach
 outside the product shell.
+The same card now records a browser-local first request outcome. `First request
+outcome`, `Manual outcome state`, `Qualified`, `Needs follow-up`, `Rejected`,
+`Booked manually`, and `firstRequestOutcomeByProspectKey` let the operator close
+the first manual request without creating a booking, writing CRM, or mutating
+the Markdown scorecard.
 The shell now persists that pilot workspace state in browser `localStorage`
 under `liveDesk:localServicesPilotWorkspace:v1`. It stores the selected
 candidate per local-services lane and the operator-only status per
@@ -885,130 +890,134 @@ Current shell readiness for P3:
    `Pilot workspace state`, `Saved in this browser`, `Contacted manually`,
    `Reply received`, `Rejected for now`, and `No outbound message sent` are
    visible in the shell-level wizard.
-13. `Pilot funnel summary`, `All candidates`, per-status counts, `Next manual
+13. `First request outcome`, `Manual outcome state`, `Qualified`,
+   `Needs follow-up`, `Rejected`, `Booked manually`, and
+   `firstRequestOutcomeByProspectKey` are visible as the browser-local outcome
+   state contract.
+14. `Pilot funnel summary`, `All candidates`, per-status counts, `Next manual
    batch`, and `Manual execution rule` are visible in the shell.
-14. `Outreach list filters`, `Column settings`, `Service filter`,
+15. `Outreach list filters`, `Column settings`, `Service filter`,
    `Status filter`, `Filtered candidates`, `Filtered outreach list`,
    `All services`, `All statuses`, `Clear filters`, and `View only, no send`
    are visible in the shell as view-only pilot list controls.
-15. `Open intake evidence`, `Transcript + evidence`, `Saved intake evidence`,
+16. `Open intake evidence`, `Transcript + evidence`, `Saved intake evidence`,
    `Intake transcript + evidence link`, `Transcript preview`,
    `Copy intake evidence`, `local_services_intake_evidence`, and
    `transcript_evidence_link` are visible as the P2 proof surface.
-16. `Pilot execution checklist`, `Pass test call/message`,
+17. `Pilot execution checklist`, `Pass test call/message`,
    `Needs test call passed`, `Prepare first manual batch`,
    `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
    `Book discovery call`, `Start metric capture`, `Founder/operator validation`,
    `No autonomous send`, `Open pilot runbook`, `Pilot checklist progress`,
    `Dry run required`, `Dry run passed`, `Manual launch blocked`, and
    `Manual launch ready` are visible as the 14-day manual pilot operating loop.
-17. `Open launch packet`, `Pilot launch packet`, `Launch packet preview`,
+18. `Open launch packet`, `Pilot launch packet`, `Launch packet preview`,
    `First manual contact checklist`, `Launch readiness`, `Dry-run gate`,
    `Selected company`, `Draft status`, `Next action`, `Copy launch packet`,
    and `local_services_pilot_launch_packet` are visible as the first-contact
    launch packet. It remains manual-only: no outreach send, calendar event, CRM
    write, analytics sync, or Markdown mutation.
-18. `Manual activity log`, `Last manual action`, `Copy activity log`,
+19. `Manual activity log`, `Last manual action`, `Copy activity log`,
    `local_services_manual_activity_log`, and `No external side effects` are
    visible as the browser-local log for scorecard and metric events. It does
    not send outreach, create calendar events, write CRM, sync analytics, bill,
    or mutate Markdown docs.
-19. `Open discovery prep`, `Discovery call prep`, `Questions to ask`,
+20. `Open discovery prep`, `Discovery call prep`, `Questions to ask`,
    `Pilot success criteria`, `Copy discovery call prep`, and
    `local_services_discovery_call_prep` are visible as the manual discovery
    call preparation surface.
-20. `Open day-one setup`, `Day-one setup brief`, `Business profile lock`,
+21. `Open day-one setup`, `Day-one setup brief`, `Business profile lock`,
    `Setup tasks`, `Test call plan`, `Copy day-one setup brief`, and
    `local_services_day_one_setup_brief` are visible as the manual first-day
    setup handoff surface.
-21. `Open pilot export`, `Pilot workspace export drawer`, `Human-readable`,
+22. `Open pilot export`, `Pilot workspace export drawer`, `Human-readable`,
    `JSON`, and `Copy pilot workspace export` are visible in the shell.
-22. `Open metrics tracker`, `Pilot metrics tracker`, `Human-readable`, `JSON`,
+23. `Open metrics tracker`, `Pilot metrics tracker`, `Human-readable`, `JSON`,
    and `Copy pilot metrics tracker` are visible in the shell.
-23. `Open daily log`, `Pilot daily log`, `Daily capture fields`,
+24. `Open daily log`, `Pilot daily log`, `Daily capture fields`,
    `Daily operating loop`, `Copy pilot daily log`, and
    `local_services_pilot_daily_log` are visible in the shell.
-24. `Open week-one review`, `Pilot week-one review`,
+25. `Open week-one review`, `Pilot week-one review`,
    `Continue / stop decision`, `Copy week-one review`, and
    `local_services_pilot_week_one_review` are visible in the shell.
-25. `Open evidence pack`, `Pilot evidence pack`, `Week-two evidence pack`,
+26. `Open evidence pack`, `Pilot evidence pack`, `Week-two evidence pack`,
    `Copy evidence pack`, and `local_services_pilot_evidence_pack` are visible
    in the shell.
-26. `Open offer doc`, `Open demo script`, and `Open recording checklist`
+27. `Open offer doc`, `Open demo script`, and `Open recording checklist`
    resolve to the repo-owned pilot artifact documents from the same local
    frontend server.
-27. `Open outreach list`, `Open outreach execution pack`,
+28. `Open outreach list`, `Open outreach execution pack`,
    `Open pilot scorecard`, and `Open founder execution log` resolve to the
    repo-owned pilot execution documents from the same local frontend server.
-28. `/workspace-docs/local-services-founder-execution-log.md` resolves to the
+29. `/workspace-docs/local-services-founder-execution-log.md` resolves to the
    repo-owned redacted first-10-contact worksheet from the same local frontend
    server.
-29. `First 10 contacts workspace`, `Pilot proof checklist`,
+30. `First 10 contacts workspace`, `Pilot proof checklist`,
    `Stop / Continue decision gate`, `Keep collecting proof`,
    `Continue to pilot setup`, `Stop expansion for now`, `Open batch review`,
    `First contact batch review drawer`, `Copy batch review`,
    `Copy founder workspace`, `Channel checked`, `Manual sent`,
    `Discovery call`, `Demo booked`, and `Pilot candidate` are visible as
    browser-local validation controls.
-30. `Category pilot score`, `Leading category`,
+31. `Category pilot score`, `Leading category`,
    `No category expansion without proof`, `local_services_category_pilot_score`,
    and `category_pilot_score` are visible as the category validation contract.
-31. `Leading category action layer`, `Next manual batch`,
+32. `Leading category action layer`, `Next manual batch`,
    `Discovery questions`, `Pilot setup checklist`, `Integration hold`,
    `Focus leading category`, `local_services_leading_category_action_layer`,
    and `leading_category_action_layer` are visible as the category next-action
    contract.
-32. `Pilot setup readiness`, `Paid pilot gate`,
+33. `Pilot setup readiness`, `Paid pilot gate`,
    `Ready for first paid pilot`, `Not ready for paid pilot`,
    `local_services_pilot_setup_readiness`, and `pilot_setup_readiness` are
    visible as the first paid pilot readiness contract.
-33. `Readiness action plan`, `Continue setup/test path`,
+34. `Readiness action plan`, `Continue setup/test path`,
    `Copy readiness action plan`, `local_services_readiness_action_plan`, and
    `readiness_action_plan` are visible as the blocker-specific operator action
    contract.
-34. `Open proof drawer`, `Readiness proof drawer`, `Copy readiness proof`,
+35. `Open proof drawer`, `Readiness proof drawer`, `Copy readiness proof`,
    `local_services_readiness_proof_drawer`, and `readiness_evidence_view` are
    visible as the compact readiness evidence contract.
-35. `Open proposal preview`, `Paid pilot proposal preview`,
+36. `Open proposal preview`, `Paid pilot proposal preview`,
    `Copy proposal preview`, `local_services_paid_pilot_proposal_preview`, and
    `operator_approved_proposal_preview` are visible as the gated paid-pilot
    proposal contract.
-36. `Open approval handoff`, `Proposal approval handoff`,
+37. `Open approval handoff`, `Proposal approval handoff`,
    `Copy approval handoff`, `local_services_proposal_approval_handoff`, and
    `manual_paid_pilot_approval_handoff` are visible as the manual paid-pilot
    approval handoff contract.
-37. `Open kickoff gate`, `Pilot kickoff gate`, `Copy kickoff gate`,
+38. `Open kickoff gate`, `Pilot kickoff gate`, `Copy kickoff gate`,
    `local_services_pilot_kickoff_gate`, and `manual_day_one_kickoff_gate` are
    visible as the manual day-one kickoff gate contract.
-38. `Open run sheet`, `Day-one operator run sheet`, `Copy run sheet`,
+39. `Open run sheet`, `Day-one operator run sheet`, `Copy run sheet`,
    `local_services_day_one_operator_run_sheet`, and
    `manual_day_one_operator_run_sheet` are visible as the first-day operator
    worksheet contract.
-39. `day_one_run_sheet_outcome_capture`, `Open daily log`, and
+40. `day_one_run_sheet_outcome_capture`, `Open daily log`, and
    `Pilot daily log` are visible as the run-sheet outcome capture contract.
-40. `contactProofByProspectKey` and `Founder proof recorded` are present in the
+41. `contactProofByProspectKey` and `Founder proof recorded` are present in the
    browser-local pilot workspace contract, without any external side effect.
-41. `local_services_first_contact_batch_review`, `founder_manual_validation_review`,
+42. `local_services_first_contact_batch_review`, `founder_manual_validation_review`,
    and `no_booking_created` are present in the first-batch review export
    contract.
-42. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
+43. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
    14-day pilot runbook from the same local frontend server.
-43. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
+44. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
    repo-owned first-contact execution pack from the same local frontend server.
-44. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
+45. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
    the repo-owned 90-second recording checklist from the same local frontend
    server.
-45. `?recording=90s`, `90-second recording mode`, `Recording path`, and
+46. `?recording=90s`, `90-second recording mode`, `Recording path`, and
    `90s recording` are visible as the demo-recording posture, and outreach
    tables plus scorecard controls are hidden during recording.
-46. `?setup=7min`, `7-minute setup wizard`, `Setup path`, and `7-min setup`
+47. `?setup=7min`, `7-minute setup wizard`, `Setup path`, and `7-min setup`
    are visible as the setup-first posture, and outreach tables plus scorecard
    controls are hidden while setup mode is active.
-47. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
+48. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
    `Saved setup state`, `Mark complete`, `Mark ready for pilot test`,
    `Ready for pilot test`, and `Reset setup progress` are visible as the
    stateful setup checklist contract.
-48. Actual external execution still remains outside the shell: recorded video,
+49. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path

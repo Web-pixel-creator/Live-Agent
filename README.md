@@ -137,6 +137,12 @@ Local-services expansion spec:
   company from the repo-owned outreach list, review the test message, and
   `Record scorecard draft` as `Not contacted` / demo-session evidence before
   any real outreach happens.
+- the same scorecard action now exposes `First request outcome` and records the
+  first manual request outcome in
+  `firstRequestOutcomeByProspectKey`: `Qualified`, `Needs follow-up`,
+  `Rejected`, or `Booked manually`. This is browser-local `Manual outcome state`
+  only; it does not create bookings, write CRM, or mutate the Markdown
+  scorecard.
 - the same pilot workspace state now persists in browser `localStorage` under
   `liveDesk:localServicesPilotWorkspace:v1`, so the operator can return to the
   demo and still see `Draft ready`, `Contacted manually`, `Reply received`, or

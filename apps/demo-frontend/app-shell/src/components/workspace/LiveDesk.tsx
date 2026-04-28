@@ -557,6 +557,13 @@ type LocalServicePilotStatus =
   | "reply_received"
   | "rejected_for_now";
 
+type LocalServiceFirstRequestOutcome =
+  | "not_recorded"
+  | "qualified"
+  | "needs_follow_up"
+  | "rejected"
+  | "booked_manually";
+
 type LocalServicePilotMetricStatus = "not_started" | "baseline_captured" | "tracking_live" | "review_ready";
 type LocalServiceFounderContactField =
   | "channelChecked"
@@ -565,7 +572,7 @@ type LocalServiceFounderContactField =
   | "demoBooked"
   | "pilotCandidate";
 type LocalServiceFounderContactProof = Partial<Record<LocalServiceFounderContactField, boolean>>;
-type LocalServicePilotActivityKind = "status_change" | "metric_change" | "contact_proof";
+type LocalServicePilotActivityKind = "status_change" | "metric_change" | "contact_proof" | "outcome_change";
 type LocalServicePilotActivityEvent = {
   id: string;
   kind: LocalServicePilotActivityKind;
@@ -581,6 +588,7 @@ type LocalServicePilotActivityEvent = {
 type LocalServicePilotWorkspaceState = {
   selectedProspectByService: Record<string, string>;
   statusByProspectKey: Record<string, LocalServicePilotStatus>;
+  firstRequestOutcomeByProspectKey: Record<string, LocalServiceFirstRequestOutcome>;
   metricStatusByService: Record<string, LocalServicePilotMetricStatus>;
   setupStepCompletionByService: Record<string, LocalServiceSetupStepCompletion>;
   setupReadyByService: Record<string, boolean>;
@@ -764,6 +772,22 @@ const LOCAL_SERVICE_PILOT_STATUS_ACTIONS: { status: LocalServicePilotStatus; lab
   { status: "reply_received", label: "Mark reply received" },
   { status: "rejected_for_now", label: "Reject for now" },
 ];
+const LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_LABELS: Record<LocalServiceFirstRequestOutcome, string> = {
+  not_recorded: "Not recorded",
+  qualified: "Qualified",
+  needs_follow_up: "Needs follow-up",
+  rejected: "Rejected",
+  booked_manually: "Booked manually",
+};
+const LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_ACTIONS: {
+  outcome: Exclude<LocalServiceFirstRequestOutcome, "not_recorded">;
+  label: string;
+}[] = [
+  { outcome: "qualified", label: "Qualified" },
+  { outcome: "needs_follow_up", label: "Needs follow-up" },
+  { outcome: "rejected", label: "Rejected" },
+  { outcome: "booked_manually", label: "Booked manually" },
+];
 const LOCAL_SERVICE_PILOT_COLUMN_LABELS: Record<LocalServicePilotColumnKey, string> = {
   service: "Service",
   status: "Status",
@@ -821,8 +845,23 @@ function isLocalServicePilotMetricStatus(value: unknown): value is LocalServiceP
   );
 }
 
+function isLocalServiceFirstRequestOutcome(value: unknown): value is LocalServiceFirstRequestOutcome {
+  return (
+    value === "not_recorded" ||
+    value === "qualified" ||
+    value === "needs_follow_up" ||
+    value === "rejected" ||
+    value === "booked_manually"
+  );
+}
+
 function isLocalServicePilotActivityKind(value: unknown): value is LocalServicePilotActivityKind {
-  return value === "status_change" || value === "metric_change" || value === "contact_proof";
+  return (
+    value === "status_change" ||
+    value === "metric_change" ||
+    value === "contact_proof" ||
+    value === "outcome_change"
+  );
 }
 
 function isLocalServiceSetupStepId(value: unknown): value is LocalServiceSetupStepId {
@@ -867,6 +906,16 @@ function readPilotMetricStatusRecord(value: unknown): Record<string, LocalServic
   return Object.fromEntries(
     Object.entries(value as Record<string, unknown>).filter(
       (entry): entry is [string, LocalServicePilotMetricStatus] => isLocalServicePilotMetricStatus(entry[1]),
+    ),
+  );
+}
+
+function readFirstRequestOutcomeRecord(value: unknown): Record<string, LocalServiceFirstRequestOutcome> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).filter(
+      (entry): entry is [string, LocalServiceFirstRequestOutcome] =>
+        isLocalServiceFirstRequestOutcome(entry[1]),
     ),
   );
 }
@@ -986,6 +1035,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
   const emptyState: LocalServicePilotWorkspaceState = {
     selectedProspectByService: {},
     statusByProspectKey: {},
+    firstRequestOutcomeByProspectKey: {},
     metricStatusByService: {},
     setupStepCompletionByService: {},
     setupReadyByService: {},
@@ -1006,6 +1056,9 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
     return {
       selectedProspectByService: readStringRecord(parsed.selectedProspectByService),
       statusByProspectKey: readPilotStatusRecord(parsed.statusByProspectKey),
+      firstRequestOutcomeByProspectKey: readFirstRequestOutcomeRecord(
+        parsed.firstRequestOutcomeByProspectKey,
+      ),
       metricStatusByService: readPilotMetricStatusRecord(parsed.metricStatusByService),
       setupStepCompletionByService: readSetupStepCompletionByService(parsed.setupStepCompletionByService),
       setupReadyByService: readBooleanRecord(parsed.setupReadyByService),
@@ -4911,6 +4964,10 @@ const LocalServicesDispatchDemoPanel = ({
   const scorecardDraftKey = `${selectedTemplate.id}:${selectedOutreachProspect?.id ?? "none"}`;
   const currentPilotStatus = pilotWorkspaceState.statusByProspectKey[scorecardDraftKey] ?? "not_contacted";
   const currentPilotStatusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[currentPilotStatus];
+  const currentFirstRequestOutcome =
+    pilotWorkspaceState.firstRequestOutcomeByProspectKey[scorecardDraftKey] ?? "not_recorded";
+  const currentFirstRequestOutcomeLabel =
+    LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_LABELS[currentFirstRequestOutcome];
   const currentMetricStatus = pilotWorkspaceState.metricStatusByService[selectedTemplate.id] ?? "not_started";
   const currentMetricStatusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[currentMetricStatus];
   const pilotWizardSteps = [
@@ -5489,6 +5546,7 @@ const LocalServicesDispatchDemoPanel = ({
         { label: "Qualification focus", value: selectedOutreachProspect.scorecardFocus },
         { label: "Next step", value: selectedOutreachProspect.nextStep },
         { label: "Status", value: currentPilotStatusLabel },
+        { label: "First request outcome", value: currentFirstRequestOutcomeLabel },
       ]
     : [];
   const hidePilotPlanning = recordingMode || setupWizardMode;
@@ -5541,6 +5599,45 @@ const LocalServicesDispatchDemoPanel = ({
     );
   };
   const recordReadyForManualOutreach = () => updatePilotWorkspaceStatus("draft_ready");
+
+  const updateFirstRequestOutcomeForTarget = (
+    target: {
+      key: string;
+      serviceId: string;
+      serviceTitle: string;
+      prospect?: LocalServiceOutreachProspect;
+    },
+    outcome: LocalServiceFirstRequestOutcome,
+  ) => {
+    const nextOutcomeLabel = LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_LABELS[outcome];
+    setPilotWorkspaceState((prev) => ({
+      ...prev,
+      firstRequestOutcomeByProspectKey: {
+        ...prev.firstRequestOutcomeByProspectKey,
+        [target.key]: outcome,
+      },
+      activityLog: appendLocalServicePilotActivity(prev.activityLog, {
+        kind: "outcome_change",
+        label: "First request outcome recorded",
+        value: nextOutcomeLabel,
+        serviceId: target.serviceId,
+        serviceTitle: target.serviceTitle,
+        prospectId: target.prospect?.id,
+        company: target.prospect?.company,
+      }),
+    }));
+  };
+  const updateFirstRequestOutcome = (outcome: LocalServiceFirstRequestOutcome) => {
+    updateFirstRequestOutcomeForTarget(
+      {
+        key: scorecardDraftKey,
+        serviceId: selectedTemplate.id,
+        serviceTitle: selectedTemplate.title,
+        prospect: selectedOutreachProspect,
+      },
+      outcome,
+    );
+  };
 
   const updatePilotMetricStatus = (status: LocalServicePilotMetricStatus) => {
     const nextMetricLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[status];
@@ -7997,6 +8094,44 @@ const LocalServicesDispatchDemoPanel = ({
                             >
                               Reset to not contacted
                             </Button>
+                          </div>
+                          <div className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-2.5">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                                  First request outcome
+                                </div>
+                                <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                                  Manual outcome state after the first operator-supervised request. This records only
+                                  `firstRequestOutcomeByProspectKey`; it does not create a booking, write CRM, or
+                                  mutate the Markdown scorecard.
+                                </p>
+                              </div>
+                              <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                                {currentFirstRequestOutcomeLabel}
+                              </span>
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_ACTIONS.map((action) => (
+                                <Button
+                                  key={action.outcome}
+                                  size="sm"
+                                  variant={currentFirstRequestOutcome === action.outcome ? "default" : "secondary"}
+                                  onClick={() => updateFirstRequestOutcome(action.outcome)}
+                                  className="h-7"
+                                >
+                                  {action.label}
+                                </Button>
+                              ))}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => updateFirstRequestOutcome("not_recorded")}
+                                className="h-7"
+                              >
+                                Reset outcome
+                              </Button>
+                            </div>
                           </div>
                           {currentPilotStatus !== "not_contacted" && (
                             <p className="mt-2 rounded-md bg-[hsl(var(--tint-mint)/0.12)] px-2 py-1.5 text-[11px] text-[hsl(var(--tint-mint-fg))]">
