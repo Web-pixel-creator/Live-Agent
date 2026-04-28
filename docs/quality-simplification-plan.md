@@ -211,7 +211,10 @@ action layer` converts that rank into `Next manual batch`, `Discovery
 questions`, `Pilot setup checklist`, `Integration hold`, and `Focus leading
 category`. `Pilot setup readiness` adds a `Paid pilot gate` so the shell can say
 `Ready for first paid pilot` or `Not ready for paid pilot` from proof, setup,
-dry-run, owner-conversation, and metric gates. This is the current
+dry-run, owner-conversation, and metric gates. `Readiness action plan`,
+`Continue setup/test path`, and `Copy readiness action plan` are the next
+operator shortcut layer: they turn the gate into one blocker-specific action
+without adding channel activation. This is the current
 simplification target: prove demand through 10 manual contacts before adding
 more integrations. The target product remains a NEWO-style AI employee platform
 for selected service categories; the manual batch is the category validation

@@ -122,7 +122,9 @@ batch`, `Discovery questions`, `Pilot setup checklist`, `Integration hold`, and
 `Focus leading category`. `Pilot setup readiness`, `Paid pilot gate`,
 `Ready for first paid pilot`, and `Not ready for paid pilot` show whether the
 leading lane can move toward a paid pilot or still has proof/setup/dry-run
-blockers. These controls update only
+blockers. `Readiness action plan`, `Continue setup/test path`,
+`Copy readiness action plan`, and `local_services_readiness_action_plan` make
+the next blocker actionable from the same shell. These controls update only
 `liveDesk:localServicesPilotWorkspace:v1` in browser-local state and the manual
 activity log; they do not send outreach, create bookings, write CRM, sync
 analytics, bill, or mutate Markdown docs. The platform frame remains

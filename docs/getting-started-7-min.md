@@ -163,9 +163,11 @@ measurement from the same proof markers. `Leading category action layer`
 immediately shows `Next manual batch`, `Discovery questions`,
 `Pilot setup checklist`, `Integration hold`, and `Focus leading category`.
 `Pilot setup readiness` then shows the `Paid pilot gate` and whether the lane is
-`Ready for first paid pilot` or `Not ready for paid pilot`. This does not narrow
-the product to a solo tool; it keeps the NEWO-style AI employee platform path
-grounded in real category proof.
+`Ready for first paid pilot` or `Not ready for paid pilot`. `Readiness action
+plan` gives the next blocker surface; use `Continue setup/test path` to jump
+straight into the setup/test wizard and `Copy readiness action plan` for a
+private operator note. This does not narrow the product to a solo tool; it keeps
+the NEWO-style AI employee platform path grounded in real category proof.
 Use `Open offer doc`, `Open demo script`, and `Open recording checklist` to
 open the repo-owned pilot artifacts without leaving the local frontend server.
 The recording checklist is the safe 90-second walkthrough plan; it avoids claims

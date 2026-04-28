@@ -218,6 +218,9 @@ the `Next manual batch`, `Discovery questions`, `Pilot setup checklist`,
 readiness` adds the `Paid pilot gate`: treat `Ready for first paid pilot` as
 permission to prepare a proposal only, and treat `Not ready for paid pilot` as a
 hard stop on live channels, CRM sync, analytics, billing, and customer sends.
+`Readiness action plan` then points to the blocker surface; use
+`Continue setup/test path` when the blocker is setup or dry-run, and use
+`Copy readiness action plan` only as a private operator note.
 The concept remains a NEWO-style AI employee platform for service categories;
 the manual batch only decides whether to continue, revise, or stop expansion.
 Use `docs/local-services-pilot-runbook.md` for the actual 14-day operating

@@ -712,6 +712,18 @@ type LocalServiceLeadingCategoryPilotReadiness = {
   readySignals: string[];
 };
 
+type LocalServicePilotReadinessActionPlan = {
+  serviceId: string;
+  serviceTitle: string;
+  exportSurface: "local_services_readiness_action_plan";
+  primarySurface: "Setup path" | "Founder batch review" | "Pilot metrics tracker" | "Paid pilot proposal";
+  primaryAction: string;
+  secondaryAction: string;
+  operatorScript: string;
+  copyLabel: string;
+  noGo: string[];
+};
+
 type LocalServicePilotStatusFilter = LocalServicePilotStatus | "all";
 type LocalServicePilotColumnKey = "service" | "status" | "channelFit" | "nextStep";
 type LocalServicePilotExecutionStep = {
@@ -1523,6 +1535,7 @@ function buildLocalServiceFounderBatchReviewExport(
   categoryScores: LocalServiceCategoryPilotScore[],
   actionLayer: LocalServiceLeadingCategoryActionLayer,
   pilotReadiness: LocalServiceLeadingCategoryPilotReadiness,
+  readinessActionPlan: LocalServicePilotReadinessActionPlan,
   activityLog: LocalServicePilotActivityEvent[] = [],
 ): LocalServicePilotWorkspaceExport {
   const contactLines = rows.map(
@@ -1567,6 +1580,14 @@ function buildLocalServiceFounderBatchReviewExport(
     "Blockers:",
     ...(pilotReadiness.blockers.length > 0 ? pilotReadiness.blockers.map((item) => `- ${item}`) : ["- none"]),
   ];
+  const readinessActionPlanLines = [
+    `Primary surface: ${readinessActionPlan.primarySurface}`,
+    `Primary action: ${readinessActionPlan.primaryAction}`,
+    `Secondary action: ${readinessActionPlan.secondaryAction}`,
+    `Operator script: ${readinessActionPlan.operatorScript}`,
+    "No-go rules:",
+    ...readinessActionPlan.noGo.map((item) => `- ${item}`),
+  ];
   const humanLines = [
     "First contact batch review drawer: Local services founder validation",
     "Export scope: browser-local proof review for the first 10 manual contacts",
@@ -1594,6 +1615,9 @@ function buildLocalServiceFounderBatchReviewExport(
     "",
     "Pilot setup readiness:",
     ...readinessLines,
+    "",
+    "Readiness action plan:",
+    ...readinessActionPlanLines,
     "",
     "First 10 contact review:",
     ...contactLines,
@@ -1670,6 +1694,16 @@ function buildLocalServiceFounderBatchReviewExport(
         blockers: pilotReadiness.blockers,
         ready_signals: pilotReadiness.readySignals,
       },
+      readiness_action_plan: {
+        export_surface: readinessActionPlan.exportSurface,
+        service_id: readinessActionPlan.serviceId,
+        service_title: readinessActionPlan.serviceTitle,
+        primary_surface: readinessActionPlan.primarySurface,
+        primary_action: readinessActionPlan.primaryAction,
+        secondary_action: readinessActionPlan.secondaryAction,
+        operator_script: readinessActionPlan.operatorScript,
+        no_go: readinessActionPlan.noGo,
+      },
       proof_checklist: proofChecklist,
       first_contacts: rows.map((row, index) => ({
         index: index + 1,
@@ -1730,11 +1764,13 @@ function buildLocalServiceFounderBatchReviewExport(
       value: leadCategory ? `${leadCategory.serviceTitle} / ${leadCategory.score} / ${leadCategory.signalLabel}` : "none",
     },
     { label: "Pilot setup readiness", value: `${pilotReadiness.readinessLabel} / ${pilotReadiness.progressLabel}` },
+    { label: "Readiness action plan", value: readinessActionPlan.primarySurface },
   ];
   const checklist = [
     "Confirm the first 10 contact markers match real manual actions outside the shell.",
     "Confirm the leading category is based on proof markers, not preference or market guesswork.",
     "Confirm the pilot setup readiness gate is complete before selling or activating a paid pilot.",
+    "Confirm the readiness action plan points to the next blocker surface before continuing.",
     "Confirm no private customer names, phone numbers, addresses, or deal terms are stored in this browser-local export.",
     "Copy the review into private founder notes only after operator review.",
     "Stop product expansion if replies, discovery calls, or pilot candidates do not appear after this batch.",
@@ -2063,6 +2099,66 @@ function buildLocalServiceLeadingCategoryPilotReadiness(
     blockers,
     readySignals,
   };
+}
+
+function buildLocalServicePilotReadinessActionPlan(
+  actionLayer: LocalServiceLeadingCategoryActionLayer,
+  readiness: LocalServiceLeadingCategoryPilotReadiness,
+): LocalServicePilotReadinessActionPlan {
+  const firstBlocker = readiness.blockers[0] ?? "";
+  const primarySurface: LocalServicePilotReadinessActionPlan["primarySurface"] =
+    firstBlocker.includes("Setup prerequisites") ||
+    firstBlocker.includes("Ready for pilot test") ||
+    firstBlocker.includes("Test call/message")
+      ? "Setup path"
+      : firstBlocker.includes("Category proof signal") || firstBlocker.includes("Real owner conversation")
+        ? "Founder batch review"
+        : firstBlocker.includes("Metric baseline")
+          ? "Pilot metrics tracker"
+          : "Paid pilot proposal";
+  const primaryAction =
+    primarySurface === "Setup path"
+      ? `Open the 7-minute setup wizard for ${actionLayer.serviceTitle}, finish setup prerequisites, and pass the dry run.`
+      : primarySurface === "Founder batch review"
+        ? `Open batch review, capture real owner proof for ${actionLayer.serviceTitle}, and keep the next batch manual.`
+        : primarySurface === "Pilot metrics tracker"
+          ? `Open metrics tracker for ${actionLayer.serviceTitle} and record the baseline before any paid pilot promise.`
+          : `Prepare one operator-approved ${actionLayer.serviceTitle} paid pilot proposal; do not activate live channels yet.`;
+  const secondaryAction = readiness.readyToPilot
+    ? "Prepare proposal copy and keep final send, booking, CRM, analytics, and billing behind operator approval."
+    : readiness.nextAction;
+  const operatorScript = readiness.readyToPilot
+    ? `${actionLayer.serviceTitle} has enough proof to prepare a first paid pilot proposal, but every customer-facing step still needs operator approval.`
+    : `${actionLayer.serviceTitle} is not ready for paid pilot activation. Next blocker: ${readiness.nextAction}`;
+
+  return {
+    serviceId: actionLayer.serviceId,
+    serviceTitle: actionLayer.serviceTitle,
+    exportSurface: "local_services_readiness_action_plan",
+    primarySurface,
+    primaryAction,
+    secondaryAction,
+    operatorScript,
+    copyLabel: "Copy readiness action plan",
+    noGo: [
+      "No paid pilot sale until every readiness gate is complete.",
+      "No live phone, Telegram, WhatsApp, CRM, calendar, analytics, billing, or customer send from this surface.",
+      "No category expansion while the leading category has unresolved proof, setup, dry-run, owner-conversation, or metric blockers.",
+    ],
+  };
+}
+
+function formatLocalServiceReadinessActionPlanText(plan: LocalServicePilotReadinessActionPlan): string {
+  return [
+    `Readiness action plan: ${plan.serviceTitle}`,
+    `Export surface: ${plan.exportSurface}`,
+    `Primary surface: ${plan.primarySurface}`,
+    `Primary action: ${plan.primaryAction}`,
+    `Secondary action: ${plan.secondaryAction}`,
+    `Operator script: ${plan.operatorScript}`,
+    "No-go rules:",
+    ...plan.noGo.map((item) => `- ${item}`),
+  ].join("\n");
 }
 
 function buildLocalServicePilotMetricsTrackerExport(
@@ -3826,6 +3922,7 @@ const LocalServicesDispatchDemoPanel = ({
   onCopyText,
   onOpenDispatchDrawer,
   onOpenPath,
+  onOpenSetupWizard,
 }: {
   activeServiceId: string | null;
   recordingMode: boolean;
@@ -3836,6 +3933,7 @@ const LocalServicesDispatchDemoPanel = ({
   onCopyText: (text: string, label: string) => void;
   onOpenDispatchDrawer: (kind?: LocalServiceExportKind) => void;
   onOpenPath: (path: string) => void;
+  onOpenSetupWizard: (serviceId: string) => void;
 }) => {
   const selectedTemplate =
     LOCAL_SERVICE_DEMO_TEMPLATES.find((template) => template.id === activeServiceId) ??
@@ -4033,6 +4131,10 @@ const LocalServicesDispatchDemoPanel = ({
       leadingCategoryTestCallPassed,
     ],
   );
+  const leadingCategoryReadinessActionPlan = useMemo(
+    () => buildLocalServicePilotReadinessActionPlan(leadingCategoryActionLayer, leadingCategoryPilotReadiness),
+    [leadingCategoryActionLayer, leadingCategoryPilotReadiness],
+  );
   const founderReviewReadyServices = LOCAL_SERVICE_DEMO_TEMPLATES.filter(
     (template) => (pilotWorkspaceState.metricStatusByService[template.id] ?? "not_started") === "review_ready",
   ).length;
@@ -4087,6 +4189,9 @@ const LocalServicesDispatchDemoPanel = ({
     `Pilot setup readiness: ${leadingCategoryPilotReadiness.readinessLabel} / ${leadingCategoryPilotReadiness.progressLabel}`,
     `Paid pilot gate: ${leadingCategoryPilotReadiness.paidPilotGate}`,
     `Pilot readiness next action: ${leadingCategoryPilotReadiness.nextAction}`,
+    `Readiness action plan: ${leadingCategoryReadinessActionPlan.primarySurface}`,
+    `Readiness primary action: ${leadingCategoryReadinessActionPlan.primaryAction}`,
+    `Readiness operator script: ${leadingCategoryReadinessActionPlan.operatorScript}`,
     "No category expansion without proof.",
     `Manual sends logged: ${founderContactCounts.manualMessageSent}/10`,
     `Replies or clear rejections: ${founderContactCounts.repliesOrRejections}/3`,
@@ -4123,6 +4228,9 @@ const LocalServicesDispatchDemoPanel = ({
       ? leadingCategoryPilotReadiness.blockers.map((item) => `- ${item}`)
       : ["- none"]),
     "",
+    "Readiness action plan:",
+    ...formatLocalServiceReadinessActionPlanText(leadingCategoryReadinessActionPlan).split("\n"),
+    "",
     "First 10 contacts:",
     ...founderContactRows.map(
       (row, index) =>
@@ -4138,6 +4246,7 @@ const LocalServicesDispatchDemoPanel = ({
     categoryPilotScores,
     leadingCategoryActionLayer,
     leadingCategoryPilotReadiness,
+    leadingCategoryReadinessActionPlan,
     pilotWorkspaceState.activityLog,
   );
   const filteredPilotFunnelRows = useMemo(
@@ -5677,6 +5786,59 @@ const LocalServicesDispatchDemoPanel = ({
                       <div className="mt-2 rounded-[5px] bg-card/30 px-2 py-1.5 text-[11px]">
                         <span className="text-muted-foreground">Next action: </span>
                         <span className="text-foreground">{leadingCategoryPilotReadiness.nextAction}</span>
+                      </div>
+                      <div className="mt-3 rounded-md border border-border/50 bg-card/25 px-3 py-3">
+                        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                          <div className="min-w-0">
+                            <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                              Readiness action plan
+                            </div>
+                            <div className="mt-2 grid gap-1.5 text-[11px]">
+                              <div className="rounded-[5px] bg-background/35 px-2 py-1.5">
+                                <span className="text-muted-foreground">Primary surface: </span>
+                                <span className="text-foreground">{leadingCategoryReadinessActionPlan.primarySurface}</span>
+                              </div>
+                              <div className="rounded-[5px] bg-background/35 px-2 py-1.5">
+                                <span className="text-muted-foreground">Primary action: </span>
+                                <span className="text-foreground">{leadingCategoryReadinessActionPlan.primaryAction}</span>
+                              </div>
+                              <div className="rounded-[5px] bg-background/35 px-2 py-1.5">
+                                <span className="text-muted-foreground">Operator script: </span>
+                                <span className="text-foreground">{leadingCategoryReadinessActionPlan.operatorScript}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 flex-wrap gap-2">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => onOpenSetupWizard(leadingCategoryActionLayer.serviceId)}
+                              className="h-7"
+                            >
+                              <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                              Continue setup/test path
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                onCopyText(
+                                  formatLocalServiceReadinessActionPlanText(leadingCategoryReadinessActionPlan),
+                                  leadingCategoryReadinessActionPlan.copyLabel,
+                                )
+                              }
+                              className="h-7"
+                            >
+                              <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                              Copy readiness action plan
+                            </Button>
+                          </div>
+                        </div>
+                        <ul className="mt-3 space-y-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                          {leadingCategoryReadinessActionPlan.noGo.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
                       </div>
                       <div className="mt-3 grid gap-2">
                         {leadingCategoryPilotReadiness.checklist.map((item) => {
@@ -9261,7 +9423,7 @@ export const LiveDesk = () => {
       return next;
     });
   };
-  const openLocalServicesSetupWizard = () => {
+  const openLocalServicesSetupWizard = (serviceId?: string) => {
     setPlaybookExportDrawerOpen(false);
     setQuery("");
     setOnlyMine(false);
@@ -9276,7 +9438,7 @@ export const LiveDesk = () => {
       next.delete("burning");
       next.delete("playbook");
       next.set("demo", "local-services-dispatch");
-      next.set("service", activeLocalServiceId ?? "ac-repair-dispatch");
+      next.set("service", serviceId ?? activeLocalServiceId ?? "ac-repair-dispatch");
       next.set("setup", "7min");
       next.delete("recording");
       return next;
@@ -10407,6 +10569,7 @@ export const LiveDesk = () => {
           onCopyText={copyLocalServicePilotWorkspaceExport}
           onOpenDispatchDrawer={openActiveLocalServiceDispatchDrawer}
           onOpenPath={openLocalServiceDemoPath}
+          onOpenSetupWizard={openLocalServicesSetupWizard}
         />
       )}
 

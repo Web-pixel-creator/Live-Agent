@@ -229,7 +229,11 @@ Local-services expansion spec:
   `Focus leading category` actions. `Pilot setup readiness`, `Paid pilot gate`,
   `Ready for first paid pilot`, and `Not ready for paid pilot` make the first
   paid pilot posture explicit before any live channel, CRM, analytics, billing,
-  or customer-send integration is activated. The frame stays NEWO-style AI
+  or customer-send integration is activated. `Readiness action plan`,
+  `Continue setup/test path`, `Copy readiness action plan`, and
+  `local_services_readiness_action_plan` connect the gate back to the exact
+  setup/test surface instead of leaving the operator with a static blocker.
+  The frame stays NEWO-style AI
   employee platform expansion by category; the manual batch is a validation
   gate, not a solo-only product scope.
 - real pilot execution is now guided by `docs/local-services-pilot-runbook.md`;
