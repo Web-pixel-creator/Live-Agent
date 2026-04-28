@@ -274,15 +274,19 @@ Allowed reply statuses:
 22. Show `Open week-one review`, `Pilot week-one review`,
    `Continue / stop decision`, `Copy week-one review`, and
    `local_services_pilot_week_one_review`; confirm it carries
-   `First request outcome` / `firstRequestOutcomeByProspectKey` and explain
-   that this is a manual owner review, not an autonomous pilot decision, CRM
-   write, billing change, or customer send.
+   `First request outcome` / `firstRequestOutcomeByProspectKey`. Also show
+   `Week-one owner decision state`, `Record continue`, `Record pause`,
+   `Record stop`, and `weekOneOwnerDecisionByProspectKey`; explain that this is
+   a manual owner review, not an autonomous pilot decision, CRM write, billing
+   change, or customer send.
 23. Show `Open evidence pack`, `Pilot evidence pack`,
    `Week-two evidence pack`, `Copy evidence pack`, and
    `local_services_pilot_evidence_pack`; confirm it carries
-   `First request outcome` / `firstRequestOutcomeByProspectKey` and explain
-   that this is a redacted manual proof pack, not public customer-data storage,
-   CRM, billing, or customer-send automation.
+   `First request outcome` / `firstRequestOutcomeByProspectKey`, plus
+   `Week-one owner decision` through
+   `week_one_owner_decision_to_evidence_pack`, and explain that this is a
+   redacted manual proof pack, not public customer-data storage, CRM, billing,
+   or customer-send automation.
 24. Show `Open recording checklist` if the prospect or partner needs a short
    product walkthrough. Explain that it is a 90-second recording checklist with
    required on-screen proof and do-not-claim rules, not a live automation

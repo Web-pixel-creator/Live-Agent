@@ -565,6 +565,7 @@ type LocalServiceFirstRequestOutcome =
   | "booked_manually";
 
 type LocalServicePilotMetricStatus = "not_started" | "baseline_captured" | "tracking_live" | "review_ready";
+type LocalServiceWeekOneOwnerDecision = "not_recorded" | "continue" | "pause" | "stop";
 type LocalServiceFounderContactField =
   | "channelChecked"
   | "manualMessageSent"
@@ -572,7 +573,12 @@ type LocalServiceFounderContactField =
   | "demoBooked"
   | "pilotCandidate";
 type LocalServiceFounderContactProof = Partial<Record<LocalServiceFounderContactField, boolean>>;
-type LocalServicePilotActivityKind = "status_change" | "metric_change" | "contact_proof" | "outcome_change";
+type LocalServicePilotActivityKind =
+  | "status_change"
+  | "metric_change"
+  | "contact_proof"
+  | "outcome_change"
+  | "owner_decision";
 type LocalServicePilotActivityEvent = {
   id: string;
   kind: LocalServicePilotActivityKind;
@@ -589,6 +595,7 @@ type LocalServicePilotWorkspaceState = {
   selectedProspectByService: Record<string, string>;
   statusByProspectKey: Record<string, LocalServicePilotStatus>;
   firstRequestOutcomeByProspectKey: Record<string, LocalServiceFirstRequestOutcome>;
+  weekOneOwnerDecisionByProspectKey: Record<string, LocalServiceWeekOneOwnerDecision>;
   metricStatusByService: Record<string, LocalServicePilotMetricStatus>;
   setupStepCompletionByService: Record<string, LocalServiceSetupStepCompletion>;
   setupReadyByService: Record<string, boolean>;
@@ -811,6 +818,20 @@ const LOCAL_SERVICE_PILOT_METRIC_STATUS_ACTIONS: { status: LocalServicePilotMetr
   { status: "tracking_live", label: "Mark tracking live" },
   { status: "review_ready", label: "Mark review ready" },
 ];
+const LOCAL_SERVICE_WEEK_ONE_OWNER_DECISION_LABELS: Record<LocalServiceWeekOneOwnerDecision, string> = {
+  not_recorded: "Owner decision not recorded",
+  continue: "Continue",
+  pause: "Pause",
+  stop: "Stop",
+};
+const LOCAL_SERVICE_WEEK_ONE_OWNER_DECISION_ACTIONS: {
+  decision: Exclude<LocalServiceWeekOneOwnerDecision, "not_recorded">;
+  label: string;
+}[] = [
+  { decision: "continue", label: "Record continue" },
+  { decision: "pause", label: "Record pause" },
+  { decision: "stop", label: "Record stop" },
+];
 const LOCAL_SERVICE_FOUNDER_CONTACT_FIELD_LABELS: Record<LocalServiceFounderContactField, string> = {
   channelChecked: "Channel checked",
   manualMessageSent: "Manual sent",
@@ -845,6 +866,10 @@ function isLocalServicePilotMetricStatus(value: unknown): value is LocalServiceP
   );
 }
 
+function isLocalServiceWeekOneOwnerDecision(value: unknown): value is LocalServiceWeekOneOwnerDecision {
+  return value === "not_recorded" || value === "continue" || value === "pause" || value === "stop";
+}
+
 function isLocalServiceFirstRequestOutcome(value: unknown): value is LocalServiceFirstRequestOutcome {
   return (
     value === "not_recorded" ||
@@ -860,7 +885,8 @@ function isLocalServicePilotActivityKind(value: unknown): value is LocalServiceP
     value === "status_change" ||
     value === "metric_change" ||
     value === "contact_proof" ||
-    value === "outcome_change"
+    value === "outcome_change" ||
+    value === "owner_decision"
   );
 }
 
@@ -916,6 +942,16 @@ function readFirstRequestOutcomeRecord(value: unknown): Record<string, LocalServ
     Object.entries(value as Record<string, unknown>).filter(
       (entry): entry is [string, LocalServiceFirstRequestOutcome] =>
         isLocalServiceFirstRequestOutcome(entry[1]),
+    ),
+  );
+}
+
+function readWeekOneOwnerDecisionRecord(value: unknown): Record<string, LocalServiceWeekOneOwnerDecision> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).filter(
+      (entry): entry is [string, LocalServiceWeekOneOwnerDecision] =>
+        isLocalServiceWeekOneOwnerDecision(entry[1]),
     ),
   );
 }
@@ -1036,6 +1072,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
     selectedProspectByService: {},
     statusByProspectKey: {},
     firstRequestOutcomeByProspectKey: {},
+    weekOneOwnerDecisionByProspectKey: {},
     metricStatusByService: {},
     setupStepCompletionByService: {},
     setupReadyByService: {},
@@ -1058,6 +1095,9 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
       statusByProspectKey: readPilotStatusRecord(parsed.statusByProspectKey),
       firstRequestOutcomeByProspectKey: readFirstRequestOutcomeRecord(
         parsed.firstRequestOutcomeByProspectKey,
+      ),
+      weekOneOwnerDecisionByProspectKey: readWeekOneOwnerDecisionRecord(
+        parsed.weekOneOwnerDecisionByProspectKey,
       ),
       metricStatusByService: readPilotMetricStatusRecord(parsed.metricStatusByService),
       setupStepCompletionByService: readSetupStepCompletionByService(parsed.setupStepCompletionByService),
@@ -3541,11 +3581,13 @@ function buildLocalServicePilotWeekOneReviewExport(
   pilotStatus: LocalServicePilotStatus,
   metricStatus: LocalServicePilotMetricStatus,
   firstRequestOutcome: LocalServiceFirstRequestOutcome,
+  ownerDecision: LocalServiceWeekOneOwnerDecision,
   activityLog: LocalServicePilotActivityEvent[] = [],
 ): LocalServicePilotWorkspaceExport {
   const pilotStatusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[pilotStatus];
   const metricStatusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus];
   const firstRequestOutcomeLabel = LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_LABELS[firstRequestOutcome];
+  const ownerDecisionLabel = LOCAL_SERVICE_WEEK_ONE_OWNER_DECISION_LABELS[ownerDecision];
   const prospectLabel = prospect ? `${prospect.company} - ${prospect.segment}` : "No prospect selected";
   const latestRelevantActivity =
     activityLog.find(
@@ -3565,6 +3607,8 @@ function buildLocalServicePilotWeekOneReviewExport(
         : "Needs week-one metric review";
   const dayOneRecapHandoffStatus =
     firstRequestOutcome === "not_recorded" ? "waiting_for_day_one_recap" : "day_one_recap_ready";
+  const ownerDecisionStatus =
+    ownerDecision === "not_recorded" ? "waiting_for_owner_decision" : "owner_decision_recorded";
   const continueCriteria = [
     "operator used the job-card output without rewriting it from scratch",
     "at least one missed or delayed request was recovered",
@@ -3613,6 +3657,10 @@ function buildLocalServicePilotWeekOneReviewExport(
       label: "Owner question",
       value: "continue, pause, or stop this pilot for week two",
     },
+    {
+      label: "Recorded owner decision",
+      value: ownerDecisionLabel,
+    },
   ];
   const humanLines = [
     `Pilot week-one review: ${template.title}`,
@@ -3622,9 +3670,12 @@ function buildLocalServicePilotWeekOneReviewExport(
     `Metric status: ${metricStatusLabel}`,
     `First request outcome: ${firstRequestOutcomeLabel}`,
     `Outcome state key: firstRequestOutcomeByProspectKey`,
+    `Owner decision: ${ownerDecisionLabel}`,
+    `Owner decision state key: weekOneOwnerDecisionByProspectKey`,
     "Export scope: manual week-one decision pack",
     `Decision readiness: ${decisionReadinessLabel}`,
     `Day-one recap handoff: ${dayOneRecapHandoffStatus}`,
+    `Owner decision status: ${ownerDecisionStatus}`,
     "",
     "Owner-ready summary:",
     ...ownerReadySummary.map((field) => `- ${field.label}: ${field.value}`),
@@ -3658,6 +3709,10 @@ function buildLocalServicePilotWeekOneReviewExport(
       first_request_outcome: firstRequestOutcome,
       first_request_outcome_label: firstRequestOutcomeLabel,
       outcome_state_key: "firstRequestOutcomeByProspectKey",
+      owner_decision: ownerDecision,
+      owner_decision_label: ownerDecisionLabel,
+      owner_decision_state_key: "weekOneOwnerDecisionByProspectKey",
+      owner_decision_status: ownerDecisionStatus,
       decision_readiness: decisionReadinessLabel,
       day_one_recap_handoff: {
         source_surface: "local_services_day_one_recap",
@@ -3671,6 +3726,12 @@ function buildLocalServicePilotWeekOneReviewExport(
         value: latestRelevantActivity?.value ?? null,
         created_at: latestRelevantActivity?.createdAt ?? null,
       },
+      evidence_pack_handoff: {
+        source_surface: "local_services_pilot_week_one_review",
+        target_surface: "local_services_pilot_evidence_pack",
+        contract: "week_one_owner_decision_to_evidence_pack",
+        status: ownerDecisionStatus,
+      },
       continue_criteria: continueCriteria,
       stop_criteria: stopCriteria,
       decision_fields: decisionFields,
@@ -3678,7 +3739,9 @@ function buildLocalServicePilotWeekOneReviewExport(
         "manual_week_one_review",
         "manual_first_request_outcome_review",
         "day_one_recap_to_week_one_review",
+        "week_one_owner_decision_to_evidence_pack",
         "owner_review_required",
+        "owner_decision_manual_only",
         "no_autonomous_pilot_decision",
         "no_crm_write",
         "no_billing_change",
@@ -3710,9 +3773,11 @@ function buildLocalServicePilotWeekOneReviewExport(
       { label: "Pilot status", value: pilotStatusLabel },
       { label: "Metric status", value: metricStatusLabel },
       { label: "First request outcome", value: firstRequestOutcomeLabel },
+      { label: "Owner decision", value: ownerDecisionLabel },
       { label: "Decision readiness", value: decisionReadinessLabel },
       { label: "Owner-ready summary", value: ownerReadySummary.map((field) => field.label).join(", ") },
       { label: "Day-one recap handoff", value: "day_one_recap_to_week_one_review" },
+      { label: "Evidence pack handoff", value: "week_one_owner_decision_to_evidence_pack" },
       { label: "Guardrail", value: "Manual review only, no autonomous pilot decision" },
     ],
     checklist: [
@@ -3720,6 +3785,7 @@ function buildLocalServicePilotWeekOneReviewExport(
       "Confirm the first request outcome is recorded before choosing continue, pause, or stop.",
       "Review Owner-ready summary before sharing the week-one decision with the owner.",
       "Confirm day_one_recap_to_week_one_review came from a reviewed day-one recap.",
+      "Record Continue, Pause, or Stop in weekOneOwnerDecisionByProspectKey before copying the evidence pack.",
       "Count continue criteria and stop criteria separately.",
       "Write the owner or dispatcher note in a private scorecard or spreadsheet.",
       "Choose one week-two focus if the pilot continues.",
@@ -3734,10 +3800,12 @@ function buildLocalServicePilotEvidencePackExport(
   pilotStatus: LocalServicePilotStatus,
   metricStatus: LocalServicePilotMetricStatus,
   firstRequestOutcome: LocalServiceFirstRequestOutcome,
+  ownerDecision: LocalServiceWeekOneOwnerDecision,
 ): LocalServicePilotWorkspaceExport {
   const pilotStatusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[pilotStatus];
   const metricStatusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus];
   const firstRequestOutcomeLabel = LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_LABELS[firstRequestOutcome];
+  const ownerDecisionLabel = LOCAL_SERVICE_WEEK_ONE_OWNER_DECISION_LABELS[ownerDecision];
   const prospectLabel = prospect ? `${prospect.company} - ${prospect.segment}` : "No prospect selected";
   const evidenceItems = [
     {
@@ -3766,7 +3834,7 @@ function buildLocalServicePilotEvidencePackExport(
     },
     {
       label: "Decision",
-      value: "clear continue, paid pilot, one-week extension, or stop decision",
+      value: "recorded week-one owner decision plus clear continue, paid pilot, one-week extension, or stop decision",
     },
   ];
   const weekTwoOptions = [
@@ -3788,6 +3856,9 @@ function buildLocalServicePilotEvidencePackExport(
     `Metric status: ${metricStatusLabel}`,
     `First request outcome: ${firstRequestOutcomeLabel}`,
     `Outcome state key: firstRequestOutcomeByProspectKey`,
+    `Week-one owner decision: ${ownerDecisionLabel}`,
+    `Owner decision state key: weekOneOwnerDecisionByProspectKey`,
+    "Week-one handoff: week_one_owner_decision_to_evidence_pack",
     "Export scope: manual week-two evidence pack",
     "",
     "Evidence items:",
@@ -3818,12 +3889,23 @@ function buildLocalServicePilotEvidencePackExport(
       first_request_outcome: firstRequestOutcome,
       first_request_outcome_label: firstRequestOutcomeLabel,
       outcome_state_key: "firstRequestOutcomeByProspectKey",
+      owner_decision: ownerDecision,
+      owner_decision_label: ownerDecisionLabel,
+      owner_decision_state_key: "weekOneOwnerDecisionByProspectKey",
+      week_one_review_handoff: {
+        source_surface: "local_services_pilot_week_one_review",
+        target_surface: "local_services_pilot_evidence_pack",
+        contract: "week_one_owner_decision_to_evidence_pack",
+        status: ownerDecision === "not_recorded" ? "waiting_for_owner_decision" : "owner_decision_recorded",
+      },
       evidence_items: evidenceItems,
       week_two_decision_options: weekTwoOptions,
       paid_pilot_readiness: readinessCriteria,
       guardrails: [
         "manual_week_two_evidence_pack",
         "manual_first_request_outcome_evidence",
+        "week_one_owner_decision_to_evidence_pack",
+        "owner_decision_manual_only",
         "no_private_customer_data_in_public_docs",
         "redact_names_phone_addresses_media",
         "no_autonomous_pilot_decision",
@@ -3854,6 +3936,8 @@ function buildLocalServicePilotEvidencePackExport(
       { label: "Service", value: `${template.ref} - ${template.title}` },
       { label: "Company", value: prospectLabel },
       { label: "First request outcome", value: firstRequestOutcomeLabel },
+      { label: "Week-one owner decision", value: ownerDecisionLabel },
+      { label: "Week-one handoff", value: "week_one_owner_decision_to_evidence_pack" },
       { label: "Evidence items", value: String(evidenceItems.length) },
       { label: "Decision options", value: weekTwoOptions.join(", ") },
       { label: "Guardrail", value: "Manual redacted evidence pack, no private customer data in public docs" },
@@ -3861,6 +3945,7 @@ function buildLocalServicePilotEvidencePackExport(
     checklist: [
       "Include only redacted screenshots, notes, and job-card excerpts.",
       "Include the first request outcome before paid-pilot readiness is reviewed.",
+      "Include the week-one owner decision before paid-pilot readiness is reviewed.",
       "Attach week-one and week-two scorecard rows from the private tracker.",
       "Record one owner or dispatcher quote.",
       "Pick one clear continue, paid pilot, extension, or stop decision.",
@@ -5262,6 +5347,10 @@ const LocalServicesDispatchDemoPanel = ({
     pilotWorkspaceState.firstRequestOutcomeByProspectKey[scorecardDraftKey] ?? "not_recorded";
   const currentFirstRequestOutcomeLabel =
     LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_LABELS[currentFirstRequestOutcome];
+  const currentWeekOneOwnerDecision =
+    pilotWorkspaceState.weekOneOwnerDecisionByProspectKey[scorecardDraftKey] ?? "not_recorded";
+  const currentWeekOneOwnerDecisionLabel =
+    LOCAL_SERVICE_WEEK_ONE_OWNER_DECISION_LABELS[currentWeekOneOwnerDecision];
   const currentMetricStatus = pilotWorkspaceState.metricStatusByService[selectedTemplate.id] ?? "not_started";
   const currentMetricStatusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[currentMetricStatus];
   const pilotWizardSteps = [
@@ -5637,10 +5726,12 @@ const LocalServicesDispatchDemoPanel = ({
         currentPilotStatus,
         currentMetricStatus,
         currentFirstRequestOutcome,
+        currentWeekOneOwnerDecision,
         pilotWorkspaceState.activityLog,
       ),
     [
       currentFirstRequestOutcome,
+      currentWeekOneOwnerDecision,
       currentMetricStatus,
       currentPilotStatus,
       pilotWorkspaceState.activityLog,
@@ -5656,8 +5747,16 @@ const LocalServicesDispatchDemoPanel = ({
         currentPilotStatus,
         currentMetricStatus,
         currentFirstRequestOutcome,
+        currentWeekOneOwnerDecision,
       ),
-    [currentFirstRequestOutcome, currentMetricStatus, currentPilotStatus, selectedOutreachProspect, selectedTemplate],
+    [
+      currentFirstRequestOutcome,
+      currentMetricStatus,
+      currentPilotStatus,
+      currentWeekOneOwnerDecision,
+      selectedOutreachProspect,
+      selectedTemplate,
+    ],
   );
   const pilotEvidencePackExport = useMemo(
     () =>
@@ -5870,6 +5969,7 @@ const LocalServicesDispatchDemoPanel = ({
         { label: "Next step", value: selectedOutreachProspect.nextStep },
         { label: "Status", value: currentPilotStatusLabel },
         { label: "First request outcome", value: currentFirstRequestOutcomeLabel },
+        { label: "Week-one owner decision", value: currentWeekOneOwnerDecisionLabel },
       ]
     : [];
   const outcomeChainSummary = [
@@ -5885,8 +5985,8 @@ const LocalServicesDispatchDemoPanel = ({
     },
     {
       label: "Week-one review",
-      value: "Continue / stop gate",
-      detail: "Confirms the same outcome before a manual owner decision.",
+      value: currentWeekOneOwnerDecisionLabel,
+      detail: "Saved under weekOneOwnerDecisionByProspectKey before evidence pack handoff.",
     },
     {
       label: "Evidence pack",
@@ -5982,6 +6082,26 @@ const LocalServicesDispatchDemoPanel = ({
       },
       outcome,
     );
+  };
+
+  const updateWeekOneOwnerDecision = (decision: LocalServiceWeekOneOwnerDecision) => {
+    const nextDecisionLabel = LOCAL_SERVICE_WEEK_ONE_OWNER_DECISION_LABELS[decision];
+    setPilotWorkspaceState((prev) => ({
+      ...prev,
+      weekOneOwnerDecisionByProspectKey: {
+        ...prev.weekOneOwnerDecisionByProspectKey,
+        [scorecardDraftKey]: decision,
+      },
+      activityLog: appendLocalServicePilotActivity(prev.activityLog, {
+        kind: "owner_decision",
+        label: "Week-one owner decision recorded",
+        value: nextDecisionLabel,
+        serviceId: selectedTemplate.id,
+        serviceTitle: selectedTemplate.title,
+        prospectId: selectedOutreachProspect?.id,
+        company: selectedOutreachProspect?.company,
+      }),
+    }));
   };
 
   const updatePilotMetricStatus = (status: LocalServicePilotMetricStatus) => {
@@ -8504,6 +8624,60 @@ const LocalServicesDispatchDemoPanel = ({
                                       </span>
                                     </span>
                                   </div>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="mt-3 border-t border-border/45 pt-3">
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                                    Week-one owner decision state
+                                  </div>
+                                  <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                                    Records only `weekOneOwnerDecisionByProspectKey` before the evidence pack. No
+                                    billing change, CRM write, customer message, or autonomous pilot decision.
+                                  </p>
+                                </div>
+                                <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                                  {currentWeekOneOwnerDecisionLabel}
+                                </span>
+                              </div>
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {LOCAL_SERVICE_WEEK_ONE_OWNER_DECISION_ACTIONS.map((action) => (
+                                  <Button
+                                    key={action.decision}
+                                    size="sm"
+                                    variant={
+                                      currentWeekOneOwnerDecision === action.decision ? "default" : "secondary"
+                                    }
+                                    onClick={() => updateWeekOneOwnerDecision(action.decision)}
+                                    className="h-7"
+                                  >
+                                    {action.label}
+                                  </Button>
+                                ))}
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => updateWeekOneOwnerDecision("not_recorded")}
+                                  className="h-7"
+                                >
+                                  Reset owner decision
+                                </Button>
+                              </div>
+                              <div className="mt-2 flex flex-wrap gap-1.5">
+                                {[
+                                  "Continue / Pause / Stop",
+                                  "weekOneOwnerDecisionByProspectKey",
+                                  "week_one_owner_decision_to_evidence_pack",
+                                  "No external action",
+                                ].map((item) => (
+                                  <span
+                                    key={item}
+                                    className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 text-[10px] text-muted-foreground"
+                                  >
+                                    {item}
+                                  </span>
                                 ))}
                               </div>
                             </div>

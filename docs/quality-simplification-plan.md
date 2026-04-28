@@ -178,7 +178,10 @@ billing change, customer send, or Markdown mutation. It now also carries
 observed request result is part of the reviewed week-one decision. It now adds
 `Owner-ready summary`, `Decision readiness`, `Latest manual signal`, and
 `day_one_recap_to_week_one_review` so the week-one review is readable by the
-business owner without opening raw logs first.
+business owner without opening raw logs first. `Week-one owner decision state`,
+`Record continue`, `Record pause`, `Record stop`, and
+`weekOneOwnerDecisionByProspectKey` keep the decision browser-local before the
+evidence pack.
 The final manual proof layer is now `Open evidence pack`: it opens
 `Pilot evidence pack` with `Week-two evidence pack`, `Copy evidence pack`, and
 the structured `local_services_pilot_evidence_pack` payload. This gives the
@@ -186,7 +189,9 @@ founder a redacted day-14 proof pack for paid-pilot readiness or a clean stop
 decision without private customer data in public docs, CRM write, billing
 change, customer send, or Markdown mutation. It now also carries
 `First request outcome` and `firstRequestOutcomeByProspectKey`, so paid-pilot
-readiness includes the first observed request result.
+readiness includes the first observed request result. It also carries
+`Week-one owner decision` through `week_one_owner_decision_to_evidence_pack` so
+the proof pack reflects the recorded owner decision.
 That same block should link to repo-owned pilot artifacts through
 `/workspace-docs/local-services-pilot-offer.md` and
 `/workspace-docs/local-services-demo-script.md`.

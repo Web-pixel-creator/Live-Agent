@@ -195,7 +195,10 @@ service lane and company. Use it after real week-one activity exists to review
 and `firstRequestOutcomeByProspectKey` into the owner-reviewed continue, pause,
 or stop packet. It also shows `Owner-ready summary`, `Decision readiness`,
 `Latest manual signal`, and `day_one_recap_to_week_one_review` so the owner can
-read the week-one packet without opening raw activity logs. It does not decide
+read the week-one packet without opening raw activity logs. `Week-one owner
+decision state`, `Record continue`, `Record pause`, `Record stop`, and
+`weekOneOwnerDecisionByProspectKey` record the owner decision locally before the
+evidence pack. It does not decide
 autonomously, update CRM, change billing, send customer messages, or mutate this
 Markdown file automatically.
 
@@ -205,7 +208,9 @@ redacted before/after intake proof, one anonymized job card, scorecard rows,
 owner quote, and the stop/continue decision. The payload is
 `local_services_pilot_evidence_pack`; it now carries `First request outcome`
 and `firstRequestOutcomeByProspectKey` into the redacted paid-pilot readiness
-proof pack. It does not store private customer data in public docs, decide
+proof pack, plus `Week-one owner decision` through
+`week_one_owner_decision_to_evidence_pack`. It does not store private customer
+data in public docs, decide
 autonomously, update CRM, change billing, send customer messages, or mutate this
 Markdown file automatically.
 

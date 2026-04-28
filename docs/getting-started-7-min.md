@@ -154,14 +154,17 @@ mutate Markdown docs. It now carries `First request outcome` and
 `firstRequestOutcomeByProspectKey` into the reviewed continue, pause, or stop
 packet. It also shows `Owner-ready summary`, `Decision readiness`,
 `Latest manual signal`, and `day_one_recap_to_week_one_review` so the owner can
-review the week-one result without reading the full activity log first.
+review the week-one result without reading the full activity log first. Use
+`Week-one owner decision state` to record `Record continue`, `Record pause`, or
+`Record stop`; this updates only `weekOneOwnerDecisionByProspectKey`.
 Use `Open evidence pack` after the pilot has real proof. It opens
 `Pilot evidence pack` with `Week-two evidence pack`, `Copy evidence pack`, and
 `local_services_pilot_evidence_pack`. It is a redacted manual proof pack only:
 no private customer data in public docs, no autonomous pilot decision, no CRM
 write, no billing change, and no customer send. It now carries
 `First request outcome` and `firstRequestOutcomeByProspectKey` into the
-paid-pilot readiness proof pack.
+paid-pilot readiness proof pack, plus `Week-one owner decision` through
+`week_one_owner_decision_to_evidence_pack`.
 Use `Open founder execution log` when you are ready to track the first 10 real
 manual contacts. It opens `/workspace-docs/local-services-founder-execution-log.md`,
 a redacted worksheet for replies, demo bookings, discovery-call pain, and proof

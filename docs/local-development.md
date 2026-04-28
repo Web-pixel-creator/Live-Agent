@@ -100,13 +100,16 @@ messages, or mutate Markdown docs. It also carries `First request outcome` and
 `firstRequestOutcomeByProspectKey` into the reviewed week-one decision packet.
 The drawer now adds `Owner-ready summary`, `Decision readiness`,
 `Latest manual signal`, and `day_one_recap_to_week_one_review` so the owner
-review is a compact week-one packet instead of a raw checklist.
+review is a compact week-one packet instead of a raw checklist. The shell now
+also records `Week-one owner decision state` with `Record continue`,
+`Record pause`, `Record stop`, and `weekOneOwnerDecisionByProspectKey`.
 3.9. The same route now includes `Open evidence pack`, which opens `Pilot
 evidence pack` with `Week-two evidence pack`, `Copy evidence pack`, and
 `local_services_pilot_evidence_pack`. It is a redacted manual proof pack only;
 it does not store private customer data in public docs, decide autonomously,
 write CRM, change billing, send customer messages, or mutate Markdown docs. It
 also carries `First request outcome` and `firstRequestOutcomeByProspectKey`
+plus `Week-one owner decision` and `week_one_owner_decision_to_evidence_pack`
 into the paid-pilot readiness proof pack.
 3.10. The same route now includes `Open recording checklist`, which opens
 `http://localhost:3000/workspace-docs/local-services-demo-recording-checklist.md`.

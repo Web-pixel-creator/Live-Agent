@@ -116,13 +116,16 @@ After the first real week, use `Open week-one review` to review `Pilot week-one
 review`, `Continue / stop decision`, and `Copy week-one review`. The structured
 payload is `local_services_pilot_week_one_review`; it carries
 `First request outcome` / `firstRequestOutcomeByProspectKey` into the reviewed
-decision packet. It remains owner/operator review only and does not decide
-autonomously, write CRM, change billing, send customer messages, or mutate this
-list.
+decision packet. Use `Week-one owner decision state`, `Record continue`,
+`Record pause`, or `Record stop` to write only
+`weekOneOwnerDecisionByProspectKey`. It remains owner/operator review only and
+does not decide autonomously, write CRM, change billing, send customer messages,
+or mutate this list.
 At day 14, use `Open evidence pack` to review `Pilot evidence pack`,
 `Week-two evidence pack`, and `Copy evidence pack`. The structured payload is
 `local_services_pilot_evidence_pack`; it carries `First request outcome` /
-`firstRequestOutcomeByProspectKey` into paid-pilot readiness. It remains a
+`firstRequestOutcomeByProspectKey` into paid-pilot readiness, plus `Week-one
+owner decision` through `week_one_owner_decision_to_evidence_pack`. It remains a
 redacted manual proof pack only and does not store private customer data in
 public docs, decide autonomously, write CRM, change billing, send customer
 messages, or mutate this list.

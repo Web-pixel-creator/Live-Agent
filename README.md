@@ -210,13 +210,17 @@ Local-services expansion spec:
   decision pack before any continue, pause, or stop decision. The drawer now
   includes `Owner-ready summary`, `Decision readiness`,
   `Latest manual signal`, and the `day_one_recap_to_week_one_review` handoff so
-  the owner sees one concise week-one decision packet.
+  the owner sees one concise week-one decision packet. The shell now records
+  `Week-one owner decision state` through `Record continue`, `Record pause`,
+  `Record stop`, and `weekOneOwnerDecisionByProspectKey` before the evidence
+  handoff.
 - it now closes the 14-day loop with `Open evidence pack`, `Pilot evidence
   pack`, `Week-two evidence pack`, `Copy evidence pack`, and
   `local_services_pilot_evidence_pack`; this is a redacted manual proof pack,
   not CRM, billing, or customer-message automation. It now carries
-  `First request outcome` / `firstRequestOutcomeByProspectKey` into the
-  paid-pilot readiness proof pack.
+  `First request outcome` / `firstRequestOutcomeByProspectKey` plus
+  `Week-one owner decision` / `week_one_owner_decision_to_evidence_pack` into
+  the paid-pilot readiness proof pack.
 - `Pilot readiness` now links to repo-owned pilot artifacts at
   `/workspace-docs/local-services-pilot-offer.md` and
   `/workspace-docs/local-services-demo-script.md`. It now also exposes

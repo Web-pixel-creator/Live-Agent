@@ -170,16 +170,23 @@ Point at:
 68. `Pilot week-one review`
 69. `Continue / stop decision`
 70. `Copy week-one review`
-71. `Open evidence pack`
-72. `Pilot evidence pack`
-73. `Week-two evidence pack`
-74. `Copy evidence pack`
-75. `Open recording checklist`
-76. `Open pilot runbook`
+71. `Week-one owner decision state`
+72. `Record continue`
+73. `Record pause`
+74. `Record stop`
+75. `weekOneOwnerDecisionByProspectKey`
+76. `Open evidence pack`
+77. `Pilot evidence pack`
+78. `Week-two evidence pack`
+79. `Week-one owner decision`
+80. `week_one_owner_decision_to_evidence_pack`
+81. `Copy evidence pack`
+82. `Open recording checklist`
+83. `Open pilot runbook`
 
 Say:
 
-`This makes the product sales-ready as well: we can explain the offer, show the 7-minute setup path, review business profile, knowledge sources, behavior, test call readiness, prove the saved intake transcript and evidence link, then filter the outreach list by service or status, choose visible scorecard columns, show the 14-day manual pilot checklist, open the first manual contact launch packet, copy the browser-local manual activity log, prepare the discovery call brief, turn that into the day-one setup brief, capture the daily operating-loop note, prepare the week-one continue/stop review, assemble a redacted week-two evidence pack, and open the recording checklist before copying reviewed setup, launch, activity, discovery, daily, review, evidence, or metrics notes manually. Nothing here activates phone, Telegram, WhatsApp, CRM, analytics, billing, outreach sends, calendar bookings, customer messages, or CRM writes.`
+`This makes the product sales-ready as well: we can explain the offer, show the 7-minute setup path, review business profile, knowledge sources, behavior, test call readiness, prove the saved intake transcript and evidence link, then filter the outreach list by service or status, choose visible scorecard columns, show the 14-day manual pilot checklist, open the first manual contact launch packet, copy the browser-local manual activity log, prepare the discovery call brief, turn that into the day-one setup brief, capture the daily operating-loop note, prepare the week-one continue/stop review, record the week-one owner decision locally in weekOneOwnerDecisionByProspectKey, assemble a redacted week-two evidence pack with week_one_owner_decision_to_evidence_pack, and open the recording checklist before copying reviewed setup, launch, activity, discovery, daily, review, evidence, or metrics notes manually. Nothing here activates phone, Telegram, WhatsApp, CRM, analytics, billing, outreach sends, calendar bookings, customer messages, or CRM writes.`
 
 Use `docs/local-services-demo-recording-checklist.md` when recording the actual
 walkthrough. It gives the shot list, required on-screen proof, and do-not-claim
