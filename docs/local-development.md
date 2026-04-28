@@ -57,7 +57,7 @@ CRM, phone storage, or scorecards.
 `Pass test call/message`, `Needs test call passed`,
 `Prepare first manual batch`, `Ready for first manual batch`,
 `Record ready drafts`, `Log manual contact`, `Book discovery call`,
-`Start metric capture`, `Founder-only execution`, `No autonomous send`, and
+`Start metric capture`, `Founder/operator validation`, `No autonomous send`, and
 `Open pilot runbook`. Its header shows `Pilot checklist progress`,
 `Dry run required` / `Dry run passed`, and `Manual launch blocked` /
 `Manual launch ready`, so first contact stays gated on the dry run and a ready
@@ -111,12 +111,15 @@ It is a redacted first-10-contact worksheet for real pilot evidence capture;
 it does not send outreach, write CRM, book calendars, bill, sync analytics, or
 store private customer data in public docs.
 3.12. The same route now includes `First 10 contacts workspace`, `Pilot proof
-checklist`, `Open batch review`, `First contact batch review drawer`,
-`Copy batch review`, `Copy founder workspace`, `Channel checked`, `Manual sent`,
-`Discovery call`, `Demo booked`, and `Pilot candidate`. These controls update
-only `liveDesk:localServicesPilotWorkspace:v1` in browser-local state and the
-manual activity log; they do not send outreach, create bookings, write CRM,
-sync analytics, bill, or mutate Markdown docs.
+checklist`, `Stop / Continue decision gate`, `Open batch review`, `First
+contact batch review drawer`, `Copy batch review`, `Copy founder workspace`,
+`Channel checked`, `Manual sent`, `Discovery call`, `Demo booked`, and
+`Pilot candidate`. These controls update only
+`liveDesk:localServicesPilotWorkspace:v1` in browser-local state and the manual
+activity log; they do not send outreach, create bookings, write CRM, sync
+analytics, bill, or mutate Markdown docs. The platform frame remains
+NEWO-style AI employee expansion by category; the manual batch is only the
+validation gate.
 3.13. Append `&recording=90s` to the local-services route to enter
 `90-second recording mode`. The route is
 `http://localhost:3000/app?demo=local-services-dispatch&service=ac-repair-dispatch&recording=90s`.

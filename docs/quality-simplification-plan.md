@@ -114,7 +114,7 @@ pilot shell while keeping the action manual-only.
 That same funnel now adds `Pilot execution checklist`: `Pass test call/message`,
 `Needs test call passed`, `Prepare first manual batch`,
 `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
-`Book discovery call`, `Start metric capture`, `Founder-only execution`,
+`Book discovery call`, `Start metric capture`, `Founder/operator validation`,
 `No autonomous send`, and `Open pilot runbook`. Its header shows
 `Pilot checklist progress`, `Dry run required` / `Dry run passed`, and
 `Manual launch blocked` / `Manual launch ready`, so first contact stays gated
@@ -202,10 +202,13 @@ first-10-contact worksheet for real pilot evidence capture. It stays outside
 autonomous send, CRM, calendar, billing, analytics, and public customer-data
 storage.
 The product shell now mirrors that worksheet with an in-app `First 10 contacts
-workspace`, `Pilot proof checklist`, `Open batch review`, `First contact batch
-review drawer`, `Copy batch review`, and `Copy founder workspace`. This is the
-current simplification target: prove demand through 10 manual contacts before
-adding more integrations.
+workspace`, `Pilot proof checklist`, `Stop / Continue decision gate`,
+`Open batch review`, `First contact batch review drawer`, `Copy batch review`,
+and `Copy founder workspace`. This is the current simplification target: prove
+demand through 10 manual contacts before adding more integrations. The target
+product remains a NEWO-style AI employee platform for selected service
+categories; the manual batch is the category validation gate, not the final
+product shape.
 
 ## Success Criteria
 

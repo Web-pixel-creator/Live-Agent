@@ -665,7 +665,7 @@ operating loop built from browser-local funnel and metric state. It shows
 `Pass test call/message`, `Needs test call passed`,
 `Prepare first manual batch`, `Ready for first manual batch`,
 `Record ready drafts`, `Log manual contact`, `Book discovery call`,
-`Start metric capture`, `Founder-only execution`, `No autonomous send`, and
+`Start metric capture`, `Founder/operator validation`, `No autonomous send`, and
 `Open pilot runbook`. Its header shows `Pilot checklist progress`,
 `Dry run required` / `Dry run passed`, and `Manual launch blocked` /
 `Manual launch ready`, so first contact stays gated on the dry run and a ready
@@ -734,11 +734,14 @@ real pilot evidence capture, not CRM, outreach send, booking, billing, or public
 customer-data storage.
 The normal local-services route now mirrors that worksheet directly in the
 operator shell with `First 10 contacts workspace`, `Pilot proof checklist`,
-`Open batch review`, `First contact batch review drawer`, `Copy batch review`,
-and `Copy founder workspace`. The controls are browser-local proof markers for
+`Stop / Continue decision gate`, `Open batch review`,
+`First contact batch review drawer`, `Copy batch review`, and
+`Copy founder workspace`. The controls are browser-local proof markers for
 channel check, manual send, discovery call, demo booking, and pilot candidate;
 they do not send outreach, create bookings, write CRM, sync analytics, bill, or
-mutate Markdown docs.
+mutate Markdown docs. This preserves the NEWO-style AI employee platform
+direction: local manual proof selects the next category lane, but the concept is
+not a solo-only tool.
 The real 14-day pilot execution sequence now lives in
 `docs/local-services-pilot-runbook.md` and is served locally at
 `/workspace-docs/local-services-pilot-runbook.md`. It stays outside the product
@@ -866,7 +869,7 @@ Current shell readiness for P3:
 16. `Pilot execution checklist`, `Pass test call/message`,
    `Needs test call passed`, `Prepare first manual batch`,
    `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
-   `Book discovery call`, `Start metric capture`, `Founder-only execution`,
+   `Book discovery call`, `Start metric capture`, `Founder/operator validation`,
    `No autonomous send`, `Open pilot runbook`, `Pilot checklist progress`,
    `Dry run required`, `Dry run passed`, `Manual launch blocked`, and
    `Manual launch ready` are visible as the 14-day manual pilot operating loop.
@@ -912,10 +915,12 @@ Current shell readiness for P3:
    repo-owned redacted first-10-contact worksheet from the same local frontend
    server.
 29. `First 10 contacts workspace`, `Pilot proof checklist`,
-   `Open batch review`, `First contact batch review drawer`,
-   `Copy batch review`, `Copy founder workspace`, `Channel checked`,
-   `Manual sent`, `Discovery call`, `Demo booked`, and `Pilot candidate` are
-   visible as browser-local validation controls.
+   `Stop / Continue decision gate`, `Keep collecting proof`,
+   `Continue to pilot setup`, `Stop expansion for now`, `Open batch review`,
+   `First contact batch review drawer`, `Copy batch review`,
+   `Copy founder workspace`, `Channel checked`, `Manual sent`,
+   `Discovery call`, `Demo booked`, and `Pilot candidate` are visible as
+   browser-local validation controls.
 30. `contactProofByProspectKey` and `Founder proof recorded` are present in the
    browser-local pilot workspace contract, without any external side effect.
 31. `local_services_first_contact_batch_review`, `founder_manual_validation_review`,

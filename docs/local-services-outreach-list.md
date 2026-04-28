@@ -83,7 +83,7 @@ The same funnel now shows `Pilot execution checklist` with
 `Pass test call/message`, `Needs test call passed`,
 `Prepare first manual batch`, `Ready for first manual batch`,
 `Record ready drafts`, `Log manual contact`, `Book discovery call`,
-`Start metric capture`, `Founder-only execution`, `No autonomous send`, and
+`Start metric capture`, `Founder/operator validation`, `No autonomous send`, and
 `Open pilot runbook`, plus `Pilot checklist progress`, `Dry run required` /
 `Dry run passed`, and `Manual launch blocked` / `Manual launch ready`, so the
 first 14-day pilot has a visible manual loop gated on the dry run and a ready

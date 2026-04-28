@@ -78,7 +78,7 @@ Use it to:
 8. review `Pilot execution checklist`, `Pass test call/message`,
    `Needs test call passed`, `Prepare first manual batch`,
    `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
-   `Book discovery call`, `Start metric capture`, `Founder-only execution`,
+   `Book discovery call`, `Start metric capture`, `Founder/operator validation`,
    `No autonomous send`, `Open pilot runbook`, `Pilot checklist progress`,
    `Dry run required`, `Dry run passed`, `Manual launch blocked`, and
    `Manual launch ready`
@@ -222,7 +222,7 @@ Copy this block per company.
 1. no single approval owner
 2. pricing too custom for a first pilot
 3. no willingness to test with real requests
-4. too much enterprise complexity for a solo-founder rollout
+4. too much enterprise complexity for a founder/operator validation rollout
 
 ### Decision
 

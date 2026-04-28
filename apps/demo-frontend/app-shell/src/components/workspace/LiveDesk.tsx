@@ -656,6 +656,18 @@ type LocalServiceFounderContactRow = LocalServicePilotFunnelRow & {
   proofStatus: string;
 };
 
+type LocalServiceFounderDecisionGate = {
+  verdictLabel: string;
+  posture: string;
+  action: string;
+  targetLane: string;
+  tone: "continue" | "revise" | "stop" | "collect";
+  readyToContinue: boolean;
+  proofSummary: string;
+  stopRules: string[];
+  continueRules: string[];
+};
+
 type LocalServicePilotStatusFilter = LocalServicePilotStatus | "all";
 type LocalServicePilotColumnKey = "service" | "status" | "channelFit" | "nextStep";
 type LocalServicePilotExecutionStep = {
@@ -1463,6 +1475,7 @@ function buildLocalServiceFounderBatchReviewExport(
   },
   proofChecklist: { label: string; status: string; done: boolean }[],
   proofProgress: string,
+  decisionGate: LocalServiceFounderDecisionGate,
   activityLog: LocalServicePilotActivityEvent[] = [],
 ): LocalServicePilotWorkspaceExport {
   const contactLines = rows.map(
@@ -1489,6 +1502,9 @@ function buildLocalServiceFounderBatchReviewExport(
     `Discovery calls: ${counts.discoveryCalls}/1`,
     `Demos booked: ${counts.demosBooked}/1`,
     `Pilot candidates: ${counts.pilotCandidates}/1`,
+    `Decision gate: ${decisionGate.verdictLabel}`,
+    `Decision action: ${decisionGate.action}`,
+    `Target lane: ${decisionGate.targetLane}`,
     "",
     "Pilot proof checklist:",
     ...checklistLines,
@@ -1509,6 +1525,16 @@ function buildLocalServiceFounderBatchReviewExport(
       storage_key: LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY,
       proof_progress: proofProgress,
       proof_counts: counts,
+      decision_gate: {
+        verdict: decisionGate.verdictLabel,
+        posture: decisionGate.posture,
+        action: decisionGate.action,
+        target_lane: decisionGate.targetLane,
+        ready_to_continue: decisionGate.readyToContinue,
+        proof_summary: decisionGate.proofSummary,
+        stop_rules: decisionGate.stopRules,
+        continue_rules: decisionGate.continueRules,
+      },
       proof_checklist: proofChecklist,
       first_contacts: rows.map((row, index) => ({
         index: index + 1,
@@ -1563,6 +1589,7 @@ function buildLocalServiceFounderBatchReviewExport(
     { label: "Replies / rejections", value: `${counts.repliesOrRejections}/3` },
     { label: "Discovery calls", value: `${counts.discoveryCalls}/1` },
     { label: "Pilot candidates", value: `${counts.pilotCandidates}/1` },
+    { label: "Decision gate", value: decisionGate.verdictLabel },
   ];
   const checklist = [
     "Confirm the first 10 contact markers match real manual actions outside the shell.",
@@ -1588,6 +1615,100 @@ function buildLocalServiceFounderBatchReviewExport(
     jsonText,
     rows: rowsSummary,
     checklist,
+  };
+}
+
+function buildLocalServiceFounderDecisionGate(
+  rows: LocalServiceFounderContactRow[],
+  counts: {
+    channelChecked: number;
+    manualMessageSent: number;
+    repliesOrRejections: number;
+    discoveryCalls: number;
+    demosBooked: number;
+    pilotCandidates: number;
+  },
+): LocalServiceFounderDecisionGate {
+  const laneScores = new Map<string, { lane: string; score: number }>();
+  for (const row of rows) {
+    const existing = laneScores.get(row.serviceId) ?? { lane: row.serviceTitle, score: 0 };
+    existing.score += row.channelChecked ? 1 : 0;
+    existing.score += row.manualMessageSent ? 2 : 0;
+    existing.score += row.status === "reply_received" || row.status === "rejected_for_now" ? 3 : 0;
+    existing.score += row.discoveryCallCompleted ? 5 : 0;
+    existing.score += row.demoBooked ? 6 : 0;
+    existing.score += row.pilotCandidate ? 10 : 0;
+    laneScores.set(row.serviceId, existing);
+  }
+  const strongestLane =
+    Array.from(laneScores.values()).sort((a, b) => b.score - a.score)[0]?.lane ?? "AC repair dispatch";
+  const firstBatchComplete = counts.manualMessageSent >= 10;
+  const hasStrongDemandSignal = counts.pilotCandidates > 0 || counts.demosBooked > 0 || counts.discoveryCalls > 0;
+  const hasWeakButUsefulSignal = counts.repliesOrRejections >= 3;
+  const proofSummary = `${counts.manualMessageSent}/10 sent, ${counts.repliesOrRejections}/3 replies or rejections, ${counts.discoveryCalls}/1 discovery calls, ${counts.pilotCandidates}/1 pilot candidates`;
+  const stopRules = [
+    "Stop category expansion if 10 targeted contacts produce no replies, calls, demos, or pilot candidates.",
+    "Stop integration work if owners only ask for ads, marketplace demand, or generic lead volume.",
+    "Stop automation build-out if the business has no phone, Telegram, booking, dispatch, or approval pain.",
+  ];
+  const continueRules = [
+    "Continue only when at least one owner confirms missed-call, delayed-response, quote, booking, or dispatch pain.",
+    "Continue only when a real owner or dispatcher accepts a 7-minute demo or 14-day manual pilot.",
+    "Continue by deepening the strongest category lane first, not by adding new categories.",
+  ];
+
+  if (!firstBatchComplete) {
+    return {
+      verdictLabel: "Keep collecting proof",
+      posture: "First 10 contacts not complete",
+      action: "Finish the first 10 manual contacts before changing category strategy or adding integrations.",
+      targetLane: strongestLane,
+      tone: "collect",
+      readyToContinue: false,
+      proofSummary,
+      stopRules,
+      continueRules,
+    };
+  }
+
+  if (hasStrongDemandSignal) {
+    return {
+      verdictLabel: "Continue to pilot setup",
+      posture: "Demand signal found",
+      action: `Deepen ${strongestLane}, prepare one operator-approved pilot, and do not add a new category yet.`,
+      targetLane: strongestLane,
+      tone: "continue",
+      readyToContinue: true,
+      proofSummary,
+      stopRules,
+      continueRules,
+    };
+  }
+
+  if (hasWeakButUsefulSignal) {
+    return {
+      verdictLabel: "Revise offer before building",
+      posture: "Replies exist but no pilot signal",
+      action: "Rewrite the offer and message from rejection reasons, then run one more manual batch before engineering more automation.",
+      targetLane: strongestLane,
+      tone: "revise",
+      readyToContinue: false,
+      proofSummary,
+      stopRules,
+      continueRules,
+    };
+  }
+
+  return {
+    verdictLabel: "Stop expansion for now",
+    posture: "No useful demand signal after first batch",
+    action: "Do not add channels, billing, CRM, or new categories; change the offer or prospect list before writing more product code.",
+    targetLane: strongestLane,
+    tone: "stop",
+    readyToContinue: false,
+    proofSummary,
+    stopRules,
+    continueRules,
   };
 }
 
@@ -3554,11 +3675,19 @@ const LocalServicesDispatchDemoPanel = ({
     },
   ];
   const founderProofProgress = `${founderProofChecklist.filter((item) => item.done).length}/${founderProofChecklist.length}`;
+  const founderDecisionGate = useMemo(
+    () => buildLocalServiceFounderDecisionGate(founderContactRows, founderContactCounts),
+    [founderContactCounts, founderContactRows],
+  );
   const founderContactWorkspaceText = [
     "local_services_founder_contact_workspace",
     `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
     "Manual-only worksheet. No outbound send, CRM write, calendar event, billing action, analytics sync, or Markdown mutation.",
+    "Platform frame: NEWO-style AI employee platform for local service categories, validated through operator-approved pilots.",
     `Proof progress: ${founderProofProgress}`,
+    `Stop / Continue decision gate: ${founderDecisionGate.verdictLabel}`,
+    `Decision action: ${founderDecisionGate.action}`,
+    `Target lane: ${founderDecisionGate.targetLane}`,
     `Manual sends logged: ${founderContactCounts.manualMessageSent}/10`,
     `Replies or clear rejections: ${founderContactCounts.repliesOrRejections}/3`,
     `Discovery calls: ${founderContactCounts.discoveryCalls}/1`,
@@ -3575,6 +3704,7 @@ const LocalServicesDispatchDemoPanel = ({
     founderContactCounts,
     founderProofChecklist,
     founderProofProgress,
+    founderDecisionGate,
     pilotWorkspaceState.activityLog,
   );
   const filteredPilotFunnelRows = useMemo(
@@ -4924,6 +5054,46 @@ const LocalServicesDispatchDemoPanel = ({
                     );
                   })}
                 </div>
+                <div className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.8} />
+                    <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                      Stop / Continue decision gate
+                    </span>
+                    <span
+                      className={`ml-auto rounded-[5px] px-2 py-0.5 font-mono text-[10px] ring-1 ring-inset ${
+                        founderDecisionGate.tone === "continue"
+                          ? "bg-[hsl(var(--tint-mint)/0.12)] text-[hsl(var(--tint-mint-fg))] ring-[hsl(var(--tint-mint)/0.22)]"
+                          : founderDecisionGate.tone === "stop"
+                            ? "bg-[hsl(var(--destructive)/0.10)] text-destructive ring-[hsl(var(--destructive)/0.22)]"
+                            : "bg-secondary/45 text-muted-foreground ring-border/60"
+                      }`}
+                    >
+                      {founderDecisionGate.verdictLabel}
+                    </span>
+                  </div>
+                  <div className="mt-2 text-[12px] font-semibold text-foreground">{founderDecisionGate.posture}</div>
+                  <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                    {founderDecisionGate.action}
+                  </p>
+                  <div className="mt-2 grid gap-2 text-[11px]">
+                    <div className="rounded-[5px] bg-card/30 px-2 py-1.5">
+                      <span className="text-muted-foreground">Platform frame: </span>
+                      <span className="text-foreground">
+                        NEWO-style AI employee platform for local service categories, validated through
+                        operator-approved pilots.
+                      </span>
+                    </div>
+                    <div className="rounded-[5px] bg-card/30 px-2 py-1.5">
+                      <span className="text-muted-foreground">Target lane: </span>
+                      <span className="text-foreground">{founderDecisionGate.targetLane}</span>
+                    </div>
+                    <div className="rounded-[5px] bg-card/30 px-2 py-1.5">
+                      <span className="text-muted-foreground">Proof summary: </span>
+                      <span className="text-foreground">{founderDecisionGate.proofSummary}</span>
+                    </div>
+                  </div>
+                </div>
                 <div className="mt-3 rounded-md bg-secondary/35 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
                   Manual execution rule: this workspace does not send outreach, create bookings, write CRM, sync
                   analytics, bill, or mutate Markdown docs.
@@ -4940,8 +5110,8 @@ const LocalServicesDispatchDemoPanel = ({
                   Pilot execution checklist
                 </div>
                 <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground max-w-3xl">
-                  A 14-day pilot operating loop for founder-only execution. It starts with the browser-local dry-run
-                  gate and mirrors existing statuses without sending outreach, writing CRM, or mutating docs.
+                  A 14-day pilot operating loop for founder/operator validation. It starts with the browser-local
+                  dry-run gate and mirrors existing statuses without sending outreach, writing CRM, or mutating docs.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -4961,7 +5131,7 @@ const LocalServicesDispatchDemoPanel = ({
                   {manualLaunchGateLabel}
                 </span>
                 <span className="inline-flex rounded-[5px] bg-[hsl(var(--tint-mint)/0.12)] px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.22)]">
-                  Founder-only execution
+                  Founder/operator validation
                 </span>
                 <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
                   No autonomous send

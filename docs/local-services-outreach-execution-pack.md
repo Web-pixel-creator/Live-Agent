@@ -233,7 +233,7 @@ Allowed reply statuses:
 15. Show `Pilot execution checklist`, `Pass test call/message`,
    `Needs test call passed`, `Prepare first manual batch`,
    `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
-   `Book discovery call`, `Start metric capture`, `Founder-only execution`,
+   `Book discovery call`, `Start metric capture`, `Founder/operator validation`,
    `No autonomous send`, `Open pilot runbook`, `Pilot checklist progress`,
    `Dry run required`, `Dry run passed`, `Manual launch blocked`, and
    `Manual launch ready`; explain that this is the manual 14-day operating loop,

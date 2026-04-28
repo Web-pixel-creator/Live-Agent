@@ -16,6 +16,10 @@ bookings, write CRM, sync analytics, bill, or mutate this Markdown file.
 Use `Open batch review` in that workspace to open the `First contact batch
 review drawer` and `Copy batch review` only after the browser-local markers
 match the private founder notes.
+Use the `Stop / Continue decision gate` as the category expansion rule: continue
+only when the first batch proves real service-operator pain. The broader product
+direction remains a NEWO-style AI employee platform for selected local-service
+categories, not a solo-only tool.
 
 ## Goal
 

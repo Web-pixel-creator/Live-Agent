@@ -123,7 +123,7 @@ The same funnel includes `Pilot execution checklist`, a 14-day manual operating
 loop with `Pass test call/message`, `Needs test call passed`,
 `Prepare first manual batch`, `Ready for first manual batch`,
 `Record ready drafts`, `Log manual contact`, `Book discovery call`,
-`Start metric capture`, `Founder-only execution`, `No autonomous send`, and
+`Start metric capture`, `Founder/operator validation`, `No autonomous send`, and
 `Open pilot runbook`. Its header shows `Pilot checklist progress`,
 `Dry run required` / `Dry run passed`, and `Manual launch blocked` /
 `Manual launch ready`, so first contact stays gated on the dry run and a ready
@@ -204,11 +204,14 @@ served at `/workspace-docs/local-services-founder-execution-log.md`; it is a
 redacted first-10-contact worksheet, not CRM, outreach send, booking, billing,
 analytics, or public customer-data storage.
 Use the in-app `First 10 contacts workspace` before private spreadsheets when
-the founder is validating demand. It shows `Pilot proof checklist`, `Open batch
-review`, `First contact batch review drawer`, `Copy batch review`, `Copy
-founder workspace`, and browser-local proof buttons for channel check, manual
-send, discovery call, demo booking, and pilot candidate. It is still manual-only
-and must not be treated as proof of external delivery.
+the founder/operator is validating demand. It shows `Pilot proof checklist`,
+`Stop / Continue decision gate`, `Open batch review`, `First contact batch
+review drawer`, `Copy batch review`, `Copy founder workspace`, and
+browser-local proof buttons for channel check, manual send, discovery call,
+demo booking, and pilot candidate. It is still manual-only and must not be
+treated as proof of external delivery. The concept remains a NEWO-style AI
+employee platform for service categories; the manual batch only decides whether
+to continue, revise, or stop expansion.
 Use `docs/local-services-pilot-runbook.md` for the actual 14-day operating
 sequence: day-minus-one prep, manual outreach, discovery call, pilot setup,
 daily metric capture, week-one review, week-two review, and evidence pack. It

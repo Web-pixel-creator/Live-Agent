@@ -88,7 +88,7 @@ claiming the product sent outreach or wrote CRM.
 The same funnel now has `Pilot execution checklist`: `Pass test call/message`,
 `Needs test call passed`, `Prepare first manual batch`,
 `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
-`Book discovery call`, `Start metric capture`, `Founder-only execution`,
+`Book discovery call`, `Start metric capture`, `Founder/operator validation`,
 `No autonomous send`, and `Open pilot runbook`. Its header shows
 `Pilot checklist progress`, `Dry run required` / `Dry run passed`, and
 `Manual launch blocked` / `Manual launch ready`, so first contact stays gated
@@ -154,9 +154,11 @@ status. It is not CRM, outreach send, booking, billing, analytics, or public
 customer-data storage.
 Use the in-app `First 10 contacts workspace` for the same validation pass when
 you need a live browser-local view. `Pilot proof checklist` shows whether the
-first batch has enough proof to continue, `Open batch review` opens the `First
-contact batch review drawer`, and `Copy batch review` / `Copy founder workspace`
-exports only a redacted manual summary.
+first batch has enough proof to continue, `Stop / Continue decision gate` keeps
+category expansion honest, `Open batch review` opens the `First contact batch
+review drawer`, and `Copy batch review` / `Copy founder workspace` exports only
+a redacted manual summary. This does not narrow the product to a solo tool; it
+keeps the NEWO-style AI employee platform path grounded in real category proof.
 Use `Open offer doc`, `Open demo script`, and `Open recording checklist` to
 open the repo-owned pilot artifacts without leaving the local frontend server.
 The recording checklist is the safe 90-second walkthrough plan; it avoids claims

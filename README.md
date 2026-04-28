@@ -153,7 +153,7 @@ Local-services expansion spec:
   operating loop with `Pass test call/message`, `Needs test call passed`,
   `Prepare first manual batch`, `Ready for first manual batch`,
   `Record ready drafts`, `Log manual contact`, `Book discovery call`,
-  `Start metric capture`, `Founder-only execution`, `No autonomous send`, and
+  `Start metric capture`, `Founder/operator validation`, `No autonomous send`, and
   `Open pilot runbook`. Its header shows `Pilot checklist progress`,
   `Dry run required` / `Dry run passed`, and `Manual launch blocked` /
   `Manual launch ready`, so first contact stays gated on the dry run and a
@@ -218,9 +218,12 @@ Local-services expansion spec:
   outreach send, booking, billing, or public customer-data storage.
 - the `/app?demo=local-services-dispatch&service=ac-repair-dispatch` shell now
   also exposes `First 10 contacts workspace`, `Pilot proof checklist`, and
-  `Open batch review` / `Copy batch review` / `Copy founder workspace` so the
-  first manual validation batch can be tracked and exported as a reviewed
-  browser-local note before touching private CRM or spreadsheets.
+  `Stop / Continue decision gate`, `Open batch review` / `Copy batch review` /
+  `Copy founder workspace` so the first manual validation batch can be tracked
+  and exported as a reviewed browser-local note before touching private CRM or
+  spreadsheets. The frame stays NEWO-style AI employee platform expansion by
+  category; the manual batch is a validation gate, not a solo-only product
+  scope.
 - real pilot execution is now guided by `docs/local-services-pilot-runbook.md`;
   it defines day-minus-one prep, manual outreach, discovery calls, pilot setup,
   daily metrics, week-one review, week-two review, and the evidence pack.
