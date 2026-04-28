@@ -198,9 +198,11 @@ send customer messages, or mutate this Markdown file automatically.
 review. Use it to collect `Week-two evidence pack`, `Copy evidence pack`,
 redacted before/after intake proof, one anonymized job card, scorecard rows,
 owner quote, and the stop/continue decision. The payload is
-`local_services_pilot_evidence_pack`; it does not store private customer data in
-public docs, decide autonomously, update CRM, change billing, send customer
-messages, or mutate this Markdown file automatically.
+`local_services_pilot_evidence_pack`; it now carries `First request outcome`
+and `firstRequestOutcomeByProspectKey` into the redacted paid-pilot readiness
+proof pack. It does not store private customer data in public docs, decide
+autonomously, update CRM, change billing, send customer messages, or mutate this
+Markdown file automatically.
 
 `Open discovery prep` opens the `Discovery call prep` drawer for a replied
 company. Use `Human-readable` for the founder call, `JSON` for structured

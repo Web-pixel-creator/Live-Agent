@@ -3484,9 +3484,11 @@ function buildLocalServicePilotEvidencePackExport(
   prospect: LocalServiceOutreachProspect | undefined,
   pilotStatus: LocalServicePilotStatus,
   metricStatus: LocalServicePilotMetricStatus,
+  firstRequestOutcome: LocalServiceFirstRequestOutcome,
 ): LocalServicePilotWorkspaceExport {
   const pilotStatusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[pilotStatus];
   const metricStatusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus];
+  const firstRequestOutcomeLabel = LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_LABELS[firstRequestOutcome];
   const prospectLabel = prospect ? `${prospect.company} - ${prospect.segment}` : "No prospect selected";
   const evidenceItems = [
     {
@@ -3535,6 +3537,8 @@ function buildLocalServicePilotEvidencePackExport(
     `Selected company: ${prospectLabel}`,
     `Pilot status: ${pilotStatusLabel}`,
     `Metric status: ${metricStatusLabel}`,
+    `First request outcome: ${firstRequestOutcomeLabel}`,
+    `Outcome state key: firstRequestOutcomeByProspectKey`,
     "Export scope: manual week-two evidence pack",
     "",
     "Evidence items:",
@@ -3562,11 +3566,15 @@ function buildLocalServicePilotEvidencePackExport(
       pilot_status_label: pilotStatusLabel,
       metric_status: metricStatus,
       metric_status_label: metricStatusLabel,
+      first_request_outcome: firstRequestOutcome,
+      first_request_outcome_label: firstRequestOutcomeLabel,
+      outcome_state_key: "firstRequestOutcomeByProspectKey",
       evidence_items: evidenceItems,
       week_two_decision_options: weekTwoOptions,
       paid_pilot_readiness: readinessCriteria,
       guardrails: [
         "manual_week_two_evidence_pack",
+        "manual_first_request_outcome_evidence",
         "no_private_customer_data_in_public_docs",
         "redact_names_phone_addresses_media",
         "no_autonomous_pilot_decision",
@@ -3596,12 +3604,14 @@ function buildLocalServicePilotEvidencePackExport(
     rows: [
       { label: "Service", value: `${template.ref} - ${template.title}` },
       { label: "Company", value: prospectLabel },
+      { label: "First request outcome", value: firstRequestOutcomeLabel },
       { label: "Evidence items", value: String(evidenceItems.length) },
       { label: "Decision options", value: weekTwoOptions.join(", ") },
       { label: "Guardrail", value: "Manual redacted evidence pack, no private customer data in public docs" },
     ],
     checklist: [
       "Include only redacted screenshots, notes, and job-card excerpts.",
+      "Include the first request outcome before paid-pilot readiness is reviewed.",
       "Attach week-one and week-two scorecard rows from the private tracker.",
       "Record one owner or dispatcher quote.",
       "Pick one clear continue, paid pilot, extension, or stop decision.",
@@ -5385,8 +5395,9 @@ const LocalServicesDispatchDemoPanel = ({
         selectedOutreachProspect,
         currentPilotStatus,
         currentMetricStatus,
+        currentFirstRequestOutcome,
       ),
-    [currentMetricStatus, currentPilotStatus, selectedOutreachProspect, selectedTemplate],
+    [currentFirstRequestOutcome, currentMetricStatus, currentPilotStatus, selectedOutreachProspect, selectedTemplate],
   );
   const pilotMessagePreview = useMemo(
     () => buildLocalServicePilotMessagePreview(selectedTemplate, selectedOutreachProspect, currentPilotStatus),

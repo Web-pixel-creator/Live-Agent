@@ -198,7 +198,9 @@ Use `Open evidence pack` at the end of a serious pilot to assemble the redacted
 owner proof pack. `Pilot evidence pack` exposes `Week-two evidence pack`,
 `Copy evidence pack`, `local_services_pilot_evidence_pack`, paid-pilot
 readiness, decision options, and redaction guardrails. It is not CRM, billing,
-customer-message, or public-doc storage automation.
+customer-message, or public-doc storage automation. It now also carries
+`First request outcome` and `firstRequestOutcomeByProspectKey` into the
+redacted paid-pilot readiness proof pack.
 Use `Open offer doc`, `Open demo script`, and `Open recording checklist` when
 the operator needs the pilot artifact layer instead of the inline summary. The
 recording checklist is for a 90-second walkthrough and keeps claims limited to

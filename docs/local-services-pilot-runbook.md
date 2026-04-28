@@ -130,8 +130,9 @@ Do not use the pilot to build:
     spreadsheet manually.
 18. Open `Open evidence pack` at day 14 for serious pilots. Review
     `Pilot evidence pack`, `Week-two evidence pack`, and `Copy evidence pack`,
-    then copy `local_services_pilot_evidence_pack` into the private scorecard
-    or owner-facing proof pack manually after redaction.
+    confirm `First request outcome` / `firstRequestOutcomeByProspectKey`, then
+    copy `local_services_pilot_evidence_pack` into the private scorecard or
+    owner-facing proof pack manually after redaction.
 
 ## Day Zero: Outreach
 

@@ -155,7 +155,9 @@ Use `Open evidence pack` after the pilot has real proof. It opens
 `Pilot evidence pack` with `Week-two evidence pack`, `Copy evidence pack`, and
 `local_services_pilot_evidence_pack`. It is a redacted manual proof pack only:
 no private customer data in public docs, no autonomous pilot decision, no CRM
-write, no billing change, and no customer send.
+write, no billing change, and no customer send. It now carries
+`First request outcome` and `firstRequestOutcomeByProspectKey` into the
+paid-pilot readiness proof pack.
 Use `Open founder execution log` when you are ready to track the first 10 real
 manual contacts. It opens `/workspace-docs/local-services-founder-execution-log.md`,
 a redacted worksheet for replies, demo bookings, discovery-call pain, and proof

@@ -724,7 +724,10 @@ The final pilot block now opens `Pilot evidence pack` through
 `Copy evidence pack`, and the structured
 `local_services_pilot_evidence_pack` payload. It is the redacted day-14 proof
 pack only: no private customer data in public docs, no autonomous pilot
-decision, CRM write, billing change, customer send, or Markdown mutation.
+decision, CRM write, billing change, customer send, or Markdown mutation. The
+payload now also carries `First request outcome` and
+`firstRequestOutcomeByProspectKey`, so paid-pilot readiness includes the first
+observed request result.
 The shell now also opens repo-owned pilot artifacts through
 `/workspace-docs/local-services-pilot-offer.md`,
 `/workspace-docs/local-services-demo-script.md`, and
@@ -949,7 +952,8 @@ Current shell readiness for P3:
    `local_services_pilot_week_one_review`, `First request outcome`, and
    `firstRequestOutcomeByProspectKey` are visible in the shell.
 26. `Open evidence pack`, `Pilot evidence pack`, `Week-two evidence pack`,
-   `Copy evidence pack`, and `local_services_pilot_evidence_pack` are visible
+   `Copy evidence pack`, `local_services_pilot_evidence_pack`,
+   `First request outcome`, and `firstRequestOutcomeByProspectKey` are visible
    in the shell.
 27. `Open offer doc`, `Open demo script`, and `Open recording checklist`
    resolve to the repo-owned pilot artifact documents from the same local

@@ -279,9 +279,10 @@ Allowed reply statuses:
    write, billing change, or customer send.
 23. Show `Open evidence pack`, `Pilot evidence pack`,
    `Week-two evidence pack`, `Copy evidence pack`, and
-   `local_services_pilot_evidence_pack`; explain that this is a redacted manual
-   proof pack, not public customer-data storage, CRM, billing, or customer-send
-   automation.
+   `local_services_pilot_evidence_pack`; confirm it carries
+   `First request outcome` / `firstRequestOutcomeByProspectKey` and explain
+   that this is a redacted manual proof pack, not public customer-data storage,
+   CRM, billing, or customer-send automation.
 24. Show `Open recording checklist` if the prospect or partner needs a short
    product walkthrough. Explain that it is a 90-second recording checklist with
    required on-screen proof and do-not-claim rules, not a live automation

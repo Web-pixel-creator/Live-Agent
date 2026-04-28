@@ -179,7 +179,9 @@ The final manual proof layer is now `Open evidence pack`: it opens
 the structured `local_services_pilot_evidence_pack` payload. This gives the
 founder a redacted day-14 proof pack for paid-pilot readiness or a clean stop
 decision without private customer data in public docs, CRM write, billing
-change, customer send, or Markdown mutation.
+change, customer send, or Markdown mutation. It now also carries
+`First request outcome` and `firstRequestOutcomeByProspectKey`, so paid-pilot
+readiness includes the first observed request result.
 That same block should link to repo-owned pilot artifacts through
 `/workspace-docs/local-services-pilot-offer.md` and
 `/workspace-docs/local-services-demo-script.md`.

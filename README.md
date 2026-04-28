@@ -209,7 +209,9 @@ Local-services expansion spec:
 - it now closes the 14-day loop with `Open evidence pack`, `Pilot evidence
   pack`, `Week-two evidence pack`, `Copy evidence pack`, and
   `local_services_pilot_evidence_pack`; this is a redacted manual proof pack,
-  not CRM, billing, or customer-message automation.
+  not CRM, billing, or customer-message automation. It now carries
+  `First request outcome` / `firstRequestOutcomeByProspectKey` into the
+  paid-pilot readiness proof pack.
 - `Pilot readiness` now links to repo-owned pilot artifacts at
   `/workspace-docs/local-services-pilot-offer.md` and
   `/workspace-docs/local-services-demo-script.md`. It now also exposes

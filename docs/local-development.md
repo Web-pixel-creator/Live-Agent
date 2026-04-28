@@ -102,7 +102,9 @@ messages, or mutate Markdown docs. It also carries `First request outcome` and
 evidence pack` with `Week-two evidence pack`, `Copy evidence pack`, and
 `local_services_pilot_evidence_pack`. It is a redacted manual proof pack only;
 it does not store private customer data in public docs, decide autonomously,
-write CRM, change billing, send customer messages, or mutate Markdown docs.
+write CRM, change billing, send customer messages, or mutate Markdown docs. It
+also carries `First request outcome` and `firstRequestOutcomeByProspectKey`
+into the paid-pilot readiness proof pack.
 3.10. The same route now includes `Open recording checklist`, which opens
 `http://localhost:3000/workspace-docs/local-services-demo-recording-checklist.md`.
 It is a 90-second walkthrough checklist for the local-services demo only; it
