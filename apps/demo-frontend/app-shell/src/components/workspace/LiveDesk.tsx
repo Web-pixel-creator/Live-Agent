@@ -699,6 +699,19 @@ type LocalServiceLeadingCategoryActionLayer = {
   integrationHold: string[];
 };
 
+type LocalServiceLeadingCategoryPilotReadiness = {
+  serviceId: string;
+  serviceTitle: string;
+  readinessLabel: "Ready for first paid pilot" | "Pilot setup almost ready" | "Not ready for paid pilot";
+  progressLabel: string;
+  paidPilotGate: string;
+  nextAction: string;
+  readyToPilot: boolean;
+  checklist: { label: string; status: string; done: boolean }[];
+  blockers: string[];
+  readySignals: string[];
+};
+
 type LocalServicePilotStatusFilter = LocalServicePilotStatus | "all";
 type LocalServicePilotColumnKey = "service" | "status" | "channelFit" | "nextStep";
 type LocalServicePilotExecutionStep = {
@@ -1509,6 +1522,7 @@ function buildLocalServiceFounderBatchReviewExport(
   decisionGate: LocalServiceFounderDecisionGate,
   categoryScores: LocalServiceCategoryPilotScore[],
   actionLayer: LocalServiceLeadingCategoryActionLayer,
+  pilotReadiness: LocalServiceLeadingCategoryPilotReadiness,
   activityLog: LocalServicePilotActivityEvent[] = [],
 ): LocalServicePilotWorkspaceExport {
   const contactLines = rows.map(
@@ -1543,6 +1557,16 @@ function buildLocalServiceFounderBatchReviewExport(
     "Integration hold:",
     ...actionLayer.integrationHold.map((item) => `- ${item}`),
   ];
+  const readinessLines = [
+    `Readiness: ${pilotReadiness.readinessLabel}`,
+    `Progress: ${pilotReadiness.progressLabel}`,
+    `Paid pilot gate: ${pilotReadiness.paidPilotGate}`,
+    `Next action: ${pilotReadiness.nextAction}`,
+    "Readiness checklist:",
+    ...pilotReadiness.checklist.map((item) => `- ${item.done ? "done" : "blocked"} | ${item.label}: ${item.status}`),
+    "Blockers:",
+    ...(pilotReadiness.blockers.length > 0 ? pilotReadiness.blockers.map((item) => `- ${item}`) : ["- none"]),
+  ];
   const humanLines = [
     "First contact batch review drawer: Local services founder validation",
     "Export scope: browser-local proof review for the first 10 manual contacts",
@@ -1567,6 +1591,9 @@ function buildLocalServiceFounderBatchReviewExport(
     "",
     "Leading category action layer:",
     ...actionLayerLines,
+    "",
+    "Pilot setup readiness:",
+    ...readinessLines,
     "",
     "First 10 contact review:",
     ...contactLines,
@@ -1630,6 +1657,19 @@ function buildLocalServiceFounderBatchReviewExport(
         pilot_setup_checklist: actionLayer.pilotSetupChecklist,
         integration_hold: actionLayer.integrationHold,
       },
+      pilot_setup_readiness: {
+        export_surface: "local_services_pilot_setup_readiness",
+        service_id: pilotReadiness.serviceId,
+        service_title: pilotReadiness.serviceTitle,
+        readiness_label: pilotReadiness.readinessLabel,
+        progress_label: pilotReadiness.progressLabel,
+        paid_pilot_gate: pilotReadiness.paidPilotGate,
+        next_action: pilotReadiness.nextAction,
+        ready_to_pilot: pilotReadiness.readyToPilot,
+        checklist: pilotReadiness.checklist,
+        blockers: pilotReadiness.blockers,
+        ready_signals: pilotReadiness.readySignals,
+      },
       proof_checklist: proofChecklist,
       first_contacts: rows.map((row, index) => ({
         index: index + 1,
@@ -1689,10 +1729,12 @@ function buildLocalServiceFounderBatchReviewExport(
       label: "Leading category",
       value: leadCategory ? `${leadCategory.serviceTitle} / ${leadCategory.score} / ${leadCategory.signalLabel}` : "none",
     },
+    { label: "Pilot setup readiness", value: `${pilotReadiness.readinessLabel} / ${pilotReadiness.progressLabel}` },
   ];
   const checklist = [
     "Confirm the first 10 contact markers match real manual actions outside the shell.",
     "Confirm the leading category is based on proof markers, not preference or market guesswork.",
+    "Confirm the pilot setup readiness gate is complete before selling or activating a paid pilot.",
     "Confirm no private customer names, phone numbers, addresses, or deal terms are stored in this browser-local export.",
     "Copy the review into private founder notes only after operator review.",
     "Stop product expansion if replies, discovery calls, or pilot candidates do not appear after this batch.",
@@ -1935,6 +1977,91 @@ function buildLocalServiceLeadingCategoryActionLayer(
     discoveryQuestions,
     pilotSetupChecklist,
     integrationHold,
+  };
+}
+
+function buildLocalServiceLeadingCategoryPilotReadiness(
+  actionLayer: LocalServiceLeadingCategoryActionLayer,
+  score: LocalServiceCategoryPilotScore | undefined,
+  setupStepCompletion: LocalServiceSetupStepCompletion,
+  setupReady: boolean,
+  testCallPassed: boolean,
+  metricStatus: LocalServicePilotMetricStatus,
+): LocalServiceLeadingCategoryPilotReadiness {
+  const setupPrerequisites: LocalServiceSetupStepId[] = [
+    "business_profile",
+    "knowledge_sources",
+    "agent_behavior",
+    "test_call_message",
+  ];
+  const completedSetupPrerequisites = setupPrerequisites.filter((stepId) => setupStepCompletion[stepId] === true).length;
+  const hasProofSignal =
+    score?.signalLabel === "Lead category" ||
+    (score?.counts.discoveryCalls ?? 0) > 0 ||
+    (score?.counts.demosBooked ?? 0) > 0 ||
+    (score?.counts.pilotCandidates ?? 0) > 0;
+  const hasRealConversation = (score?.counts.discoveryCalls ?? 0) > 0 || (score?.counts.pilotCandidates ?? 0) > 0;
+  const metricStarted = metricStatus !== "not_started";
+  const checklist = [
+    {
+      label: "Category proof signal",
+      status: score
+        ? `${score.signalLabel}; ${score.proofSummary}`
+        : "No category score yet",
+      done: hasProofSignal,
+    },
+    {
+      label: "Setup prerequisites",
+      status: `${completedSetupPrerequisites}/${setupPrerequisites.length} setup steps complete`,
+      done: completedSetupPrerequisites === setupPrerequisites.length,
+    },
+    {
+      label: "Ready for pilot test",
+      status: setupReady ? "Ready for pilot test recorded" : "Needs ready gate",
+      done: setupReady,
+    },
+    {
+      label: "Test call/message passed",
+      status: testCallPassed ? "Test call passed" : "Needs passing dry run",
+      done: testCallPassed,
+    },
+    {
+      label: "Real owner conversation",
+      status: hasRealConversation ? "Discovery or pilot signal exists" : "Needs reply or discovery call",
+      done: hasRealConversation,
+    },
+    {
+      label: "Metric baseline",
+      status: LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus],
+      done: metricStarted,
+    },
+  ];
+  const completed = checklist.filter((item) => item.done).length;
+  const readyToPilot = checklist.every((item) => item.done);
+  const readinessLabel: LocalServiceLeadingCategoryPilotReadiness["readinessLabel"] = readyToPilot
+    ? "Ready for first paid pilot"
+    : completed >= 4
+      ? "Pilot setup almost ready"
+      : "Not ready for paid pilot";
+  const blockers = checklist.filter((item) => !item.done).map((item) => `${item.label}: ${item.status}`);
+  const readySignals = checklist.filter((item) => item.done).map((item) => `${item.label}: ${item.status}`);
+  const nextAction =
+    blockers[0] ?? `Prepare one paid ${actionLayer.serviceTitle} pilot proposal and keep sends operator-approved.`;
+  const paidPilotGate = readyToPilot
+    ? "Paid pilot proposal can be prepared; live sends, bookings, CRM, and billing still require operator approval."
+    : "Do not sell or activate a paid pilot yet; finish the blocking proof, setup, dry-run, conversation, and metric gates first.";
+
+  return {
+    serviceId: actionLayer.serviceId,
+    serviceTitle: actionLayer.serviceTitle,
+    readinessLabel,
+    progressLabel: `${completed}/${checklist.length}`,
+    paidPilotGate,
+    nextAction,
+    readyToPilot,
+    checklist,
+    blockers,
+    readySignals,
   };
 }
 
@@ -3879,6 +4006,33 @@ const LocalServicesDispatchDemoPanel = ({
     () => buildLocalServiceLeadingCategoryActionLayer(leadingCategoryPilotScore, founderContactRows),
     [founderContactRows, leadingCategoryPilotScore],
   );
+  const leadingCategorySetupCompletion =
+    pilotWorkspaceState.setupStepCompletionByService[leadingCategoryActionLayer.serviceId] ?? {};
+  const leadingCategorySetupReady =
+    pilotWorkspaceState.setupReadyByService[leadingCategoryActionLayer.serviceId] === true;
+  const leadingCategoryTestCallPassed =
+    pilotWorkspaceState.testCallPassedByService[leadingCategoryActionLayer.serviceId] === true;
+  const leadingCategoryMetricStatus =
+    pilotWorkspaceState.metricStatusByService[leadingCategoryActionLayer.serviceId] ?? "not_started";
+  const leadingCategoryPilotReadiness = useMemo(
+    () =>
+      buildLocalServiceLeadingCategoryPilotReadiness(
+        leadingCategoryActionLayer,
+        leadingCategoryPilotScore,
+        leadingCategorySetupCompletion,
+        leadingCategorySetupReady,
+        leadingCategoryTestCallPassed,
+        leadingCategoryMetricStatus,
+      ),
+    [
+      leadingCategoryActionLayer,
+      leadingCategoryMetricStatus,
+      leadingCategoryPilotScore,
+      leadingCategorySetupCompletion,
+      leadingCategorySetupReady,
+      leadingCategoryTestCallPassed,
+    ],
+  );
   const founderReviewReadyServices = LOCAL_SERVICE_DEMO_TEMPLATES.filter(
     (template) => (pilotWorkspaceState.metricStatusByService[template.id] ?? "not_started") === "review_ready",
   ).length;
@@ -3930,6 +4084,9 @@ const LocalServicesDispatchDemoPanel = ({
     }`,
     `Leading category action layer: ${leadingCategoryActionLayer.posture}`,
     `Leading category action: ${leadingCategoryActionLayer.action}`,
+    `Pilot setup readiness: ${leadingCategoryPilotReadiness.readinessLabel} / ${leadingCategoryPilotReadiness.progressLabel}`,
+    `Paid pilot gate: ${leadingCategoryPilotReadiness.paidPilotGate}`,
+    `Pilot readiness next action: ${leadingCategoryPilotReadiness.nextAction}`,
     "No category expansion without proof.",
     `Manual sends logged: ${founderContactCounts.manualMessageSent}/10`,
     `Replies or clear rejections: ${founderContactCounts.repliesOrRejections}/3`,
@@ -3956,6 +4113,16 @@ const LocalServicesDispatchDemoPanel = ({
     "Integration hold:",
     ...leadingCategoryActionLayer.integrationHold.map((item) => `- ${item}`),
     "",
+    "Pilot setup readiness:",
+    ...leadingCategoryPilotReadiness.checklist.map(
+      (item) => `- ${item.done ? "done" : "blocked"} | ${item.label}: ${item.status}`,
+    ),
+    "",
+    "Pilot readiness blockers:",
+    ...(leadingCategoryPilotReadiness.blockers.length > 0
+      ? leadingCategoryPilotReadiness.blockers.map((item) => `- ${item}`)
+      : ["- none"]),
+    "",
     "First 10 contacts:",
     ...founderContactRows.map(
       (row, index) =>
@@ -3970,6 +4137,7 @@ const LocalServicesDispatchDemoPanel = ({
     founderDecisionGate,
     categoryPilotScores,
     leadingCategoryActionLayer,
+    leadingCategoryPilotReadiness,
     pilotWorkspaceState.activityLog,
   );
   const filteredPilotFunnelRows = useMemo(
@@ -5482,6 +5650,58 @@ const LocalServicesDispatchDemoPanel = ({
                             <li key={item}>{item}</li>
                           ))}
                         </ul>
+                      </div>
+                    </div>
+                    <div className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.8} />
+                        <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          Pilot setup readiness
+                        </span>
+                        <span
+                          className={`ml-auto rounded-[5px] px-2 py-0.5 font-mono text-[10px] ring-1 ring-inset ${
+                            leadingCategoryPilotReadiness.readyToPilot
+                              ? "bg-[hsl(var(--tint-mint)/0.12)] text-[hsl(var(--tint-mint-fg))] ring-[hsl(var(--tint-mint)/0.22)]"
+                              : "bg-[hsl(var(--tint-amber)/0.12)] text-[hsl(var(--tint-amber-fg))] ring-[hsl(var(--tint-amber)/0.24)]"
+                          }`}
+                        >
+                          {leadingCategoryPilotReadiness.progressLabel}
+                        </span>
+                      </div>
+                      <div className="mt-2 text-[12px] font-semibold text-foreground">
+                        {leadingCategoryPilotReadiness.readinessLabel}
+                      </div>
+                      <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                        {leadingCategoryPilotReadiness.paidPilotGate}
+                      </p>
+                      <div className="mt-2 rounded-[5px] bg-card/30 px-2 py-1.5 text-[11px]">
+                        <span className="text-muted-foreground">Next action: </span>
+                        <span className="text-foreground">{leadingCategoryPilotReadiness.nextAction}</span>
+                      </div>
+                      <div className="mt-3 grid gap-2">
+                        {leadingCategoryPilotReadiness.checklist.map((item) => {
+                          const ReadinessIcon = item.done ? CheckCircle2 : Clock;
+                          return (
+                            <div key={item.label} className="rounded-[5px] bg-card/30 px-2 py-1.5">
+                              <div className="flex items-start gap-2">
+                                <ReadinessIcon
+                                  className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${
+                                    item.done ? "text-[hsl(var(--tint-mint-fg))]" : "text-muted-foreground"
+                                  }`}
+                                  strokeWidth={1.8}
+                                />
+                                <div className="min-w-0">
+                                  <div className="text-[11px] font-semibold text-foreground">{item.label}</div>
+                                  <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">{item.status}</div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="mt-3 rounded-[5px] bg-secondary/35 px-2 py-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                        Paid pilot gate: no selling, phone activation, Telegram/WhatsApp activation, CRM sync, calendar
+                        booking, analytics sync, billing, or customer send until every readiness gate is complete.
                       </div>
                     </div>
                   </div>

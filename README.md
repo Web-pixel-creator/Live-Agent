@@ -226,9 +226,12 @@ Local-services expansion spec:
   measurement are ranked by proof rather than preference. `Leading category
   action layer` then turns the top lane into `Next manual batch`, `Discovery
   questions`, `Pilot setup checklist`, `Integration hold`, and
-  `Focus leading category` actions. The frame stays NEWO-style AI employee
-  platform expansion by category; the manual batch is a validation gate, not a
-  solo-only product scope.
+  `Focus leading category` actions. `Pilot setup readiness`, `Paid pilot gate`,
+  `Ready for first paid pilot`, and `Not ready for paid pilot` make the first
+  paid pilot posture explicit before any live channel, CRM, analytics, billing,
+  or customer-send integration is activated. The frame stays NEWO-style AI
+  employee platform expansion by category; the manual batch is a validation
+  gate, not a solo-only product scope.
 - real pilot execution is now guided by `docs/local-services-pilot-runbook.md`;
   it defines day-minus-one prep, manual outreach, discovery calls, pilot setup,
   daily metrics, week-one review, week-two review, and the evidence pack.

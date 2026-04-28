@@ -119,7 +119,10 @@ and `No category expansion without proof` so AC, plumbing, cleaning, and
 measurement are compared from the same proof markers before any category
 expansion. `Leading category action layer` turns the top lane into `Next manual
 batch`, `Discovery questions`, `Pilot setup checklist`, `Integration hold`, and
-`Focus leading category`. These controls update only
+`Focus leading category`. `Pilot setup readiness`, `Paid pilot gate`,
+`Ready for first paid pilot`, and `Not ready for paid pilot` show whether the
+leading lane can move toward a paid pilot or still has proof/setup/dry-run
+blockers. These controls update only
 `liveDesk:localServicesPilotWorkspace:v1` in browser-local state and the manual
 activity log; they do not send outreach, create bookings, write CRM, sync
 analytics, bill, or mutate Markdown docs. The platform frame remains

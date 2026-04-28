@@ -27,6 +27,9 @@ backed by manual sends, replies, discovery calls, demos, or pilot willingness.
 `Leading category action layer` should then drive the `Next manual batch`,
 `Discovery questions`, `Pilot setup checklist`, and `Integration hold` before
 any lane gets more engineering.
+`Pilot setup readiness` is the paid-pilot gate: do not treat a lane as
+`Ready for first paid pilot` until proof, setup, dry-run, owner conversation,
+and metric gates are complete.
 
 ## Goal
 

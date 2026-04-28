@@ -230,6 +230,9 @@ Allowed reply statuses:
    Show `Leading category action layer`, `Next manual batch`,
    `Discovery questions`, `Pilot setup checklist`, `Integration hold`, and
    `Focus leading category`; explain that this is planning only, not automation.
+   Show `Pilot setup readiness`, `Paid pilot gate`, and
+   `Not ready for paid pilot`; explain that paid-pilot posture is blocked until
+   proof, setup, dry-run, owner-conversation, and metric gates are complete.
 14. Open `Open intake evidence` / `Transcript + evidence` and show
    `Saved intake evidence`, `Intake transcript + evidence link`,
    `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,

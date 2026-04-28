@@ -75,6 +75,9 @@ Do not use the pilot to build:
    `Leading category action layer` then gives `Next manual batch`,
    `Discovery questions`, `Pilot setup checklist`, `Integration hold`, and
    `Focus leading category`.
+   `Pilot setup readiness` shows the `Paid pilot gate`; do not move past
+   `Not ready for paid pilot` until proof, setup, dry-run, owner-conversation,
+   and metric gates are complete.
 9. Review `Pilot execution checklist`: `Pass test call/message`,
    `Needs test call passed`, `Prepare first manual batch`,
    `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,

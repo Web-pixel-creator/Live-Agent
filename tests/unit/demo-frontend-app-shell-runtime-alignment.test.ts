@@ -801,8 +801,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /founder\/operator validation/);
   assert.match(liveDesk, /type LocalServiceCategoryPilotScore/);
   assert.match(liveDesk, /type LocalServiceLeadingCategoryActionLayer/);
+  assert.match(liveDesk, /type LocalServiceLeadingCategoryPilotReadiness/);
   assert.match(liveDesk, /buildLocalServiceCategoryPilotScores/);
   assert.match(liveDesk, /buildLocalServiceLeadingCategoryActionLayer/);
+  assert.match(liveDesk, /buildLocalServiceLeadingCategoryPilotReadiness/);
   assert.match(liveDesk, /Category pilot score/);
   assert.match(liveDesk, /Leading category/);
   assert.match(liveDesk, /No category expansion without proof/);
@@ -816,6 +818,12 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /category_pilot_score/);
   assert.match(liveDesk, /local_services_leading_category_action_layer/);
   assert.match(liveDesk, /leading_category_action_layer/);
+  assert.match(liveDesk, /Pilot setup readiness/);
+  assert.match(liveDesk, /Paid pilot gate/);
+  assert.match(liveDesk, /Ready for first paid pilot/);
+  assert.match(liveDesk, /Not ready for paid pilot/);
+  assert.match(liveDesk, /local_services_pilot_setup_readiness/);
+  assert.match(liveDesk, /pilot_setup_readiness/);
   assert.match(liveDesk, /local_services_first_contact_batch_review/);
   assert.match(liveDesk, /founder_manual_validation_review/);
   assert.match(liveDesk, /no_booking_created/);
@@ -1114,7 +1122,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Open batch review/);
   assert.match(readme, /Copy batch review/);
   assert.match(readme, /Copy founder workspace/);
-  assert.match(readme, /NEWO-style AI employee\s+platform/);
+  assert.match(readme, /NEWO-style AI\s+employee\s+platform/);
   assert.match(readme, /Category pilot score/);
   assert.match(readme, /Leading category/);
   assert.match(readme, /No category expansion without proof/);
@@ -1124,6 +1132,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Pilot setup\s+checklist/);
   assert.match(readme, /Integration\s+hold/);
   assert.match(readme, /Focus leading\s+category/);
+  assert.match(readme, /Pilot setup readiness/);
+  assert.match(readme, /Paid pilot gate/);
+  assert.match(readme, /Ready for first paid pilot/);
+  assert.match(readme, /Not ready for paid pilot/);
   assert.match(readme, /docs\/local-services-pilot-runbook\.md/);
   assert.match(readme, /docs\/local-services-outreach-execution-pack\.md/);
   assert.match(readme, /Open outreach execution pack/);
@@ -1326,6 +1338,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /Pilot setup\s+checklist/);
   assert.match(localDevelopment, /Integration\s+hold/);
   assert.match(localDevelopment, /Focus leading\s+category/);
+  assert.match(localDevelopment, /Pilot setup readiness/);
+  assert.match(localDevelopment, /Paid pilot gate/);
+  assert.match(localDevelopment, /Ready for first paid pilot/);
+  assert.match(localDevelopment, /Not ready for paid pilot/);
   assert.match(localDevelopment, /http:\/\/localhost:3000\/app\?demo=local-services-dispatch&service=ac-repair-dispatch&recording=90s/);
   assert.match(localDevelopment, /90-second recording mode/);
   assert.match(localDevelopment, /http:\/\/localhost:3000\/workspace-docs\/local-services-pilot-runbook\.md/);
@@ -1507,6 +1523,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Pilot setup\s+checklist/);
   assert.match(operatorGuide, /Integration\s+hold/);
   assert.match(operatorGuide, /Focus leading\s+category/);
+  assert.match(operatorGuide, /Pilot setup\s+readiness/);
+  assert.match(operatorGuide, /Paid pilot gate/);
+  assert.match(operatorGuide, /Ready for first paid pilot/);
+  assert.match(operatorGuide, /Not ready for paid pilot/);
   assert.match(operatorGuide, /docs\/local-services-pilot-runbook\.md/);
   assert.match(operatorGuide, /docs\/local-services-outreach-execution-pack\.md/);
   assert.match(operatorGuide, /Open recording checklist/);
@@ -1677,7 +1697,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /First contact batch\s+review drawer/);
   assert.match(simplificationPlan, /Copy batch review/);
   assert.match(simplificationPlan, /Copy founder workspace/);
-  assert.match(simplificationPlan, /NEWO-style AI employee\s+platform/);
+  assert.match(simplificationPlan, /NEWO-style AI\s+employee\s+platform/);
   assert.match(simplificationPlan, /Category pilot score/);
   assert.match(simplificationPlan, /Leading category/);
   assert.match(simplificationPlan, /No category expansion without proof/);
@@ -1687,6 +1707,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /Pilot setup\s+checklist/);
   assert.match(simplificationPlan, /Integration\s+hold/);
   assert.match(simplificationPlan, /Focus leading\s+category/);
+  assert.match(simplificationPlan, /Pilot setup readiness/);
+  assert.match(simplificationPlan, /Paid pilot gate/);
+  assert.match(simplificationPlan, /Ready for first paid pilot/);
+  assert.match(simplificationPlan, /Not ready for paid pilot/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-pilot-runbook\.md/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-outreach-execution-pack\.md/);
   assert.match(simplificationPlan, /Open outreach execution pack/);
@@ -1855,7 +1879,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /First\s+contact batch\s+review drawer/);
   assert.match(gettingStarted, /Copy batch review/);
   assert.match(gettingStarted, /Copy founder workspace/);
-  assert.match(gettingStarted, /NEWO-style AI employee\s+platform/);
+  assert.match(gettingStarted, /NEWO-style AI\s+employee\s+platform/);
   assert.match(gettingStarted, /Category pilot score/);
   assert.match(gettingStarted, /Leading category/);
   assert.match(gettingStarted, /No category expansion without proof/);
@@ -1865,6 +1889,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /Pilot setup\s+checklist/);
   assert.match(gettingStarted, /Integration\s+hold/);
   assert.match(gettingStarted, /Focus leading\s+category/);
+  assert.match(gettingStarted, /Pilot setup readiness/);
+  assert.match(gettingStarted, /Paid pilot gate/);
+  assert.match(gettingStarted, /Ready for first paid pilot/);
+  assert.match(gettingStarted, /Not ready for paid pilot/);
   assert.match(gettingStarted, /Open offer doc/);
   assert.match(gettingStarted, /Open demo script/);
   assert.match(gettingStarted, /Open outreach list/);
@@ -2097,7 +2125,13 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /Focus leading\s+category/);
   assert.match(localServicesSpec, /local_services_leading_category_action_layer/);
   assert.match(localServicesSpec, /leading_category_action_layer/);
-  assert.match(localServicesSpec, /NEWO-style AI employee\s+platform/);
+  assert.match(localServicesSpec, /Pilot setup readiness/);
+  assert.match(localServicesSpec, /Paid pilot gate/);
+  assert.match(localServicesSpec, /Ready for first paid pilot/);
+  assert.match(localServicesSpec, /Not ready for paid pilot/);
+  assert.match(localServicesSpec, /local_services_pilot_setup_readiness/);
+  assert.match(localServicesSpec, /pilot_setup_readiness/);
+  assert.match(localServicesSpec, /NEWO-style AI\s+employee\s+platform/);
   assert.match(localServicesSpec, /\/workspace-docs\/local-services-pilot-runbook\.md/);
   assert.match(localServicesSpec, /\/workspace-docs\/local-services-outreach-execution-pack\.md/);
   assert.match(localServicesSpec, /Open outreach execution pack/);
@@ -2420,6 +2454,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotScorecard, /Pilot setup\s+checklist/);
   assert.match(pilotScorecard, /Integration\s+hold/);
   assert.match(pilotScorecard, /Focus leading\s+category/);
+  assert.match(pilotScorecard, /Pilot setup readiness/);
+  assert.match(pilotScorecard, /Ready for first paid pilot/);
   assert.match(pilotRunbook, /# Local Services Pilot Runbook/);
   assert.match(pilotRunbook, /Day Minus One: Prepare/);
   assert.match(pilotRunbook, /Day Zero: Outreach/);
@@ -2461,6 +2497,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotRunbook, /Pilot setup\s+checklist/);
   assert.match(pilotRunbook, /Integration\s+hold/);
   assert.match(pilotRunbook, /Focus leading\s+category/);
+  assert.match(pilotRunbook, /Pilot setup readiness/);
+  assert.match(pilotRunbook, /Paid pilot gate/);
+  assert.match(pilotRunbook, /Not ready for paid pilot/);
   assert.match(pilotRunbook, /Pilot execution checklist/);
   assert.match(pilotRunbook, /Pass test call\/message/);
   assert.match(pilotRunbook, /Needs test call passed/);
@@ -2554,7 +2593,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(founderExecutionLog, /First contact batch\s+review drawer/);
   assert.match(founderExecutionLog, /Copy batch review/);
   assert.match(founderExecutionLog, /liveDesk:localServicesPilotWorkspace:v1/);
-  assert.match(founderExecutionLog, /NEWO-style AI employee\s+platform/);
+  assert.match(founderExecutionLog, /NEWO-style AI\s+employee\s+platform/);
   assert.match(founderExecutionLog, /Category pilot score/);
   assert.match(founderExecutionLog, /Leading category/);
   assert.match(founderExecutionLog, /No category expansion without proof/);
@@ -2563,6 +2602,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(founderExecutionLog, /Discovery\s+questions/);
   assert.match(founderExecutionLog, /Pilot setup\s+checklist/);
   assert.match(founderExecutionLog, /Integration\s+hold/);
+  assert.match(founderExecutionLog, /Pilot setup readiness/);
+  assert.match(founderExecutionLog, /Ready for first paid pilot/);
   assert.match(outreachExecutionPack, /Preview \/ Test message modal/);
   assert.match(outreachExecutionPack, /Agent setup \/ training state/);
   assert.match(outreachExecutionPack, /Open setup checklist/);
@@ -2634,6 +2675,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(outreachExecutionPack, /Pilot setup\s+checklist/);
   assert.match(outreachExecutionPack, /Integration\s+hold/);
   assert.match(outreachExecutionPack, /Focus leading\s+category/);
+  assert.match(outreachExecutionPack, /Pilot setup readiness/);
+  assert.match(outreachExecutionPack, /Paid pilot gate/);
+  assert.match(outreachExecutionPack, /Not ready for paid pilot/);
   assert.match(outreachExecutionPack, /Open discovery prep/);
   assert.match(outreachExecutionPack, /Discovery call\s+prep/);
   assert.match(outreachExecutionPack, /Questions to ask/);

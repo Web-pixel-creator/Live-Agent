@@ -214,9 +214,12 @@ treated as proof of external delivery. `Category pilot score`,
 plumbing, cleaning, and measurement from the same manual markers before a lane
 gets more integration work. `Leading category action layer` gives the operator
 the `Next manual batch`, `Discovery questions`, `Pilot setup checklist`,
-`Integration hold`, and `Focus leading category` action. The concept remains a
-NEWO-style AI employee platform for service categories; the manual batch only
-decides whether to continue, revise, or stop expansion.
+`Integration hold`, and `Focus leading category` action. `Pilot setup
+readiness` adds the `Paid pilot gate`: treat `Ready for first paid pilot` as
+permission to prepare a proposal only, and treat `Not ready for paid pilot` as a
+hard stop on live channels, CRM sync, analytics, billing, and customer sends.
+The concept remains a NEWO-style AI employee platform for service categories;
+the manual batch only decides whether to continue, revise, or stop expansion.
 Use `docs/local-services-pilot-runbook.md` for the actual 14-day operating
 sequence: day-minus-one prep, manual outreach, discovery call, pilot setup,
 daily metric capture, week-one review, week-two review, and evidence pack. It

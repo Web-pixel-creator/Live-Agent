@@ -742,11 +742,13 @@ the `Category pilot score`, `Leading category`, and
 `No category expansion without proof` controls rank AC, plumbing, cleaning, and
 measurement from those same markers. `Leading category action layer` converts
 the top lane into `Next manual batch`, `Discovery questions`,
-`Pilot setup checklist`, `Integration hold`, and `Focus leading category`. They
-do not send outreach, create bookings, write CRM, sync analytics, bill, or
-mutate Markdown docs. This preserves the NEWO-style AI employee platform
-direction: local manual proof selects the next category lane, but the concept is
-not a solo-only tool.
+`Pilot setup checklist`, `Integration hold`, and `Focus leading category`.
+`Pilot setup readiness` adds a `Paid pilot gate` with `Ready for first paid
+pilot` / `Not ready for paid pilot` posture from proof, setup, dry-run,
+owner-conversation, and metric gates. They do not send outreach, create
+bookings, write CRM, sync analytics, bill, or mutate Markdown docs. This
+preserves the NEWO-style AI employee platform direction: local manual proof
+selects the next category lane, but the concept is not a solo-only tool.
 The real 14-day pilot execution sequence now lives in
 `docs/local-services-pilot-runbook.md` and is served locally at
 `/workspace-docs/local-services-pilot-runbook.md`. It stays outside the product
@@ -934,14 +936,18 @@ Current shell readiness for P3:
    `Focus leading category`, `local_services_leading_category_action_layer`,
    and `leading_category_action_layer` are visible as the category next-action
    contract.
-32. `contactProofByProspectKey` and `Founder proof recorded` are present in the
+32. `Pilot setup readiness`, `Paid pilot gate`,
+   `Ready for first paid pilot`, `Not ready for paid pilot`,
+   `local_services_pilot_setup_readiness`, and `pilot_setup_readiness` are
+   visible as the first paid pilot readiness contract.
+33. `contactProofByProspectKey` and `Founder proof recorded` are present in the
    browser-local pilot workspace contract, without any external side effect.
-33. `local_services_first_contact_batch_review`, `founder_manual_validation_review`,
+34. `local_services_first_contact_batch_review`, `founder_manual_validation_review`,
    and `no_booking_created` are present in the first-batch review export
    contract.
-34. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
+35. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
    14-day pilot runbook from the same local frontend server.
-35. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
+36. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
    repo-owned first-contact execution pack from the same local frontend server.
 34. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
    the repo-owned 90-second recording checklist from the same local frontend
