@@ -12,3 +12,7 @@ artifacts/*
 external/
 _external/
 .agent/
+.tmp/
+.playwright-mcp/
+agents-md-main/
+andrej-karpathy-skills-main/
