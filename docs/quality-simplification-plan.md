@@ -214,7 +214,10 @@ category`. `Pilot setup readiness` adds a `Paid pilot gate` so the shell can say
 dry-run, owner-conversation, and metric gates. `Readiness action plan`,
 `Continue setup/test path`, and `Copy readiness action plan` are the next
 operator shortcut layer: they turn the gate into one blocker-specific action
-without adding channel activation. This is the current
+without adding channel activation. `Open proof drawer`, `Readiness proof
+drawer`, `Copy readiness proof`, and `local_services_readiness_proof_drawer`
+are the evidence layer for that shortcut: one compact view of manual sends,
+replies, discovery, setup/test state, and metric baseline. This is the current
 simplification target: prove demand through 10 manual contacts before adding
 more integrations. The target product remains a NEWO-style AI employee platform
 for selected service categories; the manual batch is the category validation

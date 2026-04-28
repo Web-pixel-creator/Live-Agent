@@ -233,6 +233,9 @@ Local-services expansion spec:
   `Continue setup/test path`, `Copy readiness action plan`, and
   `local_services_readiness_action_plan` connect the gate back to the exact
   setup/test surface instead of leaving the operator with a static blocker.
+  `Open proof drawer`, `Readiness proof drawer`, `Copy readiness proof`, and
+  `local_services_readiness_proof_drawer` summarize the proof snippets behind
+  the gate in one browser-local evidence view.
   The frame stays NEWO-style AI
   employee platform expansion by category; the manual batch is a validation
   gate, not a solo-only product scope.

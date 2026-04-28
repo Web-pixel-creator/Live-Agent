@@ -808,6 +808,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /buildLocalServiceLeadingCategoryPilotReadiness/);
   assert.match(liveDesk, /buildLocalServicePilotReadinessActionPlan/);
   assert.match(liveDesk, /formatLocalServiceReadinessActionPlanText/);
+  assert.match(liveDesk, /buildLocalServiceReadinessProofDrawer/);
   assert.match(liveDesk, /Category pilot score/);
   assert.match(liveDesk, /Leading category/);
   assert.match(liveDesk, /No category expansion without proof/);
@@ -832,6 +833,11 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Copy readiness action plan/);
   assert.match(liveDesk, /local_services_readiness_action_plan/);
   assert.match(liveDesk, /readiness_action_plan/);
+  assert.match(liveDesk, /Open proof drawer/);
+  assert.match(liveDesk, /Readiness proof drawer/);
+  assert.match(liveDesk, /Copy readiness proof/);
+  assert.match(liveDesk, /local_services_readiness_proof_drawer/);
+  assert.match(liveDesk, /readiness_evidence_view/);
   assert.match(liveDesk, /local_services_first_contact_batch_review/);
   assert.match(liveDesk, /founder_manual_validation_review/);
   assert.match(liveDesk, /no_booking_created/);
@@ -1148,6 +1154,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Continue setup\/test path/);
   assert.match(readme, /Copy readiness action plan/);
   assert.match(readme, /local_services_readiness_action_plan/);
+  assert.match(readme, /Open proof drawer/);
+  assert.match(readme, /Readiness proof drawer/);
+  assert.match(readme, /Copy readiness proof/);
+  assert.match(readme, /local_services_readiness_proof_drawer/);
   assert.match(readme, /docs\/local-services-pilot-runbook\.md/);
   assert.match(readme, /docs\/local-services-outreach-execution-pack\.md/);
   assert.match(readme, /Open outreach execution pack/);
@@ -1358,6 +1368,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /Continue setup\/test path/);
   assert.match(localDevelopment, /Copy readiness action plan/);
   assert.match(localDevelopment, /local_services_readiness_action_plan/);
+  assert.match(localDevelopment, /Open proof drawer/);
+  assert.match(localDevelopment, /Readiness proof drawer/);
+  assert.match(localDevelopment, /Copy readiness proof/);
+  assert.match(localDevelopment, /local_services_readiness_proof_drawer/);
   assert.match(localDevelopment, /http:\/\/localhost:3000\/app\?demo=local-services-dispatch&service=ac-repair-dispatch&recording=90s/);
   assert.match(localDevelopment, /90-second recording mode/);
   assert.match(localDevelopment, /http:\/\/localhost:3000\/workspace-docs\/local-services-pilot-runbook\.md/);
@@ -1546,6 +1560,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Readiness action\s+plan/);
   assert.match(operatorGuide, /Continue setup\/test path/);
   assert.match(operatorGuide, /Copy readiness action plan/);
+  assert.match(operatorGuide, /Open proof drawer/);
+  assert.match(operatorGuide, /Readiness proof drawer/);
+  assert.match(operatorGuide, /Copy readiness proof/);
   assert.match(operatorGuide, /docs\/local-services-pilot-runbook\.md/);
   assert.match(operatorGuide, /docs\/local-services-outreach-execution-pack\.md/);
   assert.match(operatorGuide, /Open recording checklist/);
@@ -1733,6 +1750,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /Readiness action\s+plan/);
   assert.match(simplificationPlan, /Continue setup\/test path/);
   assert.match(simplificationPlan, /Copy readiness action plan/);
+  assert.match(simplificationPlan, /Open proof drawer/);
+  assert.match(simplificationPlan, /Readiness proof\s+drawer/);
+  assert.match(simplificationPlan, /Copy readiness proof/);
+  assert.match(simplificationPlan, /local_services_readiness_proof_drawer/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-pilot-runbook\.md/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-outreach-execution-pack\.md/);
   assert.match(simplificationPlan, /Open outreach execution pack/);
@@ -1918,6 +1939,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /Readiness action\s+plan/);
   assert.match(gettingStarted, /Continue setup\/test path/);
   assert.match(gettingStarted, /Copy readiness action plan/);
+  assert.match(gettingStarted, /Open proof drawer/);
+  assert.match(gettingStarted, /Readiness proof\s+drawer/);
+  assert.match(gettingStarted, /Copy readiness proof/);
+  assert.match(gettingStarted, /local_services_readiness_proof_drawer/);
   assert.match(gettingStarted, /Open offer doc/);
   assert.match(gettingStarted, /Open demo script/);
   assert.match(gettingStarted, /Open outreach list/);
@@ -2161,6 +2186,11 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /Copy readiness action plan/);
   assert.match(localServicesSpec, /local_services_readiness_action_plan/);
   assert.match(localServicesSpec, /readiness_action_plan/);
+  assert.match(localServicesSpec, /Open proof drawer/);
+  assert.match(localServicesSpec, /Readiness proof drawer/);
+  assert.match(localServicesSpec, /Copy readiness proof/);
+  assert.match(localServicesSpec, /local_services_readiness_proof_drawer/);
+  assert.match(localServicesSpec, /readiness_evidence_view/);
   assert.match(localServicesSpec, /NEWO-style AI\s+employee\s+platform/);
   assert.match(localServicesSpec, /\/workspace-docs\/local-services-pilot-runbook\.md/);
   assert.match(localServicesSpec, /\/workspace-docs\/local-services-outreach-execution-pack\.md/);

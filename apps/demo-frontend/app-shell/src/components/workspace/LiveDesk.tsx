@@ -2161,6 +2161,186 @@ function formatLocalServiceReadinessActionPlanText(plan: LocalServicePilotReadin
   ].join("\n");
 }
 
+function buildLocalServiceReadinessProofDrawer(
+  rows: LocalServiceFounderContactRow[],
+  counts: {
+    channelChecked: number;
+    manualMessageSent: number;
+    repliesOrRejections: number;
+    discoveryCalls: number;
+    demosBooked: number;
+    pilotCandidates: number;
+  },
+  proofChecklist: { label: string; status: string; done: boolean }[],
+  proofProgress: string,
+  score: LocalServiceCategoryPilotScore | undefined,
+  actionLayer: LocalServiceLeadingCategoryActionLayer,
+  readiness: LocalServiceLeadingCategoryPilotReadiness,
+  actionPlan: LocalServicePilotReadinessActionPlan,
+  setupStepCompletion: LocalServiceSetupStepCompletion,
+  setupReady: boolean,
+  testCallPassed: boolean,
+  metricStatus: LocalServicePilotMetricStatus,
+  activityLog: LocalServicePilotActivityEvent[] = [],
+): LocalServicePilotWorkspaceExport {
+  const setupPrerequisites: LocalServiceSetupStepId[] = [
+    "business_profile",
+    "knowledge_sources",
+    "agent_behavior",
+    "test_call_message",
+  ];
+  const setupEvidence = setupPrerequisites.map((stepId) => ({
+    id: stepId,
+    done: setupStepCompletion[stepId] === true,
+  }));
+  const laneRows = rows.filter((row) => row.serviceId === actionLayer.serviceId);
+  const recentProofEvents = activityLog
+    .filter((event) => event.kind === "contact_proof" && event.serviceId === actionLayer.serviceId)
+    .slice(0, 8);
+  const evidenceLines = [
+    `Category signal: ${score ? `${score.signalLabel}; ${score.proofSummary}` : "No category score yet"}`,
+    `First-batch proof: ${proofProgress}`,
+    `Manual sends: ${counts.manualMessageSent}/10`,
+    `Replies or rejections: ${counts.repliesOrRejections}/3`,
+    `Discovery calls: ${counts.discoveryCalls}/1`,
+    `Pilot candidates: ${counts.pilotCandidates}/1`,
+    `Setup prerequisites: ${setupEvidence.filter((item) => item.done).length}/${setupEvidence.length}`,
+    `Ready for pilot test: ${setupReady ? "yes" : "no"}`,
+    `Test call passed: ${testCallPassed ? "yes" : "no"}`,
+    `Metric baseline: ${LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus]}`,
+  ];
+  const laneLines =
+    laneRows.length > 0
+      ? laneRows.map(
+          (row, index) =>
+            `${index + 1}. ${row.prospect.company} | ${row.statusLabel} | ${row.proofStatus} | next: ${row.prospect.nextStep}`,
+        )
+      : ["No lane-specific contacts in the first batch yet."];
+  const humanLines = [
+    `Readiness proof drawer: ${actionLayer.serviceTitle}`,
+    "Export surface: local_services_readiness_proof_drawer",
+    "Purpose: show why the paid-pilot gate is blocked or ready without opening multiple drawers.",
+    `Readiness: ${readiness.readinessLabel} / ${readiness.progressLabel}`,
+    `Primary action: ${actionPlan.primaryAction}`,
+    "",
+    "Proof snippets:",
+    ...evidenceLines.map((item) => `- ${item}`),
+    "",
+    "Readiness checklist:",
+    ...readiness.checklist.map((item) => `- ${item.done ? "done" : "blocked"} | ${item.label}: ${item.status}`),
+    "",
+    "First-batch checklist:",
+    ...proofChecklist.map((item) => `- ${item.done ? "done" : "pending"} | ${item.label}: ${item.status}`),
+    "",
+    "Lane contacts:",
+    ...laneLines,
+    "",
+    "Recent lane proof activity:",
+    ...(recentProofEvents.length > 0
+      ? recentProofEvents.map(
+          (event) =>
+            `- ${event.createdAt} | ${event.company ?? "service"} | ${event.label}: ${event.value}`,
+        )
+      : ["- No lane-specific proof events recorded yet."]),
+    "",
+    "No-go rules:",
+    ...actionPlan.noGo.map((item) => `- ${item}`),
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_readiness_proof_drawer",
+      export_kind: "readiness_evidence_view",
+      service_id: actionLayer.serviceId,
+      service_title: actionLayer.serviceTitle,
+      readiness: {
+        label: readiness.readinessLabel,
+        progress: readiness.progressLabel,
+        paid_pilot_gate: readiness.paidPilotGate,
+        next_action: readiness.nextAction,
+        ready_to_pilot: readiness.readyToPilot,
+        checklist: readiness.checklist,
+        blockers: readiness.blockers,
+        ready_signals: readiness.readySignals,
+      },
+      action_plan: {
+        export_surface: actionPlan.exportSurface,
+        primary_surface: actionPlan.primarySurface,
+        primary_action: actionPlan.primaryAction,
+        secondary_action: actionPlan.secondaryAction,
+        operator_script: actionPlan.operatorScript,
+        no_go: actionPlan.noGo,
+      },
+      proof_snippets: {
+        category_signal: score?.signalLabel ?? "Unproven",
+        category_proof_summary: score?.proofSummary ?? "No category score yet",
+        proof_progress: proofProgress,
+        proof_counts: counts,
+        setup_prerequisites: setupEvidence,
+        setup_ready: setupReady,
+        test_call_passed: testCallPassed,
+        metric_status: metricStatus,
+        metric_status_label: LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus],
+      },
+      first_batch_checklist: proofChecklist,
+      lane_contacts: laneRows.map((row, index) => ({
+        index: index + 1,
+        key: row.key,
+        prospect_id: row.prospect.id,
+        company: row.prospect.company,
+        segment: row.prospect.segment,
+        status: row.status,
+        status_label: row.statusLabel,
+        proof_status: row.proofStatus,
+        next_step: row.prospect.nextStep,
+      })),
+      recent_lane_proof_activity: recentProofEvents,
+      guardrails: [
+        "no_customer_send",
+        "no_booking_created",
+        "no_crm_write",
+        "no_analytics_sync",
+        "no_billing_action",
+        "browser_local_evidence_view_only",
+      ],
+    },
+    null,
+    2,
+  );
+
+  return {
+    title: "Readiness proof drawer",
+    description:
+      "Inspect the proof snippets behind the paid-pilot gate before continuing setup, outreach, or proposal work.",
+    eyebrow: "Readiness evidence",
+    modeLabel: "Proof drawer mode",
+    copyLabel: "Copy readiness proof",
+    reviewTitle: "Proof review checklist",
+    reviewDescription:
+      "This drawer only summarizes browser-local proof markers. It does not send outreach, book work, write CRM, sync analytics, or bill.",
+    executionActionLabel: "Open founder execution log",
+    scorecardActionLabel: "Open pilot scorecard",
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: [
+      { label: "Service", value: actionLayer.serviceTitle },
+      { label: "Readiness", value: `${readiness.readinessLabel} / ${readiness.progressLabel}` },
+      { label: "Primary surface", value: actionPlan.primarySurface },
+      { label: "Proof progress", value: proofProgress },
+      { label: "Manual sends", value: `${counts.manualMessageSent}/10` },
+      { label: "Replies / rejections", value: `${counts.repliesOrRejections}/3` },
+      { label: "Discovery calls", value: `${counts.discoveryCalls}/1` },
+      { label: "Metric baseline", value: LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus] },
+    ],
+    checklist: [
+      "Confirm the drawer only contains redacted browser-local proof markers.",
+      "Confirm setup and test-call state match the visible setup wizard.",
+      "Confirm first-batch proof is based on manual owner interactions, not assumptions.",
+      "Confirm paid-pilot blockers are resolved before preparing any proposal.",
+      "Do not use this drawer as proof that the platform sent outreach or activated channels.",
+    ],
+  };
+}
+
 function buildLocalServicePilotMetricsTrackerExport(
   template: LocalServiceDemoTemplate,
   status: LocalServicePilotMetricStatus,
@@ -3955,6 +4135,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [pilotEvidencePackMode, setPilotEvidencePackMode] = useState<PlaybookExportMode>("human");
   const [founderBatchReviewOpen, setFounderBatchReviewOpen] = useState(false);
   const [founderBatchReviewMode, setFounderBatchReviewMode] = useState<PlaybookExportMode>("human");
+  const [readinessProofOpen, setReadinessProofOpen] = useState(false);
+  const [readinessProofMode, setReadinessProofMode] = useState<PlaybookExportMode>("human");
   const [pilotMessagePreviewOpen, setPilotMessagePreviewOpen] = useState(false);
   const [pilotMessagePreviewMode, setPilotMessagePreviewMode] = useState<PlaybookExportMode>("human");
   const [pilotOperatorConfirmationOpen, setPilotOperatorConfirmationOpen] = useState(false);
@@ -4247,6 +4429,21 @@ const LocalServicesDispatchDemoPanel = ({
     leadingCategoryActionLayer,
     leadingCategoryPilotReadiness,
     leadingCategoryReadinessActionPlan,
+    pilotWorkspaceState.activityLog,
+  );
+  const readinessProofExport = buildLocalServiceReadinessProofDrawer(
+    founderContactRows,
+    founderContactCounts,
+    founderProofChecklist,
+    founderProofProgress,
+    leadingCategoryPilotScore,
+    leadingCategoryActionLayer,
+    leadingCategoryPilotReadiness,
+    leadingCategoryReadinessActionPlan,
+    leadingCategorySetupCompletion,
+    leadingCategorySetupReady,
+    leadingCategoryTestCallPassed,
+    leadingCategoryMetricStatus,
     pilotWorkspaceState.activityLog,
   );
   const filteredPilotFunnelRows = useMemo(
@@ -5812,6 +6009,18 @@ const LocalServicesDispatchDemoPanel = ({
                             <Button
                               size="sm"
                               variant="secondary"
+                              onClick={() => {
+                                setReadinessProofMode("human");
+                                setReadinessProofOpen(true);
+                              }}
+                              className="h-7"
+                            >
+                              <FileText className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                              Open proof drawer
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
                               onClick={() => onOpenSetupWizard(leadingCategoryActionLayer.serviceId)}
                               className="h-7"
                             >
@@ -7090,6 +7299,16 @@ const LocalServicesDispatchDemoPanel = ({
         exportView={founderBatchReviewExport}
         mode={founderBatchReviewMode}
         onModeChange={setFounderBatchReviewMode}
+        onCopy={onCopyText}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+        onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH)}
+      />
+      <LocalServicePilotWorkspaceExportDrawer
+        open={readinessProofOpen}
+        onOpenChange={setReadinessProofOpen}
+        exportView={readinessProofExport}
+        mode={readinessProofMode}
+        onModeChange={setReadinessProofMode}
         onCopy={onCopyText}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH)}

@@ -747,7 +747,10 @@ the top lane into `Next manual batch`, `Discovery questions`,
 pilot` / `Not ready for paid pilot` posture from proof, setup, dry-run,
 owner-conversation, and metric gates. `Readiness action plan` adds the
 blocker-specific operator path through `Continue setup/test path`,
-`Copy readiness action plan`, and `local_services_readiness_action_plan`. They do not send outreach, create
+`Copy readiness action plan`, and `local_services_readiness_action_plan`.
+`Open proof drawer` adds `Readiness proof drawer`, `Copy readiness proof`, and
+`local_services_readiness_proof_drawer` as the compact evidence view behind the
+gate. They do not send outreach, create
 bookings, write CRM, sync analytics, bill, or mutate Markdown docs. This
 preserves the NEWO-style AI employee platform direction: local manual proof
 selects the next category lane, but the concept is not a solo-only tool.
@@ -946,29 +949,32 @@ Current shell readiness for P3:
    `Copy readiness action plan`, `local_services_readiness_action_plan`, and
    `readiness_action_plan` are visible as the blocker-specific operator action
    contract.
-34. `contactProofByProspectKey` and `Founder proof recorded` are present in the
+34. `Open proof drawer`, `Readiness proof drawer`, `Copy readiness proof`,
+   `local_services_readiness_proof_drawer`, and `readiness_evidence_view` are
+   visible as the compact readiness evidence contract.
+35. `contactProofByProspectKey` and `Founder proof recorded` are present in the
    browser-local pilot workspace contract, without any external side effect.
-35. `local_services_first_contact_batch_review`, `founder_manual_validation_review`,
+36. `local_services_first_contact_batch_review`, `founder_manual_validation_review`,
    and `no_booking_created` are present in the first-batch review export
    contract.
-36. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
+37. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
    14-day pilot runbook from the same local frontend server.
-37. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
+38. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
    repo-owned first-contact execution pack from the same local frontend server.
-38. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
+39. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
    the repo-owned 90-second recording checklist from the same local frontend
    server.
-39. `?recording=90s`, `90-second recording mode`, `Recording path`, and
+40. `?recording=90s`, `90-second recording mode`, `Recording path`, and
    `90s recording` are visible as the demo-recording posture, and outreach
    tables plus scorecard controls are hidden during recording.
-40. `?setup=7min`, `7-minute setup wizard`, `Setup path`, and `7-min setup`
+41. `?setup=7min`, `7-minute setup wizard`, `Setup path`, and `7-min setup`
    are visible as the setup-first posture, and outreach tables plus scorecard
    controls are hidden while setup mode is active.
-41. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
+42. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
    `Saved setup state`, `Mark complete`, `Mark ready for pilot test`,
    `Ready for pilot test`, and `Reset setup progress` are visible as the
    stateful setup checklist contract.
-42. Actual external execution still remains outside the shell: recorded video,
+43. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path
