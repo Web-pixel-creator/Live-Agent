@@ -134,6 +134,9 @@ as a private operator approval artifact, not a live send or billing action.
 `Open approval handoff`, `Proposal approval handoff`, `Copy approval handoff`,
 and `local_services_proposal_approval_handoff` then show who must approve price,
 scope, owner send, CRM payload, booking policy, and billing-disabled state.
+`Open kickoff gate`, `Pilot kickoff gate`, `Copy kickoff gate`, and
+`local_services_pilot_kickoff_gate` decide whether that approval can advance to
+manual day-one setup without activating channels or external systems.
 These controls update only
 `liveDesk:localServicesPilotWorkspace:v1` in browser-local state and the manual
 activity log; they do not send outreach, create bookings, write CRM, sync

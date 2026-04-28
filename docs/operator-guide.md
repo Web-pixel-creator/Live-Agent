@@ -232,6 +232,11 @@ Use `Open approval handoff` after the proposal preview to inspect `Proposal
 approval handoff`; `Copy approval handoff` is the manual approval checklist for
 price, scope, owner send, CRM payload, booking policy, and billing-disabled
 state. It is still not a sent proposal or launched paid pilot.
+Use `Open kickoff gate` before day-one setup; `Pilot kickoff gate` and
+`Copy kickoff gate` confirm whether proof, proposal approval, setup, dry-run,
+owner conversation, and metric baseline are ready. It is still a manual gate,
+not phone, messaging, CRM, analytics, billing, booking, or customer-send
+activation.
 The concept remains a NEWO-style AI employee platform for service categories;
 the manual batch only decides whether to continue, revise, or stop expansion.
 Use `docs/local-services-pilot-runbook.md` for the actual 14-day operating

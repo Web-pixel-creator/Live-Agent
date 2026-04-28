@@ -2706,6 +2706,186 @@ function buildLocalServiceProposalApprovalHandoff(
   };
 }
 
+function buildLocalServicePilotKickoffGate(
+  template: LocalServiceDemoTemplate,
+  rows: LocalServiceFounderContactRow[],
+  counts: {
+    channelChecked: number;
+    manualMessageSent: number;
+    repliesOrRejections: number;
+    discoveryCalls: number;
+    demosBooked: number;
+    pilotCandidates: number;
+  },
+  proofProgress: string,
+  score: LocalServiceCategoryPilotScore | undefined,
+  actionLayer: LocalServiceLeadingCategoryActionLayer,
+  readiness: LocalServiceLeadingCategoryPilotReadiness,
+  setupReady: boolean,
+  testCallPassed: boolean,
+  testCallProgress: string,
+  metricStatus: LocalServicePilotMetricStatus,
+): LocalServicePilotWorkspaceExport {
+  const laneRows = rows.filter((row) => row.serviceId === actionLayer.serviceId);
+  const targetRow =
+    laneRows.find((row) => row.pilotCandidate) ??
+    laneRows.find((row) => row.demoBooked) ??
+    laneRows.find((row) => row.discoveryCallCompleted) ??
+    laneRows.find((row) => row.status === "reply_received") ??
+    laneRows[0];
+  const metricStarted = metricStatus !== "not_started";
+  const kickoffChecks = [
+    {
+      label: "Readiness proof reviewed",
+      status: readiness.readyToPilot ? "Ready for first paid pilot" : readiness.nextAction,
+      done: readiness.readyToPilot,
+    },
+    {
+      label: "Proposal approval handoff reviewed",
+      status: readiness.readyToPilot ? "Manual approval can be reviewed" : "Blocked until readiness gate is complete",
+      done: readiness.readyToPilot,
+    },
+    {
+      label: "Setup ready",
+      status: setupReady ? "Ready for pilot test recorded" : "Setup path needs ready gate",
+      done: setupReady,
+    },
+    {
+      label: "Test call/message passed",
+      status: testCallPassed ? "Test call passed" : `Needs dry run (${testCallProgress})`,
+      done: testCallPassed,
+    },
+    {
+      label: "Owner conversation exists",
+      status:
+        counts.discoveryCalls > 0 || counts.pilotCandidates > 0
+          ? "Discovery or pilot-candidate proof exists"
+          : "Needs real owner conversation before kickoff",
+      done: counts.discoveryCalls > 0 || counts.pilotCandidates > 0,
+    },
+    {
+      label: "Metric baseline started",
+      status: LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus],
+      done: metricStarted,
+    },
+  ];
+  const completed = kickoffChecks.filter((item) => item.done).length;
+  const kickoffStatus =
+    completed === kickoffChecks.length
+      ? "Kickoff-ready for manual day-one setup"
+      : "Kickoff blocked";
+  const nextKickoffAction =
+    kickoffChecks.find((item) => !item.done)?.status ??
+    "Open day-one setup, confirm owner-approved profile, and keep the first real pilot action manual.";
+  const targetCompany = targetRow
+    ? `${targetRow.prospect.company} (${targetRow.prospect.segment})`
+    : "No paid-pilot prospect selected yet";
+  const humanLines = [
+    `Pilot kickoff gate: ${actionLayer.serviceTitle}`,
+    "Export surface: local_services_pilot_kickoff_gate",
+    "Export kind: manual_day_one_kickoff_gate",
+    `Kickoff status: ${kickoffStatus}`,
+    `Kickoff progress: ${completed}/${kickoffChecks.length}`,
+    `Target prospect: ${targetCompany}`,
+    `Next kickoff action: ${nextKickoffAction}`,
+    "",
+    "Kickoff checks:",
+    ...kickoffChecks.map((item) => `- ${item.done ? "done" : "blocked"} | ${item.label}: ${item.status}`),
+    "",
+    "Day-one setup path:",
+    `- Service lane: ${template.title}`,
+    `- Offer: ${template.detail.pilotKit.offerSummary}`,
+    "- Open day-one setup only after proof, proposal handoff, setup, dry-run, owner conversation, and metric baseline are ready.",
+    "- Keep first real phone, Telegram, WhatsApp, calendar, CRM, analytics, billing, and customer-send actions manual.",
+    "",
+    "Proof summary:",
+    `- Category signal: ${score ? `${score.signalLabel}; ${score.proofSummary}` : "No category score yet"}`,
+    `- First-batch proof: ${proofProgress}`,
+    `- Manual sends: ${counts.manualMessageSent}/10`,
+    `- Replies or rejections: ${counts.repliesOrRejections}/3`,
+    `- Discovery calls: ${counts.discoveryCalls}/1`,
+    `- Pilot candidates: ${counts.pilotCandidates}/1`,
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_pilot_kickoff_gate",
+      export_kind: "manual_day_one_kickoff_gate",
+      service_id: actionLayer.serviceId,
+      service_title: actionLayer.serviceTitle,
+      kickoff_status: completed === kickoffChecks.length ? "ready_for_manual_day_one_setup" : "blocked",
+      kickoff_progress: `${completed}/${kickoffChecks.length}`,
+      next_kickoff_action: nextKickoffAction,
+      target_prospect: targetRow
+        ? {
+            key: targetRow.key,
+            company: targetRow.prospect.company,
+            segment: targetRow.prospect.segment,
+            channel_fit: targetRow.prospect.channelFit,
+            status: targetRow.status,
+            proof_status: targetRow.proofStatus,
+          }
+        : null,
+      kickoff_checks: kickoffChecks,
+      day_one_setup_path: {
+        service_lane: template.title,
+        offer_summary: template.detail.pilotKit.offerSummary,
+        setup_surface: "Open day-one setup",
+        copy_surface: "Copy day-one setup brief",
+      },
+      proof_summary: {
+        category_signal: score?.signalLabel ?? "Unproven",
+        category_proof_summary: score?.proofSummary ?? "No category score yet",
+        proof_progress: proofProgress,
+        proof_counts: counts,
+        setup_ready: setupReady,
+        test_call_passed: testCallPassed,
+        test_call_progress: testCallProgress,
+        metric_status: metricStatus,
+        metric_status_label: LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus],
+      },
+      guardrails: [
+        "manual_day_one_setup_only",
+        "no_phone_channel_activation",
+        "no_telegram_or_whatsapp_activation",
+        "no_calendar_booking_created",
+        "no_customer_send",
+        "no_crm_write",
+        "no_analytics_sync",
+        "no_billing_action",
+      ],
+    },
+    null,
+    2,
+  );
+
+  return {
+    title: "Pilot kickoff gate",
+    description:
+      "Decide whether the paid-pilot proposal can move into manual day-one setup. This gate never activates channels or external systems.",
+    eyebrow: "Kickoff gate",
+    modeLabel: "Kickoff gate mode",
+    copyLabel: "Copy kickoff gate",
+    reviewTitle: "Day-one kickoff checklist",
+    reviewDescription:
+      "Use this after proof and proposal approval handoff. It is still a private gate, not a live pilot launch.",
+    executionActionLabel: "Open founder execution log",
+    scorecardActionLabel: "Open pilot scorecard",
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: [
+      { label: "Kickoff status", value: kickoffStatus },
+      { label: "Progress", value: `${completed}/${kickoffChecks.length}` },
+      { label: "Service", value: actionLayer.serviceTitle },
+      { label: "Target prospect", value: targetCompany },
+      { label: "Next action", value: nextKickoffAction },
+      { label: "Day-one setup", value: "Manual setup only; no live channel activation" },
+      { label: "Metric baseline", value: LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus] },
+      { label: "Guardrail", value: "No phone, messaging, CRM, analytics, billing, booking, or customer send" },
+    ],
+    checklist: kickoffChecks.map((item) => `${item.label}: ${item.status}`),
+  };
+}
+
 function buildLocalServicePilotMetricsTrackerExport(
   template: LocalServiceDemoTemplate,
   status: LocalServicePilotMetricStatus,
@@ -4506,6 +4686,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [paidPilotProposalPreviewMode, setPaidPilotProposalPreviewMode] = useState<PlaybookExportMode>("human");
   const [proposalApprovalHandoffOpen, setProposalApprovalHandoffOpen] = useState(false);
   const [proposalApprovalHandoffMode, setProposalApprovalHandoffMode] = useState<PlaybookExportMode>("human");
+  const [pilotKickoffGateOpen, setPilotKickoffGateOpen] = useState(false);
+  const [pilotKickoffGateMode, setPilotKickoffGateMode] = useState<PlaybookExportMode>("human");
   const [pilotMessagePreviewOpen, setPilotMessagePreviewOpen] = useState(false);
   const [pilotMessagePreviewMode, setPilotMessagePreviewMode] = useState<PlaybookExportMode>("human");
   const [pilotOperatorConfirmationOpen, setPilotOperatorConfirmationOpen] = useState(false);
@@ -4664,6 +4846,11 @@ const LocalServicesDispatchDemoPanel = ({
     pilotWorkspaceState.setupReadyByService[leadingCategoryActionLayer.serviceId] === true;
   const leadingCategoryTestCallPassed =
     pilotWorkspaceState.testCallPassedByService[leadingCategoryActionLayer.serviceId] === true;
+  const leadingCategoryTestCallChecklist =
+    pilotWorkspaceState.testCallChecklistByService[leadingCategoryActionLayer.serviceId] ?? {};
+  const leadingCategoryTestCallProgress = `${
+    LOCAL_SERVICE_TEST_CALL_CHECK_IDS.filter((id) => leadingCategoryTestCallChecklist[id] === true).length
+  }/${LOCAL_SERVICE_TEST_CALL_CHECK_IDS.length}`;
   const leadingCategoryMetricStatus =
     pilotWorkspaceState.metricStatusByService[leadingCategoryActionLayer.serviceId] ?? "not_started";
   const leadingCategoryPilotReadiness = useMemo(
@@ -4837,6 +5024,19 @@ const LocalServicesDispatchDemoPanel = ({
     leadingCategoryPilotScore,
     leadingCategoryActionLayer,
     leadingCategoryPilotReadiness,
+    leadingCategoryMetricStatus,
+  );
+  const pilotKickoffGateExport = buildLocalServicePilotKickoffGate(
+    leadingCategoryTemplate,
+    founderContactRows,
+    founderContactCounts,
+    founderProofProgress,
+    leadingCategoryPilotScore,
+    leadingCategoryActionLayer,
+    leadingCategoryPilotReadiness,
+    leadingCategorySetupReady,
+    leadingCategoryTestCallPassed,
+    leadingCategoryTestCallProgress,
     leadingCategoryMetricStatus,
   );
   const filteredPilotFunnelRows = useMemo(
@@ -6438,6 +6638,18 @@ const LocalServicesDispatchDemoPanel = ({
                             <Button
                               size="sm"
                               variant="secondary"
+                              onClick={() => {
+                                setPilotKickoffGateMode("human");
+                                setPilotKickoffGateOpen(true);
+                              }}
+                              className="h-7"
+                            >
+                              <CalendarCheck className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                              Open kickoff gate
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
                               onClick={() => onOpenSetupWizard(leadingCategoryActionLayer.serviceId)}
                               className="h-7"
                             >
@@ -7746,6 +7958,16 @@ const LocalServicesDispatchDemoPanel = ({
         exportView={proposalApprovalHandoffExport}
         mode={proposalApprovalHandoffMode}
         onModeChange={setProposalApprovalHandoffMode}
+        onCopy={onCopyText}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+        onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH)}
+      />
+      <LocalServicePilotWorkspaceExportDrawer
+        open={pilotKickoffGateOpen}
+        onOpenChange={setPilotKickoffGateOpen}
+        exportView={pilotKickoffGateExport}
+        mode={pilotKickoffGateMode}
+        onModeChange={setPilotKickoffGateMode}
         onCopy={onCopyText}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH)}

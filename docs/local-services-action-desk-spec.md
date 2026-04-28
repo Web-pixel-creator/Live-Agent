@@ -757,7 +757,10 @@ behind that evidence gate. `Open approval handoff` adds `Proposal approval
 handoff`, `Copy approval handoff`, `local_services_proposal_approval_handoff`,
 and `manual_paid_pilot_approval_handoff` as the final manual approval checklist
 for price, scope, owner send, CRM payload, booking policy, and billing-disabled
-state. They do not send outreach, create
+state. `Open kickoff gate` adds `Pilot kickoff gate`, `Copy kickoff gate`,
+`local_services_pilot_kickoff_gate`, and `manual_day_one_kickoff_gate` as the
+manual day-one setup decision after proof and proposal approval. They do not
+send outreach, create
 bookings, write CRM, sync analytics, bill, or mutate Markdown docs. This
 preserves the NEWO-style AI employee platform direction: local manual proof
 selects the next category lane, but the concept is not a solo-only tool.
@@ -967,29 +970,32 @@ Current shell readiness for P3:
    `Copy approval handoff`, `local_services_proposal_approval_handoff`, and
    `manual_paid_pilot_approval_handoff` are visible as the manual paid-pilot
    approval handoff contract.
-37. `contactProofByProspectKey` and `Founder proof recorded` are present in the
+37. `Open kickoff gate`, `Pilot kickoff gate`, `Copy kickoff gate`,
+   `local_services_pilot_kickoff_gate`, and `manual_day_one_kickoff_gate` are
+   visible as the manual day-one kickoff gate contract.
+38. `contactProofByProspectKey` and `Founder proof recorded` are present in the
    browser-local pilot workspace contract, without any external side effect.
-38. `local_services_first_contact_batch_review`, `founder_manual_validation_review`,
+39. `local_services_first_contact_batch_review`, `founder_manual_validation_review`,
    and `no_booking_created` are present in the first-batch review export
    contract.
-39. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
+40. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
    14-day pilot runbook from the same local frontend server.
-40. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
+41. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
    repo-owned first-contact execution pack from the same local frontend server.
-41. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
+42. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
    the repo-owned 90-second recording checklist from the same local frontend
    server.
-42. `?recording=90s`, `90-second recording mode`, `Recording path`, and
+43. `?recording=90s`, `90-second recording mode`, `Recording path`, and
    `90s recording` are visible as the demo-recording posture, and outreach
    tables plus scorecard controls are hidden during recording.
-43. `?setup=7min`, `7-minute setup wizard`, `Setup path`, and `7-min setup`
+44. `?setup=7min`, `7-minute setup wizard`, `Setup path`, and `7-min setup`
    are visible as the setup-first posture, and outreach tables plus scorecard
    controls are hidden while setup mode is active.
-44. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
+45. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
    `Saved setup state`, `Mark complete`, `Mark ready for pilot test`,
    `Ready for pilot test`, and `Reset setup progress` are visible as the
    stateful setup checklist contract.
-45. Actual external execution still remains outside the shell: recorded video,
+46. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path

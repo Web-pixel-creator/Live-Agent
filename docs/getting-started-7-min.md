@@ -174,7 +174,11 @@ proposal preview`; `Copy proposal preview` exports
 draft, not as a customer send or billing action. Use `Open approval handoff` to
 inspect `Proposal approval handoff`; `Copy approval handoff` exports
 `local_services_proposal_approval_handoff` as the manual price, scope, owner
-send, CRM payload, booking-policy, and billing-disabled checklist. This does not narrow the
+send, CRM payload, booking-policy, and billing-disabled checklist. Use
+`Open kickoff gate` to inspect `Pilot kickoff gate`; `Copy kickoff gate`
+exports `local_services_pilot_kickoff_gate` as the manual day-one setup decision
+before any phone, messaging, CRM, analytics, billing, booking, or customer-send
+activation. This does not narrow the
 product to a solo tool; it keeps
 the NEWO-style AI employee platform path grounded in real category proof.
 Use `Open offer doc`, `Open demo script`, and `Open recording checklist` to
