@@ -706,7 +706,10 @@ The same metrics block now opens `Pilot daily log` through `Open daily log`.
 It exposes `Daily capture fields`, `Daily operating loop`,
 `Copy pilot daily log`, and the structured `local_services_pilot_daily_log`
 payload. It is the reviewed daily operating-loop note only: no analytics sync,
-CRM write, calendar booking, customer send, or Markdown mutation.
+CRM write, calendar booking, customer send, or Markdown mutation. The payload
+now also carries the selected company, pilot status, `First request outcome`,
+and `firstRequestOutcomeByProspectKey` so the first observed request result is
+reviewed before weekly scorecard sync.
 The same pilot block now opens `Pilot week-one review` through
 `Open week-one review`. It exposes `Continue / stop decision`,
 `Copy week-one review`, and the structured
@@ -935,8 +938,9 @@ Current shell readiness for P3:
 23. `Open metrics tracker`, `Pilot metrics tracker`, `Human-readable`, `JSON`,
    and `Copy pilot metrics tracker` are visible in the shell.
 24. `Open daily log`, `Pilot daily log`, `Daily capture fields`,
-   `Daily operating loop`, `Copy pilot daily log`, and
-   `local_services_pilot_daily_log` are visible in the shell.
+   `Daily operating loop`, `Copy pilot daily log`,
+   `local_services_pilot_daily_log`, `First request outcome`, and
+   `firstRequestOutcomeByProspectKey` are visible in the shell.
 25. `Open week-one review`, `Pilot week-one review`,
    `Continue / stop decision`, `Copy week-one review`, and
    `local_services_pilot_week_one_review` are visible in the shell.

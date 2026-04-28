@@ -89,7 +89,9 @@ analytics, billing, calendar, or customer sends.
 log` with `Daily capture fields`, `Daily operating loop`,
 `Copy pilot daily log`, and `local_services_pilot_daily_log`. It is a manual
 daily operating-loop template only; it does not sync analytics, write CRM,
-create calendar bookings, send customer messages, or mutate Markdown docs.
+create calendar bookings, send customer messages, or mutate Markdown docs. It
+also carries the selected company, pilot status, `First request outcome`, and
+`firstRequestOutcomeByProspectKey` before weekly scorecard sync.
 3.8. The same route now includes `Open week-one review`, which opens `Pilot
 week-one review` with `Continue / stop decision`, `Copy week-one review`, and
 `local_services_pilot_week_one_review`. It is a manual owner/operator review

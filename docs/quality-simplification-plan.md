@@ -163,7 +163,10 @@ The same measurement area now has `Open daily log`, which opens `Pilot daily
 log` with `Daily capture fields`, `Daily operating loop`,
 `Copy pilot daily log`, and the structured `local_services_pilot_daily_log`
 payload. This creates a reviewed daily operating-loop note without analytics
-sync, CRM write, calendar booking, customer send, or Markdown mutation.
+sync, CRM write, calendar booking, customer send, or Markdown mutation. It now
+also carries the selected company, pilot status, `First request outcome`, and
+`firstRequestOutcomeByProspectKey` so the first observed result is captured
+before weekly scorecard sync.
 The same pilot area now has `Open week-one review`, which opens `Pilot week-one
 review` with `Continue / stop decision`, `Copy week-one review`, and the
 structured `local_services_pilot_week_one_review` payload. This keeps the first

@@ -181,9 +181,10 @@ mutate this Markdown file automatically.
 `Open daily log` opens the `Pilot daily log` for the selected service lane.
 Use it at the end of each pilot day to review `Daily capture fields`,
 `Daily operating loop`, and `Copy pilot daily log`. The payload is
-`local_services_pilot_daily_log`; it does not sync analytics, update CRM, create
-calendar bookings, send customer messages, or mutate this Markdown file
-automatically.
+`local_services_pilot_daily_log`; it now carries the selected company, pilot
+status, `First request outcome`, and `firstRequestOutcomeByProspectKey` before
+weekly scorecard sync. It does not sync analytics, update CRM, create calendar
+bookings, send customer messages, or mutate this Markdown file automatically.
 
 `Open week-one review` opens the `Pilot week-one review` drawer for the selected
 service lane and company. Use it after real week-one activity exists to review

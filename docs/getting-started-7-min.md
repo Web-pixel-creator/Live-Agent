@@ -141,6 +141,9 @@ It provides `Daily capture fields`, `Daily operating loop`, and
 `Copy pilot daily log` with the structured `local_services_pilot_daily_log`
 payload. It is a manual note only: no analytics sync, CRM write, calendar
 booking, customer send, or Markdown scorecard mutation.
+It now also carries `First request outcome` and
+`firstRequestOutcomeByProspectKey`, so the first observed request result is
+reviewed before weekly scorecard sync.
 Use `Open week-one review` after real week-one activity exists. It opens
 `Pilot week-one review` with `Continue / stop decision`,
 `Copy week-one review`, and `local_services_pilot_week_one_review`. It does not

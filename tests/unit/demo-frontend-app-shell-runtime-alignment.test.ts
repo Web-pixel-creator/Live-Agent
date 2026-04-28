@@ -735,6 +735,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Daily operating loop/);
   assert.match(liveDesk, /Copy pilot daily log/);
   assert.match(liveDesk, /local_services_pilot_daily_log/);
+  assert.match(liveDesk, /Outcome state key/);
+  assert.match(liveDesk, /first_request_outcome/);
+  assert.match(liveDesk, /manual_first_request_outcome_note/);
+  assert.match(liveDesk, /Record the first request outcome before weekly scorecard sync/);
   assert.match(liveDesk, /manual_daily_operating_loop/);
   assert.match(liveDesk, /no_calendar_booking_created/);
   assert.match(liveDesk, /no_customer_message_sent/);
@@ -1143,6 +1147,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Daily operating loop/);
   assert.match(readme, /Copy pilot daily log/);
   assert.match(readme, /local_services_pilot_daily_log/);
+  assert.match(readme, /weekly scorecard sync/);
   assert.match(readme, /Pilot week-one review/);
   assert.match(readme, /Open week-one review/);
   assert.match(readme, /Continue \/ stop decision/);
@@ -1378,6 +1383,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /Daily operating loop/);
   assert.match(localDevelopment, /Copy pilot daily log/);
   assert.match(localDevelopment, /local_services_pilot_daily_log/);
+  assert.match(localDevelopment, /weekly scorecard sync/);
   assert.match(localDevelopment, /Pilot\s+week-one review/);
   assert.match(localDevelopment, /Open week-one review/);
   assert.match(localDevelopment, /Continue \/ stop decision/);
@@ -1599,6 +1605,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Daily operating loop/);
   assert.match(operatorGuide, /Copy pilot daily log/);
   assert.match(operatorGuide, /local_services_pilot_daily_log/);
+  assert.match(operatorGuide, /weekly scorecard sync/);
   assert.match(operatorGuide, /Pilot week-one\s+review/);
   assert.match(operatorGuide, /Open week-one review/);
   assert.match(operatorGuide, /Continue \/ stop decision/);
@@ -1807,6 +1814,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /Daily operating loop/);
   assert.match(simplificationPlan, /Copy pilot daily log/);
   assert.match(simplificationPlan, /local_services_pilot_daily_log/);
+  assert.match(simplificationPlan, /weekly scorecard sync/);
   assert.match(simplificationPlan, /Pilot week-one\s+review/);
   assert.match(simplificationPlan, /Open week-one review/);
   assert.match(simplificationPlan, /Continue \/ stop decision/);
@@ -2025,6 +2033,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /Daily operating loop/);
   assert.match(gettingStarted, /Copy pilot daily log/);
   assert.match(gettingStarted, /local_services_pilot_daily_log/);
+  assert.match(gettingStarted, /weekly scorecard sync/);
   assert.match(gettingStarted, /Pilot week-one review/);
   assert.match(gettingStarted, /Open week-one review/);
   assert.match(gettingStarted, /Continue \/ stop decision/);
@@ -2270,6 +2279,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /Daily operating loop/);
   assert.match(localServicesSpec, /Copy pilot daily log/);
   assert.match(localServicesSpec, /local_services_pilot_daily_log/);
+  assert.match(localServicesSpec, /weekly scorecard sync/);
   assert.match(localServicesSpec, /Pilot week-one review/);
   assert.match(localServicesSpec, /Open week-one review/);
   assert.match(localServicesSpec, /Continue \/ stop decision/);
@@ -2658,6 +2668,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotScorecard, /Daily operating loop/);
   assert.match(pilotScorecard, /Copy pilot daily log/);
   assert.match(pilotScorecard, /local_services_pilot_daily_log/);
+  assert.match(pilotScorecard, /weekly scorecard sync/);
   assert.match(pilotScorecard, /Open week-one review/);
   assert.match(pilotScorecard, /Pilot week-one review/);
   assert.match(pilotScorecard, /Continue \/ stop decision/);

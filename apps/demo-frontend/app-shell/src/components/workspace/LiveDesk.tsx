@@ -3212,9 +3212,15 @@ function buildLocalServicePilotMetricsTrackerExport(
 
 function buildLocalServicePilotDailyLogExport(
   template: LocalServiceDemoTemplate,
+  prospect: LocalServiceOutreachProspect | undefined,
+  pilotStatus: LocalServicePilotStatus,
   status: LocalServicePilotMetricStatus,
+  firstRequestOutcome: LocalServiceFirstRequestOutcome,
 ): LocalServicePilotWorkspaceExport {
+  const pilotStatusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[pilotStatus];
   const statusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[status];
+  const firstRequestOutcomeLabel = LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_LABELS[firstRequestOutcome];
+  const prospectLabel = prospect ? prospect.company : "No selected company";
   const dailyFields = [
     {
       label: "Inbound requests",
@@ -3263,11 +3269,16 @@ function buildLocalServicePilotDailyLogExport(
     `Service: ${template.ref}`,
     "Export scope: manual daily operating loop",
     `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
+    `Selected company: ${prospectLabel}`,
+    `Pilot status: ${pilotStatusLabel}`,
     `Metric status: ${statusLabel}`,
+    `First request outcome: ${firstRequestOutcomeLabel}`,
+    `Outcome state key: firstRequestOutcomeByProspectKey`,
     "",
     "Daily capture fields:",
     ...fieldLines,
     "",
+    "First request outcome rule: record the observed result after the first operator-supervised request before weekly scorecard sync.",
     "Daily operating rule: this log is a reviewed template only. It does not sync analytics, write CRM, create bookings, or update Markdown scorecards automatically.",
     "Operator action: fill the private daily numbers, then manually copy the reviewed summary into the pilot scorecard or spreadsheet.",
   ];
@@ -3279,11 +3290,19 @@ function buildLocalServicePilotDailyLogExport(
       service_id: template.id,
       service_ref: template.ref,
       service_title: template.title,
+      selected_company: prospectLabel,
+      selected_prospect_id: prospect?.id ?? null,
+      pilot_status: pilotStatus,
+      pilot_status_label: pilotStatusLabel,
       metric_status: status,
       metric_status_label: statusLabel,
+      first_request_outcome: firstRequestOutcome,
+      first_request_outcome_label: firstRequestOutcomeLabel,
+      outcome_state_key: "firstRequestOutcomeByProspectKey",
       daily_capture_fields: dailyFields,
       guardrails: [
         "manual_daily_capture",
+        "manual_first_request_outcome_note",
         "no_external_analytics_sync",
         "no_crm_write",
         "no_calendar_booking_created",
@@ -3311,13 +3330,17 @@ function buildLocalServicePilotDailyLogExport(
     jsonText,
     rows: [
       { label: "Service", value: `${template.ref} - ${template.title}` },
+      { label: "Selected company", value: prospectLabel },
+      { label: "Pilot status", value: pilotStatusLabel },
       { label: "Metric status", value: statusLabel },
+      { label: "First request outcome", value: firstRequestOutcomeLabel },
       { label: "Capture cadence", value: "once per pilot day" },
       { label: "Fields", value: dailyFields.map((field) => field.label).join(", ") },
       { label: "Guardrail", value: "Manual daily capture, no analytics sync, no CRM write" },
     ],
     checklist: [
       "Count only real pilot activity from the current day.",
+      "Record the first request outcome before weekly scorecard sync.",
       "Separate captured requests from confirmed bookings or dispatches.",
       "Write one operator note about what still required rewriting.",
       "Sync reviewed numbers manually into the scorecard or spreadsheet.",
@@ -5324,8 +5347,15 @@ const LocalServicesDispatchDemoPanel = ({
     [currentMetricStatus, selectedTemplate],
   );
   const pilotDailyLogExport = useMemo(
-    () => buildLocalServicePilotDailyLogExport(selectedTemplate, currentMetricStatus),
-    [currentMetricStatus, selectedTemplate],
+    () =>
+      buildLocalServicePilotDailyLogExport(
+        selectedTemplate,
+        selectedOutreachProspect,
+        currentPilotStatus,
+        currentMetricStatus,
+        currentFirstRequestOutcome,
+      ),
+    [currentFirstRequestOutcome, currentMetricStatus, currentPilotStatus, selectedOutreachProspect, selectedTemplate],
   );
   const pilotWeekOneReviewExport = useMemo(
     () =>

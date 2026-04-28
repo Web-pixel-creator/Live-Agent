@@ -183,6 +183,9 @@ note before updating a private scorecard. `Pilot daily log` exposes
 The payload is `local_services_pilot_daily_log`; it remains manual-only and
 does not sync analytics, write CRM, create calendar bookings, send customer
 messages, or mutate Markdown docs.
+The same daily log now carries the selected company, pilot status,
+`First request outcome`, and `firstRequestOutcomeByProspectKey` so the first
+observed result is reviewed before weekly scorecard sync.
 Use `Open week-one review` when the first operating week has real activity and
 the owner must decide whether to continue, pause, or stop. `Pilot week-one
 review` exposes `Continue / stop decision`, `Copy week-one review`, and

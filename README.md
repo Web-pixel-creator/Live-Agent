@@ -196,7 +196,10 @@ Local-services expansion spec:
   it exposes `Daily capture fields`, `Daily operating loop`,
   `Copy pilot daily log`, and `local_services_pilot_daily_log` so the operator
   can record each pilot day manually without analytics sync, CRM write, calendar
-  booking, or customer send.
+  booking, or customer send. The daily log now also carries the selected
+  company, pilot status, `First request outcome`, and
+  `firstRequestOutcomeByProspectKey` so the first observed result is reviewed
+  before weekly scorecard sync.
 - the same pilot area now opens `Pilot week-one review` through
   `Open week-one review`; it exposes `Continue / stop decision`,
   `Copy week-one review`, and `local_services_pilot_week_one_review` so week-one
