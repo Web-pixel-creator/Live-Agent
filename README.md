@@ -142,7 +142,9 @@ Local-services expansion spec:
   `firstRequestOutcomeByProspectKey`: `Qualified`, `Needs follow-up`,
   `Rejected`, or `Booked manually`. This is browser-local `Manual outcome state`
   only; it does not create bookings, write CRM, or mutate the Markdown
-  scorecard.
+  scorecard. The same block now shows `Outcome chain summary` so the operator
+  can see that one local outcome flowing into `Scorecard draft`, `Daily log`,
+  `Week-one review`, and `Evidence pack`.
 - the same pilot workspace state now persists in browser `localStorage` under
   `liveDesk:localServicesPilotWorkspace:v1`, so the operator can return to the
   demo and still see `Draft ready`, `Contacted manually`, `Reply received`, or

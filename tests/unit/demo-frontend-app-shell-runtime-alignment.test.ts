@@ -792,6 +792,11 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /First request outcome recorded/);
   assert.match(liveDesk, /outcome_change/);
   assert.match(liveDesk, /Reset outcome/);
+  assert.match(liveDesk, /Outcome chain summary/);
+  assert.match(liveDesk, /Scorecard draft/);
+  assert.match(liveDesk, /Daily log/);
+  assert.match(liveDesk, /Week-one review/);
+  assert.match(liveDesk, /Paid-pilot readiness/);
   assert.match(liveDesk, /Confirm manually/);
   assert.match(liveDesk, /Log outcome in scorecard/);
   assert.match(liveDesk, /path\.startsWith\("\/workspace-docs\/"\)/);
@@ -1136,6 +1141,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /firstRequestOutcomeByProspectKey/);
   assert.match(readme, /Needs follow-up/);
   assert.match(readme, /Booked manually/);
+  assert.match(readme, /Outcome chain summary/);
+  assert.match(readme, /Scorecard draft/);
+  assert.match(readme, /Week-one review/);
   assert.match(readme, /Pilot funnel summary/);
   assert.match(readme, /All candidates/);
   assert.match(readme, /Next manual\s+batch/);
@@ -1377,6 +1385,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /firstRequestOutcomeByProspectKey/);
   assert.match(localDevelopment, /Needs follow-up/);
   assert.match(localDevelopment, /Booked manually/);
+  assert.match(localDevelopment, /Outcome chain summary/);
+  assert.match(localDevelopment, /Scorecard draft/);
+  assert.match(localDevelopment, /Week-one review/);
   assert.match(localDevelopment, /Pilot funnel summary/);
   assert.match(localDevelopment, /All candidates/);
   assert.match(localDevelopment, /Next manual\s+batch/);
@@ -1600,6 +1611,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /firstRequestOutcomeByProspectKey/);
   assert.match(operatorGuide, /Needs follow-up/);
   assert.match(operatorGuide, /Booked manually/);
+  assert.match(operatorGuide, /Outcome chain summary/);
+  assert.match(operatorGuide, /Scorecard draft/);
+  assert.match(operatorGuide, /Week-one review/);
   assert.match(operatorGuide, /Pilot funnel summary/);
   assert.match(operatorGuide, /All candidates/);
   assert.match(operatorGuide, /Next manual\s+batch/);
@@ -1812,6 +1826,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /firstRequestOutcomeByProspectKey/);
   assert.match(simplificationPlan, /Needs follow-up/);
   assert.match(simplificationPlan, /Booked manually/);
+  assert.match(simplificationPlan, /Outcome chain summary/);
+  assert.match(simplificationPlan, /Scorecard draft/);
+  assert.match(simplificationPlan, /Week-one review/);
   assert.match(simplificationPlan, /Pilot funnel summary/);
   assert.match(simplificationPlan, /All candidates/);
   assert.match(simplificationPlan, /Next manual\s+batch/);
@@ -2032,6 +2049,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /firstRequestOutcomeByProspectKey/);
   assert.match(gettingStarted, /Needs follow-up/);
   assert.match(gettingStarted, /Booked manually/);
+  assert.match(gettingStarted, /Outcome chain summary/);
+  assert.match(gettingStarted, /Scorecard draft/);
+  assert.match(gettingStarted, /Week-one review/);
   assert.match(gettingStarted, /Pilot funnel summary/);
   assert.match(gettingStarted, /All candidates/);
   assert.match(gettingStarted, /Next manual\s+batch/);
@@ -2278,6 +2298,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /firstRequestOutcomeByProspectKey/);
   assert.match(localServicesSpec, /Needs follow-up/);
   assert.match(localServicesSpec, /Booked manually/);
+  assert.match(localServicesSpec, /Outcome chain summary/);
+  assert.match(localServicesSpec, /Scorecard draft/);
+  assert.match(localServicesSpec, /Week-one review/);
   assert.match(localServicesSpec, /Pilot funnel summary/);
   assert.match(localServicesSpec, /All candidates/);
   assert.match(localServicesSpec, /Next manual\s+batch/);
@@ -2661,6 +2684,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotScorecard, /firstRequestOutcomeByProspectKey/);
   assert.match(pilotScorecard, /Needs follow-up/);
   assert.match(pilotScorecard, /Booked manually/);
+  assert.match(pilotScorecard, /Outcome chain summary/);
+  assert.match(pilotScorecard, /Scorecard draft/);
+  assert.match(pilotScorecard, /Week-one review/);
   assert.match(pilotScorecard, /Pilot funnel summary/);
   assert.match(pilotScorecard, /All candidates/);
   assert.match(pilotScorecard, /Next manual\s+batch/);
@@ -2804,6 +2830,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotRunbook, /Copy week-one review/);
   assert.match(pilotRunbook, /local_services_pilot_week_one_review/);
   assert.match(pilotRunbook, /firstRequestOutcomeByProspectKey/);
+  assert.match(pilotRunbook, /Outcome chain summary/);
+  assert.match(pilotRunbook, /Scorecard draft/);
+  assert.match(pilotRunbook, /Week-one review/);
   assert.match(pilotRunbook, /Open evidence pack/);
   assert.match(pilotRunbook, /Pilot evidence pack/);
   assert.match(pilotRunbook, /Week-two evidence pack/);

@@ -103,7 +103,9 @@ The same scorecard card now includes `First request outcome` and
 `Manual outcome state`: `Qualified`, `Needs follow-up`, `Rejected`, and
 `Booked manually` are stored in `firstRequestOutcomeByProspectKey` only. This
 keeps the pilot loop concrete without creating a booking, CRM write, or
-Markdown scorecard mutation.
+Markdown scorecard mutation. `Outcome chain summary` keeps the proof path
+visible from `Scorecard draft` to `Daily log`, `Week-one review`, and
+`Evidence pack`.
 That state is now persisted in browser `localStorage` with
 `liveDesk:localServicesPilotWorkspace:v1`, covering the selected outreach
 candidate and the operator-only statuses `Draft ready`, `Contacted manually`,

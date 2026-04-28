@@ -650,7 +650,9 @@ The same card now records a browser-local first request outcome. `First request
 outcome`, `Manual outcome state`, `Qualified`, `Needs follow-up`, `Rejected`,
 `Booked manually`, and `firstRequestOutcomeByProspectKey` let the operator close
 the first manual request without creating a booking, writing CRM, or mutating
-the Markdown scorecard.
+the Markdown scorecard. `Outcome chain summary` shows the same outcome across
+`Scorecard draft`, `Daily log`, `Week-one review`, and `Evidence pack`, so the
+operator can trace paid-pilot proof without opening every drawer first.
 The shell now persists that pilot workspace state in browser `localStorage`
 under `liveDesk:localServicesPilotWorkspace:v1`. It stores the selected
 candidate per local-services lane and the operator-only status per

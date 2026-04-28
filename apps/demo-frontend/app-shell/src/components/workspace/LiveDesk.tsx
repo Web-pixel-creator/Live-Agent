@@ -5601,6 +5601,28 @@ const LocalServicesDispatchDemoPanel = ({
         { label: "First request outcome", value: currentFirstRequestOutcomeLabel },
       ]
     : [];
+  const outcomeChainSummary = [
+    {
+      label: "Scorecard draft",
+      value: currentFirstRequestOutcomeLabel,
+      detail: "Saved under firstRequestOutcomeByProspectKey.",
+    },
+    {
+      label: "Daily log",
+      value: currentMetricStatusLabel,
+      detail: "Carried into local_services_pilot_daily_log.",
+    },
+    {
+      label: "Week-one review",
+      value: "Continue / stop gate",
+      detail: "Confirms the same outcome before a manual owner decision.",
+    },
+    {
+      label: "Evidence pack",
+      value: "Paid-pilot readiness",
+      detail: "Carried into local_services_pilot_evidence_pack after redaction.",
+    },
+  ];
   const hidePilotPlanning = recordingMode || setupWizardMode;
 
   useEffect(() => {
@@ -8183,6 +8205,24 @@ const LocalServicesDispatchDemoPanel = ({
                               >
                                 Reset outcome
                               </Button>
+                            </div>
+                            <div className="mt-3 border-t border-border/45 pt-3">
+                              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                                Outcome chain summary
+                              </div>
+                              <div className="mt-2 grid gap-2 lg:grid-cols-2">
+                                {outcomeChainSummary.map((item) => (
+                                  <div key={item.label} className="grid grid-cols-[112px_minmax(0,1fr)] gap-2 text-[11px]">
+                                    <span className="text-muted-foreground">{item.label}</span>
+                                    <span className="min-w-0 text-foreground">
+                                      <span className="font-medium">{item.value}</span>
+                                      <span className="block text-[10.5px] leading-relaxed text-muted-foreground">
+                                        {item.detail}
+                                      </span>
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           </div>
                           {currentPilotStatus !== "not_contacted" && (

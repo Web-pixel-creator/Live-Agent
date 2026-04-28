@@ -121,7 +121,9 @@ as `Not contacted` demo-session evidence.
 After the first operator-supervised request, use `First request outcome` to
 record `Qualified`, `Needs follow-up`, `Rejected`, or `Booked manually`. The
 state is stored as `firstRequestOutcomeByProspectKey` and remains a local
-operator note only.
+operator note only. Check `Outcome chain summary` to confirm the same outcome is
+carried through `Scorecard draft`, `Daily log`, `Week-one review`, and
+`Evidence pack`.
 The pilot workspace state is persisted in browser `localStorage` as
 `liveDesk:localServicesPilotWorkspace:v1`, so reloads keep `Draft ready`,
 `Contacted manually`, `Reply received`, or `Rejected for now` statuses.

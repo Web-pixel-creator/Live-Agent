@@ -106,8 +106,10 @@ Use it to:
    `Best candidate`, `Bottleneck`, or `Next message`
 17. record `First request outcome` after the first operator-supervised request:
    `Qualified`, `Needs follow-up`, `Rejected`, or `Booked manually`
-18. keep real outreach manual-only until a human sends the message outside the shell
-19. open `Open founder execution log` when the operator needs the redacted
+18. check `Outcome chain summary` to see the same outcome move through
+   `Scorecard draft`, `Daily log`, `Week-one review`, and `Evidence pack`
+19. keep real outreach manual-only until a human sends the message outside the shell
+20. open `Open founder execution log` when the operator needs the redacted
     first-10-contact worksheet before updating private pilot evidence
 
 This shell action is intentionally local to the demo session. It does not send a
