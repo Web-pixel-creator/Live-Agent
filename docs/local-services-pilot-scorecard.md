@@ -147,6 +147,11 @@ into CRM or a spreadsheet. It includes the latest `Manual activity log` /
 snapshot only; it does not send a message, update CRM, or mutate this Markdown
 file automatically.
 
+The first-10-contact workspace also shows `Category pilot score`,
+`Leading category`, and `No category expansion without proof`. Use that ranking
+before changing this scorecard into a category-specific integration plan; AC,
+plumbing, cleaning, and measurement must compete on manual proof markers.
+
 `Open metrics tracker` opens the `Pilot metrics tracker` for the selected
 service lane. Use `Human-readable` for weekly operator review and `JSON` when
 pasting reviewed numbers into a spreadsheet. `Copy pilot metrics tracker`

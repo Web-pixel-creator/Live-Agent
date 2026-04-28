@@ -20,6 +20,10 @@ Use the `Stop / Continue decision gate` as the category expansion rule: continue
 only when the first batch proves real service-operator pain. The broader product
 direction remains a NEWO-style AI employee platform for selected local-service
 categories, not a solo-only tool.
+Use `Category pilot score` and `Leading category` as the tie-breaker across AC,
+plumbing, cleaning, and measurement. The rule is
+`No category expansion without proof`: do not deepen a lane until its score is
+backed by manual sends, replies, discovery calls, demos, or pilot willingness.
 
 ## Goal
 

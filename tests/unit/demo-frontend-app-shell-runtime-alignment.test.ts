@@ -799,6 +799,13 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Stop expansion for now/);
   assert.match(liveDesk, /NEWO-style AI employee platform/);
   assert.match(liveDesk, /founder\/operator validation/);
+  assert.match(liveDesk, /type LocalServiceCategoryPilotScore/);
+  assert.match(liveDesk, /buildLocalServiceCategoryPilotScores/);
+  assert.match(liveDesk, /Category pilot score/);
+  assert.match(liveDesk, /Leading category/);
+  assert.match(liveDesk, /No category expansion without proof/);
+  assert.match(liveDesk, /local_services_category_pilot_score/);
+  assert.match(liveDesk, /category_pilot_score/);
   assert.match(liveDesk, /local_services_first_contact_batch_review/);
   assert.match(liveDesk, /founder_manual_validation_review/);
   assert.match(liveDesk, /no_booking_created/);
@@ -1098,6 +1105,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Copy batch review/);
   assert.match(readme, /Copy founder workspace/);
   assert.match(readme, /NEWO-style AI employee platform/);
+  assert.match(readme, /Category pilot score/);
+  assert.match(readme, /Leading category/);
+  assert.match(readme, /No category expansion without proof/);
   assert.match(readme, /docs\/local-services-pilot-runbook\.md/);
   assert.match(readme, /docs\/local-services-outreach-execution-pack\.md/);
   assert.match(readme, /Open outreach execution pack/);
@@ -1291,6 +1301,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /Copy founder workspace/);
   assert.match(localDevelopment, /liveDesk:localServicesPilotWorkspace:v1/);
   assert.match(localDevelopment, /NEWO-style AI employee/);
+  assert.match(localDevelopment, /Category pilot score/);
+  assert.match(localDevelopment, /Leading category/);
+  assert.match(localDevelopment, /No category expansion without proof/);
   assert.match(localDevelopment, /http:\/\/localhost:3000\/app\?demo=local-services-dispatch&service=ac-repair-dispatch&recording=90s/);
   assert.match(localDevelopment, /90-second recording mode/);
   assert.match(localDevelopment, /http:\/\/localhost:3000\/workspace-docs\/local-services-pilot-runbook\.md/);
@@ -1462,7 +1475,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /First\s+contact batch\s+review drawer/);
   assert.match(operatorGuide, /Copy batch review/);
   assert.match(operatorGuide, /Copy\s+founder workspace/);
-  assert.match(operatorGuide, /NEWO-style AI\s+employee platform/);
+  assert.match(operatorGuide, /NEWO-style AI\s+employee\s+platform/);
+  assert.match(operatorGuide, /Category pilot score/);
+  assert.match(operatorGuide, /Leading category/);
+  assert.match(operatorGuide, /No category expansion without proof/);
   assert.match(operatorGuide, /docs\/local-services-pilot-runbook\.md/);
   assert.match(operatorGuide, /docs\/local-services-outreach-execution-pack\.md/);
   assert.match(operatorGuide, /Open recording checklist/);
@@ -1634,6 +1650,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /Copy batch review/);
   assert.match(simplificationPlan, /Copy founder workspace/);
   assert.match(simplificationPlan, /NEWO-style AI employee platform/);
+  assert.match(simplificationPlan, /Category pilot score/);
+  assert.match(simplificationPlan, /Leading category/);
+  assert.match(simplificationPlan, /No category expansion without proof/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-pilot-runbook\.md/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-outreach-execution-pack\.md/);
   assert.match(simplificationPlan, /Open outreach execution pack/);
@@ -1803,6 +1822,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /Copy batch review/);
   assert.match(gettingStarted, /Copy founder workspace/);
   assert.match(gettingStarted, /NEWO-style AI employee platform/);
+  assert.match(gettingStarted, /Category pilot score/);
+  assert.match(gettingStarted, /Leading category/);
+  assert.match(gettingStarted, /No category expansion without proof/);
   assert.match(gettingStarted, /Open offer doc/);
   assert.match(gettingStarted, /Open demo script/);
   assert.match(gettingStarted, /Open outreach list/);
@@ -2022,6 +2044,11 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /local_services_first_contact_batch_review/);
   assert.match(localServicesSpec, /founder_manual_validation_review/);
   assert.match(localServicesSpec, /no_booking_created/);
+  assert.match(localServicesSpec, /Category pilot score/);
+  assert.match(localServicesSpec, /Leading category/);
+  assert.match(localServicesSpec, /No category expansion without proof/);
+  assert.match(localServicesSpec, /local_services_category_pilot_score/);
+  assert.match(localServicesSpec, /category_pilot_score/);
   assert.match(localServicesSpec, /NEWO-style AI employee platform/);
   assert.match(localServicesSpec, /\/workspace-docs\/local-services-pilot-runbook\.md/);
   assert.match(localServicesSpec, /\/workspace-docs\/local-services-outreach-execution-pack\.md/);
@@ -2336,6 +2363,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotScorecard, /docs\/local-services-founder-execution-log\.md/);
   assert.match(pilotScorecard, /Open founder execution log/);
   assert.match(pilotScorecard, /first-10\s+contact worksheet/);
+  assert.match(pilotScorecard, /Category pilot score/);
+  assert.match(pilotScorecard, /Leading category/);
+  assert.match(pilotScorecard, /No category expansion without proof/);
   assert.match(pilotRunbook, /# Local Services Pilot Runbook/);
   assert.match(pilotRunbook, /Day Minus One: Prepare/);
   assert.match(pilotRunbook, /Day Zero: Outreach/);
@@ -2368,6 +2398,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotRunbook, /Copy intake evidence/);
   assert.match(pilotRunbook, /local_services_intake_evidence/);
   assert.match(pilotRunbook, /transcript_evidence_link/);
+  assert.match(pilotRunbook, /Category pilot score/);
+  assert.match(pilotRunbook, /Leading category/);
+  assert.match(pilotRunbook, /No category expansion without proof/);
   assert.match(pilotRunbook, /Pilot execution checklist/);
   assert.match(pilotRunbook, /Pass test call\/message/);
   assert.match(pilotRunbook, /Needs test call passed/);
@@ -2462,6 +2495,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(founderExecutionLog, /Copy batch review/);
   assert.match(founderExecutionLog, /liveDesk:localServicesPilotWorkspace:v1/);
   assert.match(founderExecutionLog, /NEWO-style AI employee platform/);
+  assert.match(founderExecutionLog, /Category pilot score/);
+  assert.match(founderExecutionLog, /Leading category/);
+  assert.match(founderExecutionLog, /No category expansion without proof/);
   assert.match(outreachExecutionPack, /Preview \/ Test message modal/);
   assert.match(outreachExecutionPack, /Agent setup \/ training state/);
   assert.match(outreachExecutionPack, /Open setup checklist/);
@@ -2524,6 +2560,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(outreachExecutionPack, /Copy activity log/);
   assert.match(outreachExecutionPack, /local_services_manual_activity_log/);
   assert.match(outreachExecutionPack, /No external side\s+effects/);
+  assert.match(outreachExecutionPack, /Category pilot score/);
+  assert.match(outreachExecutionPack, /Leading category/);
+  assert.match(outreachExecutionPack, /No category expansion without proof/);
   assert.match(outreachExecutionPack, /Open discovery prep/);
   assert.match(outreachExecutionPack, /Discovery call\s+prep/);
   assert.match(outreachExecutionPack, /Questions to ask/);

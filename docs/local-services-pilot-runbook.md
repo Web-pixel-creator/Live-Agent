@@ -69,6 +69,9 @@ Do not use the pilot to build:
    `Pilot funnel summary` to narrow by `Service filter` or `Status filter`,
    review `Filtered candidates`, and select from the `Filtered outreach list`.
    The list is `View only, no send`; it does not send outreach or write CRM.
+   The first-10-contact workspace also shows `Category pilot score`,
+   `Leading category`, and `No category expansion without proof`; use that
+   proof-based ranking before deepening AC, plumbing, cleaning, or measurement.
 9. Review `Pilot execution checklist`: `Pass test call/message`,
    `Needs test call passed`, `Prepare first manual batch`,
    `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,

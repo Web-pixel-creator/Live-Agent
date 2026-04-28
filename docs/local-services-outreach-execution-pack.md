@@ -224,6 +224,9 @@ Allowed reply statuses:
    `Status filter`, `Filtered candidates`, `Filtered outreach list`,
    `All services`, `All statuses`, `Clear filters`, and `View only, no send`;
    explain that this is a browser-local list view, not outreach automation.
+   Also show `Category pilot score`, `Leading category`, and
+   `No category expansion without proof`; explain that AC, plumbing, cleaning,
+   and measurement are ranked by manual proof before category expansion.
 14. Open `Open intake evidence` / `Transcript + evidence` and show
    `Saved intake evidence`, `Intake transcript + evidence link`,
    `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,

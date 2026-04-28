@@ -221,9 +221,11 @@ Local-services expansion spec:
   `Stop / Continue decision gate`, `Open batch review` / `Copy batch review` /
   `Copy founder workspace` so the first manual validation batch can be tracked
   and exported as a reviewed browser-local note before touching private CRM or
-  spreadsheets. The frame stays NEWO-style AI employee platform expansion by
-  category; the manual batch is a validation gate, not a solo-only product
-  scope.
+  spreadsheets. It also shows `Category pilot score`, `Leading category`, and
+  `No category expansion without proof` so AC, plumbing, cleaning, and
+  measurement are ranked by proof rather than preference. The frame stays
+  NEWO-style AI employee platform expansion by category; the manual batch is a
+  validation gate, not a solo-only product scope.
 - real pilot execution is now guided by `docs/local-services-pilot-runbook.md`;
   it defines day-minus-one prep, manual outreach, discovery calls, pilot setup,
   daily metrics, week-one review, week-two review, and the evidence pack.

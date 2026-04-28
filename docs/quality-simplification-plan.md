@@ -204,11 +204,13 @@ storage.
 The product shell now mirrors that worksheet with an in-app `First 10 contacts
 workspace`, `Pilot proof checklist`, `Stop / Continue decision gate`,
 `Open batch review`, `First contact batch review drawer`, `Copy batch review`,
-and `Copy founder workspace`. This is the current simplification target: prove
-demand through 10 manual contacts before adding more integrations. The target
-product remains a NEWO-style AI employee platform for selected service
-categories; the manual batch is the category validation gate, not the final
-product shape.
+and `Copy founder workspace`. It now adds `Category pilot score`,
+`Leading category`, and `No category expansion without proof` so AC, plumbing,
+cleaning, and measurement are ranked from observed proof. This is the current
+simplification target: prove demand through 10 manual contacts before adding
+more integrations. The target product remains a NEWO-style AI employee platform
+for selected service categories; the manual batch is the category validation
+gate, not the final product shape.
 
 ## Success Criteria
 

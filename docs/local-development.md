@@ -114,7 +114,10 @@ store private customer data in public docs.
 checklist`, `Stop / Continue decision gate`, `Open batch review`, `First
 contact batch review drawer`, `Copy batch review`, `Copy founder workspace`,
 `Channel checked`, `Manual sent`, `Discovery call`, `Demo booked`, and
-`Pilot candidate`. These controls update only
+`Pilot candidate`. It also includes `Category pilot score`, `Leading category`,
+and `No category expansion without proof` so AC, plumbing, cleaning, and
+measurement are compared from the same proof markers before any category
+expansion. These controls update only
 `liveDesk:localServicesPilotWorkspace:v1` in browser-local state and the manual
 activity log; they do not send outreach, create bookings, write CRM, sync
 analytics, bill, or mutate Markdown docs. The platform frame remains

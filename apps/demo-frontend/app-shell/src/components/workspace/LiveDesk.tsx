@@ -668,6 +668,25 @@ type LocalServiceFounderDecisionGate = {
   continueRules: string[];
 };
 
+type LocalServiceCategoryPilotScore = {
+  serviceId: string;
+  serviceTitle: string;
+  rank: number;
+  score: number;
+  signalLabel: "Lead category" | "Active signal" | "Needs more proof" | "Unproven";
+  proofSummary: string;
+  nextAction: string;
+  counts: {
+    contacts: number;
+    channelChecked: number;
+    manualMessageSent: number;
+    repliesOrRejections: number;
+    discoveryCalls: number;
+    demosBooked: number;
+    pilotCandidates: number;
+  };
+};
+
 type LocalServicePilotStatusFilter = LocalServicePilotStatus | "all";
 type LocalServicePilotColumnKey = "service" | "status" | "channelFit" | "nextStep";
 type LocalServicePilotExecutionStep = {
@@ -1476,6 +1495,7 @@ function buildLocalServiceFounderBatchReviewExport(
   proofChecklist: { label: string; status: string; done: boolean }[],
   proofProgress: string,
   decisionGate: LocalServiceFounderDecisionGate,
+  categoryScores: LocalServiceCategoryPilotScore[],
   activityLog: LocalServicePilotActivityEvent[] = [],
 ): LocalServicePilotWorkspaceExport {
   const contactLines = rows.map(
@@ -1491,6 +1511,11 @@ function buildLocalServiceFounderBatchReviewExport(
             `- ${event.createdAt} | ${event.serviceTitle} | ${event.company ?? "service"} | ${event.label}: ${event.value}`,
         )
       : ["- No contact proof events recorded yet."];
+  const categoryLines = categoryScores.map(
+    (score) =>
+      `${score.rank}. ${score.serviceTitle} | score ${score.score} | ${score.signalLabel} | ${score.proofSummary} | next: ${score.nextAction}`,
+  );
+  const leadCategory = categoryScores[0];
   const humanLines = [
     "First contact batch review drawer: Local services founder validation",
     "Export scope: browser-local proof review for the first 10 manual contacts",
@@ -1505,9 +1530,13 @@ function buildLocalServiceFounderBatchReviewExport(
     `Decision gate: ${decisionGate.verdictLabel}`,
     `Decision action: ${decisionGate.action}`,
     `Target lane: ${decisionGate.targetLane}`,
+    `Category pilot score: ${leadCategory ? `${leadCategory.serviceTitle} / ${leadCategory.score} / ${leadCategory.signalLabel}` : "none"}`,
     "",
     "Pilot proof checklist:",
     ...checklistLines,
+    "",
+    "Category pilot score:",
+    ...categoryLines,
     "",
     "First 10 contact review:",
     ...contactLines,
@@ -1534,6 +1563,30 @@ function buildLocalServiceFounderBatchReviewExport(
         proof_summary: decisionGate.proofSummary,
         stop_rules: decisionGate.stopRules,
         continue_rules: decisionGate.continueRules,
+      },
+      category_pilot_score: {
+        export_surface: "local_services_category_pilot_score",
+        rule: "no_category_expansion_without_proof",
+        leading_category: leadCategory
+          ? {
+              service_id: leadCategory.serviceId,
+              service_title: leadCategory.serviceTitle,
+              score: leadCategory.score,
+              signal_label: leadCategory.signalLabel,
+              proof_summary: leadCategory.proofSummary,
+              next_action: leadCategory.nextAction,
+            }
+          : null,
+        categories: categoryScores.map((score) => ({
+          rank: score.rank,
+          service_id: score.serviceId,
+          service_title: score.serviceTitle,
+          score: score.score,
+          signal_label: score.signalLabel,
+          proof_summary: score.proofSummary,
+          next_action: score.nextAction,
+          counts: score.counts,
+        })),
       },
       proof_checklist: proofChecklist,
       first_contacts: rows.map((row, index) => ({
@@ -1590,9 +1643,14 @@ function buildLocalServiceFounderBatchReviewExport(
     { label: "Discovery calls", value: `${counts.discoveryCalls}/1` },
     { label: "Pilot candidates", value: `${counts.pilotCandidates}/1` },
     { label: "Decision gate", value: decisionGate.verdictLabel },
+    {
+      label: "Leading category",
+      value: leadCategory ? `${leadCategory.serviceTitle} / ${leadCategory.score} / ${leadCategory.signalLabel}` : "none",
+    },
   ];
   const checklist = [
     "Confirm the first 10 contact markers match real manual actions outside the shell.",
+    "Confirm the leading category is based on proof markers, not preference or market guesswork.",
     "Confirm no private customer names, phone numbers, addresses, or deal terms are stored in this browser-local export.",
     "Copy the review into private founder notes only after operator review.",
     "Stop product expansion if replies, discovery calls, or pilot candidates do not appear after this batch.",
@@ -1710,6 +1768,61 @@ function buildLocalServiceFounderDecisionGate(
     stopRules,
     continueRules,
   };
+}
+
+function buildLocalServiceCategoryPilotScores(
+  rows: LocalServiceFounderContactRow[],
+): LocalServiceCategoryPilotScore[] {
+  return LOCAL_SERVICE_DEMO_TEMPLATES.map((template) => {
+    const laneRows = rows.filter((row) => row.serviceId === template.id);
+    const counts = {
+      contacts: laneRows.length,
+      channelChecked: laneRows.filter((row) => row.channelChecked).length,
+      manualMessageSent: laneRows.filter((row) => row.manualMessageSent).length,
+      repliesOrRejections: laneRows.filter(
+        (row) => row.status === "reply_received" || row.status === "rejected_for_now",
+      ).length,
+      discoveryCalls: laneRows.filter((row) => row.discoveryCallCompleted).length,
+      demosBooked: laneRows.filter((row) => row.demoBooked).length,
+      pilotCandidates: laneRows.filter((row) => row.pilotCandidate).length,
+    };
+    const score =
+      counts.channelChecked * 1 +
+      counts.manualMessageSent * 2 +
+      counts.repliesOrRejections * 3 +
+      counts.discoveryCalls * 5 +
+      counts.demosBooked * 6 +
+      counts.pilotCandidates * 10;
+    const signalLabel: LocalServiceCategoryPilotScore["signalLabel"] =
+      counts.pilotCandidates > 0 || score >= 18
+        ? "Lead category"
+        : counts.discoveryCalls > 0 || counts.demosBooked > 0 || score >= 10
+          ? "Active signal"
+          : counts.manualMessageSent > 0 || counts.repliesOrRejections > 0 || score >= 4
+            ? "Needs more proof"
+            : "Unproven";
+    const nextAction =
+      signalLabel === "Lead category"
+        ? "Deepen this category before adding new lanes."
+        : signalLabel === "Active signal"
+          ? "Run one more targeted batch before integration work."
+          : signalLabel === "Needs more proof"
+            ? "Finish manual sends and capture reply reasons."
+            : "Do not build category-specific integrations yet.";
+
+    return {
+      serviceId: template.id,
+      serviceTitle: template.title,
+      rank: 0,
+      score,
+      signalLabel,
+      proofSummary: `${counts.manualMessageSent}/${counts.contacts} manual sends, ${counts.repliesOrRejections} replies or rejections, ${counts.discoveryCalls} calls, ${counts.pilotCandidates} pilot candidates`,
+      nextAction,
+      counts,
+    };
+  })
+    .sort((a, b) => b.score - a.score || b.counts.manualMessageSent - a.counts.manualMessageSent)
+    .map((score, index) => ({ ...score, rank: index + 1 }));
 }
 
 function buildLocalServicePilotMetricsTrackerExport(
@@ -3644,6 +3757,11 @@ const LocalServicesDispatchDemoPanel = ({
     }),
     [founderContactRows],
   );
+  const categoryPilotScores = useMemo(
+    () => buildLocalServiceCategoryPilotScores(founderContactRows),
+    [founderContactRows],
+  );
+  const leadingCategoryPilotScore = categoryPilotScores[0];
   const founderReviewReadyServices = LOCAL_SERVICE_DEMO_TEMPLATES.filter(
     (template) => (pilotWorkspaceState.metricStatusByService[template.id] ?? "not_started") === "review_ready",
   ).length;
@@ -3688,10 +3806,22 @@ const LocalServicesDispatchDemoPanel = ({
     `Stop / Continue decision gate: ${founderDecisionGate.verdictLabel}`,
     `Decision action: ${founderDecisionGate.action}`,
     `Target lane: ${founderDecisionGate.targetLane}`,
+    `Category pilot score: ${
+      leadingCategoryPilotScore
+        ? `${leadingCategoryPilotScore.serviceTitle} / ${leadingCategoryPilotScore.score} / ${leadingCategoryPilotScore.signalLabel}`
+        : "none"
+    }`,
+    "No category expansion without proof.",
     `Manual sends logged: ${founderContactCounts.manualMessageSent}/10`,
     `Replies or clear rejections: ${founderContactCounts.repliesOrRejections}/3`,
     `Discovery calls: ${founderContactCounts.discoveryCalls}/1`,
     `Pilot candidates: ${founderContactCounts.pilotCandidates}/1`,
+    "",
+    "Category scores:",
+    ...categoryPilotScores.map(
+      (score) =>
+        `${score.rank}. ${score.serviceTitle} | ${score.score} | ${score.signalLabel} | ${score.proofSummary} | next: ${score.nextAction}`,
+    ),
     "",
     "First 10 contacts:",
     ...founderContactRows.map(
@@ -3705,6 +3835,7 @@ const LocalServicesDispatchDemoPanel = ({
     founderProofChecklist,
     founderProofProgress,
     founderDecisionGate,
+    categoryPilotScores,
     pilotWorkspaceState.activityLog,
   );
   const filteredPilotFunnelRows = useMemo(
@@ -5092,6 +5223,59 @@ const LocalServicesDispatchDemoPanel = ({
                       <span className="text-muted-foreground">Proof summary: </span>
                       <span className="text-foreground">{founderDecisionGate.proofSummary}</span>
                     </div>
+                  </div>
+                </div>
+                <div className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Star className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.8} />
+                    <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                      Category pilot score
+                    </span>
+                    <span className="ml-auto rounded-[5px] bg-secondary/45 px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
+                      No category expansion without proof
+                    </span>
+                  </div>
+                  <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">
+                    Ranks AC, plumbing, cleaning, and measurement using the same manual proof markers as the first
+                    batch, so category strategy follows real operator demand.
+                  </p>
+                  {leadingCategoryPilotScore ? (
+                    <div className="mt-2 rounded-[5px] bg-[hsl(var(--tint-mint)/0.12)] px-2 py-1.5 text-[11px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.22)]">
+                      <span className="font-semibold">Leading category: </span>
+                      <span>
+                        {leadingCategoryPilotScore.serviceTitle} / score {leadingCategoryPilotScore.score} /{" "}
+                        {leadingCategoryPilotScore.signalLabel}
+                      </span>
+                    </div>
+                  ) : null}
+                  <div className="mt-3 grid gap-2">
+                    {categoryPilotScores.map((score) => (
+                      <div key={score.serviceId} className="rounded-md border border-border/50 bg-card/25 px-3 py-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-[5px] bg-secondary/45 px-1.5 font-mono text-[10px] text-muted-foreground">
+                            #{score.rank}
+                          </span>
+                          <span className="text-[12px] font-semibold text-foreground">{score.serviceTitle}</span>
+                          <span className="ml-auto rounded-[5px] bg-secondary/45 px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
+                            score {score.score}
+                          </span>
+                        </div>
+                        <div className="mt-2 grid gap-2 text-[11px]">
+                          <div className="rounded-[5px] bg-background/35 px-2 py-1.5">
+                            <span className="text-muted-foreground">Signal: </span>
+                            <span className="text-foreground">{score.signalLabel}</span>
+                          </div>
+                          <div className="rounded-[5px] bg-background/35 px-2 py-1.5">
+                            <span className="text-muted-foreground">Proof: </span>
+                            <span className="text-foreground">{score.proofSummary}</span>
+                          </div>
+                          <div className="rounded-[5px] bg-background/35 px-2 py-1.5">
+                            <span className="text-muted-foreground">Next: </span>
+                            <span className="text-foreground">{score.nextAction}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
                 <div className="mt-3 rounded-md bg-secondary/35 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
