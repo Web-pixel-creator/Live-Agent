@@ -98,6 +98,9 @@ week-one review` with `Continue / stop decision`, `Copy week-one review`, and
 only; it does not decide autonomously, write CRM, change billing, send customer
 messages, or mutate Markdown docs. It also carries `First request outcome` and
 `firstRequestOutcomeByProspectKey` into the reviewed week-one decision packet.
+The drawer now adds `Owner-ready summary`, `Decision readiness`,
+`Latest manual signal`, and `day_one_recap_to_week_one_review` so the owner
+review is a compact week-one packet instead of a raw checklist.
 3.9. The same route now includes `Open evidence pack`, which opens `Pilot
 evidence pack` with `Week-two evidence pack`, `Copy evidence pack`, and
 `local_services_pilot_evidence_pack`. It is a redacted manual proof pack only;

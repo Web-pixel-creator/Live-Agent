@@ -195,7 +195,10 @@ review` exposes `Continue / stop decision`, `Copy week-one review`, and
 decision, CRM write, billing change, customer message, or Markdown mutation.
 It now also carries `First request outcome` and
 `firstRequestOutcomeByProspectKey`, so the week-one decision has the first
-observed request result in the same reviewed packet.
+observed request result in the same reviewed packet. The drawer also includes
+`Owner-ready summary`, `Decision readiness`, `Latest manual signal`, and
+`day_one_recap_to_week_one_review`, giving the owner one compact continue,
+pause, or stop packet instead of a raw checklist.
 Use `Open evidence pack` at the end of a serious pilot to assemble the redacted
 owner proof pack. `Pilot evidence pack` exposes `Week-two evidence pack`,
 `Copy evidence pack`, `local_services_pilot_evidence_pack`, paid-pilot

@@ -207,7 +207,10 @@ Local-services expansion spec:
   `Copy week-one review`, and `local_services_pilot_week_one_review` so week-one
   continuation decisions stay owner-reviewed and manual-only. It now carries
   `First request outcome` / `firstRequestOutcomeByProspectKey` into the
-  decision pack before any continue, pause, or stop decision.
+  decision pack before any continue, pause, or stop decision. The drawer now
+  includes `Owner-ready summary`, `Decision readiness`,
+  `Latest manual signal`, and the `day_one_recap_to_week_one_review` handoff so
+  the owner sees one concise week-one decision packet.
 - it now closes the 14-day loop with `Open evidence pack`, `Pilot evidence
   pack`, `Week-two evidence pack`, `Copy evidence pack`, and
   `local_services_pilot_evidence_pack`; this is a redacted manual proof pack,

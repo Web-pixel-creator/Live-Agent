@@ -193,8 +193,11 @@ service lane and company. Use it after real week-one activity exists to review
 `Continue / stop decision` and `Copy week-one review`. The payload is
 `local_services_pilot_week_one_review`; it now carries `First request outcome`
 and `firstRequestOutcomeByProspectKey` into the owner-reviewed continue, pause,
-or stop packet. It does not decide autonomously, update CRM, change billing,
-send customer messages, or mutate this Markdown file automatically.
+or stop packet. It also shows `Owner-ready summary`, `Decision readiness`,
+`Latest manual signal`, and `day_one_recap_to_week_one_review` so the owner can
+read the week-one packet without opening raw activity logs. It does not decide
+autonomously, update CRM, change billing, send customer messages, or mutate this
+Markdown file automatically.
 
 `Open evidence pack` opens the `Pilot evidence pack` drawer for day-14 owner
 review. Use it to collect `Week-two evidence pack`, `Copy evidence pack`,

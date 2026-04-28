@@ -175,7 +175,10 @@ structured `local_services_pilot_week_one_review` payload. This keeps the first
 continue/pause/stop decision owner-reviewed and manual-only, with no CRM write,
 billing change, customer send, or Markdown mutation. It now also carries
 `First request outcome` and `firstRequestOutcomeByProspectKey`, so the first
-observed request result is part of the reviewed week-one decision.
+observed request result is part of the reviewed week-one decision. It now adds
+`Owner-ready summary`, `Decision readiness`, `Latest manual signal`, and
+`day_one_recap_to_week_one_review` so the week-one review is readable by the
+business owner without opening raw logs first.
 The final manual proof layer is now `Open evidence pack`: it opens
 `Pilot evidence pack` with `Week-two evidence pack`, `Copy evidence pack`, and
 the structured `local_services_pilot_evidence_pack` payload. This gives the

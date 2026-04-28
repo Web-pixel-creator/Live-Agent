@@ -3541,11 +3541,30 @@ function buildLocalServicePilotWeekOneReviewExport(
   pilotStatus: LocalServicePilotStatus,
   metricStatus: LocalServicePilotMetricStatus,
   firstRequestOutcome: LocalServiceFirstRequestOutcome,
+  activityLog: LocalServicePilotActivityEvent[] = [],
 ): LocalServicePilotWorkspaceExport {
   const pilotStatusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[pilotStatus];
   const metricStatusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus];
   const firstRequestOutcomeLabel = LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_LABELS[firstRequestOutcome];
   const prospectLabel = prospect ? `${prospect.company} - ${prospect.segment}` : "No prospect selected";
+  const latestRelevantActivity =
+    activityLog.find(
+      (event) =>
+        event.serviceId === template.id &&
+        (prospect ? event.prospectId === prospect.id || event.company === prospect.company : true),
+    ) ?? activityLog.find((event) => event.serviceId === template.id);
+  const latestRelevantActivityLabel = latestRelevantActivity
+    ? `${latestRelevantActivity.label}: ${latestRelevantActivity.value}`
+    : "No manual activity recorded yet";
+  const latestRelevantActivityTime = latestRelevantActivity?.createdAt ?? "not recorded";
+  const decisionReadinessLabel =
+    firstRequestOutcome === "not_recorded"
+      ? "Blocked: first request outcome missing"
+      : metricStatus === "review_ready"
+        ? "Owner decision ready"
+        : "Needs week-one metric review";
+  const dayOneRecapHandoffStatus =
+    firstRequestOutcome === "not_recorded" ? "waiting_for_day_one_recap" : "day_one_recap_ready";
   const continueCriteria = [
     "operator used the job-card output without rewriting it from scratch",
     "at least one missed or delayed request was recovered",
@@ -3577,6 +3596,24 @@ function buildLocalServicePilotWeekOneReviewExport(
       value: "one measurable workflow to improve next",
     },
   ];
+  const ownerReadySummary = [
+    {
+      label: "Decision readiness",
+      value: decisionReadinessLabel,
+    },
+    {
+      label: "Day-one recap handoff",
+      value: "day_one_recap_to_week_one_review",
+    },
+    {
+      label: "Latest manual signal",
+      value: latestRelevantActivityLabel,
+    },
+    {
+      label: "Owner question",
+      value: "continue, pause, or stop this pilot for week two",
+    },
+  ];
   const humanLines = [
     `Pilot week-one review: ${template.title}`,
     `Service: ${template.ref}`,
@@ -3586,6 +3623,12 @@ function buildLocalServicePilotWeekOneReviewExport(
     `First request outcome: ${firstRequestOutcomeLabel}`,
     `Outcome state key: firstRequestOutcomeByProspectKey`,
     "Export scope: manual week-one decision pack",
+    `Decision readiness: ${decisionReadinessLabel}`,
+    `Day-one recap handoff: ${dayOneRecapHandoffStatus}`,
+    "",
+    "Owner-ready summary:",
+    ...ownerReadySummary.map((field) => `- ${field.label}: ${field.value}`),
+    `- Latest manual signal time: ${latestRelevantActivityTime}`,
     "",
     "Continue if at least two are true:",
     ...continueCriteria.map((criterion) => `- ${criterion}`),
@@ -3615,12 +3658,27 @@ function buildLocalServicePilotWeekOneReviewExport(
       first_request_outcome: firstRequestOutcome,
       first_request_outcome_label: firstRequestOutcomeLabel,
       outcome_state_key: "firstRequestOutcomeByProspectKey",
+      decision_readiness: decisionReadinessLabel,
+      day_one_recap_handoff: {
+        source_surface: "local_services_day_one_recap",
+        target_surface: "local_services_pilot_week_one_review",
+        contract: "day_one_recap_to_week_one_review",
+        status: dayOneRecapHandoffStatus,
+      },
+      owner_ready_summary: ownerReadySummary,
+      latest_manual_signal: {
+        label: latestRelevantActivity?.label ?? null,
+        value: latestRelevantActivity?.value ?? null,
+        created_at: latestRelevantActivity?.createdAt ?? null,
+      },
       continue_criteria: continueCriteria,
       stop_criteria: stopCriteria,
       decision_fields: decisionFields,
       guardrails: [
         "manual_week_one_review",
         "manual_first_request_outcome_review",
+        "day_one_recap_to_week_one_review",
+        "owner_review_required",
         "no_autonomous_pilot_decision",
         "no_crm_write",
         "no_billing_change",
@@ -3652,11 +3710,16 @@ function buildLocalServicePilotWeekOneReviewExport(
       { label: "Pilot status", value: pilotStatusLabel },
       { label: "Metric status", value: metricStatusLabel },
       { label: "First request outcome", value: firstRequestOutcomeLabel },
+      { label: "Decision readiness", value: decisionReadinessLabel },
+      { label: "Owner-ready summary", value: ownerReadySummary.map((field) => field.label).join(", ") },
+      { label: "Day-one recap handoff", value: "day_one_recap_to_week_one_review" },
       { label: "Guardrail", value: "Manual review only, no autonomous pilot decision" },
     ],
     checklist: [
       "Confirm at least one real pilot day was logged before using this review.",
       "Confirm the first request outcome is recorded before choosing continue, pause, or stop.",
+      "Review Owner-ready summary before sharing the week-one decision with the owner.",
+      "Confirm day_one_recap_to_week_one_review came from a reviewed day-one recap.",
       "Count continue criteria and stop criteria separately.",
       "Write the owner or dispatcher note in a private scorecard or spreadsheet.",
       "Choose one week-two focus if the pilot continues.",
@@ -5574,8 +5637,16 @@ const LocalServicesDispatchDemoPanel = ({
         currentPilotStatus,
         currentMetricStatus,
         currentFirstRequestOutcome,
+        pilotWorkspaceState.activityLog,
       ),
-    [currentFirstRequestOutcome, currentMetricStatus, currentPilotStatus, selectedOutreachProspect, selectedTemplate],
+    [
+      currentFirstRequestOutcome,
+      currentMetricStatus,
+      currentPilotStatus,
+      pilotWorkspaceState.activityLog,
+      selectedOutreachProspect,
+      selectedTemplate,
+    ],
   );
   const pilotWeekOneReviewExport = useMemo(
     () =>

@@ -127,7 +127,9 @@ Do not use the pilot to build:
     `Copy week-one review`, confirm `First request outcome` /
     `firstRequestOutcomeByProspectKey`, then copy
     `local_services_pilot_week_one_review` into the private scorecard or
-    spreadsheet manually.
+    spreadsheet manually. Confirm `Owner-ready summary`, `Decision readiness`,
+    `Latest manual signal`, and `day_one_recap_to_week_one_review` before the
+    owner makes a continue, pause, or stop decision.
 18. Check `Outcome chain summary` before owner review; it should connect
     `Scorecard draft`, `Daily log`, `Week-one review`, and `Evidence pack` to
     the same browser-local first request outcome.
