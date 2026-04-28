@@ -127,7 +127,11 @@ blockers. `Readiness action plan`, `Continue setup/test path`,
 the next blocker actionable from the same shell. `Open proof drawer`,
 `Readiness proof drawer`, `Copy readiness proof`, and
 `local_services_readiness_proof_drawer` show the proof snippets behind that
-gate without opening multiple drawers. These controls update only
+gate without opening multiple drawers. `Open proposal preview`,
+`Paid pilot proposal preview`, `Copy proposal preview`, and
+`local_services_paid_pilot_proposal_preview` show the proposed paid-pilot offer
+as a private operator approval artifact, not a live send or billing action.
+These controls update only
 `liveDesk:localServicesPilotWorkspace:v1` in browser-local state and the manual
 activity log; they do not send outreach, create bookings, write CRM, sync
 analytics, bill, or mutate Markdown docs. The platform frame remains

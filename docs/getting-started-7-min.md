@@ -168,7 +168,11 @@ plan` gives the next blocker surface; use `Continue setup/test path` to jump
 straight into the setup/test wizard and `Copy readiness action plan` for a
 private operator note. Use `Open proof drawer` to inspect the `Readiness proof
 drawer`; `Copy readiness proof` exports `local_services_readiness_proof_drawer`
-as a private evidence note. This does not narrow the product to a solo tool; it keeps
+as a private evidence note. Use `Open proposal preview` to inspect `Paid pilot
+proposal preview`; `Copy proposal preview` exports
+`local_services_paid_pilot_proposal_preview` as a private operator-approved
+draft, not as a customer send or billing action. This does not narrow the
+product to a solo tool; it keeps
 the NEWO-style AI employee platform path grounded in real category proof.
 Use `Open offer doc`, `Open demo script`, and `Open recording checklist` to
 open the repo-owned pilot artifacts without leaving the local frontend server.

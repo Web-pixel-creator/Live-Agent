@@ -235,7 +235,11 @@ Local-services expansion spec:
   setup/test surface instead of leaving the operator with a static blocker.
   `Open proof drawer`, `Readiness proof drawer`, `Copy readiness proof`, and
   `local_services_readiness_proof_drawer` summarize the proof snippets behind
-  the gate in one browser-local evidence view.
+  the gate in one browser-local evidence view. `Open proposal preview`,
+  `Paid pilot proposal preview`, `Copy proposal preview`, and
+  `local_services_paid_pilot_proposal_preview` then show the first paid-pilot
+  offer as a private operator-approved draft; it still cannot send, book, write
+  CRM, sync analytics, bill, or activate channels.
   The frame stays NEWO-style AI
   employee platform expansion by category; the manual batch is a validation
   gate, not a solo-only product scope.

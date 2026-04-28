@@ -224,6 +224,10 @@ hard stop on live channels, CRM sync, analytics, billing, and customer sends.
 Use `Open proof drawer` to review `Readiness proof drawer` before changing the
 pilot posture; `Copy readiness proof` is still a private proof note, not a
 customer send, CRM write, analytics sync, booking, or billing action.
+Use `Open proposal preview` only after proof review to inspect `Paid pilot
+proposal preview`; `Copy proposal preview` is a private operator-approved draft,
+not permission to send a proposal, create a booking, write CRM, sync analytics,
+charge, or activate a channel.
 The concept remains a NEWO-style AI employee platform for service categories;
 the manual batch only decides whether to continue, revise, or stop expansion.
 Use `docs/local-services-pilot-runbook.md` for the actual 14-day operating

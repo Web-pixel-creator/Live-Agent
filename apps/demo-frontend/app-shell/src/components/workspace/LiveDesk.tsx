@@ -2341,6 +2341,172 @@ function buildLocalServiceReadinessProofDrawer(
   };
 }
 
+function buildLocalServicePaidPilotProposalPreview(
+  template: LocalServiceDemoTemplate,
+  rows: LocalServiceFounderContactRow[],
+  counts: {
+    channelChecked: number;
+    manualMessageSent: number;
+    repliesOrRejections: number;
+    discoveryCalls: number;
+    demosBooked: number;
+    pilotCandidates: number;
+  },
+  proofProgress: string,
+  score: LocalServiceCategoryPilotScore | undefined,
+  actionLayer: LocalServiceLeadingCategoryActionLayer,
+  readiness: LocalServiceLeadingCategoryPilotReadiness,
+  actionPlan: LocalServicePilotReadinessActionPlan,
+  metricStatus: LocalServicePilotMetricStatus,
+): LocalServicePilotWorkspaceExport {
+  const laneRows = rows.filter((row) => row.serviceId === actionLayer.serviceId);
+  const targetRow =
+    laneRows.find((row) => row.pilotCandidate) ??
+    laneRows.find((row) => row.demoBooked) ??
+    laneRows.find((row) => row.discoveryCallCompleted) ??
+    laneRows.find((row) => row.status === "reply_received") ??
+    laneRows[0];
+  const proposalStatus = readiness.readyToPilot
+    ? "Proposal draft ready for operator approval"
+    : "Proposal preview blocked by readiness gate";
+  const targetCompany = targetRow
+    ? `${targetRow.prospect.company} (${targetRow.prospect.segment})`
+    : "No paid-pilot prospect selected yet";
+  const pricingPolicy = "Founder fills the paid pilot price manually; the product does not calculate or charge it.";
+  const proposalScope = [
+    `Service lane: ${template.title}`,
+    `Offer: ${template.detail.pilotKit.offerSummary}`,
+    "AI answers or drafts intake from phone, Telegram, or WhatsApp-style messages only after approved setup.",
+    "AI collects needs, urgency, address/service area, preferred time, and handoff notes.",
+    "AI prepares booking or callback handoff for owner approval; it does not create appointments by itself.",
+    "Operator gets evidence, transcript, CRM payload preview, and no-go blockers before any customer-facing step.",
+  ];
+  const customerFacingDraft = [
+    `We can run a small paid pilot for ${template.title} focused on one measurable intake workflow.`,
+    "The pilot stays owner-approved: no final price, appointment slot, dispatcher assignment, or customer message goes live without confirmation.",
+    "Before launch we will confirm the business profile, approved answers, test call/message, and success metric baseline.",
+    "If the first week does not show qualified demand or cleaner handoff, the pilot is revised or stopped before adding more automation.",
+  ];
+  const blockerLines =
+    readiness.blockers.length > 0 ? readiness.blockers.map((item) => `- ${item}`) : ["- none"];
+  const humanLines = [
+    `Paid pilot proposal preview: ${actionLayer.serviceTitle}`,
+    "Export surface: local_services_paid_pilot_proposal_preview",
+    "Export kind: operator_approved_proposal_preview",
+    `Proposal status: ${proposalStatus}`,
+    `Paid pilot gate: ${readiness.paidPilotGate}`,
+    `Target prospect: ${targetCompany}`,
+    `Pricing policy: ${pricingPolicy}`,
+    "",
+    "Proposal scope:",
+    ...proposalScope.map((item) => `- ${item}`),
+    "",
+    "Customer-facing draft preview:",
+    ...customerFacingDraft.map((item) => `- ${item}`),
+    "",
+    "Readiness blockers:",
+    ...blockerLines,
+    "",
+    "Proof summary:",
+    `- Category signal: ${score ? `${score.signalLabel}; ${score.proofSummary}` : "No category score yet"}`,
+    `- First-batch proof: ${proofProgress}`,
+    `- Manual sends: ${counts.manualMessageSent}/10`,
+    `- Replies or rejections: ${counts.repliesOrRejections}/3`,
+    `- Discovery calls: ${counts.discoveryCalls}/1`,
+    `- Pilot candidates: ${counts.pilotCandidates}/1`,
+    `- Metric baseline: ${LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus]}`,
+    "",
+    "No-go rules:",
+    ...actionPlan.noGo.map((item) => `- ${item}`),
+    "- No proposal send, booking, CRM write, analytics sync, billing, or channel activation from this preview.",
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_paid_pilot_proposal_preview",
+      export_kind: "operator_approved_proposal_preview",
+      service_id: actionLayer.serviceId,
+      service_title: actionLayer.serviceTitle,
+      proposal_status: readiness.readyToPilot ? "ready_for_operator_approval" : "blocked_by_readiness_gate",
+      paid_pilot_gate: readiness.paidPilotGate,
+      readiness: {
+        label: readiness.readinessLabel,
+        progress: readiness.progressLabel,
+        ready_to_pilot: readiness.readyToPilot,
+        blockers: readiness.blockers,
+        ready_signals: readiness.readySignals,
+      },
+      target_prospect: targetRow
+        ? {
+            key: targetRow.key,
+            company: targetRow.prospect.company,
+            segment: targetRow.prospect.segment,
+            status: targetRow.status,
+            proof_status: targetRow.proofStatus,
+            next_step: targetRow.prospect.nextStep,
+          }
+        : null,
+      commercial_terms: {
+        pricing_policy: pricingPolicy,
+        billing_action: "none",
+        customer_send: "operator_approval_required",
+      },
+      proposal_scope: proposalScope,
+      customer_facing_draft_preview: customerFacingDraft,
+      proof_summary: {
+        category_signal: score?.signalLabel ?? "Unproven",
+        category_proof_summary: score?.proofSummary ?? "No category score yet",
+        proof_progress: proofProgress,
+        proof_counts: counts,
+        metric_status: metricStatus,
+        metric_status_label: LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus],
+      },
+      guardrails: [
+        "no_customer_send",
+        "no_booking_created",
+        "no_crm_write",
+        "no_analytics_sync",
+        "no_billing_action",
+        "operator_approval_required",
+      ],
+    },
+    null,
+    2,
+  );
+
+  return {
+    title: "Paid pilot proposal preview",
+    description:
+      "Preview the first paid pilot offer only after proof is reviewed. This drawer never sends, books, writes CRM, syncs analytics, or bills.",
+    eyebrow: "Proposal gate",
+    modeLabel: "Proposal preview mode",
+    copyLabel: "Copy proposal preview",
+    reviewTitle: "Proposal approval checklist",
+    reviewDescription:
+      "This is a private operator preview. Treat blocked readiness as a hard stop and treat ready readiness as proposal prep only.",
+    executionActionLabel: "Open founder execution log",
+    scorecardActionLabel: "Open pilot scorecard",
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: [
+      { label: "Proposal status", value: proposalStatus },
+      { label: "Service", value: actionLayer.serviceTitle },
+      { label: "Readiness", value: `${readiness.readinessLabel} / ${readiness.progressLabel}` },
+      { label: "Target prospect", value: targetCompany },
+      { label: "Offer", value: template.detail.pilotKit.offerSummary },
+      { label: "Pricing policy", value: pricingPolicy },
+      { label: "Metric baseline", value: LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus] },
+      { label: "Customer send", value: "Operator approval required; no send from preview" },
+    ],
+    checklist: [
+      "Open the readiness proof drawer first and confirm the proof snippets are current.",
+      "Do not send the proposal while any readiness blocker remains.",
+      "Fill pricing and commercial terms manually with the founder or owner.",
+      "Keep final customer message, booking, CRM write, analytics sync, and billing behind explicit operator approval.",
+      "Use this preview as a private proposal draft, not as proof that a paid pilot has launched.",
+    ],
+  };
+}
+
 function buildLocalServicePilotMetricsTrackerExport(
   template: LocalServiceDemoTemplate,
   status: LocalServicePilotMetricStatus,
@@ -4137,6 +4303,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [founderBatchReviewMode, setFounderBatchReviewMode] = useState<PlaybookExportMode>("human");
   const [readinessProofOpen, setReadinessProofOpen] = useState(false);
   const [readinessProofMode, setReadinessProofMode] = useState<PlaybookExportMode>("human");
+  const [paidPilotProposalPreviewOpen, setPaidPilotProposalPreviewOpen] = useState(false);
+  const [paidPilotProposalPreviewMode, setPaidPilotProposalPreviewMode] = useState<PlaybookExportMode>("human");
   const [pilotMessagePreviewOpen, setPilotMessagePreviewOpen] = useState(false);
   const [pilotMessagePreviewMode, setPilotMessagePreviewMode] = useState<PlaybookExportMode>("human");
   const [pilotOperatorConfirmationOpen, setPilotOperatorConfirmationOpen] = useState(false);
@@ -4286,6 +4454,9 @@ const LocalServicesDispatchDemoPanel = ({
     () => buildLocalServiceLeadingCategoryActionLayer(leadingCategoryPilotScore, founderContactRows),
     [founderContactRows, leadingCategoryPilotScore],
   );
+  const leadingCategoryTemplate =
+    LOCAL_SERVICE_DEMO_TEMPLATES.find((template) => template.id === leadingCategoryActionLayer.serviceId) ??
+    selectedTemplate;
   const leadingCategorySetupCompletion =
     pilotWorkspaceState.setupStepCompletionByService[leadingCategoryActionLayer.serviceId] ?? {};
   const leadingCategorySetupReady =
@@ -4445,6 +4616,17 @@ const LocalServicesDispatchDemoPanel = ({
     leadingCategoryTestCallPassed,
     leadingCategoryMetricStatus,
     pilotWorkspaceState.activityLog,
+  );
+  const paidPilotProposalPreviewExport = buildLocalServicePaidPilotProposalPreview(
+    leadingCategoryTemplate,
+    founderContactRows,
+    founderContactCounts,
+    founderProofProgress,
+    leadingCategoryPilotScore,
+    leadingCategoryActionLayer,
+    leadingCategoryPilotReadiness,
+    leadingCategoryReadinessActionPlan,
+    leadingCategoryMetricStatus,
   );
   const filteredPilotFunnelRows = useMemo(
     () =>
@@ -6021,6 +6203,18 @@ const LocalServicesDispatchDemoPanel = ({
                             <Button
                               size="sm"
                               variant="secondary"
+                              onClick={() => {
+                                setPaidPilotProposalPreviewMode("human");
+                                setPaidPilotProposalPreviewOpen(true);
+                              }}
+                              className="h-7"
+                            >
+                              <BriefcaseBusiness className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                              Open proposal preview
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
                               onClick={() => onOpenSetupWizard(leadingCategoryActionLayer.serviceId)}
                               className="h-7"
                             >
@@ -7309,6 +7503,16 @@ const LocalServicesDispatchDemoPanel = ({
         exportView={readinessProofExport}
         mode={readinessProofMode}
         onModeChange={setReadinessProofMode}
+        onCopy={onCopyText}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+        onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH)}
+      />
+      <LocalServicePilotWorkspaceExportDrawer
+        open={paidPilotProposalPreviewOpen}
+        onOpenChange={setPaidPilotProposalPreviewOpen}
+        exportView={paidPilotProposalPreviewExport}
+        mode={paidPilotProposalPreviewMode}
+        onModeChange={setPaidPilotProposalPreviewMode}
         onCopy={onCopyText}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH)}

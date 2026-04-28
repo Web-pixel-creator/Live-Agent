@@ -217,7 +217,11 @@ operator shortcut layer: they turn the gate into one blocker-specific action
 without adding channel activation. `Open proof drawer`, `Readiness proof
 drawer`, `Copy readiness proof`, and `local_services_readiness_proof_drawer`
 are the evidence layer for that shortcut: one compact view of manual sends,
-replies, discovery, setup/test state, and metric baseline. This is the current
+replies, discovery, setup/test state, and metric baseline. `Open proposal
+preview`, `Paid pilot proposal preview`, `Copy proposal preview`, and
+`local_services_paid_pilot_proposal_preview` are the next gated layer: a private
+operator proposal draft that stays blocked until readiness proof is complete.
+This is the current
 simplification target: prove demand through 10 manual contacts before adding
 more integrations. The target product remains a NEWO-style AI employee platform
 for selected service categories; the manual batch is the category validation
