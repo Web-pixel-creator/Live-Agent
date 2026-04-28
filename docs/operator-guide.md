@@ -197,9 +197,12 @@ local-services walkthrough. The shell shows `90-second recording mode` and
 `Recording path`, then hides outreach tables and scorecard controls so the
 video stays focused on product promise, job card, intake, evidence, pilot
 readiness, and evidence pack.
-Use `Open outreach list`, `Open outreach execution pack`, and
-`Open pilot scorecard` when the conversation moves from positioning into real
-pilot execution.
+Use `Open outreach list`, `Open outreach execution pack`,
+`Open pilot scorecard`, and `Open founder execution log` when the conversation
+moves from positioning into real pilot execution. The founder execution log is
+served at `/workspace-docs/local-services-founder-execution-log.md`; it is a
+redacted first-10-contact worksheet, not CRM, outreach send, booking, billing,
+analytics, or public customer-data storage.
 Use `docs/local-services-pilot-runbook.md` for the actual 14-day operating
 sequence: day-minus-one prep, manual outreach, discovery call, pilot setup,
 daily metric capture, week-one review, week-two review, and evidence pack. It

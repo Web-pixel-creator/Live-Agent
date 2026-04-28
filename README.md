@@ -212,6 +212,10 @@ Local-services expansion spec:
 - the same support layer now also links to
   `/workspace-docs/local-services-outreach-list.md` and
   `/workspace-docs/local-services-pilot-scorecard.md` for pilot execution.
+- the same support layer now includes `Open founder execution log` and
+  `/workspace-docs/local-services-founder-execution-log.md`, a redacted
+  first-10-contact worksheet for real pilot evidence capture; it is not CRM,
+  outreach send, booking, billing, or public customer-data storage.
 - real pilot execution is now guided by `docs/local-services-pilot-runbook.md`;
   it defines day-minus-one prep, manual outreach, discovery calls, pilot setup,
   daily metrics, week-one review, week-two review, and the evidence pack.

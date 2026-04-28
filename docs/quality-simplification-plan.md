@@ -196,6 +196,11 @@ Manual Execution Table, and Do-Not-Send Rules.
 The shell now exposes that document through `Open outreach execution pack`
 beside the outreach list and scorecard, so the pilot UI can open the first
 manual messages without creating an autonomous send path.
+The same support layer now exposes `Open founder execution log` and
+`/workspace-docs/local-services-founder-execution-log.md`, a redacted
+first-10-contact worksheet for real pilot evidence capture. It stays outside
+autonomous send, CRM, calendar, billing, analytics, and public customer-data
+storage.
 
 ## Success Criteria
 

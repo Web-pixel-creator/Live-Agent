@@ -7,6 +7,8 @@ stop the pilot.
 Use `docs/local-services-outreach-execution-pack.md` for the first four manual
 messages, Discovery Call Template, Manual Execution Table, and Do-Not-Send
 Rules before updating real outreach status.
+Use `docs/local-services-founder-execution-log.md` as the redacted first-10
+contact worksheet before copying safe summaries into this scorecard.
 
 The point is not to collect vanity notes. The point is to decide quickly:
 
@@ -103,6 +105,8 @@ Use it to:
 16. open `Ask AI about pilot` if the operator needs `Suggested questions`,
    `Best candidate`, `Bottleneck`, or `Next message`
 17. keep real outreach manual-only until a human sends the message outside the shell
+18. open `Open founder execution log` when the operator needs the redacted
+    first-10-contact worksheet before updating private pilot evidence
 
 This shell action is intentionally local to the demo session. It does not send a
 message, activate phone or Telegram, update CRM, call an external LLM, or change

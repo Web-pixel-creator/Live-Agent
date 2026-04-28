@@ -128,6 +128,10 @@ Send messages manually. The shell must not send messages.
 Use `docs/local-services-outreach-execution-pack.md` as the first-contact
 source for service-specific messages, Discovery Call Template, Manual Execution
 Table, and Do-Not-Send Rules.
+Use `docs/local-services-founder-execution-log.md` or `Open founder execution
+log` as the redacted first-10-contact worksheet. Keep real names, phone
+numbers, screenshots, and raw chat data in a private tracker unless the company
+explicitly approves sharing.
 
 Use this base message:
 

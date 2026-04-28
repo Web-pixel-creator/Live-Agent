@@ -657,6 +657,7 @@ const LOCAL_SERVICES_OUTREACH_LIST_PATH = "/workspace-docs/local-services-outrea
 const LOCAL_SERVICES_PILOT_SCORECARD_PATH = "/workspace-docs/local-services-pilot-scorecard.md";
 const LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH = "/workspace-docs/local-services-outreach-execution-pack.md";
 const LOCAL_SERVICES_PILOT_RUNBOOK_PATH = "/workspace-docs/local-services-pilot-runbook.md";
+const LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH = "/workspace-docs/local-services-founder-execution-log.md";
 const LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY = "liveDesk:localServicesPilotWorkspace:v1";
 const LOCAL_SERVICE_PILOT_STATUS_LABELS: Record<LocalServicePilotStatus, string> = {
   not_contacted: "Not contacted",
@@ -4520,6 +4521,14 @@ const LocalServicesDispatchDemoPanel = ({
               >
                 Open pilot scorecard
               </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => onOpenPath(LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH)}
+                className="h-7"
+              >
+                Open founder execution log
+              </Button>
             </div>
           </div>
 
@@ -4591,6 +4600,14 @@ const LocalServicesDispatchDemoPanel = ({
                   className="h-7"
                 >
                   Open pilot scorecard
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onOpenPath(LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH)}
+                  className="h-7"
+                >
+                  Open founder execution log
                 </Button>
                 <Button
                   size="sm"
@@ -4847,6 +4864,14 @@ const LocalServicesDispatchDemoPanel = ({
                       className="h-7"
                     >
                       Open pilot scorecard
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onOpenPath(LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH)}
+                      className="h-7"
+                    >
+                      Open founder execution log
                     </Button>
                   </div>
                 </div>
@@ -5182,6 +5207,14 @@ const LocalServicesDispatchDemoPanel = ({
                           className="h-7"
                         >
                           Open pilot scorecard
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => onOpenPath(LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH)}
+                          className="h-7"
+                        >
+                          Open founder execution log
                         </Button>
                       </div>
                     </div>

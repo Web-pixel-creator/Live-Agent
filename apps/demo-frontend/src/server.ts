@@ -147,6 +147,7 @@ const workspaceDocAllowlist = [
   "local-services-pilot-scorecard.md",
   "local-services-pilot-runbook.md",
   "local-services-outreach-execution-pack.md",
+  "local-services-founder-execution-log.md",
 ] as const;
 
 function resolveDebugArtifactPath(requestPath: string): string | null {

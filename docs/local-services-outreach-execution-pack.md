@@ -30,6 +30,7 @@ real replies, calls, pilot fit, and willingness to test.
 4. Scorecard: `docs/local-services-pilot-scorecard.md`
 5. Offer: `docs/local-services-pilot-offer.md`
 6. Demo script: `docs/local-services-demo-script.md`
+7. Founder execution log: `docs/local-services-founder-execution-log.md`
 
 ## First Manual Batch
 

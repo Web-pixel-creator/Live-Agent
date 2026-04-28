@@ -147,6 +147,11 @@ Use `Open evidence pack` after the pilot has real proof. It opens
 `local_services_pilot_evidence_pack`. It is a redacted manual proof pack only:
 no private customer data in public docs, no autonomous pilot decision, no CRM
 write, no billing change, and no customer send.
+Use `Open founder execution log` when you are ready to track the first 10 real
+manual contacts. It opens `/workspace-docs/local-services-founder-execution-log.md`,
+a redacted worksheet for replies, demo bookings, discovery-call pain, and proof
+status. It is not CRM, outreach send, booking, billing, analytics, or public
+customer-data storage.
 Use `Open offer doc`, `Open demo script`, and `Open recording checklist` to
 open the repo-owned pilot artifacts without leaving the local frontend server.
 The recording checklist is the safe 90-second walkthrough plan; it avoids claims

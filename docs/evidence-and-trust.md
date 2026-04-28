@@ -98,6 +98,9 @@ exists.
    reviewed notes, not automated analytics or billing actions.
 4. `Open discovery prep` and `Open day-one setup` prepare operator work; they
    do not create calendar events or customer messages.
+5. `Open founder execution log` opens a redacted first-10-contact worksheet; it
+   is not CRM, outreach send, booking, billing, analytics, or public
+   customer-data storage.
 
 Every local-services proof surface should preserve the same sentence:
 
