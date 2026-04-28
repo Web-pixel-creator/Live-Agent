@@ -241,7 +241,9 @@ Use `Open run sheet` after that gate to inspect `Day-one operator run sheet`.
 `Copy run sheet` exports `local_services_day_one_operator_run_sheet` /
 `manual_day_one_operator_run_sheet`: sample inbound, owner script, expected
 fields, approval pauses, metric capture, and manual result logging for the
-first operator-supervised request.
+first operator-supervised request. `day_one_run_sheet_outcome_capture` points
+the sheet's `Open daily log` action at `Pilot daily log`, where the operator
+records the actual result before scorecard sync.
 The concept remains a NEWO-style AI employee platform for service categories;
 the manual batch only decides whether to continue, revise, or stop expansion.
 Use `docs/local-services-pilot-runbook.md` for the actual 14-day operating

@@ -233,7 +233,9 @@ approval, setup, dry-run, owner conversation, and metric baseline are ready.
 `local_services_day_one_operator_run_sheet` then turn the gate into a
 first-day operator worksheet with `manual_day_one_operator_run_sheet`, sample
 inbound, owner script, expected fields, approval pauses, metric capture, and
-manual result logging.
+manual result logging. `day_one_run_sheet_outcome_capture` links that worksheet
+to `Open daily log` so the actual first request result is captured before any
+weekly scorecard sync.
 This is the current
 simplification target: prove demand through 10 manual contacts before adding
 more integrations. The target product remains a NEWO-style AI employee platform

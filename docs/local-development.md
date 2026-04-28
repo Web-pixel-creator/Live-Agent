@@ -141,7 +141,9 @@ manual day-one setup without activating channels or external systems.
 `local_services_day_one_operator_run_sheet`, and
 `manual_day_one_operator_run_sheet` add the first-day operator worksheet:
 sample inbound, owner script, expected fields, approval pauses, metric capture,
-and manual result logging only.
+and manual result logging only. `day_one_run_sheet_outcome_capture` links that
+worksheet to `Open daily log`, so the actual first request outcome is recorded
+before any weekly scorecard sync.
 These controls update only
 `liveDesk:localServicesPilotWorkspace:v1` in browser-local state and the manual
 activity log; they do not send outreach, create bookings, write CRM, sync

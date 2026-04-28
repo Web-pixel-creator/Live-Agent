@@ -252,8 +252,10 @@ Local-services expansion spec:
   `local_services_day_one_operator_run_sheet` then give the operator a
   first-day worksheet for sample inbound, owner script, expected fields,
   approval pauses, metric capture, and manual result logging. Its JSON contract
-  is `manual_day_one_operator_run_sheet`, and it still cannot activate phone,
-  Telegram, WhatsApp, bookings, CRM, analytics, billing, or customer sends.
+  is `manual_day_one_operator_run_sheet`; `day_one_run_sheet_outcome_capture`
+  links the sheet to `Open daily log` so the first manual request gets recorded
+  before weekly scorecard sync. It still cannot activate phone, Telegram,
+  WhatsApp, bookings, CRM, analytics, billing, or customer sends.
   The frame stays NEWO-style AI
   employee platform expansion by category; the manual batch is a validation
   gate, not a solo-only product scope.

@@ -764,7 +764,9 @@ sheet` adds `Day-one operator run sheet`, `Copy run sheet`,
 `local_services_day_one_operator_run_sheet`, and
 `manual_day_one_operator_run_sheet` as the first-day worksheet for sample
 inbound, owner script, expected fields, approval pauses, metric capture, and
-manual result logging. They do not
+manual result logging. `day_one_run_sheet_outcome_capture` binds that worksheet
+to `Open daily log` / `Pilot daily log` as the actual first-request outcome
+capture surface. They do not
 send outreach, create
 bookings, write CRM, sync analytics, bill, or mutate Markdown docs. This
 preserves the NEWO-style AI employee platform direction: local manual proof
@@ -982,29 +984,31 @@ Current shell readiness for P3:
    `local_services_day_one_operator_run_sheet`, and
    `manual_day_one_operator_run_sheet` are visible as the first-day operator
    worksheet contract.
-39. `contactProofByProspectKey` and `Founder proof recorded` are present in the
+39. `day_one_run_sheet_outcome_capture`, `Open daily log`, and
+   `Pilot daily log` are visible as the run-sheet outcome capture contract.
+40. `contactProofByProspectKey` and `Founder proof recorded` are present in the
    browser-local pilot workspace contract, without any external side effect.
-40. `local_services_first_contact_batch_review`, `founder_manual_validation_review`,
+41. `local_services_first_contact_batch_review`, `founder_manual_validation_review`,
    and `no_booking_created` are present in the first-batch review export
    contract.
-41. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
+42. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
    14-day pilot runbook from the same local frontend server.
-42. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
+43. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
    repo-owned first-contact execution pack from the same local frontend server.
-43. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
+44. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
    the repo-owned 90-second recording checklist from the same local frontend
    server.
-44. `?recording=90s`, `90-second recording mode`, `Recording path`, and
+45. `?recording=90s`, `90-second recording mode`, `Recording path`, and
    `90s recording` are visible as the demo-recording posture, and outreach
    tables plus scorecard controls are hidden during recording.
-45. `?setup=7min`, `7-minute setup wizard`, `Setup path`, and `7-min setup`
+46. `?setup=7min`, `7-minute setup wizard`, `Setup path`, and `7-min setup`
    are visible as the setup-first posture, and outreach tables plus scorecard
    controls are hidden while setup mode is active.
-46. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
+47. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
    `Saved setup state`, `Mark complete`, `Mark ready for pilot test`,
    `Ready for pilot test`, and `Reset setup progress` are visible as the
    stateful setup checklist contract.
-47. Actual external execution still remains outside the shell: recorded video,
+48. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path

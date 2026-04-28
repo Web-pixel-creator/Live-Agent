@@ -2947,8 +2947,14 @@ function buildLocalServiceDayOneOperatorRunSheet(
     "Record every owner edit before approval.",
     "Update the pilot scorecard manually after the run; do not sync CRM from this sheet.",
   ];
+  const outcomeCapture = {
+    surface: "Open daily log",
+    contract: "day_one_run_sheet_outcome_capture",
+    rule: "After the first manual request, open Pilot daily log and record the actual result before any weekly scorecard sync.",
+  };
   const guardrails = [
     "manual_day_one_operator_run_sheet",
+    "day_one_run_sheet_outcome_capture",
     "manual_day_one_run_only",
     "no_phone_channel_activation",
     "no_telegram_or_whatsapp_activation",
@@ -2993,6 +2999,11 @@ function buildLocalServiceDayOneOperatorRunSheet(
     "Metric capture:",
     ...metricCapture.map((metric) => `- ${metric}`),
     "",
+    "Outcome capture:",
+    `- Surface: ${outcomeCapture.surface}`,
+    `- Contract: ${outcomeCapture.contract}`,
+    `- Rule: ${outcomeCapture.rule}`,
+    "",
     "Manual result logging:",
     ...manualLogging.map((item) => `- ${item}`),
     "",
@@ -3021,6 +3032,7 @@ function buildLocalServiceDayOneOperatorRunSheet(
       expected_fields: expectedFields,
       approval_pauses: approvalPauses,
       metric_capture: metricCapture,
+      outcome_capture: outcomeCapture,
       manual_result_logging: manualLogging,
       proof_summary: {
         category_signal: score?.signalLabel ?? "Unproven",
@@ -3050,7 +3062,7 @@ function buildLocalServiceDayOneOperatorRunSheet(
     reviewTitle: "Manual first-day run checklist",
     reviewDescription:
       "Use this after the kickoff gate. It is a run worksheet only: no phone, Telegram, WhatsApp, booking, CRM, analytics, billing, or customer-send side effect.",
-    executionActionLabel: "Open founder execution log",
+    executionActionLabel: "Open daily log",
     scorecardActionLabel: "Open pilot scorecard",
     humanText: humanLines.join("\n"),
     jsonText,
@@ -3060,6 +3072,7 @@ function buildLocalServiceDayOneOperatorRunSheet(
       { label: "Target company", value: targetCompany },
       { label: "Current status", value: targetStatus },
       { label: "Sample inbound", value: sampleInbound[0] },
+      { label: "Outcome capture", value: `${outcomeCapture.surface} / ${outcomeCapture.contract}` },
       { label: "Metric baseline", value: metricStatusLabel },
       { label: "Guardrail", value: "Manual run only; no external side effects" },
     ],
@@ -8188,7 +8201,10 @@ const LocalServicesDispatchDemoPanel = ({
         onModeChange={setDayOneOperatorRunSheetMode}
         onCopy={onCopyText}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
-        onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH)}
+        onOpenExecutionPack={() => {
+          setPilotDailyLogMode("human");
+          setPilotDailyLogOpen(true);
+        }}
       />
       <LocalServicePilotMessagePreviewSheet
         open={pilotMessagePreviewOpen}

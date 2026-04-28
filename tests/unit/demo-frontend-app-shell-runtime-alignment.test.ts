@@ -858,6 +858,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Copy run sheet/);
   assert.match(liveDesk, /local_services_day_one_operator_run_sheet/);
   assert.match(liveDesk, /manual_day_one_operator_run_sheet/);
+  assert.match(liveDesk, /day_one_run_sheet_outcome_capture/);
   assert.match(liveDesk, /local_services_first_contact_batch_review/);
   assert.match(liveDesk, /founder_manual_validation_review/);
   assert.match(liveDesk, /no_booking_created/);
@@ -1195,6 +1196,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Copy run sheet/);
   assert.match(readme, /local_services_day_one_operator_run_sheet/);
   assert.match(readme, /manual_day_one_operator_run_sheet/);
+  assert.match(readme, /day_one_run_sheet_outcome_capture/);
   assert.match(readme, /docs\/local-services-pilot-runbook\.md/);
   assert.match(readme, /docs\/local-services-outreach-execution-pack\.md/);
   assert.match(readme, /Open outreach execution pack/);
@@ -1426,6 +1428,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /Copy run sheet/);
   assert.match(localDevelopment, /local_services_day_one_operator_run_sheet/);
   assert.match(localDevelopment, /manual_day_one_operator_run_sheet/);
+  assert.match(localDevelopment, /day_one_run_sheet_outcome_capture/);
   assert.match(localDevelopment, /http:\/\/localhost:3000\/app\?demo=local-services-dispatch&service=ac-repair-dispatch&recording=90s/);
   assert.match(localDevelopment, /90-second recording mode/);
   assert.match(localDevelopment, /http:\/\/localhost:3000\/workspace-docs\/local-services-pilot-runbook\.md/);
@@ -1631,6 +1634,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Copy run sheet/);
   assert.match(operatorGuide, /local_services_day_one_operator_run_sheet/);
   assert.match(operatorGuide, /manual_day_one_operator_run_sheet/);
+  assert.match(operatorGuide, /day_one_run_sheet_outcome_capture/);
   assert.match(operatorGuide, /docs\/local-services-pilot-runbook\.md/);
   assert.match(operatorGuide, /docs\/local-services-outreach-execution-pack\.md/);
   assert.match(operatorGuide, /Open recording checklist/);
@@ -1839,6 +1843,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /Copy run sheet/);
   assert.match(simplificationPlan, /local_services_day_one_operator_run_sheet/);
   assert.match(simplificationPlan, /manual_day_one_operator_run_sheet/);
+  assert.match(simplificationPlan, /day_one_run_sheet_outcome_capture/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-pilot-runbook\.md/);
   assert.match(simplificationPlan, /\/workspace-docs\/local-services-outreach-execution-pack\.md/);
   assert.match(simplificationPlan, /Open outreach execution pack/);
@@ -2045,6 +2050,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /Copy run sheet/);
   assert.match(gettingStarted, /local_services_day_one_operator_run_sheet/);
   assert.match(gettingStarted, /manual_day_one_operator_run_sheet/);
+  assert.match(gettingStarted, /day_one_run_sheet_outcome_capture/);
   assert.match(gettingStarted, /Open offer doc/);
   assert.match(gettingStarted, /Open demo script/);
   assert.match(gettingStarted, /Open outreach list/);
@@ -2313,6 +2319,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /Copy run sheet/);
   assert.match(localServicesSpec, /local_services_day_one_operator_run_sheet/);
   assert.match(localServicesSpec, /manual_day_one_operator_run_sheet/);
+  assert.match(localServicesSpec, /day_one_run_sheet_outcome_capture/);
   assert.match(localServicesSpec, /NEWO-style AI\s+employee\s+platform/);
   assert.match(localServicesSpec, /\/workspace-docs\/local-services-pilot-runbook\.md/);
   assert.match(localServicesSpec, /\/workspace-docs\/local-services-outreach-execution-pack\.md/);
