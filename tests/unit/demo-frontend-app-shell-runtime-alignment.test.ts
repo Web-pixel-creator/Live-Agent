@@ -747,6 +747,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Continue \/ stop decision/);
   assert.match(liveDesk, /Copy week-one review/);
   assert.match(liveDesk, /local_services_pilot_week_one_review/);
+  assert.match(liveDesk, /manual_first_request_outcome_review/);
+  assert.match(liveDesk, /Confirm the first request outcome is recorded before choosing continue, pause, or stop/);
   assert.match(liveDesk, /manual_week_one_decision_pack/);
   assert.match(liveDesk, /no_autonomous_pilot_decision/);
   assert.match(liveDesk, /no_billing_change/);
@@ -1153,6 +1155,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Continue \/ stop decision/);
   assert.match(readme, /Copy week-one review/);
   assert.match(readme, /local_services_pilot_week_one_review/);
+  assert.match(readme, /continue, pause, or stop decision/);
   assert.match(readme, /Pilot evidence\s+pack/);
   assert.match(readme, /Open evidence pack/);
   assert.match(readme, /Week-two evidence pack/);
@@ -1389,6 +1392,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /Continue \/ stop decision/);
   assert.match(localDevelopment, /Copy week-one review/);
   assert.match(localDevelopment, /local_services_pilot_week_one_review/);
+  assert.match(localDevelopment, /reviewed week-one decision packet/);
   assert.match(localDevelopment, /Pilot\s+evidence pack/);
   assert.match(localDevelopment, /Open evidence pack/);
   assert.match(localDevelopment, /Week-two evidence pack/);
@@ -1611,6 +1615,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Continue \/ stop decision/);
   assert.match(operatorGuide, /Copy week-one review/);
   assert.match(operatorGuide, /local_services_pilot_week_one_review/);
+  assert.match(operatorGuide, /first\s+observed request result/);
   assert.match(operatorGuide, /Pilot evidence pack/);
   assert.match(operatorGuide, /Open evidence pack/);
   assert.match(operatorGuide, /Week-two evidence pack/);
@@ -1820,6 +1825,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /Continue \/ stop decision/);
   assert.match(simplificationPlan, /Copy week-one review/);
   assert.match(simplificationPlan, /local_services_pilot_week_one_review/);
+  assert.match(simplificationPlan, /reviewed week-one decision/);
   assert.match(simplificationPlan, /Pilot evidence pack/);
   assert.match(simplificationPlan, /Open evidence pack/);
   assert.match(simplificationPlan, /Week-two evidence pack/);
@@ -2039,6 +2045,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /Continue \/ stop decision/);
   assert.match(gettingStarted, /Copy week-one review/);
   assert.match(gettingStarted, /local_services_pilot_week_one_review/);
+  assert.match(gettingStarted, /continue, pause, or stop/);
   assert.match(gettingStarted, /Pilot evidence pack/);
   assert.match(gettingStarted, /Open evidence pack/);
   assert.match(gettingStarted, /Week-two evidence pack/);
@@ -2285,6 +2292,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /Continue \/ stop decision/);
   assert.match(localServicesSpec, /Copy week-one review/);
   assert.match(localServicesSpec, /local_services_pilot_week_one_review/);
+  assert.match(localServicesSpec, /first\s+observed request result/);
   assert.match(localServicesSpec, /Pilot evidence pack/);
   assert.match(localServicesSpec, /Open evidence pack/);
   assert.match(localServicesSpec, /Week-two evidence pack/);
@@ -2560,6 +2568,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(outreachList, /Continue \/ stop decision/);
   assert.match(outreachList, /Copy week-one review/);
   assert.match(outreachList, /local_services_pilot_week_one_review/);
+  assert.match(outreachList, /reviewed\s+decision packet/);
   assert.match(outreachList, /Open evidence pack/);
   assert.match(outreachList, /Pilot evidence pack/);
   assert.match(outreachList, /Week-two evidence pack/);
@@ -2674,6 +2683,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotScorecard, /Continue \/ stop decision/);
   assert.match(pilotScorecard, /Copy week-one review/);
   assert.match(pilotScorecard, /local_services_pilot_week_one_review/);
+  assert.match(pilotScorecard, /owner-reviewed continue, pause/);
   assert.match(pilotScorecard, /Open evidence pack/);
   assert.match(pilotScorecard, /Pilot evidence pack/);
   assert.match(pilotScorecard, /Week-two evidence pack/);
@@ -2783,6 +2793,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotRunbook, /Continue \/ stop decision/);
   assert.match(pilotRunbook, /Copy week-one review/);
   assert.match(pilotRunbook, /local_services_pilot_week_one_review/);
+  assert.match(pilotRunbook, /firstRequestOutcomeByProspectKey/);
   assert.match(pilotRunbook, /Open evidence pack/);
   assert.match(pilotRunbook, /Pilot evidence pack/);
   assert.match(pilotRunbook, /Week-two evidence pack/);
@@ -2945,6 +2956,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(outreachExecutionPack, /Continue \/ stop decision/);
   assert.match(outreachExecutionPack, /Copy week-one review/);
   assert.match(outreachExecutionPack, /local_services_pilot_week_one_review/);
+  assert.match(outreachExecutionPack, /firstRequestOutcomeByProspectKey/);
   assert.match(outreachExecutionPack, /Open evidence pack/);
   assert.match(outreachExecutionPack, /Pilot evidence pack/);
   assert.match(outreachExecutionPack, /Week-two evidence pack/);

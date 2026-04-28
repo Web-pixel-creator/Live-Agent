@@ -189,9 +189,10 @@ bookings, send customer messages, or mutate this Markdown file automatically.
 `Open week-one review` opens the `Pilot week-one review` drawer for the selected
 service lane and company. Use it after real week-one activity exists to review
 `Continue / stop decision` and `Copy week-one review`. The payload is
-`local_services_pilot_week_one_review`; it does not decide autonomously, update
-CRM, change billing, send customer messages, or mutate this Markdown file
-automatically.
+`local_services_pilot_week_one_review`; it now carries `First request outcome`
+and `firstRequestOutcomeByProspectKey` into the owner-reviewed continue, pause,
+or stop packet. It does not decide autonomously, update CRM, change billing,
+send customer messages, or mutate this Markdown file automatically.
 
 `Open evidence pack` opens the `Pilot evidence pack` drawer for day-14 owner
 review. Use it to collect `Week-two evidence pack`, `Copy evidence pack`,

@@ -273,9 +273,10 @@ Allowed reply statuses:
    not analytics sync, CRM write, calendar booking, or customer send.
 22. Show `Open week-one review`, `Pilot week-one review`,
    `Continue / stop decision`, `Copy week-one review`, and
-   `local_services_pilot_week_one_review`; explain that this is a manual owner
-   review, not an autonomous pilot decision, CRM write, billing change, or
-   customer send.
+   `local_services_pilot_week_one_review`; confirm it carries
+   `First request outcome` / `firstRequestOutcomeByProspectKey` and explain
+   that this is a manual owner review, not an autonomous pilot decision, CRM
+   write, billing change, or customer send.
 23. Show `Open evidence pack`, `Pilot evidence pack`,
    `Week-two evidence pack`, `Copy evidence pack`, and
    `local_services_pilot_evidence_pack`; explain that this is a redacted manual

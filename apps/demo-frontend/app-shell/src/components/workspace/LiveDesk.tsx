@@ -3354,9 +3354,11 @@ function buildLocalServicePilotWeekOneReviewExport(
   prospect: LocalServiceOutreachProspect | undefined,
   pilotStatus: LocalServicePilotStatus,
   metricStatus: LocalServicePilotMetricStatus,
+  firstRequestOutcome: LocalServiceFirstRequestOutcome,
 ): LocalServicePilotWorkspaceExport {
   const pilotStatusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[pilotStatus];
   const metricStatusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus];
+  const firstRequestOutcomeLabel = LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_LABELS[firstRequestOutcome];
   const prospectLabel = prospect ? `${prospect.company} - ${prospect.segment}` : "No prospect selected";
   const continueCriteria = [
     "operator used the job-card output without rewriting it from scratch",
@@ -3395,6 +3397,8 @@ function buildLocalServicePilotWeekOneReviewExport(
     `Selected company: ${prospectLabel}`,
     `Pilot status: ${pilotStatusLabel}`,
     `Metric status: ${metricStatusLabel}`,
+    `First request outcome: ${firstRequestOutcomeLabel}`,
+    `Outcome state key: firstRequestOutcomeByProspectKey`,
     "Export scope: manual week-one decision pack",
     "",
     "Continue if at least two are true:",
@@ -3422,11 +3426,15 @@ function buildLocalServicePilotWeekOneReviewExport(
       pilot_status_label: pilotStatusLabel,
       metric_status: metricStatus,
       metric_status_label: metricStatusLabel,
+      first_request_outcome: firstRequestOutcome,
+      first_request_outcome_label: firstRequestOutcomeLabel,
+      outcome_state_key: "firstRequestOutcomeByProspectKey",
       continue_criteria: continueCriteria,
       stop_criteria: stopCriteria,
       decision_fields: decisionFields,
       guardrails: [
         "manual_week_one_review",
+        "manual_first_request_outcome_review",
         "no_autonomous_pilot_decision",
         "no_crm_write",
         "no_billing_change",
@@ -3457,10 +3465,12 @@ function buildLocalServicePilotWeekOneReviewExport(
       { label: "Company", value: prospectLabel },
       { label: "Pilot status", value: pilotStatusLabel },
       { label: "Metric status", value: metricStatusLabel },
+      { label: "First request outcome", value: firstRequestOutcomeLabel },
       { label: "Guardrail", value: "Manual review only, no autonomous pilot decision" },
     ],
     checklist: [
       "Confirm at least one real pilot day was logged before using this review.",
+      "Confirm the first request outcome is recorded before choosing continue, pause, or stop.",
       "Count continue criteria and stop criteria separately.",
       "Write the owner or dispatcher note in a private scorecard or spreadsheet.",
       "Choose one week-two focus if the pilot continues.",
@@ -5364,8 +5374,9 @@ const LocalServicesDispatchDemoPanel = ({
         selectedOutreachProspect,
         currentPilotStatus,
         currentMetricStatus,
+        currentFirstRequestOutcome,
       ),
-    [currentMetricStatus, currentPilotStatus, selectedOutreachProspect, selectedTemplate],
+    [currentFirstRequestOutcome, currentMetricStatus, currentPilotStatus, selectedOutreachProspect, selectedTemplate],
   );
   const pilotEvidencePackExport = useMemo(
     () =>

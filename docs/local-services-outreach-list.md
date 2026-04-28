@@ -114,9 +114,11 @@ operating-loop note only and does not sync analytics, write CRM, create
 calendar bookings, send customer messages, or mutate this list.
 After the first real week, use `Open week-one review` to review `Pilot week-one
 review`, `Continue / stop decision`, and `Copy week-one review`. The structured
-payload is `local_services_pilot_week_one_review`; it remains owner/operator
-review only and does not decide autonomously, write CRM, change billing, send
-customer messages, or mutate this list.
+payload is `local_services_pilot_week_one_review`; it carries
+`First request outcome` / `firstRequestOutcomeByProspectKey` into the reviewed
+decision packet. It remains owner/operator review only and does not decide
+autonomously, write CRM, change billing, send customer messages, or mutate this
+list.
 At day 14, use `Open evidence pack` to review `Pilot evidence pack`,
 `Week-two evidence pack`, and `Copy evidence pack`. The structured payload is
 `local_services_pilot_evidence_pack`; it remains a redacted manual proof pack

@@ -124,8 +124,10 @@ Do not use the pilot to build:
     spreadsheet manually.
 17. Open `Open week-one review` only after real week-one activity exists. Review
     `Pilot week-one review`, `Continue / stop decision`, and
-    `Copy week-one review`, then copy `local_services_pilot_week_one_review`
-    into the private scorecard or spreadsheet manually.
+    `Copy week-one review`, confirm `First request outcome` /
+    `firstRequestOutcomeByProspectKey`, then copy
+    `local_services_pilot_week_one_review` into the private scorecard or
+    spreadsheet manually.
 18. Open `Open evidence pack` at day 14 for serious pilots. Review
     `Pilot evidence pack`, `Week-two evidence pack`, and `Copy evidence pack`,
     then copy `local_services_pilot_evidence_pack` into the private scorecard

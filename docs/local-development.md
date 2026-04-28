@@ -96,7 +96,8 @@ also carries the selected company, pilot status, `First request outcome`, and
 week-one review` with `Continue / stop decision`, `Copy week-one review`, and
 `local_services_pilot_week_one_review`. It is a manual owner/operator review
 only; it does not decide autonomously, write CRM, change billing, send customer
-messages, or mutate Markdown docs.
+messages, or mutate Markdown docs. It also carries `First request outcome` and
+`firstRequestOutcomeByProspectKey` into the reviewed week-one decision packet.
 3.9. The same route now includes `Open evidence pack`, which opens `Pilot
 evidence pack` with `Week-two evidence pack`, `Copy evidence pack`, and
 `local_services_pilot_evidence_pack`. It is a redacted manual proof pack only;

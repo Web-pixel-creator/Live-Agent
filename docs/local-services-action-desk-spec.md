@@ -715,7 +715,10 @@ The same pilot block now opens `Pilot week-one review` through
 `Copy week-one review`, and the structured
 `local_services_pilot_week_one_review` payload. It is the owner-reviewed
 continue/pause/stop decision pack only: no autonomous pilot decision, CRM write,
-billing change, customer send, or Markdown mutation.
+billing change, customer send, or Markdown mutation. The payload now also
+carries `First request outcome` and `firstRequestOutcomeByProspectKey`, so the
+first observed request result is reviewed before a continue, pause, or stop
+decision.
 The final pilot block now opens `Pilot evidence pack` through
 `Open evidence pack`. It exposes `Week-two evidence pack`,
 `Copy evidence pack`, and the structured
@@ -942,8 +945,9 @@ Current shell readiness for P3:
    `local_services_pilot_daily_log`, `First request outcome`, and
    `firstRequestOutcomeByProspectKey` are visible in the shell.
 25. `Open week-one review`, `Pilot week-one review`,
-   `Continue / stop decision`, `Copy week-one review`, and
-   `local_services_pilot_week_one_review` are visible in the shell.
+   `Continue / stop decision`, `Copy week-one review`,
+   `local_services_pilot_week_one_review`, `First request outcome`, and
+   `firstRequestOutcomeByProspectKey` are visible in the shell.
 26. `Open evidence pack`, `Pilot evidence pack`, `Week-two evidence pack`,
    `Copy evidence pack`, and `local_services_pilot_evidence_pack` are visible
    in the shell.

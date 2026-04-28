@@ -203,7 +203,9 @@ Local-services expansion spec:
 - the same pilot area now opens `Pilot week-one review` through
   `Open week-one review`; it exposes `Continue / stop decision`,
   `Copy week-one review`, and `local_services_pilot_week_one_review` so week-one
-  continuation decisions stay owner-reviewed and manual-only.
+  continuation decisions stay owner-reviewed and manual-only. It now carries
+  `First request outcome` / `firstRequestOutcomeByProspectKey` into the
+  decision pack before any continue, pause, or stop decision.
 - it now closes the 14-day loop with `Open evidence pack`, `Pilot evidence
   pack`, `Week-two evidence pack`, `Copy evidence pack`, and
   `local_services_pilot_evidence_pack`; this is a redacted manual proof pack,

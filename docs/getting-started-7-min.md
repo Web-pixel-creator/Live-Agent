@@ -148,7 +148,9 @@ Use `Open week-one review` after real week-one activity exists. It opens
 `Pilot week-one review` with `Continue / stop decision`,
 `Copy week-one review`, and `local_services_pilot_week_one_review`. It does not
 decide autonomously, write CRM, change billing, send customer messages, or
-mutate Markdown docs.
+mutate Markdown docs. It now carries `First request outcome` and
+`firstRequestOutcomeByProspectKey` into the reviewed continue, pause, or stop
+packet.
 Use `Open evidence pack` after the pilot has real proof. It opens
 `Pilot evidence pack` with `Week-two evidence pack`, `Copy evidence pack`, and
 `local_services_pilot_evidence_pack`. It is a redacted manual proof pack only:
