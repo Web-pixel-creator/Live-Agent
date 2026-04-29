@@ -175,7 +175,10 @@ is recorded and metrics are review-ready. `Open weekly sync checklist`,
 copy packet for the private scorecard without mutating Markdown, CRM,
 analytics, billing, bookings, or messages. `Record weekly sync reviewed`,
 `Reset weekly sync review`, and `weeklyScorecardSyncReviewedByService` record
-only that a human completed the private tracker copy. `Open day-one recap`,
+only that a human completed the private tracker copy. `Pilot week-one review`
+and `Pilot evidence pack` read the same state as `Weekly sync reviewed`, and
+their `Evidence readiness` stays blocked until that manual private scorecard sync
+is reviewed. `Open day-one recap`,
 `Day-one recap`,
 `Copy day-one recap`, `local_services_day_one_recap`, and
 `day_one_recap_to_week_one_review` then turn the first real run into a reviewed

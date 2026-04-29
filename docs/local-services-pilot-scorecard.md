@@ -204,7 +204,9 @@ bookings, send customer messages, or mutate this Markdown file automatically.
 After the private tracker is updated, `Record weekly sync reviewed` writes only
 the browser-local `weeklyScorecardSyncReviewedByService` proof. Use
 `Reset weekly sync review` if the outcome or metrics changed before the next
-manual copy.
+manual copy. `Pilot week-one review` and `Pilot evidence pack` read this as
+`Weekly sync reviewed`; `Evidence readiness` remains blocked until the manual
+private scorecard sync has been reviewed.
 
 `Open week-one review` opens the `Pilot week-one review` drawer for the selected
 service lane and company. Use it after real week-one activity exists to review

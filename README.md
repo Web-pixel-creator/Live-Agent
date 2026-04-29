@@ -299,7 +299,10 @@ Local-services expansion spec:
   not mutate Markdown, CRM, analytics, billing, bookings, or messages.
   `Record weekly sync reviewed`, `Reset weekly sync review`, and
   `weeklyScorecardSyncReviewedByService` store only the browser-local proof that
-  a human copied the reviewed packet into the private scorecard.
+  a human copied the reviewed packet into the private scorecard. `Pilot
+  week-one review` and `Pilot evidence pack` now read the same proof as
+  `Weekly sync reviewed`; `Evidence readiness` stays blocked until that manual
+  private scorecard sync is reviewed.
   `Open day-one recap`, `Day-one recap`,
   `Copy day-one recap`, and `local_services_day_one_recap` then summarize the
   first real run and hand it into `day_one_recap_to_week_one_review`. It still

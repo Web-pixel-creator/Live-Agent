@@ -806,7 +806,10 @@ is recorded and metrics are review-ready. `Open weekly sync checklist`,
 `manual_weekly_scorecard_sync_checklist` turn that gate into a reviewed manual
 copy packet for the private scorecard. `Record weekly sync reviewed`,
 `Reset weekly sync review`, and `weeklyScorecardSyncReviewedByService` store
-only browser-local proof that the private tracker was updated. `Open day-one recap` adds `Day-one recap`,
+only browser-local proof that the private tracker was updated. `Pilot week-one
+review` and `Pilot evidence pack` read that proof as `Weekly sync reviewed`,
+and `Evidence readiness` remains blocked until the private scorecard sync is
+reviewed. `Open day-one recap` adds `Day-one recap`,
 `Copy day-one recap`, `local_services_day_one_recap`, `manual_day_one_recap`,
 and `day_one_recap_to_week_one_review` as the reviewed first-day handoff into
 week-one review. They do not

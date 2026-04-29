@@ -140,7 +140,9 @@ Do not use the pilot to build:
     tracker is updated; it writes only browser-local
     `weeklyScorecardSyncReviewedByService` proof. Use
     `Reset weekly sync review` if the outcome or metrics changed before the
-    next manual copy.
+    next manual copy. Confirm `Pilot week-one review` and
+    `Pilot evidence pack` show `Weekly sync reviewed`; `Evidence readiness`
+    should stay blocked until the manual private scorecard sync is reviewed.
 17. Open `Open week-one review` only after real week-one activity exists. Review
     `Pilot week-one review`, `Continue / stop decision`, and
     `Copy week-one review`, confirm `First request outcome` /

@@ -223,7 +223,9 @@ the private scorecard. It is manual-only and does not write Markdown, CRM,
 analytics, bookings, billing, or messages. Use `Record weekly sync reviewed`
 only after the private tracker is updated; `weeklyScorecardSyncReviewedByService`
 is browser-local proof, and `Reset weekly sync review` clears it if the data
-changes. Use
+changes. `Pilot week-one review` and `Pilot evidence pack` read the same proof
+as `Weekly sync reviewed`, so `Evidence readiness` stays blocked until that
+manual private scorecard sync is reviewed. Use
 `Open day-one recap` after the first real run; `Day-one recap` and
 `Copy day-one recap` export `local_services_day_one_recap` /
 `manual_day_one_recap` and hand the result into

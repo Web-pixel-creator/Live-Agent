@@ -283,7 +283,10 @@ private tracker: they give the operator one reviewed manual copy packet without
 Markdown mutation, CRM write, analytics sync, booking, billing, or customer
 message. `Record weekly sync reviewed`, `Reset weekly sync review`, and
 `weeklyScorecardSyncReviewedByService` then keep only browser-local proof that
-the private scorecard was manually updated.
+the private scorecard was manually updated. `Pilot week-one review` and
+`Pilot evidence pack` now read the same proof as `Weekly sync reviewed`, and
+`Evidence readiness` remains blocked until that manual private scorecard sync
+has been reviewed.
 This is the current
 simplification target: prove demand through 10 manual contacts before adding
 more integrations. The target product remains a NEWO-style AI employee platform

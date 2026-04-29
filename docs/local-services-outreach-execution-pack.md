@@ -288,7 +288,10 @@ Allowed reply statuses:
    `local_services_weekly_scorecard_sync_checklist` as the reviewed manual copy
    packet for the private tracker. Show `Record weekly sync reviewed`,
    `Reset weekly sync review`, and `weeklyScorecardSyncReviewedByService` as
-   browser-local proof that the private tracker was updated.
+   browser-local proof that the private tracker was updated. Confirm
+   `Pilot week-one review` and `Pilot evidence pack` read it as
+   `Weekly sync reviewed`, with `Evidence readiness` blocked until the manual
+   private scorecard sync is reviewed.
 22. Show `Open week-one review`, `Pilot week-one review`,
    `Continue / stop decision`, `Copy week-one review`, and
    `local_services_pilot_week_one_review`; confirm it carries

@@ -4023,6 +4023,7 @@ function buildLocalServicePilotWeekOneReviewExport(
   metricStatus: LocalServicePilotMetricStatus,
   firstRequestOutcome: LocalServiceFirstRequestOutcome,
   ownerDecision: LocalServiceWeekOneOwnerDecision,
+  weeklySyncReviewed: boolean,
   activityLog: LocalServicePilotActivityEvent[] = [],
 ): LocalServicePilotWorkspaceExport {
   const pilotStatusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[pilotStatus];
@@ -4049,9 +4050,11 @@ function buildLocalServicePilotWeekOneReviewExport(
   const decisionReadinessLabel =
     firstRequestOutcome === "not_recorded"
       ? "Blocked: first request outcome missing"
-      : metricStatus === "review_ready"
-        ? "Owner decision ready"
-        : "Needs week-one metric review";
+      : metricStatus !== "review_ready"
+        ? "Needs week-one metric review"
+        : weeklySyncReviewed
+          ? "Owner decision ready"
+          : "Blocked: weekly scorecard sync not reviewed";
   const dayOneRecapHandoffStatus =
     firstRequestOutcome === "not_recorded" ? "waiting_for_day_one_recap" : "day_one_recap_ready";
   const ownerDecisionStatus =
@@ -4101,6 +4104,10 @@ function buildLocalServicePilotWeekOneReviewExport(
       value: weeklyScorecardSyncGate,
     },
     {
+      label: "Weekly sync reviewed",
+      value: weeklySyncReviewed ? "Recorded in browser-local state" : "Not recorded yet",
+    },
+    {
       label: "Latest manual signal",
       value: latestRelevantActivityLabel,
     },
@@ -4127,6 +4134,8 @@ function buildLocalServicePilotWeekOneReviewExport(
     `Decision readiness: ${decisionReadinessLabel}`,
     `Weekly scorecard sync gate: ${weeklyScorecardSyncGate}`,
     "Weekly sync contract: manual_weekly_scorecard_sync_gate",
+    `Weekly sync reviewed: ${weeklySyncReviewed ? "yes" : "no"}`,
+    "Weekly sync review state key: weeklyScorecardSyncReviewedByService",
     `Day-one recap handoff: ${dayOneRecapHandoffStatus}`,
     `Owner decision status: ${ownerDecisionStatus}`,
     "",
@@ -4169,6 +4178,8 @@ function buildLocalServicePilotWeekOneReviewExport(
       decision_readiness: decisionReadinessLabel,
       weekly_scorecard_sync_gate: weeklyScorecardSyncGate,
       weekly_scorecard_sync_contract: "manual_weekly_scorecard_sync_gate",
+      weekly_scorecard_sync_reviewed: weeklySyncReviewed,
+      weekly_scorecard_sync_review_state_key: "weeklyScorecardSyncReviewedByService",
       day_one_recap_handoff: {
         source_surface: "local_services_day_one_recap",
         target_surface: "local_services_pilot_week_one_review",
@@ -4194,6 +4205,7 @@ function buildLocalServicePilotWeekOneReviewExport(
         "manual_week_one_review",
         "manual_first_request_outcome_review",
         "manual_weekly_scorecard_sync_gate",
+        "weeklyScorecardSyncReviewedByService",
         "day_one_recap_to_week_one_review",
         "week_one_owner_decision_to_evidence_pack",
         "owner_review_required",
@@ -4232,6 +4244,7 @@ function buildLocalServicePilotWeekOneReviewExport(
       { label: "Owner decision", value: ownerDecisionLabel },
       { label: "Decision readiness", value: decisionReadinessLabel },
       { label: "Weekly scorecard sync gate", value: weeklyScorecardSyncGate },
+      { label: "Weekly sync reviewed", value: weeklySyncReviewed ? "Recorded" : "Not recorded" },
       { label: "Owner-ready summary", value: ownerReadySummary.map((field) => field.label).join(", ") },
       { label: "Day-one recap handoff", value: "day_one_recap_to_week_one_review" },
       { label: "Evidence pack handoff", value: "week_one_owner_decision_to_evidence_pack" },
@@ -4241,6 +4254,7 @@ function buildLocalServicePilotWeekOneReviewExport(
       "Confirm at least one real pilot day was logged before using this review.",
       "Confirm the first request outcome is recorded before choosing continue, pause, or stop.",
       "Confirm manual_weekly_scorecard_sync_gate is ready before treating the scorecard as week-one reviewed.",
+      "Confirm weeklyScorecardSyncReviewedByService is recorded after the private scorecard was manually updated.",
       "Review Owner-ready summary before sharing the week-one decision with the owner.",
       "Confirm day_one_recap_to_week_one_review came from a reviewed day-one recap.",
       "Record Continue, Pause, or Stop in weekOneOwnerDecisionByProspectKey before copying the evidence pack.",
@@ -4259,6 +4273,7 @@ function buildLocalServicePilotEvidencePackExport(
   metricStatus: LocalServicePilotMetricStatus,
   firstRequestOutcome: LocalServiceFirstRequestOutcome,
   ownerDecision: LocalServiceWeekOneOwnerDecision,
+  weeklySyncReviewed: boolean,
 ): LocalServicePilotWorkspaceExport {
   const pilotStatusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[pilotStatus];
   const metricStatusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus];
@@ -4271,6 +4286,12 @@ function buildLocalServicePilotEvidencePackExport(
       : metricStatus === "review_ready"
         ? "Ready for manual weekly scorecard sync"
         : "Outcome captured; metrics still need review-ready status";
+  const evidenceReadiness =
+    ownerDecision === "not_recorded"
+      ? "Blocked until week-one owner decision is recorded"
+      : !weeklySyncReviewed
+        ? "Blocked until weekly scorecard sync is reviewed"
+        : "Ready for redacted evidence review";
   const evidenceItems = [
     {
       label: "Before / after intake",
@@ -4324,6 +4345,9 @@ function buildLocalServicePilotEvidencePackExport(
     `Owner decision state key: weekOneOwnerDecisionByProspectKey`,
     `Weekly scorecard sync gate: ${weeklyScorecardSyncGate}`,
     "Weekly sync contract: manual_weekly_scorecard_sync_gate",
+    `Weekly sync reviewed: ${weeklySyncReviewed ? "yes" : "no"}`,
+    "Weekly sync review state key: weeklyScorecardSyncReviewedByService",
+    `Evidence readiness: ${evidenceReadiness}`,
     "Week-one handoff: week_one_owner_decision_to_evidence_pack",
     "Export scope: manual week-two evidence pack",
     "",
@@ -4360,6 +4384,9 @@ function buildLocalServicePilotEvidencePackExport(
       owner_decision_state_key: "weekOneOwnerDecisionByProspectKey",
       weekly_scorecard_sync_gate: weeklyScorecardSyncGate,
       weekly_scorecard_sync_contract: "manual_weekly_scorecard_sync_gate",
+      weekly_scorecard_sync_reviewed: weeklySyncReviewed,
+      weekly_scorecard_sync_review_state_key: "weeklyScorecardSyncReviewedByService",
+      evidence_readiness: evidenceReadiness,
       week_one_review_handoff: {
         source_surface: "local_services_pilot_week_one_review",
         target_surface: "local_services_pilot_evidence_pack",
@@ -4373,6 +4400,7 @@ function buildLocalServicePilotEvidencePackExport(
         "manual_week_two_evidence_pack",
         "manual_first_request_outcome_evidence",
         "manual_weekly_scorecard_sync_gate",
+        "weeklyScorecardSyncReviewedByService",
         "week_one_owner_decision_to_evidence_pack",
         "owner_decision_manual_only",
         "no_private_customer_data_in_public_docs",
@@ -4407,6 +4435,8 @@ function buildLocalServicePilotEvidencePackExport(
       { label: "First request outcome", value: firstRequestOutcomeLabel },
       { label: "Week-one owner decision", value: ownerDecisionLabel },
       { label: "Weekly scorecard sync gate", value: weeklyScorecardSyncGate },
+      { label: "Weekly sync reviewed", value: weeklySyncReviewed ? "Recorded" : "Not recorded" },
+      { label: "Evidence readiness", value: evidenceReadiness },
       { label: "Week-one handoff", value: "week_one_owner_decision_to_evidence_pack" },
       { label: "Evidence items", value: String(evidenceItems.length) },
       { label: "Decision options", value: weekTwoOptions.join(", ") },
@@ -4416,6 +4446,7 @@ function buildLocalServicePilotEvidencePackExport(
       "Include only redacted screenshots, notes, and job-card excerpts.",
       "Include the first request outcome before paid-pilot readiness is reviewed.",
       "Include the week-one owner decision before paid-pilot readiness is reviewed.",
+      "Include weeklyScorecardSyncReviewedByService proof before treating the private scorecard as reviewed.",
       "Attach week-one and week-two scorecard rows from the private tracker.",
       "Record one owner or dispatcher quote.",
       "Pick one clear continue, paid pilot, extension, or stop decision.",
@@ -5825,6 +5856,9 @@ const LocalServicesDispatchDemoPanel = ({
     LOCAL_SERVICE_WEEK_ONE_OWNER_DECISION_LABELS[currentWeekOneOwnerDecision];
   const currentMetricStatus = pilotWorkspaceState.metricStatusByService[selectedTemplate.id] ?? "not_started";
   const currentMetricStatusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[currentMetricStatus];
+  const currentWeeklyScorecardSyncReviewed =
+    pilotWorkspaceState.weeklyScorecardSyncReviewedByService[selectedTemplate.id] === true;
+  const currentWeeklyScorecardSyncReviewedLabel = currentWeeklyScorecardSyncReviewed ? "Recorded" : "Not recorded";
   const pilotWizardSteps = [
     {
       label: "Offer preview",
@@ -6284,6 +6318,7 @@ const LocalServicesDispatchDemoPanel = ({
         currentMetricStatus,
         currentFirstRequestOutcome,
         currentWeekOneOwnerDecision,
+        currentWeeklyScorecardSyncReviewed,
         pilotWorkspaceState.activityLog,
       ),
     [
@@ -6291,6 +6326,7 @@ const LocalServicesDispatchDemoPanel = ({
       currentMetricStatus,
       currentPilotStatus,
       currentWeekOneOwnerDecision,
+      currentWeeklyScorecardSyncReviewed,
       pilotWorkspaceState.activityLog,
       selectedOutreachProspect,
       selectedTemplate,
@@ -6305,12 +6341,14 @@ const LocalServicesDispatchDemoPanel = ({
         currentMetricStatus,
         currentFirstRequestOutcome,
         currentWeekOneOwnerDecision,
+        currentWeeklyScorecardSyncReviewed,
       ),
     [
       currentFirstRequestOutcome,
       currentMetricStatus,
       currentPilotStatus,
       currentWeekOneOwnerDecision,
+      currentWeeklyScorecardSyncReviewed,
       selectedOutreachProspect,
       selectedTemplate,
     ],
@@ -6515,6 +6553,7 @@ const LocalServicesDispatchDemoPanel = ({
         { label: "Next step", value: selectedOutreachProspect.nextStep },
         { label: "Status", value: currentPilotStatusLabel },
         { label: "First request outcome", value: currentFirstRequestOutcomeLabel },
+        { label: "Weekly sync reviewed", value: currentWeeklyScorecardSyncReviewedLabel },
         { label: "Week-one owner decision", value: currentWeekOneOwnerDecisionLabel },
       ]
     : [];
@@ -6532,7 +6571,9 @@ const LocalServicesDispatchDemoPanel = ({
     {
       label: "Week-one review",
       value: currentWeekOneOwnerDecisionLabel,
-      detail: "Saved under weekOneOwnerDecisionByProspectKey before evidence pack handoff.",
+      detail: currentWeeklyScorecardSyncReviewed
+        ? "Private scorecard sync reviewed before owner handoff."
+        : "Wait for weeklyScorecardSyncReviewedByService before owner handoff.",
     },
     {
       label: "Evidence pack",

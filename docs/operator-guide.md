@@ -286,7 +286,9 @@ is still a manual copy packet only: no Markdown mutation, CRM write, analytics
 sync, billing, booking, or customer message. After the private tracker is
 updated, use `Record weekly sync reviewed`; `Reset weekly sync review` clears
 that browser-local `weeklyScorecardSyncReviewedByService` proof if the outcome
-or metrics changed.
+or metrics changed. `Pilot week-one review` and `Pilot evidence pack` should
+then show `Weekly sync reviewed`; `Evidence readiness` remains blocked until this
+manual private scorecard sync proof is recorded.
 Use `Open day-one recap` after a real first run. `Day-one recap` and
 `Copy day-one recap` export `local_services_day_one_recap` /
 `manual_day_one_recap`, including `day_one_recap_to_week_one_review`, so the
