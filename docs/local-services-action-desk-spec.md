@@ -765,6 +765,8 @@ channel check, manual send, discovery call, demo booking, and pilot candidate;
 add the one-account live execution queue and manual proof confirmation drawer;
 `Pilot proof update rail` and `local_services_pilot_proof_update_rail` make the
 next browser-local proof marker update explicit after the real manual action;
+`Current account mini-audit` and `local_services_current_account_mini_audit`
+show the last account-local proof/status events before a continue/stop decision;
 the `Category pilot score`, `Leading category`, and
 `No category expansion without proof` controls rank AC, plumbing, cleaning, and
 measurement from those same markers. `Leading category action layer` converts
@@ -1018,9 +1020,10 @@ Current shell readiness for P3:
    `Pilot ops confirmation drawer`, `Copy ops confirmation`,
    `local_services_pilot_ops_today`, and
    `local_services_pilot_ops_confirmation`, `Pilot proof update rail`, and
-   `local_services_pilot_proof_update_rail` are visible as the one-account
-   manual execution queue, proof confirmation drawer, and browser-local proof
-   update rail.
+   `local_services_pilot_proof_update_rail`, `Current account mini-audit`, and
+   `local_services_current_account_mini_audit` are visible as the one-account
+   manual execution queue, proof confirmation drawer, browser-local proof
+   update rail, and account-local audit trail.
 34. `Category pilot score`, `Leading category`,
    `No category expansion without proof`, `local_services_category_pilot_score`,
    and `category_pilot_score` are visible as the category validation contract.

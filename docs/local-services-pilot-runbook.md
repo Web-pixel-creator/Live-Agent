@@ -112,7 +112,9 @@ Do not use the pilot to build:
    `Open ops confirmation` / `local_services_pilot_ops_confirmation` before
    that proof marker is used for a continue, revise, or stop decision. Use
    `Pilot proof update rail` / `local_services_pilot_proof_update_rail` only
-   after the real action happens outside the shell.
+   after the real action happens outside the shell. Check `Current account
+   mini-audit` / `local_services_current_account_mini_audit` before batch
+   review so the account's latest browser-local events are visible.
 13. After a company is marked `Reply received`, use `Open discovery prep` to
    review `Discovery call prep`, `Questions to ask`, `Pilot success criteria`,
    `Copy discovery call prep`, and `local_services_discovery_call_prep`. Treat

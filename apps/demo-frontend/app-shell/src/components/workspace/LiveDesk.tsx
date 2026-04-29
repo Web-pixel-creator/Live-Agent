@@ -6266,6 +6266,18 @@ const LocalServicesDispatchDemoPanel = ({
               : !pilotOpsTodayRow.pilotCandidate
                 ? "pilotCandidate"
                 : "founder_batch_review";
+  const currentAccountMiniAuditEvents = pilotOpsTodayRow
+    ? pilotWorkspaceState.activityLog
+        .filter(
+          (event) =>
+            event.serviceId === pilotOpsTodayRow.serviceId && event.prospectId === pilotOpsTodayRow.prospect.id,
+        )
+        .slice(0, 3)
+    : [];
+  const currentAccountMiniAuditSummary =
+    currentAccountMiniAuditEvents.length > 0
+      ? currentAccountMiniAuditEvents.map((event) => `${event.createdAt} | ${event.label}: ${event.value}`).join("; ")
+      : "No browser-local events yet for this account.";
   const pilotOpsTodayHandoffText = [
     "local_services_pilot_ops_today",
     `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
@@ -6277,6 +6289,8 @@ const LocalServicesDispatchDemoPanel = ({
     `Next manual action: ${pilotOpsTodayAction}`,
     `Proof to capture: ${pilotOpsTodayProof}`,
     "Proof update rail: local_services_pilot_proof_update_rail",
+    "Current account mini-audit: local_services_current_account_mini_audit",
+    `Mini-audit events: ${currentAccountMiniAuditSummary}`,
     `Owner next step: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.nextStep : "none"}`,
     `Batch proof progress: ${founderProofProgress}`,
     `Decision gate: ${founderDecisionGate.verdictLabel}`,
@@ -6318,6 +6332,8 @@ const LocalServicesDispatchDemoPanel = ({
     `Pilot ops next manual action: ${pilotOpsTodayAction}`,
     `Pilot ops proof to capture: ${pilotOpsTodayProof}`,
     "Pilot proof update rail: local_services_pilot_proof_update_rail",
+    "Current account mini-audit: local_services_current_account_mini_audit",
+    `Current account mini-audit events: ${currentAccountMiniAuditSummary}`,
     "No category expansion without proof.",
     `Manual sends logged: ${founderContactCounts.manualMessageSent}/10`,
     `Replies or clear rejections: ${founderContactCounts.repliesOrRejections}/3`,
@@ -8061,6 +8077,37 @@ const LocalServicesDispatchDemoPanel = ({
                       <span className="ml-1.5 text-[10px] opacity-75">{action.stateLabel}</span>
                     </Button>
                   ))}
+                </div>
+                <div className="mt-3 rounded-md border border-border/50 bg-card/25 px-3 py-2.5">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                      <Clock className="h-3.5 w-3.5" strokeWidth={1.8} />
+                      Current account mini-audit
+                    </div>
+                    <span className="inline-flex w-fit rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                      local_services_current_account_mini_audit
+                    </span>
+                  </div>
+                  <div className="mt-2 grid gap-1.5">
+                    {currentAccountMiniAuditEvents.length > 0 ? (
+                      currentAccountMiniAuditEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          className="rounded-[5px] bg-background/40 px-2 py-1.5 text-[11px] leading-relaxed"
+                        >
+                          <span className="font-mono text-[10px] text-muted-foreground">
+                            {event.createdAt.replace("T", " ").slice(0, 16)}
+                          </span>
+                          <span className="ml-2 text-foreground">{event.label}</span>
+                          <span className="ml-1 text-muted-foreground">/ {event.value}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="rounded-[5px] bg-background/40 px-2 py-1.5 text-[11px] text-muted-foreground">
+                        No browser-local events yet for this account.
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
