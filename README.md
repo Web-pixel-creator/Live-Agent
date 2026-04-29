@@ -287,7 +287,12 @@ Local-services expansion spec:
   approval pauses, metric capture, and manual result logging. Its JSON contract
   is `manual_day_one_operator_run_sheet`; `day_one_run_sheet_outcome_capture`
   links the sheet to `Open daily log` so the first manual request gets recorded
-  before weekly scorecard sync. `Open day-one recap`, `Day-one recap`,
+  before weekly scorecard sync. `Day-one outcome capture gate`,
+  `Reset day-one outcome`, `Weekly scorecard sync gate`, and
+  `manual_weekly_scorecard_sync_gate` now make that leading-category outcome
+  explicit: the scorecard remains a manual blocked sync until
+  `firstRequestOutcomeByProspectKey` is recorded and metrics are review-ready.
+  `Open day-one recap`, `Day-one recap`,
   `Copy day-one recap`, and `local_services_day_one_recap` then summarize the
   first real run and hand it into `day_one_recap_to_week_one_review`. It still
   cannot activate phone, Telegram, WhatsApp, bookings, CRM, analytics, billing,

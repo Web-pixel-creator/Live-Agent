@@ -130,13 +130,16 @@ Do not use the pilot to build:
 16. Open `Open daily log` at the end of the first pilot day, review
     `Daily capture fields`, `Daily operating loop`, and `Copy pilot daily log`,
     then copy `local_services_pilot_daily_log` into the private scorecard or
-    spreadsheet manually.
+    spreadsheet manually. Confirm `Weekly scorecard sync gate` /
+    `manual_weekly_scorecard_sync_gate` remains blocked until
+    `firstRequestOutcomeByProspectKey` is recorded and metrics are review-ready.
 17. Open `Open week-one review` only after real week-one activity exists. Review
     `Pilot week-one review`, `Continue / stop decision`, and
     `Copy week-one review`, confirm `First request outcome` /
     `firstRequestOutcomeByProspectKey`, then copy
     `local_services_pilot_week_one_review` into the private scorecard or
     spreadsheet manually. Confirm `Owner-ready summary`, `Decision readiness`,
+    `Weekly scorecard sync gate`, `manual_weekly_scorecard_sync_gate`,
     `Latest manual signal`, and `day_one_recap_to_week_one_review` before the
     owner makes a continue, pause, or stop decision. Use `Week-one owner
     decision state`, `Record continue`, `Record pause`, or `Record stop` to

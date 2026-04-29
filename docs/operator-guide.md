@@ -273,7 +273,11 @@ Use `Open run sheet` after that gate to inspect `Day-one operator run sheet`.
 fields, approval pauses, metric capture, and manual result logging for the
 first operator-supervised request. `day_one_run_sheet_outcome_capture` points
 the sheet's `Open daily log` action at `Pilot daily log`, where the operator
-records the actual result before scorecard sync.
+records the actual result before scorecard sync. `Day-one outcome capture
+gate`, `Reset day-one outcome`, `Weekly scorecard sync gate`, and
+`manual_weekly_scorecard_sync_gate` keep this leading-category outcome explicit;
+do not treat a weekly scorecard as reviewed until `firstRequestOutcomeByProspectKey`
+is recorded and metrics are review-ready.
 Use `Open day-one recap` after a real first run. `Day-one recap` and
 `Copy day-one recap` export `local_services_day_one_recap` /
 `manual_day_one_recap`, including `day_one_recap_to_week_one_review`, so the

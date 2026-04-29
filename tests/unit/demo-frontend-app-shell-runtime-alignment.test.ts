@@ -739,6 +739,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /first_request_outcome/);
   assert.match(liveDesk, /manual_first_request_outcome_note/);
   assert.match(liveDesk, /Record the first request outcome before weekly scorecard sync/);
+  assert.match(liveDesk, /Weekly scorecard sync gate/);
+  assert.match(liveDesk, /manual_weekly_scorecard_sync_gate/);
   assert.match(liveDesk, /manual_daily_operating_loop/);
   assert.match(liveDesk, /no_calendar_booking_created/);
   assert.match(liveDesk, /no_customer_message_sent/);
@@ -909,6 +911,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Block kickoff/);
   assert.match(liveDesk, /kickoffDecisionByService/);
   assert.match(liveDesk, /Kickoff operator decision/);
+  assert.match(liveDesk, /Day-one outcome capture gate/);
+  assert.match(liveDesk, /Reset day-one outcome/);
+  assert.match(liveDesk, /Ready for manual weekly scorecard sync/);
   assert.match(liveDesk, /Open run sheet/);
   assert.match(liveDesk, /Day-one operator run sheet/);
   assert.match(liveDesk, /Copy run sheet/);
@@ -1200,6 +1205,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Copy pilot daily log/);
   assert.match(readme, /local_services_pilot_daily_log/);
   assert.match(readme, /weekly scorecard sync/);
+  assert.match(readme, /Day-one outcome capture gate/);
+  assert.match(readme, /Weekly scorecard sync gate/);
+  assert.match(readme, /manual_weekly_scorecard_sync_gate/);
   assert.match(readme, /Pilot week-one review/);
   assert.match(readme, /Open week-one review/);
   assert.match(readme, /Continue \/ stop decision/);
@@ -1465,6 +1473,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /Copy pilot daily log/);
   assert.match(localDevelopment, /local_services_pilot_daily_log/);
   assert.match(localDevelopment, /weekly scorecard sync/);
+  assert.match(localDevelopment, /Day-one outcome capture gate/);
+  assert.match(localDevelopment, /Weekly scorecard sync gate/);
+  assert.match(localDevelopment, /manual_weekly_scorecard_sync_gate/);
   assert.match(localDevelopment, /Pilot\s+week-one review/);
   assert.match(localDevelopment, /Open week-one review/);
   assert.match(localDevelopment, /Continue \/ stop decision/);
@@ -1716,6 +1727,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Copy pilot daily log/);
   assert.match(operatorGuide, /local_services_pilot_daily_log/);
   assert.match(operatorGuide, /weekly scorecard sync/);
+  assert.match(operatorGuide, /Day-one outcome capture\s+gate/);
+  assert.match(operatorGuide, /Weekly scorecard sync gate/);
+  assert.match(operatorGuide, /manual_weekly_scorecard_sync_gate/);
   assert.match(operatorGuide, /Pilot week-one\s+review/);
   assert.match(operatorGuide, /Open week-one review/);
   assert.match(operatorGuide, /Continue \/ stop decision/);
@@ -1954,6 +1968,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /Copy pilot daily log/);
   assert.match(simplificationPlan, /local_services_pilot_daily_log/);
   assert.match(simplificationPlan, /weekly scorecard sync/);
+  assert.match(simplificationPlan, /Day-one outcome capture gate/);
+  assert.match(simplificationPlan, /Weekly scorecard sync gate/);
+  assert.match(simplificationPlan, /manual_weekly_scorecard_sync_gate/);
   assert.match(simplificationPlan, /Pilot week-one\s+review/);
   assert.match(simplificationPlan, /Open week-one review/);
   assert.match(simplificationPlan, /Continue \/ stop decision/);
@@ -2202,6 +2219,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /Copy pilot daily log/);
   assert.match(gettingStarted, /local_services_pilot_daily_log/);
   assert.match(gettingStarted, /weekly scorecard sync/);
+  assert.match(gettingStarted, /Day-one outcome capture gate/);
+  assert.match(gettingStarted, /Weekly scorecard sync gate/);
+  assert.match(gettingStarted, /manual_weekly_scorecard_sync_gate/);
   assert.match(gettingStarted, /Pilot week-one review/);
   assert.match(gettingStarted, /Open week-one review/);
   assert.match(gettingStarted, /Continue \/ stop decision/);
@@ -2587,6 +2607,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /local_services_day_one_operator_run_sheet/);
   assert.match(localServicesSpec, /manual_day_one_operator_run_sheet/);
   assert.match(localServicesSpec, /day_one_run_sheet_outcome_capture/);
+  assert.match(localServicesSpec, /Day-one outcome capture gate/);
+  assert.match(localServicesSpec, /Weekly scorecard sync gate/);
+  assert.match(localServicesSpec, /manual_weekly_scorecard_sync_gate/);
   assert.match(localServicesSpec, /Open day-one recap/);
   assert.match(localServicesSpec, /Day-one recap/);
   assert.match(localServicesSpec, /Copy day-one recap/);
@@ -2907,6 +2930,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotScorecard, /Copy pilot workspace export/);
   assert.match(pilotScorecard, /Pilot metrics tracker/);
   assert.match(pilotScorecard, /Copy pilot metrics tracker/);
+  assert.match(pilotScorecard, /Weekly scorecard sync gate/);
+  assert.match(pilotScorecard, /manual_weekly_scorecard_sync_gate/);
   assert.match(pilotScorecard, /Open daily log/);
   assert.match(pilotScorecard, /Pilot daily log/);
   assert.match(pilotScorecard, /Daily capture fields/);
@@ -3057,6 +3082,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotRunbook, /Daily operating loop/);
   assert.match(pilotRunbook, /Copy pilot daily log/);
   assert.match(pilotRunbook, /local_services_pilot_daily_log/);
+  assert.match(pilotRunbook, /Weekly scorecard sync gate/);
+  assert.match(pilotRunbook, /manual_weekly_scorecard_sync_gate/);
   assert.match(pilotRunbook, /Open week-one review/);
   assert.match(pilotRunbook, /Pilot week-one review/);
   assert.match(pilotRunbook, /Continue \/ stop decision/);
@@ -3242,6 +3269,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(outreachExecutionPack, /Daily operating loop/);
   assert.match(outreachExecutionPack, /Copy pilot daily log/);
   assert.match(outreachExecutionPack, /local_services_pilot_daily_log/);
+  assert.match(outreachExecutionPack, /Weekly scorecard sync gate/);
+  assert.match(outreachExecutionPack, /manual_weekly_scorecard_sync_gate/);
   assert.match(outreachExecutionPack, /Open week-one review/);
   assert.match(outreachExecutionPack, /Pilot week-one review/);
   assert.match(outreachExecutionPack, /Continue \/ stop decision/);

@@ -797,7 +797,10 @@ sheet` adds `Day-one operator run sheet`, `Copy run sheet`,
 inbound, owner script, expected fields, approval pauses, metric capture, and
 manual result logging. `day_one_run_sheet_outcome_capture` binds that worksheet
 to `Open daily log` / `Pilot daily log` as the actual first-request outcome
-capture surface. `Open day-one recap` adds `Day-one recap`,
+capture surface. `Day-one outcome capture gate`, `Reset day-one outcome`,
+`Weekly scorecard sync gate`, and `manual_weekly_scorecard_sync_gate` keep the
+leading-category scorecard sync blocked until `firstRequestOutcomeByProspectKey`
+is recorded and metrics are review-ready. `Open day-one recap` adds `Day-one recap`,
 `Copy day-one recap`, `local_services_day_one_recap`, `manual_day_one_recap`,
 and `day_one_recap_to_week_one_review` as the reviewed first-day handoff into
 week-one review. They do not
@@ -1043,33 +1046,36 @@ Current shell readiness for P3:
    worksheet contract.
 44. `day_one_run_sheet_outcome_capture`, `Open daily log`, and
    `Pilot daily log` are visible as the run-sheet outcome capture contract.
-45. `Open day-one recap`, `Day-one recap`, `Copy day-one recap`,
+45. `Day-one outcome capture gate`, `Reset day-one outcome`,
+   `Weekly scorecard sync gate`, and `manual_weekly_scorecard_sync_gate` are
+   visible as the leading-category manual scorecard sync gate.
+46. `Open day-one recap`, `Day-one recap`, `Copy day-one recap`,
    `local_services_day_one_recap`, `manual_day_one_recap`, and
    `day_one_recap_to_week_one_review` are visible as the first-day recap to
    week-one review handoff contract.
-46. `contactProofByProspectKey` and `Founder proof recorded` are present in the
+47. `contactProofByProspectKey` and `Founder proof recorded` are present in the
    browser-local pilot workspace contract, without any external side effect.
-47. `local_services_first_contact_batch_review`, `founder_manual_validation_review`,
+48. `local_services_first_contact_batch_review`, `founder_manual_validation_review`,
    and `no_booking_created` are present in the first-batch review export
    contract.
-48. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
+49. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
    14-day pilot runbook from the same local frontend server.
-49. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
+50. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
    repo-owned first-contact execution pack from the same local frontend server.
-50. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
+51. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
    the repo-owned 90-second recording checklist from the same local frontend
    server.
-51. `?recording=90s`, `90-second recording mode`, `Recording path`, and
+52. `?recording=90s`, `90-second recording mode`, `Recording path`, and
    `90s recording` are visible as the demo-recording posture, and outreach
    tables plus scorecard controls are hidden during recording.
-52. `?setup=7min`, `7-minute setup wizard`, `Setup path`, and `7-min setup`
+53. `?setup=7min`, `7-minute setup wizard`, `Setup path`, and `7-min setup`
    are visible as the setup-first posture, and outreach tables plus scorecard
    controls are hidden while setup mode is active.
-53. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
+54. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
    `Saved setup state`, `Mark complete`, `Mark ready for pilot test`,
    `Ready for pilot test`, and `Reset setup progress` are visible as the
    stateful setup checklist contract.
-54. Actual external execution still remains outside the shell: recorded video,
+55. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path

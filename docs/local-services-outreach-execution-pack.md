@@ -280,11 +280,15 @@ Allowed reply statuses:
 21. Show `Open daily log`, `Pilot daily log`, `Daily capture fields`,
    `Daily operating loop`, `Copy pilot daily log`, and
    `local_services_pilot_daily_log`; explain that this is a manual daily note,
-   not analytics sync, CRM write, calendar booking, or customer send.
+   not analytics sync, CRM write, calendar booking, or customer send. Show
+   `Weekly scorecard sync gate` and `manual_weekly_scorecard_sync_gate`; the
+   scorecard remains blocked until `firstRequestOutcomeByProspectKey` is
+   recorded and metrics are review-ready.
 22. Show `Open week-one review`, `Pilot week-one review`,
    `Continue / stop decision`, `Copy week-one review`, and
    `local_services_pilot_week_one_review`; confirm it carries
    `First request outcome` / `firstRequestOutcomeByProspectKey`. Also show
+   `Weekly scorecard sync gate`, `manual_weekly_scorecard_sync_gate`,
    `Week-one owner decision state`, `Record continue`, `Record pause`,
    `Record stop`, and `weekOneOwnerDecisionByProspectKey`; explain that this is
    a manual owner review, not an autonomous pilot decision, CRM write, billing

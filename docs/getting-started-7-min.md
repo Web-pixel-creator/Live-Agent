@@ -212,6 +212,10 @@ then opens `Day-one operator run sheet`;
 sample inbound, owner script, expected fields, approval pauses, metric capture,
 and manual result logging only. `day_one_run_sheet_outcome_capture` then uses
 `Open daily log` as the actual first-request outcome capture surface. Use
+`Day-one outcome capture gate`, `Reset day-one outcome`,
+`Weekly scorecard sync gate`, and `manual_weekly_scorecard_sync_gate` to keep
+the leading-category weekly scorecard sync blocked until
+`firstRequestOutcomeByProspectKey` is recorded and metrics are review-ready. Use
 `Open day-one recap` after the first real run; `Day-one recap` and
 `Copy day-one recap` export `local_services_day_one_recap` /
 `manual_day_one_recap` and hand the result into

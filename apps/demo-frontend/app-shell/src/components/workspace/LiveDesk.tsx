@@ -3184,6 +3184,7 @@ function buildLocalServiceDayOneOperatorRunSheet(
   testCallProgress: string,
   metricStatus: LocalServicePilotMetricStatus,
   kickoffDecision: LocalServiceKickoffDecision,
+  firstRequestOutcome: LocalServiceFirstRequestOutcome,
 ): LocalServicePilotWorkspaceExport {
   const laneRows = rows.filter((row) => row.serviceId === actionLayer.serviceId);
   const targetRow =
@@ -3198,6 +3199,13 @@ function buildLocalServiceDayOneOperatorRunSheet(
   const targetStatus = targetRow?.statusLabel ?? "No company selected";
   const metricStatusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus];
   const kickoffDecisionLabel = LOCAL_SERVICE_KICKOFF_DECISION_LABELS[kickoffDecision];
+  const firstRequestOutcomeLabel = LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_LABELS[firstRequestOutcome];
+  const weeklyScorecardSyncGate =
+    firstRequestOutcome === "not_recorded"
+      ? "Blocked until first request outcome is recorded"
+      : metricStatus === "review_ready"
+        ? "Ready for manual weekly scorecard sync"
+        : "Outcome captured; metrics still need review-ready status";
   const runReadiness = (() => {
     if (kickoffDecision !== "ready") {
       return `${kickoffDecisionLabel}; run sheet blocked until kickoff is ready`;
@@ -3241,6 +3249,7 @@ function buildLocalServiceDayOneOperatorRunSheet(
   const guardrails = [
     "manual_day_one_operator_run_sheet",
     "day_one_run_sheet_outcome_capture",
+    "manual_weekly_scorecard_sync_gate",
     "manual_day_one_run_only",
     "no_phone_channel_activation",
     "no_telegram_or_whatsapp_activation",
@@ -3254,6 +3263,8 @@ function buildLocalServiceDayOneOperatorRunSheet(
     `Target company: ${targetCompany}`,
     `Readiness state: ${runReadiness}`,
     `Kickoff decision: ${kickoffDecisionLabel}`,
+    `First request outcome after run: ${firstRequestOutcomeLabel}`,
+    `Weekly scorecard sync gate: ${weeklyScorecardSyncGate}`,
     `Proof reviewed: ${proofProgress}`,
     `Setup ready: ${setupReady ? "yes" : "no"}`,
     `Dry run passed: ${testCallPassed ? "yes" : "no"} (${testCallProgress})`,
@@ -3267,6 +3278,10 @@ function buildLocalServiceDayOneOperatorRunSheet(
     `Run readiness: ${runReadiness}`,
     `Kickoff decision: ${kickoffDecisionLabel}`,
     "Kickoff decision state key: kickoffDecisionByService",
+    `First request outcome after run: ${firstRequestOutcomeLabel}`,
+    "Outcome state key: firstRequestOutcomeByProspectKey",
+    `Weekly scorecard sync gate: ${weeklyScorecardSyncGate}`,
+    "Weekly sync contract: manual_weekly_scorecard_sync_gate",
     `Target company: ${targetCompany}`,
     `Current status: ${targetStatus}`,
     `Category proof: ${score ? `${score.signalLabel}; ${score.proofSummary}` : "No category score yet"}`,
@@ -3309,6 +3324,11 @@ function buildLocalServiceDayOneOperatorRunSheet(
       kickoff_decision: kickoffDecision,
       kickoff_decision_label: kickoffDecisionLabel,
       kickoff_decision_state_key: "kickoffDecisionByService",
+      first_request_outcome: firstRequestOutcome,
+      first_request_outcome_label: firstRequestOutcomeLabel,
+      outcome_state_key: "firstRequestOutcomeByProspectKey",
+      weekly_scorecard_sync_gate: weeklyScorecardSyncGate,
+      weekly_scorecard_sync_contract: "manual_weekly_scorecard_sync_gate",
       target_company: targetRow
         ? {
             key: targetRow.key,
@@ -3361,6 +3381,8 @@ function buildLocalServiceDayOneOperatorRunSheet(
     rows: [
       { label: "Run readiness", value: runReadiness },
       { label: "Kickoff decision", value: kickoffDecisionLabel },
+      { label: "First request outcome", value: firstRequestOutcomeLabel },
+      { label: "Weekly scorecard sync gate", value: weeklyScorecardSyncGate },
       { label: "Service", value: actionLayer.serviceTitle },
       { label: "Target company", value: targetCompany },
       { label: "Current status", value: targetStatus },
@@ -3647,6 +3669,12 @@ function buildLocalServicePilotDailyLogExport(
   const statusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[status];
   const firstRequestOutcomeLabel = LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_LABELS[firstRequestOutcome];
   const prospectLabel = prospect ? prospect.company : "No selected company";
+  const weeklyScorecardSyncGate =
+    firstRequestOutcome === "not_recorded"
+      ? "Blocked until first request outcome is recorded"
+      : status === "review_ready"
+        ? "Ready for manual weekly scorecard sync"
+        : "Outcome captured; metrics still need review-ready status";
   const dailyFields = [
     {
       label: "Inbound requests",
@@ -3700,6 +3728,8 @@ function buildLocalServicePilotDailyLogExport(
     `Metric status: ${statusLabel}`,
     `First request outcome: ${firstRequestOutcomeLabel}`,
     `Outcome state key: firstRequestOutcomeByProspectKey`,
+    `Weekly scorecard sync gate: ${weeklyScorecardSyncGate}`,
+    "Weekly sync contract: manual_weekly_scorecard_sync_gate",
     "",
     "Daily capture fields:",
     ...fieldLines,
@@ -3725,10 +3755,13 @@ function buildLocalServicePilotDailyLogExport(
       first_request_outcome: firstRequestOutcome,
       first_request_outcome_label: firstRequestOutcomeLabel,
       outcome_state_key: "firstRequestOutcomeByProspectKey",
+      weekly_scorecard_sync_gate: weeklyScorecardSyncGate,
+      weekly_scorecard_sync_contract: "manual_weekly_scorecard_sync_gate",
       daily_capture_fields: dailyFields,
       guardrails: [
         "manual_daily_capture",
         "manual_first_request_outcome_note",
+        "manual_weekly_scorecard_sync_gate",
         "no_external_analytics_sync",
         "no_crm_write",
         "no_calendar_booking_created",
@@ -3760,6 +3793,7 @@ function buildLocalServicePilotDailyLogExport(
       { label: "Pilot status", value: pilotStatusLabel },
       { label: "Metric status", value: statusLabel },
       { label: "First request outcome", value: firstRequestOutcomeLabel },
+      { label: "Weekly scorecard sync gate", value: weeklyScorecardSyncGate },
       { label: "Capture cadence", value: "once per pilot day" },
       { label: "Fields", value: dailyFields.map((field) => field.label).join(", ") },
       { label: "Guardrail", value: "Manual daily capture, no analytics sync, no CRM write" },
@@ -3767,6 +3801,7 @@ function buildLocalServicePilotDailyLogExport(
     checklist: [
       "Count only real pilot activity from the current day.",
       "Record the first request outcome before weekly scorecard sync.",
+      "Keep weekly scorecard sync blocked until outcome is recorded and metrics are review-ready.",
       "Separate captured requests from confirmed bookings or dispatches.",
       "Write one operator note about what still required rewriting.",
       "Sync reviewed numbers manually into the scorecard or spreadsheet.",
@@ -3789,6 +3824,12 @@ function buildLocalServicePilotWeekOneReviewExport(
   const firstRequestOutcomeLabel = LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_LABELS[firstRequestOutcome];
   const ownerDecisionLabel = LOCAL_SERVICE_WEEK_ONE_OWNER_DECISION_LABELS[ownerDecision];
   const prospectLabel = prospect ? `${prospect.company} - ${prospect.segment}` : "No prospect selected";
+  const weeklyScorecardSyncGate =
+    firstRequestOutcome === "not_recorded"
+      ? "Blocked until first request outcome is recorded"
+      : metricStatus === "review_ready"
+        ? "Ready for manual weekly scorecard sync"
+        : "Outcome captured; metrics still need review-ready status";
   const latestRelevantActivity =
     activityLog.find(
       (event) =>
@@ -3850,6 +3891,10 @@ function buildLocalServicePilotWeekOneReviewExport(
       value: "day_one_recap_to_week_one_review",
     },
     {
+      label: "Weekly scorecard sync gate",
+      value: weeklyScorecardSyncGate,
+    },
+    {
       label: "Latest manual signal",
       value: latestRelevantActivityLabel,
     },
@@ -3874,6 +3919,8 @@ function buildLocalServicePilotWeekOneReviewExport(
     `Owner decision state key: weekOneOwnerDecisionByProspectKey`,
     "Export scope: manual week-one decision pack",
     `Decision readiness: ${decisionReadinessLabel}`,
+    `Weekly scorecard sync gate: ${weeklyScorecardSyncGate}`,
+    "Weekly sync contract: manual_weekly_scorecard_sync_gate",
     `Day-one recap handoff: ${dayOneRecapHandoffStatus}`,
     `Owner decision status: ${ownerDecisionStatus}`,
     "",
@@ -3914,6 +3961,8 @@ function buildLocalServicePilotWeekOneReviewExport(
       owner_decision_state_key: "weekOneOwnerDecisionByProspectKey",
       owner_decision_status: ownerDecisionStatus,
       decision_readiness: decisionReadinessLabel,
+      weekly_scorecard_sync_gate: weeklyScorecardSyncGate,
+      weekly_scorecard_sync_contract: "manual_weekly_scorecard_sync_gate",
       day_one_recap_handoff: {
         source_surface: "local_services_day_one_recap",
         target_surface: "local_services_pilot_week_one_review",
@@ -3938,6 +3987,7 @@ function buildLocalServicePilotWeekOneReviewExport(
       guardrails: [
         "manual_week_one_review",
         "manual_first_request_outcome_review",
+        "manual_weekly_scorecard_sync_gate",
         "day_one_recap_to_week_one_review",
         "week_one_owner_decision_to_evidence_pack",
         "owner_review_required",
@@ -3975,6 +4025,7 @@ function buildLocalServicePilotWeekOneReviewExport(
       { label: "First request outcome", value: firstRequestOutcomeLabel },
       { label: "Owner decision", value: ownerDecisionLabel },
       { label: "Decision readiness", value: decisionReadinessLabel },
+      { label: "Weekly scorecard sync gate", value: weeklyScorecardSyncGate },
       { label: "Owner-ready summary", value: ownerReadySummary.map((field) => field.label).join(", ") },
       { label: "Day-one recap handoff", value: "day_one_recap_to_week_one_review" },
       { label: "Evidence pack handoff", value: "week_one_owner_decision_to_evidence_pack" },
@@ -3983,6 +4034,7 @@ function buildLocalServicePilotWeekOneReviewExport(
     checklist: [
       "Confirm at least one real pilot day was logged before using this review.",
       "Confirm the first request outcome is recorded before choosing continue, pause, or stop.",
+      "Confirm manual_weekly_scorecard_sync_gate is ready before treating the scorecard as week-one reviewed.",
       "Review Owner-ready summary before sharing the week-one decision with the owner.",
       "Confirm day_one_recap_to_week_one_review came from a reviewed day-one recap.",
       "Record Continue, Pause, or Stop in weekOneOwnerDecisionByProspectKey before copying the evidence pack.",
@@ -4007,6 +4059,12 @@ function buildLocalServicePilotEvidencePackExport(
   const firstRequestOutcomeLabel = LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_LABELS[firstRequestOutcome];
   const ownerDecisionLabel = LOCAL_SERVICE_WEEK_ONE_OWNER_DECISION_LABELS[ownerDecision];
   const prospectLabel = prospect ? `${prospect.company} - ${prospect.segment}` : "No prospect selected";
+  const weeklyScorecardSyncGate =
+    firstRequestOutcome === "not_recorded"
+      ? "Blocked until first request outcome is recorded"
+      : metricStatus === "review_ready"
+        ? "Ready for manual weekly scorecard sync"
+        : "Outcome captured; metrics still need review-ready status";
   const evidenceItems = [
     {
       label: "Before / after intake",
@@ -4058,6 +4116,8 @@ function buildLocalServicePilotEvidencePackExport(
     `Outcome state key: firstRequestOutcomeByProspectKey`,
     `Week-one owner decision: ${ownerDecisionLabel}`,
     `Owner decision state key: weekOneOwnerDecisionByProspectKey`,
+    `Weekly scorecard sync gate: ${weeklyScorecardSyncGate}`,
+    "Weekly sync contract: manual_weekly_scorecard_sync_gate",
     "Week-one handoff: week_one_owner_decision_to_evidence_pack",
     "Export scope: manual week-two evidence pack",
     "",
@@ -4092,6 +4152,8 @@ function buildLocalServicePilotEvidencePackExport(
       owner_decision: ownerDecision,
       owner_decision_label: ownerDecisionLabel,
       owner_decision_state_key: "weekOneOwnerDecisionByProspectKey",
+      weekly_scorecard_sync_gate: weeklyScorecardSyncGate,
+      weekly_scorecard_sync_contract: "manual_weekly_scorecard_sync_gate",
       week_one_review_handoff: {
         source_surface: "local_services_pilot_week_one_review",
         target_surface: "local_services_pilot_evidence_pack",
@@ -4104,6 +4166,7 @@ function buildLocalServicePilotEvidencePackExport(
       guardrails: [
         "manual_week_two_evidence_pack",
         "manual_first_request_outcome_evidence",
+        "manual_weekly_scorecard_sync_gate",
         "week_one_owner_decision_to_evidence_pack",
         "owner_decision_manual_only",
         "no_private_customer_data_in_public_docs",
@@ -4137,6 +4200,7 @@ function buildLocalServicePilotEvidencePackExport(
       { label: "Company", value: prospectLabel },
       { label: "First request outcome", value: firstRequestOutcomeLabel },
       { label: "Week-one owner decision", value: ownerDecisionLabel },
+      { label: "Weekly scorecard sync gate", value: weeklyScorecardSyncGate },
       { label: "Week-one handoff", value: "week_one_owner_decision_to_evidence_pack" },
       { label: "Evidence items", value: String(evidenceItems.length) },
       { label: "Decision options", value: weekTwoOptions.join(", ") },
@@ -5692,6 +5756,24 @@ const LocalServicesDispatchDemoPanel = ({
   const leadingCategoryFounderRows = founderContactRows.filter(
     (row) => row.serviceId === leadingCategoryActionLayer.serviceId,
   );
+  const leadingCategoryOutcomeTargetRow =
+    leadingCategoryFounderRows.find((row) => row.pilotCandidate) ??
+    leadingCategoryFounderRows.find((row) => row.demoBooked) ??
+    leadingCategoryFounderRows.find((row) => row.discoveryCallCompleted) ??
+    leadingCategoryFounderRows.find((row) => row.status === "reply_received") ??
+    leadingCategoryFounderRows[0];
+  const leadingCategoryFirstRequestOutcome = leadingCategoryOutcomeTargetRow
+    ? pilotWorkspaceState.firstRequestOutcomeByProspectKey[leadingCategoryOutcomeTargetRow.key] ?? "not_recorded"
+    : "not_recorded";
+  const leadingCategoryFirstRequestOutcomeLabel =
+    LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_LABELS[leadingCategoryFirstRequestOutcome];
+  const leadingCategoryWeeklyScorecardSyncGate = !leadingCategoryOutcomeTargetRow
+    ? "Blocked until a day-one target is selected"
+    : leadingCategoryFirstRequestOutcome === "not_recorded"
+      ? "Blocked until first request outcome is recorded"
+      : leadingCategoryMetricStatus === "review_ready"
+        ? "Ready for manual weekly scorecard sync"
+        : "Outcome captured; metrics still need review-ready status";
   const recordedLeadingCategoryWeekOneOwnerDecision =
     leadingCategoryFounderRows
       .map((row) => pilotWorkspaceState.weekOneOwnerDecisionByProspectKey[row.key] ?? "not_recorded")
@@ -5792,6 +5874,9 @@ const LocalServicesDispatchDemoPanel = ({
     `Readiness action plan: ${leadingCategoryReadinessActionPlan.primarySurface}`,
     `Readiness primary action: ${leadingCategoryReadinessActionPlan.primaryAction}`,
     `Readiness operator script: ${leadingCategoryReadinessActionPlan.operatorScript}`,
+    `Day-one outcome target: ${leadingCategoryOutcomeTargetRow ? leadingCategoryOutcomeTargetRow.prospect.company : "none"}`,
+    `Day-one outcome capture: ${leadingCategoryFirstRequestOutcomeLabel}`,
+    `Weekly scorecard sync gate: ${leadingCategoryWeeklyScorecardSyncGate}`,
     "No category expansion without proof.",
     `Manual sends logged: ${founderContactCounts.manualMessageSent}/10`,
     `Replies or clear rejections: ${founderContactCounts.repliesOrRejections}/3`,
@@ -5914,6 +5999,7 @@ const LocalServicesDispatchDemoPanel = ({
     leadingCategoryTestCallProgress,
     leadingCategoryMetricStatus,
     leadingCategoryKickoffDecision,
+    leadingCategoryFirstRequestOutcome,
   );
   const dayOneRecapExport = buildLocalServiceDayOneRecapExport(
     leadingCategoryTemplate,
@@ -5953,15 +6039,11 @@ const LocalServicesDispatchDemoPanel = ({
         currentPilotStatus,
         currentMetricStatus,
         currentFirstRequestOutcome,
-        currentWeekOneOwnerDecision,
-        pilotWorkspaceState.activityLog,
       ),
     [
       currentFirstRequestOutcome,
-      currentWeekOneOwnerDecision,
       currentMetricStatus,
       currentPilotStatus,
-      pilotWorkspaceState.activityLog,
       selectedOutreachProspect,
       selectedTemplate,
     ],
@@ -5975,12 +6057,14 @@ const LocalServicesDispatchDemoPanel = ({
         currentMetricStatus,
         currentFirstRequestOutcome,
         currentWeekOneOwnerDecision,
+        pilotWorkspaceState.activityLog,
       ),
     [
       currentFirstRequestOutcome,
       currentMetricStatus,
       currentPilotStatus,
       currentWeekOneOwnerDecision,
+      pilotWorkspaceState.activityLog,
       selectedOutreachProspect,
       selectedTemplate,
     ],
@@ -5993,8 +6077,16 @@ const LocalServicesDispatchDemoPanel = ({
         currentPilotStatus,
         currentMetricStatus,
         currentFirstRequestOutcome,
+        currentWeekOneOwnerDecision,
       ),
-    [currentFirstRequestOutcome, currentMetricStatus, currentPilotStatus, selectedOutreachProspect, selectedTemplate],
+    [
+      currentFirstRequestOutcome,
+      currentMetricStatus,
+      currentPilotStatus,
+      currentWeekOneOwnerDecision,
+      selectedOutreachProspect,
+      selectedTemplate,
+    ],
   );
   const pilotMessagePreview = useMemo(
     () => buildLocalServicePilotMessagePreview(selectedTemplate, selectedOutreachProspect, currentPilotStatus),
@@ -6306,6 +6398,18 @@ const LocalServicesDispatchDemoPanel = ({
         serviceId: selectedTemplate.id,
         serviceTitle: selectedTemplate.title,
         prospect: selectedOutreachProspect,
+      },
+      outcome,
+    );
+  };
+  const updateLeadingCategoryFirstRequestOutcome = (outcome: LocalServiceFirstRequestOutcome) => {
+    if (!leadingCategoryOutcomeTargetRow) return;
+    updateFirstRequestOutcomeForTarget(
+      {
+        key: leadingCategoryOutcomeTargetRow.key,
+        serviceId: leadingCategoryOutcomeTargetRow.serviceId,
+        serviceTitle: leadingCategoryOutcomeTargetRow.serviceTitle,
+        prospect: leadingCategoryOutcomeTargetRow.prospect,
       },
       outcome,
     );
@@ -7815,6 +7919,65 @@ const LocalServicesDispatchDemoPanel = ({
                           </Button>
                           <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 text-[10px] text-muted-foreground">
                             kickoffDecisionByService
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-3 rounded-md border border-border/50 bg-card/25 px-3 py-3">
+                        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                          <div className="min-w-0">
+                            <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                              Day-one outcome capture gate
+                            </div>
+                            <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                              Records the first operator-supervised request result for the leading category target
+                              before manual weekly scorecard sync. This writes only `firstRequestOutcomeByProspectKey`.
+                            </p>
+                          </div>
+                          <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                            {leadingCategoryFirstRequestOutcomeLabel}
+                          </span>
+                        </div>
+                        <div className="mt-3 grid gap-2 text-[11px] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                          <div className="rounded-[5px] bg-background/35 px-2 py-1.5">
+                            <span className="text-muted-foreground">Target</span>
+                            <span className="ml-2 font-medium text-foreground">
+                              {leadingCategoryOutcomeTargetRow
+                                ? leadingCategoryOutcomeTargetRow.prospect.company
+                                : "No day-one target selected"}
+                            </span>
+                          </div>
+                          <div className="rounded-[5px] bg-background/35 px-2 py-1.5">
+                            <span className="text-muted-foreground">Weekly scorecard sync gate</span>
+                            <span className="ml-2 font-medium text-foreground">{leadingCategoryWeeklyScorecardSyncGate}</span>
+                          </div>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_ACTIONS.map((action) => (
+                            <Button
+                              key={action.outcome}
+                              size="sm"
+                              variant={leadingCategoryFirstRequestOutcome === action.outcome ? "default" : "secondary"}
+                              onClick={() => updateLeadingCategoryFirstRequestOutcome(action.outcome)}
+                              disabled={!leadingCategoryOutcomeTargetRow}
+                              className="h-7"
+                            >
+                              {action.label}
+                            </Button>
+                          ))}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => updateLeadingCategoryFirstRequestOutcome("not_recorded")}
+                            disabled={!leadingCategoryOutcomeTargetRow}
+                            className="h-7"
+                          >
+                            Reset day-one outcome
+                          </Button>
+                          <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 text-[10px] text-muted-foreground">
+                            firstRequestOutcomeByProspectKey
+                          </span>
+                          <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 text-[10px] text-muted-foreground">
+                            manual_weekly_scorecard_sync_gate
                           </span>
                         </div>
                       </div>

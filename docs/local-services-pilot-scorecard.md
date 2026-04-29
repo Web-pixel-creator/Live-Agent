@@ -194,7 +194,9 @@ Use it at the end of each pilot day to review `Daily capture fields`,
 `Daily operating loop`, and `Copy pilot daily log`. The payload is
 `local_services_pilot_daily_log`; it now carries the selected company, pilot
 status, `First request outcome`, and `firstRequestOutcomeByProspectKey` before
-weekly scorecard sync. It does not sync analytics, update CRM, create calendar
+weekly scorecard sync. It also exposes `Weekly scorecard sync gate` /
+`manual_weekly_scorecard_sync_gate`, which stays blocked until the first outcome
+is recorded and metrics are review-ready. It does not sync analytics, update CRM, create calendar
 bookings, send customer messages, or mutate this Markdown file automatically.
 
 `Open week-one review` opens the `Pilot week-one review` drawer for the selected
@@ -203,6 +205,7 @@ service lane and company. Use it after real week-one activity exists to review
 `local_services_pilot_week_one_review`; it now carries `First request outcome`
 and `firstRequestOutcomeByProspectKey` into the owner-reviewed continue, pause,
 or stop packet. It also shows `Owner-ready summary`, `Decision readiness`,
+`Weekly scorecard sync gate`, `manual_weekly_scorecard_sync_gate`,
 `Latest manual signal`, and `day_one_recap_to_week_one_review` so the owner can
 read the week-one packet without opening raw activity logs. `Week-one owner
 decision state`, `Record continue`, `Record pause`, `Record stop`, and
