@@ -201,6 +201,10 @@ the reviewed manual copy packet; `Copy weekly sync checklist` exports
 `local_services_weekly_scorecard_sync_checklist` before the human updates the
 private tracker. It does not sync analytics, update CRM, create calendar
 bookings, send customer messages, or mutate this Markdown file automatically.
+After the private tracker is updated, `Record weekly sync reviewed` writes only
+the browser-local `weeklyScorecardSyncReviewedByService` proof. Use
+`Reset weekly sync review` if the outcome or metrics changed before the next
+manual copy.
 
 `Open week-one review` opens the `Pilot week-one review` drawer for the selected
 service lane and company. Use it after real week-one activity exists to review

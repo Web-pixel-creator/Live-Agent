@@ -582,7 +582,8 @@ type LocalServicePilotActivityKind =
   | "outcome_change"
   | "owner_decision"
   | "proposal_approval"
-  | "kickoff_decision";
+  | "kickoff_decision"
+  | "weekly_sync_review";
 type LocalServicePilotActivityEvent = {
   id: string;
   kind: LocalServicePilotActivityKind;
@@ -602,6 +603,7 @@ type LocalServicePilotWorkspaceState = {
   weekOneOwnerDecisionByProspectKey: Record<string, LocalServiceWeekOneOwnerDecision>;
   proposalApprovalByService: Record<string, LocalServiceProposalApprovalDecision>;
   kickoffDecisionByService: Record<string, LocalServiceKickoffDecision>;
+  weeklyScorecardSyncReviewedByService: Record<string, boolean>;
   metricStatusByService: Record<string, LocalServicePilotMetricStatus>;
   setupStepCompletionByService: Record<string, LocalServiceSetupStepCompletion>;
   setupReadyByService: Record<string, boolean>;
@@ -1145,6 +1147,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
     weekOneOwnerDecisionByProspectKey: {},
     proposalApprovalByService: {},
     kickoffDecisionByService: {},
+    weeklyScorecardSyncReviewedByService: {},
     metricStatusByService: {},
     setupStepCompletionByService: {},
     setupReadyByService: {},
@@ -1173,6 +1176,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
       ),
       proposalApprovalByService: readProposalApprovalDecisionRecord(parsed.proposalApprovalByService),
       kickoffDecisionByService: readKickoffDecisionRecord(parsed.kickoffDecisionByService),
+      weeklyScorecardSyncReviewedByService: readBooleanRecord(parsed.weeklyScorecardSyncReviewedByService),
       metricStatusByService: readPilotMetricStatusRecord(parsed.metricStatusByService),
       setupStepCompletionByService: readSetupStepCompletionByService(parsed.setupStepCompletionByService),
       setupReadyByService: readBooleanRecord(parsed.setupReadyByService),
@@ -3598,6 +3602,7 @@ function buildLocalServiceWeeklyScorecardSyncChecklist(
   readiness: LocalServiceLeadingCategoryPilotReadiness,
   firstRequestOutcomes: Record<string, LocalServiceFirstRequestOutcome>,
   metricStatus: LocalServicePilotMetricStatus,
+  weeklySyncReviewed: boolean,
   activityLog: LocalServicePilotActivityEvent[],
 ): LocalServicePilotWorkspaceExport {
   const laneRows = rows.filter((row) => row.serviceId === actionLayer.serviceId);
@@ -3644,6 +3649,11 @@ function buildLocalServiceWeeklyScorecardSyncChecklist(
       source: "metricStatusByService",
     },
     {
+      label: "Weekly sync reviewed",
+      value: weeklySyncReviewed ? "Reviewed in browser-local state" : "Not reviewed yet",
+      source: "weeklyScorecardSyncReviewedByService",
+    },
+    {
       label: "Latest manual signal",
       value: latestLaneActivityLabel,
       source: "local_services_manual_activity_log",
@@ -3658,6 +3668,7 @@ function buildLocalServiceWeeklyScorecardSyncChecklist(
     "manual_weekly_scorecard_sync_gate",
     "manual_weekly_scorecard_sync_checklist",
     "firstRequestOutcomeByProspectKey_required",
+    "weeklyScorecardSyncReviewedByService",
     "metrics_review_ready_required",
     "manual_scorecard_sync_required",
     "no_markdown_scorecard_mutation",
@@ -3677,6 +3688,8 @@ function buildLocalServiceWeeklyScorecardSyncChecklist(
     `First request outcome: ${firstRequestOutcomeLabel}`,
     "Outcome state key: firstRequestOutcomeByProspectKey",
     `Metric status: ${metricStatusLabel}`,
+    `Weekly sync reviewed: ${weeklySyncReviewed ? "yes" : "no"}`,
+    "Weekly sync review state key: weeklyScorecardSyncReviewedByService",
     `Latest manual signal: ${latestLaneActivityLabel}`,
     "",
     "Sync fields:",
@@ -3715,6 +3728,8 @@ function buildLocalServiceWeeklyScorecardSyncChecklist(
       outcome_state_key: "firstRequestOutcomeByProspectKey",
       metric_status: metricStatus,
       metric_status_label: metricStatusLabel,
+      weekly_scorecard_sync_reviewed: weeklySyncReviewed,
+      weekly_scorecard_sync_review_state_key: "weeklyScorecardSyncReviewedByService",
       weekly_scorecard_sync_gate: weeklyScorecardSyncGate,
       weekly_scorecard_sync_contract: "manual_weekly_scorecard_sync_gate",
       sync_fields: syncFields,
@@ -3756,6 +3771,7 @@ function buildLocalServiceWeeklyScorecardSyncChecklist(
       { label: "Target company", value: targetCompany },
       { label: "First request outcome", value: firstRequestOutcomeLabel },
       { label: "Metric status", value: metricStatusLabel },
+      { label: "Weekly sync reviewed", value: weeklySyncReviewed ? "Recorded" : "Not recorded" },
       { label: "Latest manual signal", value: latestLaneActivityLabel },
       { label: "Contract", value: "manual_weekly_scorecard_sync_gate" },
       { label: "Guardrail", value: "Manual scorecard copy only; no external side effects" },
@@ -3764,6 +3780,7 @@ function buildLocalServiceWeeklyScorecardSyncChecklist(
       "Confirm the selected target matches the private pilot scorecard row.",
       "Confirm firstRequestOutcomeByProspectKey is recorded before copying.",
       "Confirm metrics are review-ready before treating the week as synced.",
+      "Record weeklyScorecardSyncReviewedByService only after the private scorecard has been manually updated.",
       "Copy day-one recap and daily log references into the private tracker manually.",
       "Do not mutate Markdown docs, CRM, analytics, billing, bookings, or customer messages.",
     ],
@@ -5965,6 +5982,12 @@ const LocalServicesDispatchDemoPanel = ({
       : leadingCategoryMetricStatus === "review_ready"
         ? "Ready for manual weekly scorecard sync"
         : "Outcome captured; metrics still need review-ready status";
+  const leadingCategoryWeeklyScorecardSyncReviewed =
+    pilotWorkspaceState.weeklyScorecardSyncReviewedByService[leadingCategoryActionLayer.serviceId] === true;
+  const canRecordLeadingCategoryWeeklySync =
+    Boolean(leadingCategoryOutcomeTargetRow) &&
+    leadingCategoryFirstRequestOutcome !== "not_recorded" &&
+    leadingCategoryMetricStatus === "review_ready";
   const recordedLeadingCategoryWeekOneOwnerDecision =
     leadingCategoryFounderRows
       .map((row) => pilotWorkspaceState.weekOneOwnerDecisionByProspectKey[row.key] ?? "not_recorded")
@@ -6214,6 +6237,7 @@ const LocalServicesDispatchDemoPanel = ({
     leadingCategoryPilotReadiness,
     pilotWorkspaceState.firstRequestOutcomeByProspectKey,
     leadingCategoryMetricStatus,
+    leadingCategoryWeeklyScorecardSyncReviewed,
     pilotWorkspaceState.activityLog,
   );
   const filteredPilotFunnelRows = useMemo(
@@ -6583,6 +6607,10 @@ const LocalServicesDispatchDemoPanel = ({
         ...prev.firstRequestOutcomeByProspectKey,
         [target.key]: outcome,
       },
+      weeklyScorecardSyncReviewedByService: {
+        ...prev.weeklyScorecardSyncReviewedByService,
+        [target.serviceId]: false,
+      },
       activityLog: appendLocalServicePilotActivity(prev.activityLog, {
         kind: "outcome_change",
         label: "First request outcome recorded",
@@ -6674,6 +6702,23 @@ const LocalServicesDispatchDemoPanel = ({
     }));
   };
 
+  const updateWeeklyScorecardSyncReviewed = (reviewed: boolean) => {
+    setPilotWorkspaceState((prev) => ({
+      ...prev,
+      weeklyScorecardSyncReviewedByService: {
+        ...prev.weeklyScorecardSyncReviewedByService,
+        [leadingCategoryActionLayer.serviceId]: reviewed,
+      },
+      activityLog: appendLocalServicePilotActivity(prev.activityLog, {
+        kind: "weekly_sync_review",
+        label: "Weekly scorecard sync reviewed",
+        value: reviewed ? "Reviewed for private scorecard sync" : "Review reset",
+        serviceId: leadingCategoryActionLayer.serviceId,
+        serviceTitle: leadingCategoryActionLayer.serviceTitle,
+      }),
+    }));
+  };
+
   const updatePilotMetricStatus = (status: LocalServicePilotMetricStatus) => {
     const nextMetricLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[status];
     setPilotWorkspaceState((prev) => ({
@@ -6681,6 +6726,10 @@ const LocalServicesDispatchDemoPanel = ({
       metricStatusByService: {
         ...prev.metricStatusByService,
         [selectedTemplate.id]: status,
+      },
+      weeklyScorecardSyncReviewedByService: {
+        ...prev.weeklyScorecardSyncReviewedByService,
+        [selectedTemplate.id]: false,
       },
       activityLog: appendLocalServicePilotActivity(prev.activityLog, {
         kind: "metric_change",
@@ -8140,7 +8189,7 @@ const LocalServicesDispatchDemoPanel = ({
                             {leadingCategoryFirstRequestOutcomeLabel}
                           </span>
                         </div>
-                        <div className="mt-3 grid gap-2 text-[11px] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                        <div className="mt-3 grid gap-2 text-[11px] lg:grid-cols-3">
                           <div className="rounded-[5px] bg-background/35 px-2 py-1.5">
                             <span className="text-muted-foreground">Target</span>
                             <span className="ml-2 font-medium text-foreground">
@@ -8152,6 +8201,12 @@ const LocalServicesDispatchDemoPanel = ({
                           <div className="rounded-[5px] bg-background/35 px-2 py-1.5">
                             <span className="text-muted-foreground">Weekly scorecard sync gate</span>
                             <span className="ml-2 font-medium text-foreground">{leadingCategoryWeeklyScorecardSyncGate}</span>
+                          </div>
+                          <div className="rounded-[5px] bg-background/35 px-2 py-1.5">
+                            <span className="text-muted-foreground">Weekly sync reviewed</span>
+                            <span className="ml-2 font-medium text-foreground">
+                              {leadingCategoryWeeklyScorecardSyncReviewed ? "Recorded" : "Not recorded"}
+                            </span>
                           </div>
                         </div>
                         <div className="mt-3 flex flex-wrap gap-2">
@@ -8188,11 +8243,32 @@ const LocalServicesDispatchDemoPanel = ({
                             <ClipboardCheck className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
                             Open weekly sync checklist
                           </Button>
+                          <Button
+                            size="sm"
+                            variant={leadingCategoryWeeklyScorecardSyncReviewed ? "default" : "secondary"}
+                            onClick={() => updateWeeklyScorecardSyncReviewed(true)}
+                            disabled={!canRecordLeadingCategoryWeeklySync}
+                            className="h-7"
+                          >
+                            <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                            Record weekly sync reviewed
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => updateWeeklyScorecardSyncReviewed(false)}
+                            className="h-7"
+                          >
+                            Reset weekly sync review
+                          </Button>
                           <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 text-[10px] text-muted-foreground">
                             firstRequestOutcomeByProspectKey
                           </span>
                           <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 text-[10px] text-muted-foreground">
                             manual_weekly_scorecard_sync_gate
+                          </span>
+                          <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 text-[10px] text-muted-foreground">
+                            weeklyScorecardSyncReviewedByService
                           </span>
                         </div>
                       </div>

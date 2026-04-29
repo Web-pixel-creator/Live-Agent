@@ -286,7 +286,9 @@ Allowed reply statuses:
    recorded and metrics are review-ready. Show `Open weekly sync checklist`,
    `Weekly scorecard sync checklist`, `Copy weekly sync checklist`, and
    `local_services_weekly_scorecard_sync_checklist` as the reviewed manual copy
-   packet for the private tracker.
+   packet for the private tracker. Show `Record weekly sync reviewed`,
+   `Reset weekly sync review`, and `weeklyScorecardSyncReviewedByService` as
+   browser-local proof that the private tracker was updated.
 22. Show `Open week-one review`, `Pilot week-one review`,
    `Continue / stop decision`, `Copy week-one review`, and
    `local_services_pilot_week_one_review`; confirm it carries

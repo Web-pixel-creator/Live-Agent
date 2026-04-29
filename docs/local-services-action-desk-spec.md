@@ -804,7 +804,9 @@ is recorded and metrics are review-ready. `Open weekly sync checklist`,
 `Weekly scorecard sync checklist`, `Copy weekly sync checklist`,
 `local_services_weekly_scorecard_sync_checklist`, and
 `manual_weekly_scorecard_sync_checklist` turn that gate into a reviewed manual
-copy packet for the private scorecard. `Open day-one recap` adds `Day-one recap`,
+copy packet for the private scorecard. `Record weekly sync reviewed`,
+`Reset weekly sync review`, and `weeklyScorecardSyncReviewedByService` store
+only browser-local proof that the private tracker was updated. `Open day-one recap` adds `Day-one recap`,
 `Copy day-one recap`, `local_services_day_one_recap`, `manual_day_one_recap`,
 and `day_one_recap_to_week_one_review` as the reviewed first-day handoff into
 week-one review. They do not
@@ -1057,33 +1059,36 @@ Current shell readiness for P3:
    `Copy weekly sync checklist`, `local_services_weekly_scorecard_sync_checklist`,
    and `manual_weekly_scorecard_sync_checklist` are visible as the reviewed
    manual copy packet before private scorecard sync.
-47. `Open day-one recap`, `Day-one recap`, `Copy day-one recap`,
+47. `Record weekly sync reviewed`, `Reset weekly sync review`, and
+   `weeklyScorecardSyncReviewedByService` are visible as the browser-local
+   private scorecard copy proof.
+48. `Open day-one recap`, `Day-one recap`, `Copy day-one recap`,
    `local_services_day_one_recap`, `manual_day_one_recap`, and
    `day_one_recap_to_week_one_review` are visible as the first-day recap to
    week-one review handoff contract.
-48. `contactProofByProspectKey` and `Founder proof recorded` are present in the
+49. `contactProofByProspectKey` and `Founder proof recorded` are present in the
    browser-local pilot workspace contract, without any external side effect.
-49. `local_services_first_contact_batch_review`, `founder_manual_validation_review`,
+50. `local_services_first_contact_batch_review`, `founder_manual_validation_review`,
    and `no_booking_created` are present in the first-batch review export
    contract.
-50. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
+51. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
    14-day pilot runbook from the same local frontend server.
-51. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
+52. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
    repo-owned first-contact execution pack from the same local frontend server.
-52. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
+53. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
    the repo-owned 90-second recording checklist from the same local frontend
    server.
-53. `?recording=90s`, `90-second recording mode`, `Recording path`, and
+54. `?recording=90s`, `90-second recording mode`, `Recording path`, and
    `90s recording` are visible as the demo-recording posture, and outreach
    tables plus scorecard controls are hidden during recording.
-54. `?setup=7min`, `7-minute setup wizard`, `Setup path`, and `7-min setup`
+55. `?setup=7min`, `7-minute setup wizard`, `Setup path`, and `7-min setup`
    are visible as the setup-first posture, and outreach tables plus scorecard
    controls are hidden while setup mode is active.
-55. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
+56. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
    `Saved setup state`, `Mark complete`, `Mark ready for pilot test`,
    `Ready for pilot test`, and `Reset setup progress` are visible as the
    stateful setup checklist contract.
-56. Actual external execution still remains outside the shell: recorded video,
+57. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path

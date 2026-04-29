@@ -283,7 +283,10 @@ tracker. `Weekly scorecard sync checklist`, `Copy weekly sync checklist`, and
 `local_services_weekly_scorecard_sync_checklist` carry the target row, first
 request outcome, metric status, latest manual signal, and source surfaces. It
 is still a manual copy packet only: no Markdown mutation, CRM write, analytics
-sync, billing, booking, or customer message.
+sync, billing, booking, or customer message. After the private tracker is
+updated, use `Record weekly sync reviewed`; `Reset weekly sync review` clears
+that browser-local `weeklyScorecardSyncReviewedByService` proof if the outcome
+or metrics changed.
 Use `Open day-one recap` after a real first run. `Day-one recap` and
 `Copy day-one recap` export `local_services_day_one_recap` /
 `manual_day_one_recap`, including `day_one_recap_to_week_one_review`, so the

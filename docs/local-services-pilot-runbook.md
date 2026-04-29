@@ -136,7 +136,11 @@ Do not use the pilot to build:
     When the gate is ready, open `Open weekly sync checklist`, review
     `Weekly scorecard sync checklist`, and copy
     `local_services_weekly_scorecard_sync_checklist` into the private tracker
-    manually.
+    manually. Click `Record weekly sync reviewed` only after the private
+    tracker is updated; it writes only browser-local
+    `weeklyScorecardSyncReviewedByService` proof. Use
+    `Reset weekly sync review` if the outcome or metrics changed before the
+    next manual copy.
 17. Open `Open week-one review` only after real week-one activity exists. Review
     `Pilot week-one review`, `Continue / stop decision`, and
     `Copy week-one review`, confirm `First request outcome` /

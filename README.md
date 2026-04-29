@@ -297,6 +297,9 @@ Local-services expansion spec:
   `local_services_weekly_scorecard_sync_checklist` then turn the ready/blocking
   state into a reviewed copy packet for the private scorecard; it still does
   not mutate Markdown, CRM, analytics, billing, bookings, or messages.
+  `Record weekly sync reviewed`, `Reset weekly sync review`, and
+  `weeklyScorecardSyncReviewedByService` store only the browser-local proof that
+  a human copied the reviewed packet into the private scorecard.
   `Open day-one recap`, `Day-one recap`,
   `Copy day-one recap`, and `local_services_day_one_recap` then summarize the
   first real run and hand it into `day_one_recap_to_week_one_review`. It still
