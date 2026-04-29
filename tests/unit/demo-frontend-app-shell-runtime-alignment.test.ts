@@ -903,6 +903,12 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Copy kickoff gate/);
   assert.match(liveDesk, /local_services_pilot_kickoff_gate/);
   assert.match(liveDesk, /manual_day_one_kickoff_gate/);
+  assert.match(liveDesk, /Kickoff decision state/);
+  assert.match(liveDesk, /Mark kickoff ready/);
+  assert.match(liveDesk, /Needs more prep/);
+  assert.match(liveDesk, /Block kickoff/);
+  assert.match(liveDesk, /kickoffDecisionByService/);
+  assert.match(liveDesk, /Kickoff operator decision/);
   assert.match(liveDesk, /Open run sheet/);
   assert.match(liveDesk, /Day-one operator run sheet/);
   assert.match(liveDesk, /Copy run sheet/);
@@ -1274,6 +1280,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Pilot kickoff gate/);
   assert.match(readme, /Copy kickoff gate/);
   assert.match(readme, /local_services_pilot_kickoff_gate/);
+  assert.match(readme, /Kickoff\s+decision state/);
+  assert.match(readme, /Mark kickoff ready/);
+  assert.match(readme, /kickoffDecisionByService/);
   assert.match(readme, /Open run sheet/);
   assert.match(readme, /Day-one operator run sheet/);
   assert.match(readme, /Copy run sheet/);
@@ -1538,6 +1547,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /Pilot kickoff gate/);
   assert.match(localDevelopment, /Copy kickoff gate/);
   assert.match(localDevelopment, /local_services_pilot_kickoff_gate/);
+  assert.match(localDevelopment, /Kickoff\s+decision state/);
+  assert.match(localDevelopment, /Mark kickoff ready/);
+  assert.match(localDevelopment, /kickoffDecisionByService/);
   assert.match(localDevelopment, /Open run sheet/);
   assert.match(localDevelopment, /Day-one operator run sheet/);
   assert.match(localDevelopment, /Copy run sheet/);
@@ -1776,6 +1788,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Open kickoff gate/);
   assert.match(operatorGuide, /Pilot kickoff gate/);
   assert.match(operatorGuide, /Copy kickoff gate/);
+  assert.match(operatorGuide, /Kickoff\s+decision state/);
+  assert.match(operatorGuide, /Mark kickoff ready/);
+  assert.match(operatorGuide, /kickoffDecisionByService/);
   assert.match(operatorGuide, /Open run sheet/);
   assert.match(operatorGuide, /Day-one operator run sheet/);
   assert.match(operatorGuide, /Copy run sheet/);
@@ -2017,6 +2032,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /Pilot kickoff gate/);
   assert.match(simplificationPlan, /Copy kickoff gate/);
   assert.match(simplificationPlan, /local_services_pilot_kickoff_gate/);
+  assert.match(simplificationPlan, /Kickoff\s+decision state/);
+  assert.match(simplificationPlan, /Mark kickoff ready/);
+  assert.match(simplificationPlan, /kickoffDecisionByService/);
   assert.match(simplificationPlan, /Open run sheet/);
   assert.match(simplificationPlan, /Day-one operator run sheet/);
   assert.match(simplificationPlan, /Copy run sheet/);
@@ -2255,6 +2273,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /Pilot kickoff gate/);
   assert.match(gettingStarted, /Copy kickoff gate/);
   assert.match(gettingStarted, /local_services_pilot_kickoff_gate/);
+  assert.match(gettingStarted, /Kickoff\s+decision state/);
+  assert.match(gettingStarted, /Mark kickoff ready/);
+  assert.match(gettingStarted, /kickoffDecisionByService/);
   assert.match(gettingStarted, /Open run sheet/);
   assert.match(gettingStarted, /Day-one operator run sheet/);
   assert.match(gettingStarted, /Copy run sheet/);
@@ -2557,6 +2578,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /Copy kickoff gate/);
   assert.match(localServicesSpec, /local_services_pilot_kickoff_gate/);
   assert.match(localServicesSpec, /manual_day_one_kickoff_gate/);
+  assert.match(localServicesSpec, /Kickoff\s+decision state/);
+  assert.match(localServicesSpec, /Mark kickoff ready/);
+  assert.match(localServicesSpec, /kickoffDecisionByService/);
   assert.match(localServicesSpec, /Open run sheet/);
   assert.match(localServicesSpec, /Day-one operator run sheet/);
   assert.match(localServicesSpec, /Copy run sheet/);
@@ -2916,6 +2940,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotScorecard, /Proposal\s+approval state/);
   assert.match(pilotScorecard, /Approve proposal handoff/);
   assert.match(pilotScorecard, /proposalApprovalByService/);
+  assert.match(pilotScorecard, /Kickoff\s+decision state/);
+  assert.match(pilotScorecard, /Mark kickoff ready/);
+  assert.match(pilotScorecard, /kickoffDecisionByService/);
   assert.match(pilotScorecard, /Open day-one recap/);
   assert.match(pilotScorecard, /Day-one recap/);
   assert.match(pilotScorecard, /Copy day-one recap/);
@@ -2992,6 +3019,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotRunbook, /Proposal\s+approval state/);
   assert.match(pilotRunbook, /Approve proposal handoff/);
   assert.match(pilotRunbook, /proposalApprovalByService/);
+  assert.match(pilotRunbook, /Kickoff\s+decision state/);
+  assert.match(pilotRunbook, /Mark kickoff ready/);
+  assert.match(pilotRunbook, /kickoffDecisionByService/);
   assert.match(pilotRunbook, /Pilot execution checklist/);
   assert.match(pilotRunbook, /Pass test call\/message/);
   assert.match(pilotRunbook, /Needs test call passed/);
@@ -3226,6 +3256,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(outreachExecutionPack, /Proposal\s+approval state/);
   assert.match(outreachExecutionPack, /Approve proposal handoff/);
   assert.match(outreachExecutionPack, /proposalApprovalByService/);
+  assert.match(outreachExecutionPack, /Kickoff\s+decision state/);
+  assert.match(outreachExecutionPack, /Mark kickoff ready/);
+  assert.match(outreachExecutionPack, /kickoffDecisionByService/);
   assert.match(outreachExecutionPack, /Open evidence pack/);
   assert.match(outreachExecutionPack, /Pilot evidence pack/);
   assert.match(outreachExecutionPack, /Week-two evidence pack/);

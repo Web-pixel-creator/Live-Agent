@@ -155,6 +155,10 @@ is approved.
 `Open kickoff gate`, `Pilot kickoff gate`, `Copy kickoff gate`, and
 `local_services_pilot_kickoff_gate` decide whether that approval can advance to
 manual day-one setup without activating channels or external systems.
+`Kickoff decision state`, `Mark kickoff ready`, `Needs more prep`,
+`Block kickoff`, `Reset kickoff decision`, and `kickoffDecisionByService`
+record that day-one decision locally; the run sheet remains blocked until
+kickoff is ready.
 `Open run sheet`, `Day-one operator run sheet`, `Copy run sheet`,
 `local_services_day_one_operator_run_sheet`, and
 `manual_day_one_operator_run_sheet` add the first-day operator worksheet:

@@ -179,6 +179,9 @@ recorded decision keep the proposal path blocked.
 `proposalApprovalByService`; `Approve proposal handoff` is required before
 `Pilot kickoff gate` can move to day-one setup, while `Needs changes`,
 `Block proposal`, or reset keep kickoff blocked.
+`Kickoff decision state` then records `Mark kickoff ready`, `Needs more prep`,
+or `Block kickoff` in `kickoffDecisionByService`; the day-one run sheet remains
+blocked until kickoff is ready.
 
 `Open metrics tracker` opens the `Pilot metrics tracker` for the selected
 service lane. Use `Human-readable` for weekly operator review and `JSON` when

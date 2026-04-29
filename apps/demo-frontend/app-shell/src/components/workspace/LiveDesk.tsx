@@ -567,6 +567,7 @@ type LocalServiceFirstRequestOutcome =
 type LocalServicePilotMetricStatus = "not_started" | "baseline_captured" | "tracking_live" | "review_ready";
 type LocalServiceWeekOneOwnerDecision = "not_recorded" | "continue" | "pause" | "stop";
 type LocalServiceProposalApprovalDecision = "not_reviewed" | "approved" | "needs_changes" | "blocked";
+type LocalServiceKickoffDecision = "not_reviewed" | "ready" | "needs_more_prep" | "blocked";
 type LocalServiceFounderContactField =
   | "channelChecked"
   | "manualMessageSent"
@@ -580,7 +581,8 @@ type LocalServicePilotActivityKind =
   | "contact_proof"
   | "outcome_change"
   | "owner_decision"
-  | "proposal_approval";
+  | "proposal_approval"
+  | "kickoff_decision";
 type LocalServicePilotActivityEvent = {
   id: string;
   kind: LocalServicePilotActivityKind;
@@ -599,6 +601,7 @@ type LocalServicePilotWorkspaceState = {
   firstRequestOutcomeByProspectKey: Record<string, LocalServiceFirstRequestOutcome>;
   weekOneOwnerDecisionByProspectKey: Record<string, LocalServiceWeekOneOwnerDecision>;
   proposalApprovalByService: Record<string, LocalServiceProposalApprovalDecision>;
+  kickoffDecisionByService: Record<string, LocalServiceKickoffDecision>;
   metricStatusByService: Record<string, LocalServicePilotMetricStatus>;
   setupStepCompletionByService: Record<string, LocalServiceSetupStepCompletion>;
   setupReadyByService: Record<string, boolean>;
@@ -856,6 +859,20 @@ const LOCAL_SERVICE_PROPOSAL_APPROVAL_ACTIONS: {
   { decision: "needs_changes", label: "Needs changes" },
   { decision: "blocked", label: "Block proposal" },
 ];
+const LOCAL_SERVICE_KICKOFF_DECISION_LABELS: Record<LocalServiceKickoffDecision, string> = {
+  not_reviewed: "Kickoff not reviewed",
+  ready: "Ready for manual day-one run",
+  needs_more_prep: "Needs more prep before day one",
+  blocked: "Kickoff blocked by operator",
+};
+const LOCAL_SERVICE_KICKOFF_DECISION_ACTIONS: {
+  decision: Exclude<LocalServiceKickoffDecision, "not_reviewed">;
+  label: string;
+}[] = [
+  { decision: "ready", label: "Mark kickoff ready" },
+  { decision: "needs_more_prep", label: "Needs more prep" },
+  { decision: "blocked", label: "Block kickoff" },
+];
 const LOCAL_SERVICE_FOUNDER_CONTACT_FIELD_LABELS: Record<LocalServiceFounderContactField, string> = {
   channelChecked: "Channel checked",
   manualMessageSent: "Manual sent",
@@ -898,6 +915,10 @@ function isLocalServiceProposalApprovalDecision(value: unknown): value is LocalS
   return value === "not_reviewed" || value === "approved" || value === "needs_changes" || value === "blocked";
 }
 
+function isLocalServiceKickoffDecision(value: unknown): value is LocalServiceKickoffDecision {
+  return value === "not_reviewed" || value === "ready" || value === "needs_more_prep" || value === "blocked";
+}
+
 function isLocalServiceFirstRequestOutcome(value: unknown): value is LocalServiceFirstRequestOutcome {
   return (
     value === "not_recorded" ||
@@ -915,7 +936,8 @@ function isLocalServicePilotActivityKind(value: unknown): value is LocalServiceP
     value === "contact_proof" ||
     value === "outcome_change" ||
     value === "owner_decision" ||
-    value === "proposal_approval"
+    value === "proposal_approval" ||
+    value === "kickoff_decision"
   );
 }
 
@@ -991,6 +1013,15 @@ function readProposalApprovalDecisionRecord(value: unknown): Record<string, Loca
     Object.entries(value as Record<string, unknown>).filter(
       (entry): entry is [string, LocalServiceProposalApprovalDecision] =>
         isLocalServiceProposalApprovalDecision(entry[1]),
+    ),
+  );
+}
+
+function readKickoffDecisionRecord(value: unknown): Record<string, LocalServiceKickoffDecision> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).filter(
+      (entry): entry is [string, LocalServiceKickoffDecision] => isLocalServiceKickoffDecision(entry[1]),
     ),
   );
 }
@@ -1113,6 +1144,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
     firstRequestOutcomeByProspectKey: {},
     weekOneOwnerDecisionByProspectKey: {},
     proposalApprovalByService: {},
+    kickoffDecisionByService: {},
     metricStatusByService: {},
     setupStepCompletionByService: {},
     setupReadyByService: {},
@@ -1140,6 +1172,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
         parsed.weekOneOwnerDecisionByProspectKey,
       ),
       proposalApprovalByService: readProposalApprovalDecisionRecord(parsed.proposalApprovalByService),
+      kickoffDecisionByService: readKickoffDecisionRecord(parsed.kickoffDecisionByService),
       metricStatusByService: readPilotMetricStatusRecord(parsed.metricStatusByService),
       setupStepCompletionByService: readSetupStepCompletionByService(parsed.setupStepCompletionByService),
       setupReadyByService: readBooleanRecord(parsed.setupReadyByService),
@@ -2929,6 +2962,7 @@ function buildLocalServicePilotKickoffGate(
   testCallProgress: string,
   metricStatus: LocalServicePilotMetricStatus,
   proposalApprovalDecision: LocalServiceProposalApprovalDecision,
+  kickoffDecision: LocalServiceKickoffDecision,
 ): LocalServicePilotWorkspaceExport {
   const laneRows = rows.filter((row) => row.serviceId === actionLayer.serviceId);
   const targetRow =
@@ -2939,6 +2973,7 @@ function buildLocalServicePilotKickoffGate(
     laneRows[0];
   const metricStarted = metricStatus !== "not_started";
   const proposalApprovalLabel = LOCAL_SERVICE_PROPOSAL_APPROVAL_LABELS[proposalApprovalDecision];
+  const kickoffDecisionLabel = LOCAL_SERVICE_KICKOFF_DECISION_LABELS[kickoffDecision];
   const kickoffChecks = [
     {
       label: "Readiness proof reviewed",
@@ -2961,6 +2996,14 @@ function buildLocalServicePilotKickoffGate(
           ? "Continue recorded"
           : `${readiness.ownerDecisionLabel}; kickoff stays blocked`,
       done: readiness.ownerDecision === "continue",
+    },
+    {
+      label: "Kickoff operator decision",
+      status:
+        kickoffDecision === "ready"
+          ? "Ready for manual day-one run recorded"
+          : `${kickoffDecisionLabel}; run sheet stays blocked`,
+      done: kickoffDecision === "ready",
     },
     {
       label: "Setup ready",
@@ -3008,6 +3051,8 @@ function buildLocalServicePilotKickoffGate(
     "Owner decision state key: weekOneOwnerDecisionByProspectKey",
     `Proposal approval decision: ${proposalApprovalLabel}`,
     "Proposal approval state key: proposalApprovalByService",
+    `Kickoff decision: ${kickoffDecisionLabel}`,
+    "Kickoff decision state key: kickoffDecisionByService",
     `Next kickoff action: ${nextKickoffAction}`,
     "",
     "Kickoff checks:",
@@ -3041,6 +3086,9 @@ function buildLocalServicePilotKickoffGate(
       proposal_approval_decision: proposalApprovalDecision,
       proposal_approval_label: proposalApprovalLabel,
       proposal_approval_state_key: "proposalApprovalByService",
+      kickoff_decision: kickoffDecision,
+      kickoff_decision_label: kickoffDecisionLabel,
+      kickoff_decision_state_key: "kickoffDecisionByService",
       next_kickoff_action: nextKickoffAction,
       target_prospect: targetRow
         ? {
@@ -3106,6 +3154,7 @@ function buildLocalServicePilotKickoffGate(
       { label: "Target prospect", value: targetCompany },
       { label: "Week-one owner decision", value: readiness.ownerDecisionLabel },
       { label: "Proposal approval decision", value: proposalApprovalLabel },
+      { label: "Kickoff decision", value: kickoffDecisionLabel },
       { label: "Next action", value: nextKickoffAction },
       { label: "Day-one setup", value: "Manual setup only; no live channel activation" },
       { label: "Metric baseline", value: LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus] },
@@ -3134,6 +3183,7 @@ function buildLocalServiceDayOneOperatorRunSheet(
   testCallPassed: boolean,
   testCallProgress: string,
   metricStatus: LocalServicePilotMetricStatus,
+  kickoffDecision: LocalServiceKickoffDecision,
 ): LocalServicePilotWorkspaceExport {
   const laneRows = rows.filter((row) => row.serviceId === actionLayer.serviceId);
   const targetRow =
@@ -3147,12 +3197,19 @@ function buildLocalServiceDayOneOperatorRunSheet(
     : "No replied pilot company selected yet";
   const targetStatus = targetRow?.statusLabel ?? "No company selected";
   const metricStatusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus];
-  const runReadiness =
-    readiness.readyToPilot && setupReady && testCallPassed
-      ? "Ready for manual day-one run"
-      : testCallPassed
-        ? "Needs owner-approved setup and readiness proof before day-one run"
-        : `Needs passing dry run (${testCallProgress})`;
+  const kickoffDecisionLabel = LOCAL_SERVICE_KICKOFF_DECISION_LABELS[kickoffDecision];
+  const runReadiness = (() => {
+    if (kickoffDecision !== "ready") {
+      return `${kickoffDecisionLabel}; run sheet blocked until kickoff is ready`;
+    }
+    if (readiness.readyToPilot && setupReady && testCallPassed) {
+      return "Ready for manual day-one run";
+    }
+    if (testCallPassed) {
+      return "Needs owner-approved setup and readiness proof before day-one run";
+    }
+    return `Needs passing dry run (${testCallProgress})`;
+  })();
   const sampleInbound = [
     `Phone test: ${template.detail.sampleInput}`,
     `Telegram/media test: ${template.detail.telegramIntake.inboundMessage}`,
@@ -3196,6 +3253,7 @@ function buildLocalServiceDayOneOperatorRunSheet(
   const checklist = [
     `Target company: ${targetCompany}`,
     `Readiness state: ${runReadiness}`,
+    `Kickoff decision: ${kickoffDecisionLabel}`,
     `Proof reviewed: ${proofProgress}`,
     `Setup ready: ${setupReady ? "yes" : "no"}`,
     `Dry run passed: ${testCallPassed ? "yes" : "no"} (${testCallProgress})`,
@@ -3207,6 +3265,8 @@ function buildLocalServiceDayOneOperatorRunSheet(
     "Export surface: local_services_day_one_operator_run_sheet",
     "Export kind: manual_day_one_operator_run_sheet",
     `Run readiness: ${runReadiness}`,
+    `Kickoff decision: ${kickoffDecisionLabel}`,
+    "Kickoff decision state key: kickoffDecisionByService",
     `Target company: ${targetCompany}`,
     `Current status: ${targetStatus}`,
     `Category proof: ${score ? `${score.signalLabel}; ${score.proofSummary}` : "No category score yet"}`,
@@ -3246,6 +3306,9 @@ function buildLocalServiceDayOneOperatorRunSheet(
       service_id: actionLayer.serviceId,
       service_title: actionLayer.serviceTitle,
       run_readiness: runReadiness,
+      kickoff_decision: kickoffDecision,
+      kickoff_decision_label: kickoffDecisionLabel,
+      kickoff_decision_state_key: "kickoffDecisionByService",
       target_company: targetRow
         ? {
             key: targetRow.key,
@@ -3297,6 +3360,7 @@ function buildLocalServiceDayOneOperatorRunSheet(
     jsonText,
     rows: [
       { label: "Run readiness", value: runReadiness },
+      { label: "Kickoff decision", value: kickoffDecisionLabel },
       { label: "Service", value: actionLayer.serviceTitle },
       { label: "Target company", value: targetCompany },
       { label: "Current status", value: targetStatus },
@@ -5642,6 +5706,9 @@ const LocalServicesDispatchDemoPanel = ({
     pilotWorkspaceState.proposalApprovalByService[leadingCategoryActionLayer.serviceId] ?? "not_reviewed";
   const leadingCategoryProposalApprovalLabel =
     LOCAL_SERVICE_PROPOSAL_APPROVAL_LABELS[leadingCategoryProposalApprovalDecision];
+  const leadingCategoryKickoffDecision =
+    pilotWorkspaceState.kickoffDecisionByService[leadingCategoryActionLayer.serviceId] ?? "not_reviewed";
+  const leadingCategoryKickoffDecisionLabel = LOCAL_SERVICE_KICKOFF_DECISION_LABELS[leadingCategoryKickoffDecision];
   const leadingCategoryPilotReadiness = useMemo(
     () =>
       buildLocalServiceLeadingCategoryPilotReadiness(
@@ -5832,6 +5899,7 @@ const LocalServicesDispatchDemoPanel = ({
     leadingCategoryTestCallProgress,
     leadingCategoryMetricStatus,
     leadingCategoryProposalApprovalDecision,
+    leadingCategoryKickoffDecision,
   );
   const dayOneOperatorRunSheet = buildLocalServiceDayOneOperatorRunSheet(
     leadingCategoryTemplate,
@@ -5845,6 +5913,7 @@ const LocalServicesDispatchDemoPanel = ({
     leadingCategoryTestCallPassed,
     leadingCategoryTestCallProgress,
     leadingCategoryMetricStatus,
+    leadingCategoryKickoffDecision,
   );
   const dayOneRecapExport = buildLocalServiceDayOneRecapExport(
     leadingCategoryTemplate,
@@ -6273,6 +6342,24 @@ const LocalServicesDispatchDemoPanel = ({
       activityLog: appendLocalServicePilotActivity(prev.activityLog, {
         kind: "proposal_approval",
         label: "Proposal approval decision recorded",
+        value: nextDecisionLabel,
+        serviceId: leadingCategoryActionLayer.serviceId,
+        serviceTitle: leadingCategoryActionLayer.serviceTitle,
+      }),
+    }));
+  };
+
+  const updateKickoffDecision = (decision: LocalServiceKickoffDecision) => {
+    const nextDecisionLabel = LOCAL_SERVICE_KICKOFF_DECISION_LABELS[decision];
+    setPilotWorkspaceState((prev) => ({
+      ...prev,
+      kickoffDecisionByService: {
+        ...prev.kickoffDecisionByService,
+        [leadingCategoryActionLayer.serviceId]: decision,
+      },
+      activityLog: appendLocalServicePilotActivity(prev.activityLog, {
+        kind: "kickoff_decision",
+        label: "Kickoff decision recorded",
         value: nextDecisionLabel,
         serviceId: leadingCategoryActionLayer.serviceId,
         serviceTitle: leadingCategoryActionLayer.serviceTitle,
@@ -7688,6 +7775,46 @@ const LocalServicesDispatchDemoPanel = ({
                           </Button>
                           <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 text-[10px] text-muted-foreground">
                             proposalApprovalByService
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-3 rounded-md border border-border/50 bg-card/25 px-3 py-3">
+                        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                          <div className="min-w-0">
+                            <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                              Kickoff decision state
+                            </div>
+                            <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                              Browser-local decision for moving the approved paid-pilot handoff into the day-one run
+                              sheet. It does not activate phone, messaging, CRM, analytics, billing, booking, or sends.
+                            </p>
+                          </div>
+                          <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                            {leadingCategoryKickoffDecisionLabel}
+                          </span>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {LOCAL_SERVICE_KICKOFF_DECISION_ACTIONS.map((action) => (
+                            <Button
+                              key={action.decision}
+                              size="sm"
+                              variant={leadingCategoryKickoffDecision === action.decision ? "default" : "secondary"}
+                              onClick={() => updateKickoffDecision(action.decision)}
+                              className="h-7"
+                            >
+                              {action.label}
+                            </Button>
+                          ))}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => updateKickoffDecision("not_reviewed")}
+                            className="h-7"
+                          >
+                            Reset kickoff decision
+                          </Button>
+                          <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 text-[10px] text-muted-foreground">
+                            kickoffDecisionByService
                           </span>
                         </div>
                       </div>

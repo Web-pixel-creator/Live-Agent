@@ -257,6 +257,11 @@ the pilot blocked.
 `local_services_pilot_kickoff_gate` turn that approval layer into a day-one
 decision without adding automation: proceed to setup only when proof, proposal
 approval, setup, dry-run, owner conversation, and metric baseline are ready.
+`Kickoff decision state`, `Mark kickoff ready`, `Needs more prep`,
+`Block kickoff`, `Reset kickoff decision`, and browser-local
+`kickoffDecisionByService` keep that day-one decision explicit; `Open run
+sheet` remains a worksheet, not activation, and stays blocked until the kickoff
+state is ready.
 `Open run sheet`, `Day-one operator run sheet`, `Copy run sheet`, and
 `local_services_day_one_operator_run_sheet` then turn the gate into a
 first-day operator worksheet with `manual_day_one_operator_run_sheet`, sample

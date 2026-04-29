@@ -276,7 +276,11 @@ Local-services expansion spec:
   `Pilot kickoff gate`, `Copy kickoff gate`, and
   `local_services_pilot_kickoff_gate` decide whether the proposal can move into
   manual day-one setup while keeping phone, messaging, CRM, analytics, billing,
-  booking, and customer-send actions disabled. `Open run sheet`,
+  booking, and customer-send actions disabled. `Kickoff decision state`,
+  `Mark kickoff ready`, `Needs more prep`, `Block kickoff`,
+  `Reset kickoff decision`, and `kickoffDecisionByService` now keep that
+  day-one decision browser-local; the run sheet stays blocked until kickoff is
+  ready. `Open run sheet`,
   `Day-one operator run sheet`, `Copy run sheet`, and
   `local_services_day_one_operator_run_sheet` then give the operator a
   first-day worksheet for sample inbound, owner script, expected fields,

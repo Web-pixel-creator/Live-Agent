@@ -240,6 +240,9 @@ Allowed reply statuses:
    `Block proposal`, `Reset proposal approval`, and `proposalApprovalByService`;
    explain that day-one kickoff remains blocked until the operator approves the
    handoff.
+   Show `Kickoff decision state`, `Mark kickoff ready`, `Needs more prep`,
+   `Block kickoff`, `Reset kickoff decision`, and `kickoffDecisionByService`;
+   explain that the run sheet is still a worksheet and not live activation.
 14. Open `Open intake evidence` / `Transcript + evidence` and show
    `Saved intake evidence`, `Intake transcript + evidence link`,
    `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,

@@ -203,7 +203,10 @@ approved. Use
 `Open kickoff gate` to inspect `Pilot kickoff gate`; `Copy kickoff gate`
 exports `local_services_pilot_kickoff_gate` as the manual day-one setup decision
 before any phone, messaging, CRM, analytics, billing, booking, or customer-send
-activation. `Open run sheet` then opens `Day-one operator run sheet`;
+activation. `Kickoff decision state`, `Mark kickoff ready`, `Needs more prep`,
+`Block kickoff`, `Reset kickoff decision`, and `kickoffDecisionByService`
+record whether the operator can open the day-one worksheet. `Open run sheet`
+then opens `Day-one operator run sheet`;
 `Copy run sheet` exports `local_services_day_one_operator_run_sheet` /
 `manual_day_one_operator_run_sheet` for the first operator-supervised request:
 sample inbound, owner script, expected fields, approval pauses, metric capture,

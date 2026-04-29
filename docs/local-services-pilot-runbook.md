@@ -84,6 +84,9 @@ Do not use the pilot to build:
    `Approve proposal handoff`, `Needs changes`, or `Block proposal` in
    `proposalApprovalByService`; day-one kickoff remains blocked until it is
    approved.
+   `Kickoff decision state` then records `Mark kickoff ready`,
+   `Needs more prep`, or `Block kickoff` in `kickoffDecisionByService`; the
+   day-one run sheet stays blocked until kickoff is ready.
 9. Review `Pilot execution checklist`: `Pass test call/message`,
    `Needs test call passed`, `Prepare first manual batch`,
    `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,

@@ -262,8 +262,11 @@ approved. It is still not a sent proposal or launched paid pilot.
 Use `Open kickoff gate` before day-one setup; `Pilot kickoff gate` and
 `Copy kickoff gate` confirm whether proof, proposal approval, setup, dry-run,
 owner conversation, metric baseline, and `Week-one owner decision` are ready.
-It is still a manual gate, not phone, messaging, CRM, analytics, billing,
-booking, or customer-send activation.
+Use `Kickoff decision state` to record `Mark kickoff ready`,
+`Needs more prep`, or `Block kickoff` in browser-local
+`kickoffDecisionByService`; the run sheet remains blocked unless this state is
+ready. It is still a manual gate, not phone, messaging, CRM, analytics,
+billing, booking, or customer-send activation.
 Use `Open run sheet` after that gate to inspect `Day-one operator run sheet`.
 `Copy run sheet` exports `local_services_day_one_operator_run_sheet` /
 `manual_day_one_operator_run_sheet`: sample inbound, owner script, expected
