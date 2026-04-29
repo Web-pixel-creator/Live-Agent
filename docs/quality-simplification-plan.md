@@ -228,9 +228,10 @@ workspace`, `Pilot proof checklist`, `Stop / Continue decision gate`,
 `Open batch review`, `First contact batch review drawer`, `Copy batch review`,
 and `Copy founder workspace`. It now adds `Pilot ops today`,
 `Copy pilot ops handoff`, `Open ops confirmation`,
-`local_services_pilot_ops_today`, and `local_services_pilot_ops_confirmation`
-so the live manual pilot has one current account, one next manual action, and
-one proof marker to update after the real action. It now adds `Category pilot score`,
+`local_services_pilot_ops_today`, `local_services_pilot_ops_confirmation`,
+`Pilot proof update rail`, and `local_services_pilot_proof_update_rail` so the
+live manual pilot has one current account, one next manual action, and one
+browser-local proof marker to update after the real action. It now adds `Category pilot score`,
 `Leading category`, and `No category expansion without proof` so AC, plumbing,
 cleaning, and measurement are ranked from observed proof. `Leading category
 action layer` converts that rank into `Next manual batch`, `Discovery

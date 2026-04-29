@@ -168,9 +168,10 @@ The first-10-contact workspace also shows `Category pilot score`,
 before changing this scorecard into a category-specific integration plan; AC,
 plumbing, cleaning, and measurement must compete on manual proof markers.
 `Pilot ops today`, `Copy pilot ops handoff`, `Open ops confirmation`,
-`local_services_pilot_ops_today`, and `local_services_pilot_ops_confirmation`
-show the current account, next manual action, and proof marker to update after
-the real action.
+`local_services_pilot_ops_today`, `local_services_pilot_ops_confirmation`,
+`Pilot proof update rail`, and `local_services_pilot_proof_update_rail` show
+the current account, next manual action, and browser-local proof marker to
+update after the real action.
 `Leading category action layer` then provides the `Next manual batch`,
 `Discovery questions`, `Pilot setup checklist`, `Integration hold`, and
 `Focus leading category` action that should guide the next scorecard update.

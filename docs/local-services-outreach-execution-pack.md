@@ -269,9 +269,10 @@ Allowed reply statuses:
    Markdown mutation.
 18. Show `Pilot ops today`, `Copy pilot ops handoff`, `Open ops confirmation`,
    `local_services_pilot_ops_today`, and
-   `local_services_pilot_ops_confirmation`; explain that the shell now chooses
-   one current account, one next manual action, and one proof marker to update
-   after the real action.
+   `local_services_pilot_ops_confirmation`, then show `Pilot proof update rail`
+   and `local_services_pilot_proof_update_rail`; explain that the shell now
+   chooses one current account, one next manual action, and one proof marker to
+   update after the real action.
 19. Show `Open discovery prep`, `Discovery call prep`, `Questions to ask`,
    `Pilot success criteria`, `Copy discovery call prep`, and
    `local_services_discovery_call_prep`; explain that this prepares the first

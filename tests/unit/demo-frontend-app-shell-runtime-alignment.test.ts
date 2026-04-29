@@ -848,6 +848,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Pilot ops confirmation drawer/);
   assert.match(liveDesk, /Copy ops confirmation/);
   assert.match(liveDesk, /local_services_pilot_ops_confirmation/);
+  assert.match(liveDesk, /Pilot proof update rail/);
+  assert.match(liveDesk, /local_services_pilot_proof_update_rail/);
+  assert.match(liveDesk, /Recommended: /);
   assert.match(liveDesk, /Open batch review/);
   assert.match(liveDesk, /First contact batch review drawer/);
   assert.match(liveDesk, /Copy batch review/);
@@ -1271,6 +1274,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /local_services_pilot_ops_today/);
   assert.match(readme, /Open ops confirmation/);
   assert.match(readme, /local_services_pilot_ops_confirmation/);
+  assert.match(readme, /Pilot proof update rail/);
+  assert.match(readme, /local_services_pilot_proof_update_rail/);
   assert.match(readme, /Stop \/ Continue decision gate/);
   assert.match(readme, /Open batch review/);
   assert.match(readme, /Copy batch review/);
@@ -1546,6 +1551,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /local_services_pilot_ops_today/);
   assert.match(localDevelopment, /Open ops confirmation/);
   assert.match(localDevelopment, /local_services_pilot_ops_confirmation/);
+  assert.match(localDevelopment, /Pilot proof update rail/);
+  assert.match(localDevelopment, /local_services_pilot_proof_update_rail/);
   assert.match(localDevelopment, /Stop \/ Continue decision gate/);
   assert.match(localDevelopment, /Open batch review/);
   assert.match(localDevelopment, /First\s+contact batch\s+review drawer/);
@@ -1804,6 +1811,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /local_services_pilot_ops_today/);
   assert.match(operatorGuide, /Open ops confirmation/);
   assert.match(operatorGuide, /local_services_pilot_ops_confirmation/);
+  assert.match(operatorGuide, /Pilot proof update rail/);
+  assert.match(operatorGuide, /local_services_pilot_proof_update_rail/);
   assert.match(operatorGuide, /Stop \/ Continue decision gate/);
   assert.match(operatorGuide, /Open batch\s+review/);
   assert.match(operatorGuide, /First\s+contact batch\s+review drawer/);
@@ -2054,6 +2063,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /local_services_pilot_ops_today/);
   assert.match(simplificationPlan, /Open ops confirmation/);
   assert.match(simplificationPlan, /local_services_pilot_ops_confirmation/);
+  assert.match(simplificationPlan, /Pilot proof update rail/);
+  assert.match(simplificationPlan, /local_services_pilot_proof_update_rail/);
   assert.match(simplificationPlan, /Stop \/ Continue decision gate/);
   assert.match(simplificationPlan, /Open batch review/);
   assert.match(simplificationPlan, /First contact batch\s+review drawer/);
@@ -2305,6 +2316,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /local_services_pilot_ops_today/);
   assert.match(gettingStarted, /Open ops confirmation/);
   assert.match(gettingStarted, /local_services_pilot_ops_confirmation/);
+  assert.match(gettingStarted, /Pilot proof update rail/);
+  assert.match(gettingStarted, /local_services_pilot_proof_update_rail/);
   assert.match(gettingStarted, /Stop \/ Continue decision gate/);
   assert.match(gettingStarted, /Open batch review/);
   assert.match(gettingStarted, /First\s+contact batch\s+review drawer/);
@@ -2601,6 +2614,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /Pilot ops confirmation drawer/);
   assert.match(localServicesSpec, /Copy ops confirmation/);
   assert.match(localServicesSpec, /local_services_pilot_ops_confirmation/);
+  assert.match(localServicesSpec, /Pilot proof update rail/);
+  assert.match(localServicesSpec, /local_services_pilot_proof_update_rail/);
   assert.match(localServicesSpec, /Stop \/ Continue decision gate/);
   assert.match(localServicesSpec, /Keep collecting proof/);
   assert.match(localServicesSpec, /Continue to pilot setup/);
@@ -2931,6 +2946,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotScorecard, /local_services_pilot_ops_today/);
   assert.match(pilotScorecard, /Open ops confirmation/);
   assert.match(pilotScorecard, /local_services_pilot_ops_confirmation/);
+  assert.match(pilotScorecard, /Pilot proof update rail/);
+  assert.match(pilotScorecard, /local_services_pilot_proof_update_rail/);
   assert.match(pilotScorecard, /Pass test call\/message/);
   assert.match(pilotScorecard, /Needs test call passed/);
   assert.match(pilotScorecard, /Prepare first manual batch/);
@@ -3126,6 +3143,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotRunbook, /local_services_pilot_ops_today/);
   assert.match(pilotRunbook, /Open ops confirmation/);
   assert.match(pilotRunbook, /local_services_pilot_ops_confirmation/);
+  assert.match(pilotRunbook, /Pilot proof update rail/);
+  assert.match(pilotRunbook, /local_services_pilot_proof_update_rail/);
   assert.match(pilotRunbook, /Pass test call\/message/);
   assert.match(pilotRunbook, /Needs test call passed/);
   assert.match(pilotRunbook, /Prepare first manual batch/);
@@ -3244,6 +3263,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(founderExecutionLog, /local_services_pilot_ops_today/);
   assert.match(founderExecutionLog, /Open ops confirmation/);
   assert.match(founderExecutionLog, /local_services_pilot_ops_confirmation/);
+  assert.match(founderExecutionLog, /Pilot proof update rail/);
+  assert.match(founderExecutionLog, /local_services_pilot_proof_update_rail/);
   assert.match(founderExecutionLog, /Stop \/ Continue decision gate/);
   assert.match(founderExecutionLog, /Open batch review/);
   assert.match(founderExecutionLog, /First contact batch\s+review drawer/);
@@ -3311,6 +3332,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(outreachExecutionPack, /local_services_pilot_ops_today/);
   assert.match(outreachExecutionPack, /Open ops confirmation/);
   assert.match(outreachExecutionPack, /local_services_pilot_ops_confirmation/);
+  assert.match(outreachExecutionPack, /Pilot proof update rail/);
+  assert.match(outreachExecutionPack, /local_services_pilot_proof_update_rail/);
   assert.match(outreachExecutionPack, /Pass test call\/message/);
   assert.match(outreachExecutionPack, /Needs test call passed/);
   assert.match(outreachExecutionPack, /Prepare first manual batch/);

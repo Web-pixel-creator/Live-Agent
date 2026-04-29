@@ -6276,6 +6276,7 @@ const LocalServicesDispatchDemoPanel = ({
     `Status: ${pilotOpsTodayRow ? pilotOpsTodayRow.statusLabel : "none"}`,
     `Next manual action: ${pilotOpsTodayAction}`,
     `Proof to capture: ${pilotOpsTodayProof}`,
+    "Proof update rail: local_services_pilot_proof_update_rail",
     `Owner next step: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.nextStep : "none"}`,
     `Batch proof progress: ${founderProofProgress}`,
     `Decision gate: ${founderDecisionGate.verdictLabel}`,
@@ -6316,6 +6317,7 @@ const LocalServicesDispatchDemoPanel = ({
     `Pilot ops today: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "none"}`,
     `Pilot ops next manual action: ${pilotOpsTodayAction}`,
     `Pilot ops proof to capture: ${pilotOpsTodayProof}`,
+    "Pilot proof update rail: local_services_pilot_proof_update_rail",
     "No category expansion without proof.",
     `Manual sends logged: ${founderContactCounts.manualMessageSent}/10`,
     `Replies or clear rejections: ${founderContactCounts.repliesOrRejections}/3`,
@@ -7011,6 +7013,66 @@ const LocalServicesDispatchDemoPanel = ({
       };
     });
   };
+  const pilotOpsProofRailActions = pilotOpsTodayRow
+    ? [
+        {
+          label: "Mark channel checked",
+          stateLabel: pilotOpsTodayRow.channelChecked ? "Recorded" : "Needed",
+          active: pilotOpsTodayRow.channelChecked,
+          recommended: pilotOpsTodayProof === "channelChecked",
+          onClick: () => updateFounderContactProof(pilotOpsTodayRow, "channelChecked", !pilotOpsTodayRow.channelChecked),
+        },
+        {
+          label: "Mark manual sent",
+          stateLabel: pilotOpsTodayRow.manualMessageSent ? "Recorded" : "Needed",
+          active: pilotOpsTodayRow.manualMessageSent,
+          recommended: pilotOpsTodayProof === "manualMessageSent",
+          onClick: () =>
+            updateFounderContactProof(pilotOpsTodayRow, "manualMessageSent", !pilotOpsTodayRow.manualMessageSent),
+        },
+        {
+          label: "Mark reply",
+          stateLabel: pilotOpsTodayRow.status === "reply_received" ? "Recorded" : "Optional",
+          active: pilotOpsTodayRow.status === "reply_received",
+          recommended: pilotOpsTodayProof === "reply_or_rejection_status",
+          onClick: () => updatePilotWorkspaceStatusForTarget(pilotOpsTodayRow, "reply_received"),
+        },
+        {
+          label: "Mark rejected",
+          stateLabel: pilotOpsTodayRow.status === "rejected_for_now" ? "Recorded" : "Optional",
+          active: pilotOpsTodayRow.status === "rejected_for_now",
+          recommended: pilotOpsTodayProof === "reply_or_rejection_status",
+          onClick: () => updatePilotWorkspaceStatusForTarget(pilotOpsTodayRow, "rejected_for_now"),
+        },
+        {
+          label: "Mark discovery call",
+          stateLabel: pilotOpsTodayRow.discoveryCallCompleted ? "Recorded" : "Needed",
+          active: pilotOpsTodayRow.discoveryCallCompleted,
+          recommended: pilotOpsTodayProof === "discoveryCallCompleted",
+          onClick: () =>
+            updateFounderContactProof(
+              pilotOpsTodayRow,
+              "discoveryCallCompleted",
+              !pilotOpsTodayRow.discoveryCallCompleted,
+            ),
+        },
+        {
+          label: "Mark demo booked",
+          stateLabel: pilotOpsTodayRow.demoBooked ? "Recorded" : "Needed",
+          active: pilotOpsTodayRow.demoBooked,
+          recommended: pilotOpsTodayProof === "demoBooked",
+          onClick: () => updateFounderContactProof(pilotOpsTodayRow, "demoBooked", !pilotOpsTodayRow.demoBooked),
+        },
+        {
+          label: "Mark pilot candidate",
+          stateLabel: pilotOpsTodayRow.pilotCandidate ? "Recorded" : "Needed",
+          active: pilotOpsTodayRow.pilotCandidate,
+          recommended: pilotOpsTodayProof === "pilotCandidate",
+          onClick: () =>
+            updateFounderContactProof(pilotOpsTodayRow, "pilotCandidate", !pilotOpsTodayRow.pilotCandidate),
+        },
+      ]
+    : [];
   const updateSetupStepCompletion = (stepId: LocalServiceSetupStepId, complete: boolean) => {
     setPilotWorkspaceState((prev) => {
       const currentCompletion = prev.setupStepCompletionByService[selectedTemplate.id] ?? {};
@@ -7967,6 +8029,38 @@ const LocalServicesDispatchDemoPanel = ({
                   <span className="ml-2 font-medium text-foreground">
                     {pilotOpsTodayRow ? pilotOpsTodayRow.prospect.nextStep : "Load a target from the outreach list."}
                   </span>
+                </div>
+              </div>
+              <div className="mt-3 rounded-md border border-border/50 bg-background/30 px-3 py-2.5">
+                <div className="flex flex-col gap-2 xl:flex-row xl:items-start xl:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                      <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.8} />
+                      Pilot proof update rail
+                    </div>
+                    <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                      Browser-local shortcut for the current account only. Use it after the real manual action, then
+                      reopen ops confirmation or batch review before a continue/stop decision.
+                    </p>
+                  </div>
+                  <span className="inline-flex w-fit rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                    local_services_pilot_proof_update_rail
+                  </span>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {pilotOpsProofRailActions.map((action) => (
+                    <Button
+                      key={action.label}
+                      size="sm"
+                      variant={action.active || action.recommended ? "default" : "secondary"}
+                      onClick={action.onClick}
+                      className="h-7"
+                    >
+                      {action.recommended ? "Recommended: " : ""}
+                      {action.label}
+                      <span className="ml-1.5 text-[10px] opacity-75">{action.stateLabel}</span>
+                    </Button>
+                  ))}
                 </div>
               </div>
             </div>
