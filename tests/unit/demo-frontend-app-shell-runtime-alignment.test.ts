@@ -892,6 +892,12 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Copy approval handoff/);
   assert.match(liveDesk, /local_services_proposal_approval_handoff/);
   assert.match(liveDesk, /manual_paid_pilot_approval_handoff/);
+  assert.match(liveDesk, /Proposal approval state/);
+  assert.match(liveDesk, /Approve proposal handoff/);
+  assert.match(liveDesk, /Needs changes/);
+  assert.match(liveDesk, /Block proposal/);
+  assert.match(liveDesk, /proposalApprovalByService/);
+  assert.match(liveDesk, /Proposal approval decision/);
   assert.match(liveDesk, /Open kickoff gate/);
   assert.match(liveDesk, /Pilot kickoff gate/);
   assert.match(liveDesk, /Copy kickoff gate/);
@@ -1261,6 +1267,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Proposal approval handoff/);
   assert.match(readme, /Copy approval handoff/);
   assert.match(readme, /local_services_proposal_approval_handoff/);
+  assert.match(readme, /Proposal\s+approval state/);
+  assert.match(readme, /Approve proposal handoff/);
+  assert.match(readme, /proposalApprovalByService/);
   assert.match(readme, /Open kickoff gate/);
   assert.match(readme, /Pilot kickoff gate/);
   assert.match(readme, /Copy kickoff gate/);
@@ -1522,6 +1531,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /Proposal approval handoff/);
   assert.match(localDevelopment, /Copy approval handoff/);
   assert.match(localDevelopment, /local_services_proposal_approval_handoff/);
+  assert.match(localDevelopment, /Proposal\s+approval state/);
+  assert.match(localDevelopment, /Approve proposal handoff/);
+  assert.match(localDevelopment, /proposalApprovalByService/);
   assert.match(localDevelopment, /Open kickoff gate/);
   assert.match(localDevelopment, /Pilot kickoff gate/);
   assert.match(localDevelopment, /Copy kickoff gate/);
@@ -1758,6 +1770,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Open approval handoff/);
   assert.match(operatorGuide, /Proposal\s+approval handoff/);
   assert.match(operatorGuide, /Copy approval handoff/);
+  assert.match(operatorGuide, /Proposal\s+approval state/);
+  assert.match(operatorGuide, /Approve proposal handoff/);
+  assert.match(operatorGuide, /proposalApprovalByService/);
   assert.match(operatorGuide, /Open kickoff gate/);
   assert.match(operatorGuide, /Pilot kickoff gate/);
   assert.match(operatorGuide, /Copy kickoff gate/);
@@ -1995,6 +2010,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /Proposal approval handoff/);
   assert.match(simplificationPlan, /Copy approval handoff/);
   assert.match(simplificationPlan, /local_services_proposal_approval_handoff/);
+  assert.match(simplificationPlan, /Proposal\s+approval state/);
+  assert.match(simplificationPlan, /Approve proposal handoff/);
+  assert.match(simplificationPlan, /proposalApprovalByService/);
   assert.match(simplificationPlan, /Open kickoff gate/);
   assert.match(simplificationPlan, /Pilot kickoff gate/);
   assert.match(simplificationPlan, /Copy kickoff gate/);
@@ -2230,6 +2248,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /Proposal approval handoff/);
   assert.match(gettingStarted, /Copy approval handoff/);
   assert.match(gettingStarted, /local_services_proposal_approval_handoff/);
+  assert.match(gettingStarted, /Proposal\s+approval state/);
+  assert.match(gettingStarted, /Approve proposal handoff/);
+  assert.match(gettingStarted, /proposalApprovalByService/);
   assert.match(gettingStarted, /Open kickoff gate/);
   assert.match(gettingStarted, /Pilot kickoff gate/);
   assert.match(gettingStarted, /Copy kickoff gate/);
@@ -2528,6 +2549,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /Copy approval handoff/);
   assert.match(localServicesSpec, /local_services_proposal_approval_handoff/);
   assert.match(localServicesSpec, /manual_paid_pilot_approval_handoff/);
+  assert.match(localServicesSpec, /Proposal\s+approval state/);
+  assert.match(localServicesSpec, /Approve proposal handoff/);
+  assert.match(localServicesSpec, /proposalApprovalByService/);
   assert.match(localServicesSpec, /Open kickoff gate/);
   assert.match(localServicesSpec, /Pilot kickoff gate/);
   assert.match(localServicesSpec, /Copy kickoff gate/);
@@ -2889,6 +2913,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotScorecard, /local_services_pilot_evidence_pack/);
   assert.match(pilotScorecard, /Week-one owner decision/);
   assert.match(pilotScorecard, /paid-pilot readiness\s+proof pack/);
+  assert.match(pilotScorecard, /Proposal\s+approval state/);
+  assert.match(pilotScorecard, /Approve proposal handoff/);
+  assert.match(pilotScorecard, /proposalApprovalByService/);
   assert.match(pilotScorecard, /Open day-one recap/);
   assert.match(pilotScorecard, /Day-one recap/);
   assert.match(pilotScorecard, /Copy day-one recap/);
@@ -2962,6 +2989,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotRunbook, /Not ready for paid pilot/);
   assert.match(pilotRunbook, /Week-one owner decision/);
   assert.match(pilotRunbook, /Only `Continue`\s+can unlock `Paid pilot proposal`/);
+  assert.match(pilotRunbook, /Proposal\s+approval state/);
+  assert.match(pilotRunbook, /Approve proposal handoff/);
+  assert.match(pilotRunbook, /proposalApprovalByService/);
   assert.match(pilotRunbook, /Pilot execution checklist/);
   assert.match(pilotRunbook, /Pass test call\/message/);
   assert.match(pilotRunbook, /Needs test call passed/);
@@ -3193,6 +3223,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(outreachExecutionPack, /Record pause/);
   assert.match(outreachExecutionPack, /Record stop/);
   assert.match(outreachExecutionPack, /weekOneOwnerDecisionByProspectKey/);
+  assert.match(outreachExecutionPack, /Proposal\s+approval state/);
+  assert.match(outreachExecutionPack, /Approve proposal handoff/);
+  assert.match(outreachExecutionPack, /proposalApprovalByService/);
   assert.match(outreachExecutionPack, /Open evidence pack/);
   assert.match(outreachExecutionPack, /Pilot evidence pack/);
   assert.match(outreachExecutionPack, /Week-two evidence pack/);

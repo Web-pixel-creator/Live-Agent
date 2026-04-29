@@ -566,6 +566,7 @@ type LocalServiceFirstRequestOutcome =
 
 type LocalServicePilotMetricStatus = "not_started" | "baseline_captured" | "tracking_live" | "review_ready";
 type LocalServiceWeekOneOwnerDecision = "not_recorded" | "continue" | "pause" | "stop";
+type LocalServiceProposalApprovalDecision = "not_reviewed" | "approved" | "needs_changes" | "blocked";
 type LocalServiceFounderContactField =
   | "channelChecked"
   | "manualMessageSent"
@@ -578,7 +579,8 @@ type LocalServicePilotActivityKind =
   | "metric_change"
   | "contact_proof"
   | "outcome_change"
-  | "owner_decision";
+  | "owner_decision"
+  | "proposal_approval";
 type LocalServicePilotActivityEvent = {
   id: string;
   kind: LocalServicePilotActivityKind;
@@ -596,6 +598,7 @@ type LocalServicePilotWorkspaceState = {
   statusByProspectKey: Record<string, LocalServicePilotStatus>;
   firstRequestOutcomeByProspectKey: Record<string, LocalServiceFirstRequestOutcome>;
   weekOneOwnerDecisionByProspectKey: Record<string, LocalServiceWeekOneOwnerDecision>;
+  proposalApprovalByService: Record<string, LocalServiceProposalApprovalDecision>;
   metricStatusByService: Record<string, LocalServicePilotMetricStatus>;
   setupStepCompletionByService: Record<string, LocalServiceSetupStepCompletion>;
   setupReadyByService: Record<string, boolean>;
@@ -839,6 +842,20 @@ const LOCAL_SERVICE_WEEK_ONE_OWNER_DECISION_ACTIONS: {
   { decision: "pause", label: "Record pause" },
   { decision: "stop", label: "Record stop" },
 ];
+const LOCAL_SERVICE_PROPOSAL_APPROVAL_LABELS: Record<LocalServiceProposalApprovalDecision, string> = {
+  not_reviewed: "Proposal approval not reviewed",
+  approved: "Approved for manual paid-pilot proposal",
+  needs_changes: "Needs changes before approval",
+  blocked: "Blocked by operator",
+};
+const LOCAL_SERVICE_PROPOSAL_APPROVAL_ACTIONS: {
+  decision: Exclude<LocalServiceProposalApprovalDecision, "not_reviewed">;
+  label: string;
+}[] = [
+  { decision: "approved", label: "Approve proposal handoff" },
+  { decision: "needs_changes", label: "Needs changes" },
+  { decision: "blocked", label: "Block proposal" },
+];
 const LOCAL_SERVICE_FOUNDER_CONTACT_FIELD_LABELS: Record<LocalServiceFounderContactField, string> = {
   channelChecked: "Channel checked",
   manualMessageSent: "Manual sent",
@@ -877,6 +894,10 @@ function isLocalServiceWeekOneOwnerDecision(value: unknown): value is LocalServi
   return value === "not_recorded" || value === "continue" || value === "pause" || value === "stop";
 }
 
+function isLocalServiceProposalApprovalDecision(value: unknown): value is LocalServiceProposalApprovalDecision {
+  return value === "not_reviewed" || value === "approved" || value === "needs_changes" || value === "blocked";
+}
+
 function isLocalServiceFirstRequestOutcome(value: unknown): value is LocalServiceFirstRequestOutcome {
   return (
     value === "not_recorded" ||
@@ -893,7 +914,8 @@ function isLocalServicePilotActivityKind(value: unknown): value is LocalServiceP
     value === "metric_change" ||
     value === "contact_proof" ||
     value === "outcome_change" ||
-    value === "owner_decision"
+    value === "owner_decision" ||
+    value === "proposal_approval"
   );
 }
 
@@ -959,6 +981,16 @@ function readWeekOneOwnerDecisionRecord(value: unknown): Record<string, LocalSer
     Object.entries(value as Record<string, unknown>).filter(
       (entry): entry is [string, LocalServiceWeekOneOwnerDecision] =>
         isLocalServiceWeekOneOwnerDecision(entry[1]),
+    ),
+  );
+}
+
+function readProposalApprovalDecisionRecord(value: unknown): Record<string, LocalServiceProposalApprovalDecision> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).filter(
+      (entry): entry is [string, LocalServiceProposalApprovalDecision] =>
+        isLocalServiceProposalApprovalDecision(entry[1]),
     ),
   );
 }
@@ -1080,6 +1112,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
     statusByProspectKey: {},
     firstRequestOutcomeByProspectKey: {},
     weekOneOwnerDecisionByProspectKey: {},
+    proposalApprovalByService: {},
     metricStatusByService: {},
     setupStepCompletionByService: {},
     setupReadyByService: {},
@@ -1106,6 +1139,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
       weekOneOwnerDecisionByProspectKey: readWeekOneOwnerDecisionRecord(
         parsed.weekOneOwnerDecisionByProspectKey,
       ),
+      proposalApprovalByService: readProposalApprovalDecisionRecord(parsed.proposalApprovalByService),
       metricStatusByService: readPilotMetricStatusRecord(parsed.metricStatusByService),
       setupStepCompletionByService: readSetupStepCompletionByService(parsed.setupStepCompletionByService),
       setupReadyByService: readBooleanRecord(parsed.setupReadyByService),
@@ -2668,6 +2702,7 @@ function buildLocalServiceProposalApprovalHandoff(
   actionLayer: LocalServiceLeadingCategoryActionLayer,
   readiness: LocalServiceLeadingCategoryPilotReadiness,
   metricStatus: LocalServicePilotMetricStatus,
+  proposalApprovalDecision: LocalServiceProposalApprovalDecision,
 ): LocalServicePilotWorkspaceExport {
   const laneRows = rows.filter((row) => row.serviceId === actionLayer.serviceId);
   const targetRow =
@@ -2679,9 +2714,16 @@ function buildLocalServiceProposalApprovalHandoff(
   const targetCompany = targetRow
     ? `${targetRow.prospect.company} (${targetRow.prospect.segment})`
     : "No paid-pilot prospect selected yet";
-  const approvalStatus = readiness.readyToPilot
-    ? "Waiting for operator approval"
-    : "Approval handoff blocked by readiness gate";
+  const proposalApprovalLabel = LOCAL_SERVICE_PROPOSAL_APPROVAL_LABELS[proposalApprovalDecision];
+  const approvalStatus = !readiness.readyToPilot
+    ? "Approval handoff blocked by readiness gate"
+    : proposalApprovalDecision === "approved"
+      ? "Operator-approved for manual proposal follow-up"
+      : proposalApprovalDecision === "needs_changes"
+        ? "Needs changes before operator approval"
+        : proposalApprovalDecision === "blocked"
+          ? "Blocked by operator decision"
+          : "Waiting for operator approval";
   const approvalItems = [
     {
       label: "Price and commercial terms",
@@ -2730,6 +2772,7 @@ function buildLocalServiceProposalApprovalHandoff(
     operator_handoff: template.detail.operatorHandoff,
     readiness_label: readiness.readinessLabel,
     week_one_owner_decision: readiness.ownerDecisionLabel,
+    proposal_approval: proposalApprovalLabel,
     proof_progress: proofProgress,
   };
   const blockerLines =
@@ -2739,6 +2782,8 @@ function buildLocalServiceProposalApprovalHandoff(
     "Export surface: local_services_proposal_approval_handoff",
     "Export kind: manual_paid_pilot_approval_handoff",
     `Approval status: ${approvalStatus}`,
+    `Proposal approval decision: ${proposalApprovalLabel}`,
+    "Proposal approval state key: proposalApprovalByService",
     `Target prospect: ${targetCompany}`,
     `Paid pilot gate: ${readiness.paidPilotGate}`,
     `Week-one owner decision: ${readiness.ownerDecisionLabel}`,
@@ -2772,7 +2817,10 @@ function buildLocalServiceProposalApprovalHandoff(
       export_kind: "manual_paid_pilot_approval_handoff",
       service_id: actionLayer.serviceId,
       service_title: actionLayer.serviceTitle,
-      approval_status: readiness.readyToPilot ? "waiting_operator_approval" : "blocked_by_readiness_gate",
+      approval_status: !readiness.readyToPilot ? "blocked_by_readiness_gate" : proposalApprovalDecision,
+      proposal_approval_decision: proposalApprovalDecision,
+      proposal_approval_label: proposalApprovalLabel,
+      proposal_approval_state_key: "proposalApprovalByService",
       paid_pilot_gate: readiness.paidPilotGate,
       week_one_owner_decision: readiness.ownerDecision,
       week_one_owner_decision_label: readiness.ownerDecisionLabel,
@@ -2841,6 +2889,7 @@ function buildLocalServiceProposalApprovalHandoff(
     jsonText,
     rows: [
       { label: "Approval status", value: approvalStatus },
+      { label: "Proposal approval decision", value: proposalApprovalLabel },
       { label: "Service", value: actionLayer.serviceTitle },
       { label: "Target prospect", value: targetCompany },
       { label: "Readiness", value: `${readiness.readinessLabel} / ${readiness.progressLabel}` },
@@ -2879,6 +2928,7 @@ function buildLocalServicePilotKickoffGate(
   testCallPassed: boolean,
   testCallProgress: string,
   metricStatus: LocalServicePilotMetricStatus,
+  proposalApprovalDecision: LocalServiceProposalApprovalDecision,
 ): LocalServicePilotWorkspaceExport {
   const laneRows = rows.filter((row) => row.serviceId === actionLayer.serviceId);
   const targetRow =
@@ -2888,6 +2938,7 @@ function buildLocalServicePilotKickoffGate(
     laneRows.find((row) => row.status === "reply_received") ??
     laneRows[0];
   const metricStarted = metricStatus !== "not_started";
+  const proposalApprovalLabel = LOCAL_SERVICE_PROPOSAL_APPROVAL_LABELS[proposalApprovalDecision];
   const kickoffChecks = [
     {
       label: "Readiness proof reviewed",
@@ -2895,9 +2946,13 @@ function buildLocalServicePilotKickoffGate(
       done: readiness.readyToPilot,
     },
     {
-      label: "Proposal approval handoff reviewed",
-      status: readiness.readyToPilot ? "Manual approval can be reviewed" : "Blocked until readiness gate is complete",
-      done: readiness.readyToPilot,
+      label: "Proposal approval decision",
+      status: !readiness.readyToPilot
+        ? "Blocked until readiness gate is complete"
+        : proposalApprovalDecision === "approved"
+          ? "Proposal approval recorded"
+          : proposalApprovalLabel,
+      done: readiness.readyToPilot && proposalApprovalDecision === "approved",
     },
     {
       label: "Week-one owner decision",
@@ -2951,6 +3006,8 @@ function buildLocalServicePilotKickoffGate(
     `Target prospect: ${targetCompany}`,
     `Week-one owner decision: ${readiness.ownerDecisionLabel}`,
     "Owner decision state key: weekOneOwnerDecisionByProspectKey",
+    `Proposal approval decision: ${proposalApprovalLabel}`,
+    "Proposal approval state key: proposalApprovalByService",
     `Next kickoff action: ${nextKickoffAction}`,
     "",
     "Kickoff checks:",
@@ -2981,6 +3038,9 @@ function buildLocalServicePilotKickoffGate(
       week_one_owner_decision: readiness.ownerDecision,
       week_one_owner_decision_label: readiness.ownerDecisionLabel,
       owner_decision_state_key: "weekOneOwnerDecisionByProspectKey",
+      proposal_approval_decision: proposalApprovalDecision,
+      proposal_approval_label: proposalApprovalLabel,
+      proposal_approval_state_key: "proposalApprovalByService",
       next_kickoff_action: nextKickoffAction,
       target_prospect: targetRow
         ? {
@@ -3045,6 +3105,7 @@ function buildLocalServicePilotKickoffGate(
       { label: "Service", value: actionLayer.serviceTitle },
       { label: "Target prospect", value: targetCompany },
       { label: "Week-one owner decision", value: readiness.ownerDecisionLabel },
+      { label: "Proposal approval decision", value: proposalApprovalLabel },
       { label: "Next action", value: nextKickoffAction },
       { label: "Day-one setup", value: "Manual setup only; no live channel activation" },
       { label: "Metric baseline", value: LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus] },
@@ -5577,6 +5638,10 @@ const LocalServicesDispatchDemoPanel = ({
     selectedLeadingCategoryWeekOneOwnerDecision !== "not_recorded"
       ? selectedLeadingCategoryWeekOneOwnerDecision
       : recordedLeadingCategoryWeekOneOwnerDecision;
+  const leadingCategoryProposalApprovalDecision =
+    pilotWorkspaceState.proposalApprovalByService[leadingCategoryActionLayer.serviceId] ?? "not_reviewed";
+  const leadingCategoryProposalApprovalLabel =
+    LOCAL_SERVICE_PROPOSAL_APPROVAL_LABELS[leadingCategoryProposalApprovalDecision];
   const leadingCategoryPilotReadiness = useMemo(
     () =>
       buildLocalServiceLeadingCategoryPilotReadiness(
@@ -5752,6 +5817,7 @@ const LocalServicesDispatchDemoPanel = ({
     leadingCategoryActionLayer,
     leadingCategoryPilotReadiness,
     leadingCategoryMetricStatus,
+    leadingCategoryProposalApprovalDecision,
   );
   const pilotKickoffGateExport = buildLocalServicePilotKickoffGate(
     leadingCategoryTemplate,
@@ -5765,6 +5831,7 @@ const LocalServicesDispatchDemoPanel = ({
     leadingCategoryTestCallPassed,
     leadingCategoryTestCallProgress,
     leadingCategoryMetricStatus,
+    leadingCategoryProposalApprovalDecision,
   );
   const dayOneOperatorRunSheet = buildLocalServiceDayOneOperatorRunSheet(
     leadingCategoryTemplate,
@@ -6191,6 +6258,24 @@ const LocalServicesDispatchDemoPanel = ({
         serviceTitle: selectedTemplate.title,
         prospectId: selectedOutreachProspect?.id,
         company: selectedOutreachProspect?.company,
+      }),
+    }));
+  };
+
+  const updateProposalApprovalDecision = (decision: LocalServiceProposalApprovalDecision) => {
+    const nextDecisionLabel = LOCAL_SERVICE_PROPOSAL_APPROVAL_LABELS[decision];
+    setPilotWorkspaceState((prev) => ({
+      ...prev,
+      proposalApprovalByService: {
+        ...prev.proposalApprovalByService,
+        [leadingCategoryActionLayer.serviceId]: decision,
+      },
+      activityLog: appendLocalServicePilotActivity(prev.activityLog, {
+        kind: "proposal_approval",
+        label: "Proposal approval decision recorded",
+        value: nextDecisionLabel,
+        serviceId: leadingCategoryActionLayer.serviceId,
+        serviceTitle: leadingCategoryActionLayer.serviceTitle,
       }),
     }));
   };
@@ -7563,6 +7648,48 @@ const LocalServicesDispatchDemoPanel = ({
                             <li key={item}>{item}</li>
                           ))}
                         </ul>
+                      </div>
+                      <div className="mt-3 rounded-md border border-border/50 bg-card/25 px-3 py-3">
+                        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                          <div className="min-w-0">
+                            <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                              Proposal approval state
+                            </div>
+                            <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                              Browser-local decision for the paid-pilot proposal handoff. Kickoff stays blocked until
+                              readiness is complete and this state is approved.
+                            </p>
+                          </div>
+                          <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                            {leadingCategoryProposalApprovalLabel}
+                          </span>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {LOCAL_SERVICE_PROPOSAL_APPROVAL_ACTIONS.map((action) => (
+                            <Button
+                              key={action.decision}
+                              size="sm"
+                              variant={
+                                leadingCategoryProposalApprovalDecision === action.decision ? "default" : "secondary"
+                              }
+                              onClick={() => updateProposalApprovalDecision(action.decision)}
+                              className="h-7"
+                            >
+                              {action.label}
+                            </Button>
+                          ))}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => updateProposalApprovalDecision("not_reviewed")}
+                            className="h-7"
+                          >
+                            Reset proposal approval
+                          </Button>
+                          <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 text-[10px] text-muted-foreground">
+                            proposalApprovalByService
+                          </span>
+                        </div>
                       </div>
                       <div className="mt-3 grid gap-2">
                         {leadingCategoryPilotReadiness.checklist.map((item) => {

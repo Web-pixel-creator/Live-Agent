@@ -248,7 +248,11 @@ operator proposal draft that stays blocked until readiness proof is complete.
 `Open approval handoff`, `Proposal approval handoff`, `Copy approval handoff`,
 and `local_services_proposal_approval_handoff` are the final manual approval
 layer before external execution: price, scope, owner send, CRM payload, booking
-policy, and billing-disabled state must be confirmed outside automation.
+policy, and billing-disabled state must be confirmed outside automation. The
+shell now records this as `Proposal approval state` in browser-local
+`proposalApprovalByService`; `Approve proposal handoff` is the only state that
+can move kickoff forward, while `Needs changes`, `Block proposal`, or reset keep
+the pilot blocked.
 `Open kickoff gate`, `Pilot kickoff gate`, `Copy kickoff gate`, and
 `local_services_pilot_kickoff_gate` turn that approval layer into a day-one
 decision without adding automation: proceed to setup only when proof, proposal

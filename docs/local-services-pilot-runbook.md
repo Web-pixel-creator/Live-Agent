@@ -80,6 +80,10 @@ Do not use the pilot to build:
    metric, and `Week-one owner decision` gates are complete. Only `Continue`
    can unlock `Paid pilot proposal`; `Pause`, `Stop`, or no recorded decision
    keeps the proposal path blocked.
+   `Proposal approval state` then records the operator handoff decision through
+   `Approve proposal handoff`, `Needs changes`, or `Block proposal` in
+   `proposalApprovalByService`; day-one kickoff remains blocked until it is
+   approved.
 9. Review `Pilot execution checklist`: `Pass test call/message`,
    `Needs test call passed`, `Prepare first manual batch`,
    `Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,

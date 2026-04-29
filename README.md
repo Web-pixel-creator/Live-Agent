@@ -268,7 +268,11 @@ Local-services expansion spec:
   `Proposal approval handoff`, `Copy approval handoff`, and
   `local_services_proposal_approval_handoff` add the manual price, scope,
   owner approval, CRM payload, booking-policy, and billing-disabled checklist
-  before any paid-pilot proposal leaves the shell. `Open kickoff gate`,
+  before any paid-pilot proposal leaves the shell. `Proposal approval state`,
+  `Approve proposal handoff`, `Needs changes`, `Block proposal`,
+  `Reset proposal approval`, and `proposalApprovalByService` now record the
+  operator's browser-local approval decision; only the approved state can move
+  kickoff forward. `Open kickoff gate`,
   `Pilot kickoff gate`, `Copy kickoff gate`, and
   `local_services_pilot_kickoff_gate` decide whether the proposal can move into
   manual day-one setup while keeping phone, messaging, CRM, analytics, billing,

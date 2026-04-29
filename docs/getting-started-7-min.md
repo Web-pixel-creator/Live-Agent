@@ -195,7 +195,11 @@ proposal preview`; `Copy proposal preview` exports
 draft, not as a customer send or billing action. Use `Open approval handoff` to
 inspect `Proposal approval handoff`; `Copy approval handoff` exports
 `local_services_proposal_approval_handoff` as the manual price, scope, owner
-send, CRM payload, booking-policy, and billing-disabled checklist. Use
+send, CRM payload, booking-policy, and billing-disabled checklist. The
+`Proposal approval state`, `Approve proposal handoff`, `Needs changes`, `Block proposal`,
+`Reset proposal approval`, and `proposalApprovalByService` record the
+browser-local approval decision; kickoff stays blocked unless the handoff is
+approved. Use
 `Open kickoff gate` to inspect `Pilot kickoff gate`; `Copy kickoff gate`
 exports `local_services_pilot_kickoff_gate` as the manual day-one setup decision
 before any phone, messaging, CRM, analytics, billing, booking, or customer-send

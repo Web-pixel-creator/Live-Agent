@@ -236,6 +236,10 @@ Allowed reply statuses:
    decision` gates are complete. Only `Continue` can unlock `Paid pilot
    proposal`; `Pause`, `Stop`, or no recorded decision keeps proposal work
    blocked.
+   Show `Proposal approval state`, `Approve proposal handoff`, `Needs changes`,
+   `Block proposal`, `Reset proposal approval`, and `proposalApprovalByService`;
+   explain that day-one kickoff remains blocked until the operator approves the
+   handoff.
 14. Open `Open intake evidence` / `Transcript + evidence` and show
    `Saved intake evidence`, `Intake transcript + evidence link`,
    `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,

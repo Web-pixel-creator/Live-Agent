@@ -255,7 +255,10 @@ charge, or activate a channel.
 Use `Open approval handoff` after the proposal preview to inspect `Proposal
 approval handoff`; `Copy approval handoff` is the manual approval checklist for
 price, scope, owner send, CRM payload, booking policy, and billing-disabled
-state. It is still not a sent proposal or launched paid pilot.
+state. Use `Proposal approval state` to record `Approve proposal handoff`,
+`Needs changes`, or `Block proposal` in browser-local
+`proposalApprovalByService`; kickoff remains blocked unless this state is
+approved. It is still not a sent proposal or launched paid pilot.
 Use `Open kickoff gate` before day-one setup; `Pilot kickoff gate` and
 `Copy kickoff gate` confirm whether proof, proposal approval, setup, dry-run,
 owner conversation, metric baseline, and `Week-one owner decision` are ready.

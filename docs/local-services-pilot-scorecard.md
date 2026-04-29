@@ -175,6 +175,10 @@ show `Ready for first paid pilot` only after proof, setup, dry-run,
 owner-conversation, metric, and `Week-one owner decision` gates are complete.
 Only `Continue` can unlock `Paid pilot proposal`; `Pause`, `Stop`, or no
 recorded decision keep the proposal path blocked.
+`Proposal approval state` records the operator handoff decision in
+`proposalApprovalByService`; `Approve proposal handoff` is required before
+`Pilot kickoff gate` can move to day-one setup, while `Needs changes`,
+`Block proposal`, or reset keep kickoff blocked.
 
 `Open metrics tracker` opens the `Pilot metrics tracker` for the selected
 service lane. Use `Human-readable` for weekly operator review and `JSON` when
