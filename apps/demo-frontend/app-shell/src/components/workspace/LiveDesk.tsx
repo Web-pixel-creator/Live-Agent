@@ -6100,6 +6100,59 @@ const LocalServicesDispatchDemoPanel = ({
     () => buildLocalServiceFounderDecisionGate(founderContactRows, founderContactCounts),
     [founderContactCounts, founderContactRows],
   );
+  const pilotOpsTodayRow =
+    founderContactRows.find((row) => !row.channelChecked) ??
+    founderContactRows.find((row) => !row.manualMessageSent) ??
+    founderContactRows.find((row) => row.status !== "reply_received" && row.status !== "rejected_for_now") ??
+    founderContactRows.find((row) => !row.discoveryCallCompleted) ??
+    founderContactRows.find((row) => !row.demoBooked) ??
+    founderContactRows.find((row) => !row.pilotCandidate) ??
+    founderContactRows[0];
+  const pilotOpsTodayAction = !pilotOpsTodayRow
+    ? "No target loaded. Open the outreach list before running the pilot."
+    : !pilotOpsTodayRow.channelChecked
+      ? "Verify the owner contact channel manually before any message."
+      : !pilotOpsTodayRow.manualMessageSent
+        ? "Send the approved first-contact message manually outside the shell, then mark Manual sent."
+        : pilotOpsTodayRow.status !== "reply_received" && pilotOpsTodayRow.status !== "rejected_for_now"
+          ? "Wait for the owner reply, then mark Reply or Rejected."
+          : !pilotOpsTodayRow.discoveryCallCompleted
+            ? "Run the discovery call only if the owner pain is real, then mark Discovery call."
+            : !pilotOpsTodayRow.demoBooked
+              ? "Book a demo only after discovery confirms fit."
+              : !pilotOpsTodayRow.pilotCandidate
+                ? "Mark Pilot candidate only when the owner agrees to an operator-supervised pilot."
+                : "Open batch review and decide continue, revise, or stop.";
+  const pilotOpsTodayProof = !pilotOpsTodayRow
+    ? "outreach_list_target_required"
+    : !pilotOpsTodayRow.channelChecked
+      ? "channelChecked"
+      : !pilotOpsTodayRow.manualMessageSent
+        ? "manualMessageSent"
+        : pilotOpsTodayRow.status !== "reply_received" && pilotOpsTodayRow.status !== "rejected_for_now"
+          ? "reply_or_rejection_status"
+          : !pilotOpsTodayRow.discoveryCallCompleted
+            ? "discoveryCallCompleted"
+            : !pilotOpsTodayRow.demoBooked
+              ? "demoBooked"
+              : !pilotOpsTodayRow.pilotCandidate
+                ? "pilotCandidate"
+                : "founder_batch_review";
+  const pilotOpsTodayHandoffText = [
+    "local_services_pilot_ops_today",
+    `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
+    "Manual execution view. No outbound send, CRM write, booking, billing, analytics sync, or Markdown mutation.",
+    `Current account: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "none"}`,
+    `Service lane: ${pilotOpsTodayRow ? pilotOpsTodayRow.serviceTitle : "none"}`,
+    `Segment: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.segment : "none"}`,
+    `Status: ${pilotOpsTodayRow ? pilotOpsTodayRow.statusLabel : "none"}`,
+    `Next manual action: ${pilotOpsTodayAction}`,
+    `Proof to capture: ${pilotOpsTodayProof}`,
+    `Owner next step: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.nextStep : "none"}`,
+    `Batch proof progress: ${founderProofProgress}`,
+    `Decision gate: ${founderDecisionGate.verdictLabel}`,
+    "Operator rule: update only browser-local proof markers after the real manual action happens.",
+  ].join("\n");
   const founderContactWorkspaceText = [
     "local_services_founder_contact_workspace",
     `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
@@ -6125,6 +6178,9 @@ const LocalServicesDispatchDemoPanel = ({
     `Day-one outcome target: ${leadingCategoryOutcomeTargetRow ? leadingCategoryOutcomeTargetRow.prospect.company : "none"}`,
     `Day-one outcome capture: ${leadingCategoryFirstRequestOutcomeLabel}`,
     `Weekly scorecard sync gate: ${leadingCategoryWeeklyScorecardSyncGate}`,
+    `Pilot ops today: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "none"}`,
+    `Pilot ops next manual action: ${pilotOpsTodayAction}`,
+    `Pilot ops proof to capture: ${pilotOpsTodayProof}`,
     "No category expansion without proof.",
     `Manual sends logged: ${founderContactCounts.manualMessageSent}/10`,
     `Replies or clear rejections: ${founderContactCounts.repliesOrRejections}/3`,
@@ -7702,6 +7758,74 @@ const LocalServicesDispatchDemoPanel = ({
                   <div className="mt-1 font-mono text-[18px] text-foreground">{item.value}</div>
                 </div>
               ))}
+            </div>
+
+            <div className="mt-3 rounded-md border border-border/50 bg-card/25 px-3 py-3">
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    <ClipboardCheck className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    Pilot ops today
+                  </div>
+                  <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground max-w-3xl">
+                    One-screen execution queue for the next real manual pilot action. It tells the operator which
+                    account to handle, what to do outside the shell, and which proof marker to update afterward.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => onCopyText(pilotOpsTodayHandoffText, "Pilot ops today copied")}
+                    className="h-7"
+                  >
+                    Copy pilot ops handoff
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
+                    className="h-7"
+                  >
+                    Open outreach execution pack
+                  </Button>
+                  <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                    local_services_pilot_ops_today
+                  </span>
+                </div>
+              </div>
+              <div className="mt-3 grid gap-2 text-[11px] lg:grid-cols-4">
+                <div className="rounded-[5px] bg-background/35 px-2 py-1.5">
+                  <span className="text-muted-foreground">Current account</span>
+                  <span className="ml-2 font-medium text-foreground">
+                    {pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "No account selected"}
+                  </span>
+                </div>
+                <div className="rounded-[5px] bg-background/35 px-2 py-1.5">
+                  <span className="text-muted-foreground">Service lane</span>
+                  <span className="ml-2 font-medium text-foreground">
+                    {pilotOpsTodayRow ? pilotOpsTodayRow.serviceTitle : "No service lane"}
+                  </span>
+                </div>
+                <div className="rounded-[5px] bg-background/35 px-2 py-1.5 lg:col-span-2">
+                  <span className="text-muted-foreground">Next manual action</span>
+                  <span className="ml-2 font-medium text-foreground">{pilotOpsTodayAction}</span>
+                </div>
+                <div className="rounded-[5px] bg-background/35 px-2 py-1.5">
+                  <span className="text-muted-foreground">Proof to capture</span>
+                  <span className="ml-2 font-mono text-[10px] text-foreground">{pilotOpsTodayProof}</span>
+                </div>
+                <div className="rounded-[5px] bg-background/35 px-2 py-1.5">
+                  <span className="text-muted-foreground">Batch progress</span>
+                  <span className="ml-2 font-medium text-foreground">{founderProofProgress}</span>
+                </div>
+                <div className="rounded-[5px] bg-background/35 px-2 py-1.5 lg:col-span-2">
+                  <span className="text-muted-foreground">Owner next step</span>
+                  <span className="ml-2 font-medium text-foreground">
+                    {pilotOpsTodayRow ? pilotOpsTodayRow.prospect.nextStep : "Load a target from the outreach list."}
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1.25fr)_minmax(300px,0.75fr)]">

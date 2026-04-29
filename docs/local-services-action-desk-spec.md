@@ -760,7 +760,9 @@ operator shell with `First 10 contacts workspace`, `Pilot proof checklist`,
 `First contact batch review drawer`, `Copy batch review`, and
 `Copy founder workspace`. The controls are browser-local proof markers for
 channel check, manual send, discovery call, demo booking, and pilot candidate;
-the `Category pilot score`, `Leading category`, and
+`Pilot ops today`, `Copy pilot ops handoff`, and
+`local_services_pilot_ops_today` add the one-account live execution queue for
+the next manual action and proof marker; the `Category pilot score`, `Leading category`, and
 `No category expansion without proof` controls rank AC, plumbing, cleaning, and
 measurement from those same markers. `Leading category action layer` converts
 the top lane into `Next manual batch`, `Discovery questions`,
@@ -1009,89 +1011,92 @@ Current shell readiness for P3:
    `Copy founder workspace`, `Channel checked`, `Manual sent`,
    `Discovery call`, `Demo booked`, and `Pilot candidate` are visible as
    browser-local validation controls.
-33. `Category pilot score`, `Leading category`,
+33. `Pilot ops today`, `Copy pilot ops handoff`, and
+   `local_services_pilot_ops_today` are visible as the one-account manual
+   execution queue.
+34. `Category pilot score`, `Leading category`,
    `No category expansion without proof`, `local_services_category_pilot_score`,
    and `category_pilot_score` are visible as the category validation contract.
-34. `Leading category action layer`, `Next manual batch`,
+35. `Leading category action layer`, `Next manual batch`,
    `Discovery questions`, `Pilot setup checklist`, `Integration hold`,
    `Focus leading category`, `local_services_leading_category_action_layer`,
    and `leading_category_action_layer` are visible as the category next-action
    contract.
-35. `Pilot setup readiness`, `Paid pilot gate`,
+36. `Pilot setup readiness`, `Paid pilot gate`,
    `Ready for first paid pilot`, `Not ready for paid pilot`,
    `Week-one owner decision`, `local_services_pilot_setup_readiness`, and
    `pilot_setup_readiness` are visible as the first paid pilot readiness
    contract.
-36. `Readiness action plan`, `Continue setup/test path`,
+37. `Readiness action plan`, `Continue setup/test path`,
    `Copy readiness action plan`, `local_services_readiness_action_plan`, and
    `readiness_action_plan` are visible as the blocker-specific operator action
    contract, including the `Week-one review` primary surface when the owner
    decision is not `Continue`.
-37. `Open proof drawer`, `Readiness proof drawer`, `Copy readiness proof`,
+38. `Open proof drawer`, `Readiness proof drawer`, `Copy readiness proof`,
    `local_services_readiness_proof_drawer`, and `readiness_evidence_view` are
    visible as the compact readiness evidence contract.
-38. `Open proposal preview`, `Paid pilot proposal preview`,
+39. `Open proposal preview`, `Paid pilot proposal preview`,
    `Copy proposal preview`, `local_services_paid_pilot_proposal_preview`, and
    `operator_approved_proposal_preview` are visible as the gated paid-pilot
    proposal contract.
-39. `Open approval handoff`, `Proposal approval handoff`,
+40. `Open approval handoff`, `Proposal approval handoff`,
    `Copy approval handoff`, `local_services_proposal_approval_handoff`, and
    `manual_paid_pilot_approval_handoff` are visible as the manual paid-pilot
    approval handoff contract.
-40. `Proposal approval state`, `Approve proposal handoff`, `Needs changes`,
+41. `Proposal approval state`, `Approve proposal handoff`, `Needs changes`,
    `Block proposal`, `Reset proposal approval`, and `proposalApprovalByService`
    are visible as the browser-local paid-pilot approval decision before
    kickoff.
-41. `Open kickoff gate`, `Pilot kickoff gate`, `Copy kickoff gate`,
+42. `Open kickoff gate`, `Pilot kickoff gate`, `Copy kickoff gate`,
    `local_services_pilot_kickoff_gate`, and `manual_day_one_kickoff_gate` are
    visible as the manual day-one kickoff gate contract.
-42. `Kickoff decision state`, `Mark kickoff ready`, `Needs more prep`,
+43. `Kickoff decision state`, `Mark kickoff ready`, `Needs more prep`,
    `Block kickoff`, `Reset kickoff decision`, and `kickoffDecisionByService`
    are visible as the browser-local day-one kickoff decision before the run
    sheet.
-43. `Open run sheet`, `Day-one operator run sheet`, `Copy run sheet`,
+44. `Open run sheet`, `Day-one operator run sheet`, `Copy run sheet`,
    `local_services_day_one_operator_run_sheet`, and
    `manual_day_one_operator_run_sheet` are visible as the first-day operator
    worksheet contract.
-44. `day_one_run_sheet_outcome_capture`, `Open daily log`, and
+45. `day_one_run_sheet_outcome_capture`, `Open daily log`, and
    `Pilot daily log` are visible as the run-sheet outcome capture contract.
-45. `Day-one outcome capture gate`, `Reset day-one outcome`,
+46. `Day-one outcome capture gate`, `Reset day-one outcome`,
    `Weekly scorecard sync gate`, and `manual_weekly_scorecard_sync_gate` are
    visible as the leading-category manual scorecard sync gate.
-46. `Open weekly sync checklist`, `Weekly scorecard sync checklist`,
+47. `Open weekly sync checklist`, `Weekly scorecard sync checklist`,
    `Copy weekly sync checklist`, `local_services_weekly_scorecard_sync_checklist`,
    and `manual_weekly_scorecard_sync_checklist` are visible as the reviewed
    manual copy packet before private scorecard sync.
-47. `Record weekly sync reviewed`, `Reset weekly sync review`, and
+48. `Record weekly sync reviewed`, `Reset weekly sync review`, and
    `weeklyScorecardSyncReviewedByService` are visible as the browser-local
    private scorecard copy proof.
-48. `Open day-one recap`, `Day-one recap`, `Copy day-one recap`,
+49. `Open day-one recap`, `Day-one recap`, `Copy day-one recap`,
    `local_services_day_one_recap`, `manual_day_one_recap`, and
    `day_one_recap_to_week_one_review` are visible as the first-day recap to
    week-one review handoff contract.
-49. `contactProofByProspectKey` and `Founder proof recorded` are present in the
+50. `contactProofByProspectKey` and `Founder proof recorded` are present in the
    browser-local pilot workspace contract, without any external side effect.
-50. `local_services_first_contact_batch_review`, `founder_manual_validation_review`,
+51. `local_services_first_contact_batch_review`, `founder_manual_validation_review`,
    and `no_booking_created` are present in the first-batch review export
    contract.
-51. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
+52. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
    14-day pilot runbook from the same local frontend server.
-52. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
+53. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
    repo-owned first-contact execution pack from the same local frontend server.
-53. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
+54. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
    the repo-owned 90-second recording checklist from the same local frontend
    server.
-54. `?recording=90s`, `90-second recording mode`, `Recording path`, and
+55. `?recording=90s`, `90-second recording mode`, `Recording path`, and
    `90s recording` are visible as the demo-recording posture, and outreach
    tables plus scorecard controls are hidden during recording.
-55. `?setup=7min`, `7-minute setup wizard`, `Setup path`, and `7-min setup`
+56. `?setup=7min`, `7-minute setup wizard`, `Setup path`, and `7-min setup`
    are visible as the setup-first posture, and outreach tables plus scorecard
    controls are hidden while setup mode is active.
-56. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
+57. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
    `Saved setup state`, `Mark complete`, `Mark ready for pilot test`,
    `Ready for pilot test`, and `Reset setup progress` are visible as the
    stateful setup checklist contract.
-57. Actual external execution still remains outside the shell: recorded video,
+58. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path

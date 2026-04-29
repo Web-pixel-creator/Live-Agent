@@ -267,17 +267,21 @@ Allowed reply statuses:
    explain that this records browser-local scorecard and metric events only,
    not outreach sends, CRM writes, calendar events, analytics sync, billing, or
    Markdown mutation.
-18. Show `Open discovery prep`, `Discovery call prep`, `Questions to ask`,
+18. Show `Pilot ops today`, `Copy pilot ops handoff`, and
+   `local_services_pilot_ops_today`; explain that the shell now chooses one
+   current account, one next manual action, and one proof marker to update
+   after the real action.
+19. Show `Open discovery prep`, `Discovery call prep`, `Questions to ask`,
    `Pilot success criteria`, `Copy discovery call prep`, and
    `local_services_discovery_call_prep`; explain that this prepares the first
    replied-company call only and does not book a calendar slot or write CRM.
-19. Show `Open day-one setup`, `Day-one setup brief`, `Business profile lock`,
+20. Show `Open day-one setup`, `Day-one setup brief`, `Business profile lock`,
    `Setup tasks`, `Test call plan`, `Copy day-one setup brief`, and
    `local_services_day_one_setup_brief`; explain that this prepares the first
    pilot day only and does not activate channels, billing, CRM, calendar, or
    customer sends.
-20. Show `Pilot metrics` and `Open metrics tracker`.
-21. Show `Open daily log`, `Pilot daily log`, `Daily capture fields`,
+21. Show `Pilot metrics` and `Open metrics tracker`.
+22. Show `Open daily log`, `Pilot daily log`, `Daily capture fields`,
    `Daily operating loop`, `Copy pilot daily log`, and
    `local_services_pilot_daily_log`; explain that this is a manual daily note,
    not analytics sync, CRM write, calendar booking, or customer send. Show
@@ -292,7 +296,7 @@ Allowed reply statuses:
    `Pilot week-one review` and `Pilot evidence pack` read it as
    `Weekly sync reviewed`, with `Evidence readiness` blocked until the manual
    private scorecard sync is reviewed.
-22. Show `Open week-one review`, `Pilot week-one review`,
+23. Show `Open week-one review`, `Pilot week-one review`,
    `Continue / stop decision`, `Copy week-one review`, and
    `local_services_pilot_week_one_review`; confirm it carries
    `First request outcome` / `firstRequestOutcomeByProspectKey`. Also show
@@ -301,7 +305,7 @@ Allowed reply statuses:
    `Record stop`, and `weekOneOwnerDecisionByProspectKey`; explain that this is
    a manual owner review, not an autonomous pilot decision, CRM write, billing
    change, or customer send.
-23. Show `Open evidence pack`, `Pilot evidence pack`,
+24. Show `Open evidence pack`, `Pilot evidence pack`,
    `Week-two evidence pack`, `Copy evidence pack`, and
    `local_services_pilot_evidence_pack`; confirm it carries
    `First request outcome` / `firstRequestOutcomeByProspectKey`, plus
@@ -309,7 +313,7 @@ Allowed reply statuses:
    `week_one_owner_decision_to_evidence_pack`, and explain that this is a
    redacted manual proof pack, not public customer-data storage, CRM, billing,
    or customer-send automation.
-24. Show `Open recording checklist` if the prospect or partner needs a short
+25. Show `Open recording checklist` if the prospect or partner needs a short
    product walkthrough. Explain that it is a 90-second recording checklist with
    required on-screen proof and do-not-claim rules, not a live automation
    claim.

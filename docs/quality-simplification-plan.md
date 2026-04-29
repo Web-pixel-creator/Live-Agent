@@ -226,7 +226,10 @@ storage.
 The product shell now mirrors that worksheet with an in-app `First 10 contacts
 workspace`, `Pilot proof checklist`, `Stop / Continue decision gate`,
 `Open batch review`, `First contact batch review drawer`, `Copy batch review`,
-and `Copy founder workspace`. It now adds `Category pilot score`,
+and `Copy founder workspace`. It now adds `Pilot ops today`,
+`Copy pilot ops handoff`, and `local_services_pilot_ops_today` so the live
+manual pilot has one current account, one next manual action, and one proof
+marker to update after the real action. It now adds `Category pilot score`,
 `Leading category`, and `No category expansion without proof` so AC, plumbing,
 cleaning, and measurement are ranked from observed proof. `Leading category
 action layer` converts that rank into `Next manual batch`, `Discovery

@@ -106,18 +106,21 @@ Do not use the pilot to build:
    status changes. It is browser-local proof only and has `No external side
    effects`: no outreach send, calendar event, CRM write, analytics sync,
    billing action, or Markdown mutation.
-12. After a company is marked `Reply received`, use `Open discovery prep` to
+12. Use `Pilot ops today` before each live manual attempt. `Copy pilot ops
+   handoff` exports `local_services_pilot_ops_today` with the current account,
+   next manual action, and proof marker to update after the real action.
+13. After a company is marked `Reply received`, use `Open discovery prep` to
    review `Discovery call prep`, `Questions to ask`, `Pilot success criteria`,
    `Copy discovery call prep`, and `local_services_discovery_call_prep`. Treat
    it as a founder call brief only; it does not book calendars, send follow-up,
    write CRM, sync analytics, or mutate docs.
-13. After the discovery call, use `Open day-one setup` to review
+14. After the discovery call, use `Open day-one setup` to review
     `Day-one setup brief`, `Business profile lock`, `Setup tasks`,
     `Test call plan`, `Copy day-one setup brief`, and
     `local_services_day_one_setup_brief`. Treat it as setup handoff only; it
     does not activate phone, Telegram, WhatsApp, billing, CRM, calendar,
     analytics, or customer sends.
-14. Use the shell `Pilot outreach wizard` and `Preview / Test message modal` to
+15. Use the shell `Pilot outreach wizard` and `Preview / Test message modal` to
    inspect the exact message. Open `Operator confirmation summary` and confirm
    `Ready for manual outreach`. Click `Record ready for manual outreach` to set
    the browser-local status to `Draft ready`, then keep real outreach outside
@@ -125,9 +128,9 @@ Do not use the pilot to build:
    Use `Ask AI about pilot` only as an internal deterministic analyst brief for
    `Suggested questions`, `Best candidate`, `Bottleneck`, and `Next message`;
    it does not call an external LLM, send outreach, or write CRM.
-15. Open `Open metrics tracker` for the selected lane and mark `Baseline
+16. Open `Open metrics tracker` for the selected lane and mark `Baseline
    captured` only after real baseline data or owner estimates are collected.
-16. Open `Open daily log` at the end of the first pilot day, review
+17. Open `Open daily log` at the end of the first pilot day, review
     `Daily capture fields`, `Daily operating loop`, and `Copy pilot daily log`,
     then copy `local_services_pilot_daily_log` into the private scorecard or
     spreadsheet manually. Confirm `Weekly scorecard sync gate` /
@@ -143,7 +146,7 @@ Do not use the pilot to build:
     next manual copy. Confirm `Pilot week-one review` and
     `Pilot evidence pack` show `Weekly sync reviewed`; `Evidence readiness`
     should stay blocked until the manual private scorecard sync is reviewed.
-17. Open `Open week-one review` only after real week-one activity exists. Review
+18. Open `Open week-one review` only after real week-one activity exists. Review
     `Pilot week-one review`, `Continue / stop decision`, and
     `Copy week-one review`, confirm `First request outcome` /
     `firstRequestOutcomeByProspectKey`, then copy
@@ -154,14 +157,14 @@ Do not use the pilot to build:
     owner makes a continue, pause, or stop decision. Use `Week-one owner
     decision state`, `Record continue`, `Record pause`, or `Record stop` to
     write only `weekOneOwnerDecisionByProspectKey`.
-18. Check `Outcome chain summary` before owner review; it should connect
+19. Check `Outcome chain summary` before owner review; it should connect
     `Scorecard draft`, `Daily log`, `Week-one review`, and `Evidence pack` to
     the same browser-local first request outcome and owner decision handoff.
-19. After the first real day-one run, open `Open day-one recap`. Review
+20. After the first real day-one run, open `Open day-one recap`. Review
     `Day-one recap`, `Copy day-one recap`, `local_services_day_one_recap`, and
     `day_one_recap_to_week_one_review`, then copy the reviewed recap into the
     private scorecard before week-one review.
-20. Open `Open evidence pack` at day 14 for serious pilots. Review
+21. Open `Open evidence pack` at day 14 for serious pilots. Review
     `Pilot evidence pack`, `Week-two evidence pack`, and `Copy evidence pack`,
     confirm `First request outcome` / `firstRequestOutcomeByProspectKey`, then
     copy `local_services_pilot_evidence_pack` into the private scorecard or

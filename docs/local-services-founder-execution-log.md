@@ -16,6 +16,10 @@ bookings, write CRM, sync analytics, bill, or mutate this Markdown file.
 Use `Open batch review` in that workspace to open the `First contact batch
 review drawer` and `Copy batch review` only after the browser-local markers
 match the private founder notes.
+Use `Pilot ops today` before each real manual action. `Copy pilot ops handoff`
+exports `local_services_pilot_ops_today`: current account, service lane, next
+manual action, and proof marker to update afterward. It is still a handoff note,
+not an outbound send.
 Use the `Stop / Continue decision gate` as the category expansion rule: continue
 only when the first batch proves real service-operator pain. The broader product
 direction remains a NEWO-style AI employee platform for selected local-service
