@@ -108,7 +108,9 @@ Do not use the pilot to build:
    billing action, or Markdown mutation.
 12. Use `Pilot ops today` before each live manual attempt. `Copy pilot ops
    handoff` exports `local_services_pilot_ops_today` with the current account,
-   next manual action, and proof marker to update after the real action.
+   next manual action, and proof marker to update after the real action. Use
+   `Open ops confirmation` / `local_services_pilot_ops_confirmation` before
+   that proof marker is used for a continue, revise, or stop decision.
 13. After a company is marked `Reply received`, use `Open discovery prep` to
    review `Discovery call prep`, `Questions to ask`, `Pilot success criteria`,
    `Copy discovery call prep`, and `local_services_discovery_call_prep`. Treat

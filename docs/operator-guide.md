@@ -230,8 +230,9 @@ the founder/operator is validating demand. It shows `Pilot proof checklist`,
 review drawer`, `Copy batch review`, `Copy founder workspace`, and
 browser-local proof buttons for channel check, manual send, discovery call,
 demo booking, and pilot candidate. `Pilot ops today`, `Copy pilot ops handoff`,
-and `local_services_pilot_ops_today` reduce the live pilot run to one current
-account, one next manual action, and one proof marker to capture afterward. It
+`Open ops confirmation`, `local_services_pilot_ops_today`, and
+`local_services_pilot_ops_confirmation` reduce the live pilot run to one
+current account, one next manual action, and one proof marker to capture afterward. It
 is still manual-only and must not be
 treated as proof of external delivery. `Category pilot score`,
 `Leading category`, and `No category expansion without proof` rank AC,

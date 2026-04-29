@@ -126,8 +126,9 @@ checklist`, `Stop / Continue decision gate`, `Open batch review`, `First
 contact batch review drawer`, `Copy batch review`, `Copy founder workspace`,
 `Channel checked`, `Manual sent`, `Discovery call`, `Demo booked`, and
 `Pilot candidate`. It also includes `Pilot ops today`, `Copy pilot ops handoff`,
-and `local_services_pilot_ops_today` so the operator sees one current account,
-one next manual action, and the proof marker to update afterward. It also
+`Open ops confirmation`, `local_services_pilot_ops_today`, and
+`local_services_pilot_ops_confirmation` so the operator sees one current
+account, one next manual action, and the proof marker to update afterward. It also
 includes `Category pilot score`, `Leading category`,
 and `No category expansion without proof` so AC, plumbing, cleaning, and
 measurement are compared from the same proof markers before any category

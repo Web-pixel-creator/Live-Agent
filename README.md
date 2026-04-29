@@ -243,8 +243,9 @@ Local-services expansion spec:
   `Stop / Continue decision gate`, `Open batch review` / `Copy batch review` /
   `Copy founder workspace` so the first manual validation batch can be tracked
   and exported as a reviewed browser-local note before touching private CRM or
-  spreadsheets. It also shows `Pilot ops today`, `Copy pilot ops handoff`, and
-  `local_services_pilot_ops_today`: one current account, one next manual
+  spreadsheets. It also shows `Pilot ops today`, `Copy pilot ops handoff`,
+  `Open ops confirmation`, `local_services_pilot_ops_today`, and
+  `local_services_pilot_ops_confirmation`: one current account, one next manual
   action, and the proof marker to update after the real action happens. It also
   shows `Category pilot score`, `Leading category`, and
   `No category expansion without proof` so AC, plumbing, cleaning, and

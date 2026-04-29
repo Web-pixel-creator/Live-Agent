@@ -760,9 +760,10 @@ operator shell with `First 10 contacts workspace`, `Pilot proof checklist`,
 `First contact batch review drawer`, `Copy batch review`, and
 `Copy founder workspace`. The controls are browser-local proof markers for
 channel check, manual send, discovery call, demo booking, and pilot candidate;
-`Pilot ops today`, `Copy pilot ops handoff`, and
-`local_services_pilot_ops_today` add the one-account live execution queue for
-the next manual action and proof marker; the `Category pilot score`, `Leading category`, and
+`Pilot ops today`, `Copy pilot ops handoff`, `Open ops confirmation`,
+`local_services_pilot_ops_today`, and `local_services_pilot_ops_confirmation`
+add the one-account live execution queue and manual proof confirmation drawer
+for the next manual action and proof marker; the `Category pilot score`, `Leading category`, and
 `No category expansion without proof` controls rank AC, plumbing, cleaning, and
 measurement from those same markers. `Leading category action layer` converts
 the top lane into `Next manual batch`, `Discovery questions`,
@@ -1011,9 +1012,11 @@ Current shell readiness for P3:
    `Copy founder workspace`, `Channel checked`, `Manual sent`,
    `Discovery call`, `Demo booked`, and `Pilot candidate` are visible as
    browser-local validation controls.
-33. `Pilot ops today`, `Copy pilot ops handoff`, and
-   `local_services_pilot_ops_today` are visible as the one-account manual
-   execution queue.
+33. `Pilot ops today`, `Copy pilot ops handoff`, `Open ops confirmation`,
+   `Pilot ops confirmation drawer`, `Copy ops confirmation`,
+   `local_services_pilot_ops_today`, and
+   `local_services_pilot_ops_confirmation` are visible as the one-account
+   manual execution queue and proof confirmation drawer.
 34. `Category pilot score`, `Leading category`,
    `No category expansion without proof`, `local_services_category_pilot_score`,
    and `category_pilot_score` are visible as the category validation contract.

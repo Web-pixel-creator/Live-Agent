@@ -267,9 +267,10 @@ Allowed reply statuses:
    explain that this records browser-local scorecard and metric events only,
    not outreach sends, CRM writes, calendar events, analytics sync, billing, or
    Markdown mutation.
-18. Show `Pilot ops today`, `Copy pilot ops handoff`, and
-   `local_services_pilot_ops_today`; explain that the shell now chooses one
-   current account, one next manual action, and one proof marker to update
+18. Show `Pilot ops today`, `Copy pilot ops handoff`, `Open ops confirmation`,
+   `local_services_pilot_ops_today`, and
+   `local_services_pilot_ops_confirmation`; explain that the shell now chooses
+   one current account, one next manual action, and one proof marker to update
    after the real action.
 19. Show `Open discovery prep`, `Discovery call prep`, `Questions to ask`,
    `Pilot success criteria`, `Copy discovery call prep`, and

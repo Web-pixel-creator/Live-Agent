@@ -1967,6 +1967,132 @@ function buildLocalServiceFounderBatchReviewExport(
   };
 }
 
+function buildLocalServicePilotOpsConfirmationExport(
+  row: LocalServiceFounderContactRow | undefined,
+  nextManualAction: string,
+  proofMarker: string,
+  proofProgress: string,
+  decisionGate: LocalServiceFounderDecisionGate,
+): LocalServicePilotWorkspaceExport {
+  const proofLabel =
+    proofMarker in LOCAL_SERVICE_FOUNDER_CONTACT_FIELD_LABELS
+      ? LOCAL_SERVICE_FOUNDER_CONTACT_FIELD_LABELS[proofMarker as LocalServiceFounderContactField]
+      : proofMarker === "reply_or_rejection_status"
+        ? "Reply or rejection status"
+        : proofMarker === "founder_batch_review"
+          ? "Founder batch review"
+          : "Target required";
+  const proofInstruction = row
+    ? proofMarker === "reply_or_rejection_status"
+      ? "Record only a real owner reply or a clear rejection in the browser-local status control."
+      : proofMarker === "founder_batch_review"
+        ? "Open the batch review and decide continue, revise, or stop from the recorded proof."
+        : proofMarker in LOCAL_SERVICE_FOUNDER_CONTACT_FIELD_LABELS
+          ? `After the real manual action happens, update the ${proofLabel} marker for this account in the first-10 workspace.`
+          : "Load a target from the outreach list before recording proof."
+    : "Load a target from the outreach list before recording proof.";
+  const humanLines = [
+    "Pilot ops confirmation drawer: Local services manual action",
+    "Export surface: local_services_pilot_ops_confirmation",
+    `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
+    "Manual-only proof confirmation. This drawer does not send outreach, create bookings, write CRM, sync analytics, bill, or mutate Markdown docs.",
+    `Current account: ${row ? row.prospect.company : "none"}`,
+    `Service lane: ${row ? row.serviceTitle : "none"}`,
+    `Segment: ${row ? row.prospect.segment : "none"}`,
+    `Current status: ${row ? row.statusLabel : "none"}`,
+    `Next manual action: ${nextManualAction}`,
+    `Proof marker to update: ${proofMarker}`,
+    `Proof label: ${proofLabel}`,
+    `Proof instruction: ${proofInstruction}`,
+    `Owner next step: ${row ? row.prospect.nextStep : "none"}`,
+    `Batch proof progress: ${proofProgress}`,
+    `Decision gate: ${decisionGate.verdictLabel}`,
+    "",
+    "Operator confirmation checklist:",
+    "- Confirm the real action happened outside the shell before updating any marker.",
+    "- Confirm the account and service lane match the manual note.",
+    "- Keep private notes, phone numbers, addresses, and owner names outside this browser-local export.",
+    "- Update only browser-local proof markers after the real action is complete.",
+    "- Reopen the first contact batch review before using this proof for a continue or stop decision.",
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_pilot_ops_confirmation",
+      export_kind: "manual_pilot_action_confirmation",
+      storage_key: LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY,
+      current_account: row
+        ? {
+            key: row.key,
+            service_id: row.serviceId,
+            service_title: row.serviceTitle,
+            prospect_id: row.prospect.id,
+            company: row.prospect.company,
+            segment: row.prospect.segment,
+            status: row.status,
+            status_label: row.statusLabel,
+            proof_status: row.proofStatus,
+          }
+        : null,
+      next_manual_action: nextManualAction,
+      proof_marker: proofMarker,
+      proof_label: proofLabel,
+      proof_instruction: proofInstruction,
+      owner_next_step: row?.prospect.nextStep ?? null,
+      proof_progress: proofProgress,
+      decision_gate: {
+        verdict: decisionGate.verdictLabel,
+        action: decisionGate.action,
+        target_lane: decisionGate.targetLane,
+      },
+      guardrails: [
+        "operator_confirmation_required",
+        "browser_local_marker_only",
+        "no_outbound_message_sent",
+        "no_booking_created",
+        "no_crm_write",
+        "no_analytics_sync",
+        "no_billing_action",
+        "no_markdown_mutation",
+      ],
+    },
+    null,
+    2,
+  );
+  return {
+    title: "Pilot ops confirmation drawer",
+    description:
+      "Confirm the next manual pilot action and proof marker before the operator updates any browser-local state.",
+    eyebrow: "Pilot ops proof",
+    modeLabel: "Ops confirmation mode",
+    copyLabel: "Copy ops confirmation",
+    reviewTitle: "Manual proof checklist",
+    reviewDescription:
+      "Use this only after the real action happens outside the shell. It is not an outreach, CRM, booking, billing, or analytics integration.",
+    executionActionLabel: "Open founder execution log",
+    scorecardActionLabel: "Open pilot scorecard",
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: [
+      { label: "Current account", value: row ? row.prospect.company : "No account selected" },
+      { label: "Service lane", value: row ? row.serviceTitle : "No service lane" },
+      { label: "Next manual action", value: nextManualAction },
+      { label: "Proof marker", value: proofMarker },
+      { label: "Proof instruction", value: proofInstruction },
+      { label: "Proof progress", value: proofProgress },
+      { label: "Decision gate", value: decisionGate.verdictLabel },
+      { label: "Owner next step", value: row ? row.prospect.nextStep : "Load a target from the outreach list." },
+    ],
+    checklist: [
+      "Confirm the real manual action happened outside the shell before updating any marker.",
+      "Confirm the selected account and service lane match the manual note.",
+      "Confirm no private contact data is pasted into this export.",
+      "Update only browser-local proof markers after the action is complete.",
+      "Open batch review after proof changes before deciding continue, revise, or stop.",
+      "Do not treat this drawer as proof that the platform sent outreach or booked work.",
+    ],
+  };
+}
+
 function buildLocalServiceFounderDecisionGate(
   rows: LocalServiceFounderContactRow[],
   counts: {
@@ -5805,6 +5931,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [pilotEvidencePackMode, setPilotEvidencePackMode] = useState<PlaybookExportMode>("human");
   const [founderBatchReviewOpen, setFounderBatchReviewOpen] = useState(false);
   const [founderBatchReviewMode, setFounderBatchReviewMode] = useState<PlaybookExportMode>("human");
+  const [pilotOpsConfirmationOpen, setPilotOpsConfirmationOpen] = useState(false);
+  const [pilotOpsConfirmationMode, setPilotOpsConfirmationMode] = useState<PlaybookExportMode>("human");
   const [readinessProofOpen, setReadinessProofOpen] = useState(false);
   const [readinessProofMode, setReadinessProofMode] = useState<PlaybookExportMode>("human");
   const [paidPilotProposalPreviewOpen, setPaidPilotProposalPreviewOpen] = useState(false);
@@ -6153,6 +6281,13 @@ const LocalServicesDispatchDemoPanel = ({
     `Decision gate: ${founderDecisionGate.verdictLabel}`,
     "Operator rule: update only browser-local proof markers after the real manual action happens.",
   ].join("\n");
+  const pilotOpsConfirmationExport = buildLocalServicePilotOpsConfirmationExport(
+    pilotOpsTodayRow,
+    pilotOpsTodayAction,
+    pilotOpsTodayProof,
+    founderProofProgress,
+    founderDecisionGate,
+  );
   const founderContactWorkspaceText = [
     "local_services_founder_contact_workspace",
     `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
@@ -7780,6 +7915,14 @@ const LocalServicesDispatchDemoPanel = ({
                     className="h-7"
                   >
                     Copy pilot ops handoff
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setPilotOpsConfirmationOpen(true)}
+                    className="h-7"
+                  >
+                    Open ops confirmation
                   </Button>
                   <Button
                     size="sm"
@@ -9797,6 +9940,16 @@ const LocalServicesDispatchDemoPanel = ({
         exportView={founderBatchReviewExport}
         mode={founderBatchReviewMode}
         onModeChange={setFounderBatchReviewMode}
+        onCopy={onCopyText}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+        onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH)}
+      />
+      <LocalServicePilotWorkspaceExportDrawer
+        open={pilotOpsConfirmationOpen}
+        onOpenChange={setPilotOpsConfirmationOpen}
+        exportView={pilotOpsConfirmationExport}
+        mode={pilotOpsConfirmationMode}
+        onModeChange={setPilotOpsConfirmationMode}
         onCopy={onCopyText}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH)}

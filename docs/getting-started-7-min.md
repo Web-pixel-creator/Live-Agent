@@ -175,9 +175,10 @@ you need a live browser-local view. `Pilot proof checklist` shows whether the
 first batch has enough proof to continue, `Stop / Continue decision gate` keeps
 category expansion honest, `Open batch review` opens the `First contact batch
 review drawer`, and `Copy batch review` / `Copy founder workspace` exports only
-a redacted manual summary. `Pilot ops today`, `Copy pilot ops handoff`, and
-`local_services_pilot_ops_today` show the current account, next manual action,
-and proof marker to update after the real action. `Category pilot score`,
+a redacted manual summary. `Pilot ops today`, `Copy pilot ops handoff`,
+`Open ops confirmation`, `local_services_pilot_ops_today`, and
+`local_services_pilot_ops_confirmation` show the current account, next manual
+action, and proof marker to update after the real action. `Category pilot score`,
 `Leading category`, and
 `No category expansion without proof` compare AC, plumbing, cleaning, and
 measurement from the same proof markers. `Leading category action layer`
