@@ -3581,6 +3581,195 @@ function buildLocalServiceDayOneRecapExport(
   };
 }
 
+function buildLocalServiceWeeklyScorecardSyncChecklist(
+  template: LocalServiceDemoTemplate,
+  rows: LocalServiceFounderContactRow[],
+  counts: {
+    channelChecked: number;
+    manualMessageSent: number;
+    repliesOrRejections: number;
+    discoveryCalls: number;
+    demosBooked: number;
+    pilotCandidates: number;
+  },
+  proofProgress: string,
+  score: LocalServiceCategoryPilotScore | undefined,
+  actionLayer: LocalServiceLeadingCategoryActionLayer,
+  readiness: LocalServiceLeadingCategoryPilotReadiness,
+  firstRequestOutcomes: Record<string, LocalServiceFirstRequestOutcome>,
+  metricStatus: LocalServicePilotMetricStatus,
+  activityLog: LocalServicePilotActivityEvent[],
+): LocalServicePilotWorkspaceExport {
+  const laneRows = rows.filter((row) => row.serviceId === actionLayer.serviceId);
+  const targetRow =
+    laneRows.find((row) => row.pilotCandidate) ??
+    laneRows.find((row) => row.demoBooked) ??
+    laneRows.find((row) => row.discoveryCallCompleted) ??
+    laneRows.find((row) => row.status === "reply_received") ??
+    laneRows[0];
+  const targetCompany = targetRow
+    ? `${targetRow.prospect.company} (${targetRow.prospect.segment})`
+    : "No weekly scorecard target selected yet";
+  const firstRequestOutcome = targetRow
+    ? firstRequestOutcomes[targetRow.key] ?? "not_recorded"
+    : "not_recorded";
+  const firstRequestOutcomeLabel =
+    LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_LABELS[firstRequestOutcome];
+  const metricStatusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus];
+  const latestLaneActivity = activityLog.find((event) => event.serviceId === actionLayer.serviceId);
+  const latestLaneActivityLabel = latestLaneActivity
+    ? `${latestLaneActivity.label}: ${latestLaneActivity.value}`
+    : "No lane activity recorded yet";
+  const weeklyScorecardSyncGate = !targetRow
+    ? "Blocked until a day-one target is selected"
+    : firstRequestOutcome === "not_recorded"
+      ? "Blocked until first request outcome is recorded"
+      : metricStatus === "review_ready"
+        ? "Ready for manual weekly scorecard sync"
+        : "Outcome captured; metrics still need review-ready status";
+  const syncFields = [
+    {
+      label: "Target row",
+      value: targetCompany,
+      source: "leading category day-one target",
+    },
+    {
+      label: "First request outcome",
+      value: firstRequestOutcomeLabel,
+      source: "firstRequestOutcomeByProspectKey",
+    },
+    {
+      label: "Metric readiness",
+      value: metricStatusLabel,
+      source: "metricStatusByService",
+    },
+    {
+      label: "Latest manual signal",
+      value: latestLaneActivityLabel,
+      source: "local_services_manual_activity_log",
+    },
+    {
+      label: "Day-one recap handoff",
+      value: "day_one_recap_to_week_one_review",
+      source: "local_services_day_one_recap",
+    },
+  ];
+  const guardrails = [
+    "manual_weekly_scorecard_sync_gate",
+    "manual_weekly_scorecard_sync_checklist",
+    "firstRequestOutcomeByProspectKey_required",
+    "metrics_review_ready_required",
+    "manual_scorecard_sync_required",
+    "no_markdown_scorecard_mutation",
+    "no_crm_write",
+    "no_analytics_sync",
+    "no_customer_send",
+    "no_billing_action",
+  ];
+  const humanLines = [
+    `Weekly scorecard sync checklist: ${actionLayer.serviceTitle}`,
+    "Export surface: local_services_weekly_scorecard_sync_checklist",
+    "Export kind: manual_weekly_scorecard_sync_checklist",
+    `Weekly scorecard sync gate: ${weeklyScorecardSyncGate}`,
+    "Weekly sync contract: manual_weekly_scorecard_sync_gate",
+    `Service lane: ${template.title}`,
+    `Target company: ${targetCompany}`,
+    `First request outcome: ${firstRequestOutcomeLabel}`,
+    "Outcome state key: firstRequestOutcomeByProspectKey",
+    `Metric status: ${metricStatusLabel}`,
+    `Latest manual signal: ${latestLaneActivityLabel}`,
+    "",
+    "Sync fields:",
+    ...syncFields.map((field) => `- ${field.label}: ${field.value} (${field.source})`),
+    "",
+    "Proof summary:",
+    `- Category signal: ${score ? `${score.signalLabel}; ${score.proofSummary}` : "No category score yet"}`,
+    `- First-batch proof: ${proofProgress}`,
+    `- Manual sends: ${counts.manualMessageSent}/10`,
+    `- Replies or rejections: ${counts.repliesOrRejections}/3`,
+    `- Discovery calls: ${counts.discoveryCalls}/1`,
+    `- Pilot candidates: ${counts.pilotCandidates}/1`,
+    `- Paid-pilot readiness: ${readiness.readyToPilot ? "ready" : "blocked"}`,
+    "",
+    "Guardrails:",
+    ...guardrails.map((guardrail) => `- ${guardrail}`),
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_weekly_scorecard_sync_checklist",
+      export_kind: "manual_weekly_scorecard_sync_checklist",
+      service_id: actionLayer.serviceId,
+      service_title: actionLayer.serviceTitle,
+      target_company: targetRow
+        ? {
+            key: targetRow.key,
+            company: targetRow.prospect.company,
+            segment: targetRow.prospect.segment,
+            channel_fit: targetRow.prospect.channelFit,
+            status: targetRow.status,
+            proof_status: targetRow.proofStatus,
+          }
+        : null,
+      first_request_outcome: firstRequestOutcome,
+      first_request_outcome_label: firstRequestOutcomeLabel,
+      outcome_state_key: "firstRequestOutcomeByProspectKey",
+      metric_status: metricStatus,
+      metric_status_label: metricStatusLabel,
+      weekly_scorecard_sync_gate: weeklyScorecardSyncGate,
+      weekly_scorecard_sync_contract: "manual_weekly_scorecard_sync_gate",
+      sync_fields: syncFields,
+      source_surfaces: [
+        "local_services_pilot_daily_log",
+        "local_services_day_one_recap",
+        "local_services_pilot_week_one_review",
+      ],
+      proof_summary: {
+        category_signal: score?.signalLabel ?? "Unproven",
+        category_proof_summary: score?.proofSummary ?? "No category score yet",
+        proof_progress: proofProgress,
+        proof_counts: counts,
+        paid_pilot_ready: readiness.readyToPilot,
+      },
+      guardrails,
+    },
+    null,
+    2,
+  );
+
+  return {
+    title: "Weekly scorecard sync checklist",
+    description:
+      "Review the exact day-one outcome, metric state, and source surfaces before a human copies data into the private pilot scorecard.",
+    eyebrow: "Scorecard sync",
+    modeLabel: "Weekly sync mode",
+    copyLabel: "Copy weekly sync checklist",
+    reviewTitle: "Manual weekly scorecard checklist",
+    reviewDescription:
+      "This checklist only prepares a reviewed copy packet. It does not mutate docs, CRM, analytics, billing, bookings, or messages.",
+    executionActionLabel: "Open week-one review",
+    scorecardActionLabel: "Open pilot scorecard",
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: [
+      { label: "Weekly scorecard sync gate", value: weeklyScorecardSyncGate },
+      { label: "Service", value: actionLayer.serviceTitle },
+      { label: "Target company", value: targetCompany },
+      { label: "First request outcome", value: firstRequestOutcomeLabel },
+      { label: "Metric status", value: metricStatusLabel },
+      { label: "Latest manual signal", value: latestLaneActivityLabel },
+      { label: "Contract", value: "manual_weekly_scorecard_sync_gate" },
+      { label: "Guardrail", value: "Manual scorecard copy only; no external side effects" },
+    ],
+    checklist: [
+      "Confirm the selected target matches the private pilot scorecard row.",
+      "Confirm firstRequestOutcomeByProspectKey is recorded before copying.",
+      "Confirm metrics are review-ready before treating the week as synced.",
+      "Copy day-one recap and daily log references into the private tracker manually.",
+      "Do not mutate Markdown docs, CRM, analytics, billing, bookings, or customer messages.",
+    ],
+  };
+}
+
 function buildLocalServicePilotMetricsTrackerExport(
   template: LocalServiceDemoTemplate,
   status: LocalServicePilotMetricStatus,
@@ -5580,6 +5769,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [dayOneOperatorRunSheetMode, setDayOneOperatorRunSheetMode] = useState<PlaybookExportMode>("human");
   const [dayOneRecapOpen, setDayOneRecapOpen] = useState(false);
   const [dayOneRecapMode, setDayOneRecapMode] = useState<PlaybookExportMode>("human");
+  const [weeklyScorecardSyncOpen, setWeeklyScorecardSyncOpen] = useState(false);
+  const [weeklyScorecardSyncMode, setWeeklyScorecardSyncMode] = useState<PlaybookExportMode>("human");
   const [pilotMessagePreviewOpen, setPilotMessagePreviewOpen] = useState(false);
   const [pilotMessagePreviewMode, setPilotMessagePreviewMode] = useState<PlaybookExportMode>("human");
   const [pilotOperatorConfirmationOpen, setPilotOperatorConfirmationOpen] = useState(false);
@@ -6002,6 +6193,18 @@ const LocalServicesDispatchDemoPanel = ({
     leadingCategoryFirstRequestOutcome,
   );
   const dayOneRecapExport = buildLocalServiceDayOneRecapExport(
+    leadingCategoryTemplate,
+    founderContactRows,
+    founderContactCounts,
+    founderProofProgress,
+    leadingCategoryPilotScore,
+    leadingCategoryActionLayer,
+    leadingCategoryPilotReadiness,
+    pilotWorkspaceState.firstRequestOutcomeByProspectKey,
+    leadingCategoryMetricStatus,
+    pilotWorkspaceState.activityLog,
+  );
+  const weeklyScorecardSyncChecklist = buildLocalServiceWeeklyScorecardSyncChecklist(
     leadingCategoryTemplate,
     founderContactRows,
     founderContactCounts,
@@ -7973,6 +8176,18 @@ const LocalServicesDispatchDemoPanel = ({
                           >
                             Reset day-one outcome
                           </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              setWeeklyScorecardSyncMode("human");
+                              setWeeklyScorecardSyncOpen(true);
+                            }}
+                            className="h-7"
+                          >
+                            <ClipboardCheck className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                            Open weekly sync checklist
+                          </Button>
                           <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 text-[10px] text-muted-foreground">
                             firstRequestOutcomeByProspectKey
                           </span>
@@ -9404,6 +9619,19 @@ const LocalServicesDispatchDemoPanel = ({
         exportView={dayOneRecapExport}
         mode={dayOneRecapMode}
         onModeChange={setDayOneRecapMode}
+        onCopy={onCopyText}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+        onOpenExecutionPack={() => {
+          setPilotWeekOneReviewMode("human");
+          setPilotWeekOneReviewOpen(true);
+        }}
+      />
+      <LocalServicePilotWorkspaceExportDrawer
+        open={weeklyScorecardSyncOpen}
+        onOpenChange={setWeeklyScorecardSyncOpen}
+        exportView={weeklyScorecardSyncChecklist}
+        mode={weeklyScorecardSyncMode}
+        onModeChange={setWeeklyScorecardSyncMode}
         onCopy={onCopyText}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => {

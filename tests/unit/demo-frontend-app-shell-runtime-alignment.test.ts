@@ -741,6 +741,11 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Record the first request outcome before weekly scorecard sync/);
   assert.match(liveDesk, /Weekly scorecard sync gate/);
   assert.match(liveDesk, /manual_weekly_scorecard_sync_gate/);
+  assert.match(liveDesk, /Open weekly sync checklist/);
+  assert.match(liveDesk, /Weekly scorecard sync checklist/);
+  assert.match(liveDesk, /Copy weekly sync checklist/);
+  assert.match(liveDesk, /local_services_weekly_scorecard_sync_checklist/);
+  assert.match(liveDesk, /manual_weekly_scorecard_sync_checklist/);
   assert.match(liveDesk, /manual_daily_operating_loop/);
   assert.match(liveDesk, /no_calendar_booking_created/);
   assert.match(liveDesk, /no_customer_message_sent/);
@@ -1208,6 +1213,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Day-one outcome capture gate/);
   assert.match(readme, /Weekly scorecard sync gate/);
   assert.match(readme, /manual_weekly_scorecard_sync_gate/);
+  assert.match(readme, /Open weekly sync checklist/);
+  assert.match(readme, /local_services_weekly_scorecard_sync_checklist/);
   assert.match(readme, /Pilot week-one review/);
   assert.match(readme, /Open week-one review/);
   assert.match(readme, /Continue \/ stop decision/);
@@ -1476,6 +1483,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /Day-one outcome capture gate/);
   assert.match(localDevelopment, /Weekly scorecard sync gate/);
   assert.match(localDevelopment, /manual_weekly_scorecard_sync_gate/);
+  assert.match(localDevelopment, /Open weekly sync checklist/);
+  assert.match(localDevelopment, /local_services_weekly_scorecard_sync_checklist/);
   assert.match(localDevelopment, /Pilot\s+week-one review/);
   assert.match(localDevelopment, /Open week-one review/);
   assert.match(localDevelopment, /Continue \/ stop decision/);
@@ -1730,6 +1739,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Day-one outcome capture\s+gate/);
   assert.match(operatorGuide, /Weekly scorecard sync gate/);
   assert.match(operatorGuide, /manual_weekly_scorecard_sync_gate/);
+  assert.match(operatorGuide, /Open weekly sync checklist/);
+  assert.match(operatorGuide, /local_services_weekly_scorecard_sync_checklist/);
   assert.match(operatorGuide, /Pilot week-one\s+review/);
   assert.match(operatorGuide, /Open week-one review/);
   assert.match(operatorGuide, /Continue \/ stop decision/);
@@ -1971,6 +1982,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /Day-one outcome capture gate/);
   assert.match(simplificationPlan, /Weekly scorecard sync gate/);
   assert.match(simplificationPlan, /manual_weekly_scorecard_sync_gate/);
+  assert.match(simplificationPlan, /Open weekly sync checklist/);
+  assert.match(simplificationPlan, /local_services_weekly_scorecard_sync_checklist/);
   assert.match(simplificationPlan, /Pilot week-one\s+review/);
   assert.match(simplificationPlan, /Open week-one review/);
   assert.match(simplificationPlan, /Continue \/ stop decision/);
@@ -2222,6 +2235,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /Day-one outcome capture gate/);
   assert.match(gettingStarted, /Weekly scorecard sync gate/);
   assert.match(gettingStarted, /manual_weekly_scorecard_sync_gate/);
+  assert.match(gettingStarted, /Open weekly sync checklist/);
+  assert.match(gettingStarted, /local_services_weekly_scorecard_sync_checklist/);
   assert.match(gettingStarted, /Pilot week-one review/);
   assert.match(gettingStarted, /Open week-one review/);
   assert.match(gettingStarted, /Continue \/ stop decision/);
@@ -2497,6 +2512,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /Copy pilot daily log/);
   assert.match(localServicesSpec, /local_services_pilot_daily_log/);
   assert.match(localServicesSpec, /weekly scorecard sync/);
+  assert.match(localServicesSpec, /Open weekly sync checklist/);
+  assert.match(localServicesSpec, /local_services_weekly_scorecard_sync_checklist/);
   assert.match(localServicesSpec, /Pilot week-one review/);
   assert.match(localServicesSpec, /Open week-one review/);
   assert.match(localServicesSpec, /Continue \/ stop decision/);
@@ -2932,6 +2949,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotScorecard, /Copy pilot metrics tracker/);
   assert.match(pilotScorecard, /Weekly scorecard sync gate/);
   assert.match(pilotScorecard, /manual_weekly_scorecard_sync_gate/);
+  assert.match(pilotScorecard, /Open weekly sync checklist/);
+  assert.match(pilotScorecard, /local_services_weekly_scorecard_sync_checklist/);
   assert.match(pilotScorecard, /Open daily log/);
   assert.match(pilotScorecard, /Pilot daily log/);
   assert.match(pilotScorecard, /Daily capture fields/);
@@ -3082,6 +3101,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotRunbook, /Daily operating loop/);
   assert.match(pilotRunbook, /Copy pilot daily log/);
   assert.match(pilotRunbook, /local_services_pilot_daily_log/);
+  assert.match(pilotRunbook, /Open weekly sync checklist/);
+  assert.match(pilotRunbook, /local_services_weekly_scorecard_sync_checklist/);
   assert.match(pilotRunbook, /Weekly scorecard sync gate/);
   assert.match(pilotRunbook, /manual_weekly_scorecard_sync_gate/);
   assert.match(pilotRunbook, /Open week-one review/);
@@ -3270,6 +3291,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(outreachExecutionPack, /Copy pilot daily log/);
   assert.match(outreachExecutionPack, /local_services_pilot_daily_log/);
   assert.match(outreachExecutionPack, /Weekly scorecard sync gate/);
+  assert.match(outreachExecutionPack, /Open weekly sync checklist/);
+  assert.match(outreachExecutionPack, /local_services_weekly_scorecard_sync_checklist/);
   assert.match(outreachExecutionPack, /manual_weekly_scorecard_sync_gate/);
   assert.match(outreachExecutionPack, /Open week-one review/);
   assert.match(outreachExecutionPack, /Pilot week-one review/);

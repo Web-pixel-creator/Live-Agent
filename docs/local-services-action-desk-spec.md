@@ -800,7 +800,11 @@ to `Open daily log` / `Pilot daily log` as the actual first-request outcome
 capture surface. `Day-one outcome capture gate`, `Reset day-one outcome`,
 `Weekly scorecard sync gate`, and `manual_weekly_scorecard_sync_gate` keep the
 leading-category scorecard sync blocked until `firstRequestOutcomeByProspectKey`
-is recorded and metrics are review-ready. `Open day-one recap` adds `Day-one recap`,
+is recorded and metrics are review-ready. `Open weekly sync checklist`,
+`Weekly scorecard sync checklist`, `Copy weekly sync checklist`,
+`local_services_weekly_scorecard_sync_checklist`, and
+`manual_weekly_scorecard_sync_checklist` turn that gate into a reviewed manual
+copy packet for the private scorecard. `Open day-one recap` adds `Day-one recap`,
 `Copy day-one recap`, `local_services_day_one_recap`, `manual_day_one_recap`,
 and `day_one_recap_to_week_one_review` as the reviewed first-day handoff into
 week-one review. They do not
@@ -1049,33 +1053,37 @@ Current shell readiness for P3:
 45. `Day-one outcome capture gate`, `Reset day-one outcome`,
    `Weekly scorecard sync gate`, and `manual_weekly_scorecard_sync_gate` are
    visible as the leading-category manual scorecard sync gate.
-46. `Open day-one recap`, `Day-one recap`, `Copy day-one recap`,
+46. `Open weekly sync checklist`, `Weekly scorecard sync checklist`,
+   `Copy weekly sync checklist`, `local_services_weekly_scorecard_sync_checklist`,
+   and `manual_weekly_scorecard_sync_checklist` are visible as the reviewed
+   manual copy packet before private scorecard sync.
+47. `Open day-one recap`, `Day-one recap`, `Copy day-one recap`,
    `local_services_day_one_recap`, `manual_day_one_recap`, and
    `day_one_recap_to_week_one_review` are visible as the first-day recap to
    week-one review handoff contract.
-47. `contactProofByProspectKey` and `Founder proof recorded` are present in the
+48. `contactProofByProspectKey` and `Founder proof recorded` are present in the
    browser-local pilot workspace contract, without any external side effect.
-48. `local_services_first_contact_batch_review`, `founder_manual_validation_review`,
+49. `local_services_first_contact_batch_review`, `founder_manual_validation_review`,
    and `no_booking_created` are present in the first-batch review export
    contract.
-49. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
+50. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
    14-day pilot runbook from the same local frontend server.
-50. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
+51. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the
    repo-owned first-contact execution pack from the same local frontend server.
-51. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
+52. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
    the repo-owned 90-second recording checklist from the same local frontend
    server.
-52. `?recording=90s`, `90-second recording mode`, `Recording path`, and
+53. `?recording=90s`, `90-second recording mode`, `Recording path`, and
    `90s recording` are visible as the demo-recording posture, and outreach
    tables plus scorecard controls are hidden during recording.
-53. `?setup=7min`, `7-minute setup wizard`, `Setup path`, and `7-min setup`
+54. `?setup=7min`, `7-minute setup wizard`, `Setup path`, and `7-min setup`
    are visible as the setup-first posture, and outreach tables plus scorecard
    controls are hidden while setup mode is active.
-54. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
+55. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
    `Saved setup state`, `Mark complete`, `Mark ready for pilot test`,
    `Ready for pilot test`, and `Reset setup progress` are visible as the
    stateful setup checklist contract.
-55. Actual external execution still remains outside the shell: recorded video,
+56. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 
 ## What To Remove From The Critical Path

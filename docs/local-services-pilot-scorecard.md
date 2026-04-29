@@ -196,7 +196,10 @@ Use it at the end of each pilot day to review `Daily capture fields`,
 status, `First request outcome`, and `firstRequestOutcomeByProspectKey` before
 weekly scorecard sync. It also exposes `Weekly scorecard sync gate` /
 `manual_weekly_scorecard_sync_gate`, which stays blocked until the first outcome
-is recorded and metrics are review-ready. It does not sync analytics, update CRM, create calendar
+is recorded and metrics are review-ready. `Open weekly sync checklist` opens
+the reviewed manual copy packet; `Copy weekly sync checklist` exports
+`local_services_weekly_scorecard_sync_checklist` before the human updates the
+private tracker. It does not sync analytics, update CRM, create calendar
 bookings, send customer messages, or mutate this Markdown file automatically.
 
 `Open week-one review` opens the `Pilot week-one review` drawer for the selected

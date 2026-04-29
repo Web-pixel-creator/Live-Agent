@@ -283,7 +283,10 @@ Allowed reply statuses:
    not analytics sync, CRM write, calendar booking, or customer send. Show
    `Weekly scorecard sync gate` and `manual_weekly_scorecard_sync_gate`; the
    scorecard remains blocked until `firstRequestOutcomeByProspectKey` is
-   recorded and metrics are review-ready.
+   recorded and metrics are review-ready. Show `Open weekly sync checklist`,
+   `Weekly scorecard sync checklist`, `Copy weekly sync checklist`, and
+   `local_services_weekly_scorecard_sync_checklist` as the reviewed manual copy
+   packet for the private tracker.
 22. Show `Open week-one review`, `Pilot week-one review`,
    `Continue / stop decision`, `Copy week-one review`, and
    `local_services_pilot_week_one_review`; confirm it carries

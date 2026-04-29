@@ -292,6 +292,11 @@ Local-services expansion spec:
   `manual_weekly_scorecard_sync_gate` now make that leading-category outcome
   explicit: the scorecard remains a manual blocked sync until
   `firstRequestOutcomeByProspectKey` is recorded and metrics are review-ready.
+  `Open weekly sync checklist`, `Weekly scorecard sync checklist`,
+  `Copy weekly sync checklist`, and
+  `local_services_weekly_scorecard_sync_checklist` then turn the ready/blocking
+  state into a reviewed copy packet for the private scorecard; it still does
+  not mutate Markdown, CRM, analytics, billing, bookings, or messages.
   `Open day-one recap`, `Day-one recap`,
   `Copy day-one recap`, and `local_services_day_one_recap` then summarize the
   first real run and hand it into `day_one_recap_to_week_one_review`. It still

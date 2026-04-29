@@ -276,6 +276,12 @@ review-ready. `Open day-one recap`, `Day-one recap`,
 `Copy day-one recap`, and `local_services_day_one_recap` then create the
 reviewed first-day recap and `day_one_recap_to_week_one_review` handoff before
 week-one review.
+`Open weekly sync checklist`, `Weekly scorecard sync checklist`,
+`Copy weekly sync checklist`, and
+`local_services_weekly_scorecard_sync_checklist` sit between that gate and the
+private tracker: they give the operator one reviewed manual copy packet without
+Markdown mutation, CRM write, analytics sync, booking, billing, or customer
+message.
 This is the current
 simplification target: prove demand through 10 manual contacts before adding
 more integrations. The target product remains a NEWO-style AI employee platform

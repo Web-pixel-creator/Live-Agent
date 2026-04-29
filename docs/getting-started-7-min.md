@@ -216,6 +216,11 @@ and manual result logging only. `day_one_run_sheet_outcome_capture` then uses
 `Weekly scorecard sync gate`, and `manual_weekly_scorecard_sync_gate` to keep
 the leading-category weekly scorecard sync blocked until
 `firstRequestOutcomeByProspectKey` is recorded and metrics are review-ready. Use
+`Open weekly sync checklist` to inspect `Weekly scorecard sync checklist`,
+`Copy weekly sync checklist`, and
+`local_services_weekly_scorecard_sync_checklist` before copying anything into
+the private scorecard. It is manual-only and does not write Markdown, CRM,
+analytics, bookings, billing, or messages. Use
 `Open day-one recap` after the first real run; `Day-one recap` and
 `Copy day-one recap` export `local_services_day_one_recap` /
 `manual_day_one_recap` and hand the result into

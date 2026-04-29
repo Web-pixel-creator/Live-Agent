@@ -133,6 +133,10 @@ Do not use the pilot to build:
     spreadsheet manually. Confirm `Weekly scorecard sync gate` /
     `manual_weekly_scorecard_sync_gate` remains blocked until
     `firstRequestOutcomeByProspectKey` is recorded and metrics are review-ready.
+    When the gate is ready, open `Open weekly sync checklist`, review
+    `Weekly scorecard sync checklist`, and copy
+    `local_services_weekly_scorecard_sync_checklist` into the private tracker
+    manually.
 17. Open `Open week-one review` only after real week-one activity exists. Review
     `Pilot week-one review`, `Continue / stop decision`, and
     `Copy week-one review`, confirm `First request outcome` /

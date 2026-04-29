@@ -169,7 +169,11 @@ before any weekly scorecard sync. `Day-one outcome capture gate`,
 `Reset day-one outcome`, `Weekly scorecard sync gate`, and
 `manual_weekly_scorecard_sync_gate` make the leading-category target explicit;
 weekly scorecard sync remains blocked until `firstRequestOutcomeByProspectKey`
-is recorded and metrics are review-ready. `Open day-one recap`,
+is recorded and metrics are review-ready. `Open weekly sync checklist`,
+`Weekly scorecard sync checklist`, `Copy weekly sync checklist`, and
+`local_services_weekly_scorecard_sync_checklist` prepare the reviewed manual
+copy packet for the private scorecard without mutating Markdown, CRM,
+analytics, billing, bookings, or messages. `Open day-one recap`,
 `Day-one recap`,
 `Copy day-one recap`, `local_services_day_one_recap`, and
 `day_one_recap_to_week_one_review` then turn the first real run into a reviewed
