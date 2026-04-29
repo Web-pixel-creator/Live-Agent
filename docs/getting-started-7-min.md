@@ -181,8 +181,11 @@ measurement from the same proof markers. `Leading category action layer`
 immediately shows `Next manual batch`, `Discovery questions`,
 `Pilot setup checklist`, `Integration hold`, and `Focus leading category`.
 `Pilot setup readiness` then shows the `Paid pilot gate` and whether the lane is
-`Ready for first paid pilot` or `Not ready for paid pilot`. `Readiness action
-plan` gives the next blocker surface; use `Continue setup/test path` to jump
+`Ready for first paid pilot` or `Not ready for paid pilot`. It now includes
+`Week-one owner decision`: `Continue` is required before `Paid pilot proposal`,
+while `Pause`, `Stop`, or no recorded decision keep proposal work blocked.
+`Readiness action plan` gives the next blocker surface; use `Continue
+setup/test path` to jump
 straight into the setup/test wizard and `Copy readiness action plan` for a
 private operator note. Use `Open proof drawer` to inspect the `Readiness proof
 drawer`; `Copy readiness proof` exports `local_services_readiness_proof_drawer`

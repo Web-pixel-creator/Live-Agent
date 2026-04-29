@@ -172,7 +172,9 @@ plumbing, cleaning, and measurement must compete on manual proof markers.
 `Focus leading category` action that should guide the next scorecard update.
 `Pilot setup readiness` is the scorecard gate for a first paid pilot: it should
 show `Ready for first paid pilot` only after proof, setup, dry-run,
-owner-conversation, and metric gates are complete.
+owner-conversation, metric, and `Week-one owner decision` gates are complete.
+Only `Continue` can unlock `Paid pilot proposal`; `Pause`, `Stop`, or no
+recorded decision keep the proposal path blocked.
 
 `Open metrics tracker` opens the `Pilot metrics tracker` for the selected
 service lane. Use `Human-readable` for weekly operator review and `JSON` when

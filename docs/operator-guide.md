@@ -239,7 +239,10 @@ the `Next manual batch`, `Discovery questions`, `Pilot setup checklist`,
 readiness` adds the `Paid pilot gate`: treat `Ready for first paid pilot` as
 permission to prepare a proposal only, and treat `Not ready for paid pilot` as a
 hard stop on live channels, CRM sync, analytics, billing, and customer sends.
-`Readiness action plan` then points to the blocker surface; use
+The gate also includes `Week-one owner decision`: only `Continue` lets the
+operator prepare a `Paid pilot proposal`; `Pause`, `Stop`, or no recorded
+decision keep proposal work blocked. `Readiness action plan` then points to the
+blocker surface; use
 `Continue setup/test path` when the blocker is setup or dry-run, and use
 `Copy readiness action plan` only as a private operator note.
 Use `Open proof drawer` to review `Readiness proof drawer` before changing the
@@ -255,9 +258,9 @@ price, scope, owner send, CRM payload, booking policy, and billing-disabled
 state. It is still not a sent proposal or launched paid pilot.
 Use `Open kickoff gate` before day-one setup; `Pilot kickoff gate` and
 `Copy kickoff gate` confirm whether proof, proposal approval, setup, dry-run,
-owner conversation, and metric baseline are ready. It is still a manual gate,
-not phone, messaging, CRM, analytics, billing, booking, or customer-send
-activation.
+owner conversation, metric baseline, and `Week-one owner decision` are ready.
+It is still a manual gate, not phone, messaging, CRM, analytics, billing,
+booking, or customer-send activation.
 Use `Open run sheet` after that gate to inspect `Day-one operator run sheet`.
 `Copy run sheet` exports `local_services_day_one_operator_run_sheet` /
 `manual_day_one_operator_run_sheet`: sample inbound, owner script, expected

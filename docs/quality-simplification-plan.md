@@ -233,7 +233,9 @@ action layer` converts that rank into `Next manual batch`, `Discovery
 questions`, `Pilot setup checklist`, `Integration hold`, and `Focus leading
 category`. `Pilot setup readiness` adds a `Paid pilot gate` so the shell can say
 `Ready for first paid pilot` or `Not ready for paid pilot` from proof, setup,
-dry-run, owner-conversation, and metric gates. `Readiness action plan`,
+dry-run, owner-conversation, metric, and `Week-one owner decision` gates. Only
+`Continue` can move the lane toward `Paid pilot proposal`; `Pause`, `Stop`, or
+no recorded owner decision keep the path blocked. `Readiness action plan`,
 `Continue setup/test path`, and `Copy readiness action plan` are the next
 operator shortcut layer: they turn the gate into one blocker-specific action
 without adding channel activation. `Open proof drawer`, `Readiness proof

@@ -133,7 +133,10 @@ batch`, `Discovery questions`, `Pilot setup checklist`, `Integration hold`, and
 `Focus leading category`. `Pilot setup readiness`, `Paid pilot gate`,
 `Ready for first paid pilot`, and `Not ready for paid pilot` show whether the
 leading lane can move toward a paid pilot or still has proof/setup/dry-run
-blockers. `Readiness action plan`, `Continue setup/test path`,
+blockers. The readiness gate now includes `Week-one owner decision`: only
+`Continue` can move the lane toward `Paid pilot proposal`; `Pause`, `Stop`, or
+no recorded decision keep the proposal path blocked. `Readiness action plan`,
+`Continue setup/test path`,
 `Copy readiness action plan`, and `local_services_readiness_action_plan` make
 the next blocker actionable from the same shell. `Open proof drawer`,
 `Readiness proof drawer`, `Copy readiness proof`, and

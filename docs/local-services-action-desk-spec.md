@@ -767,8 +767,10 @@ the top lane into `Next manual batch`, `Discovery questions`,
 `Pilot setup checklist`, `Integration hold`, and `Focus leading category`.
 `Pilot setup readiness` adds a `Paid pilot gate` with `Ready for first paid
 pilot` / `Not ready for paid pilot` posture from proof, setup, dry-run,
-owner-conversation, and metric gates. `Readiness action plan` adds the
-blocker-specific operator path through `Continue setup/test path`,
+owner-conversation, metric, and `Week-one owner decision` gates. Only
+`Continue` can move the lane toward `Paid pilot proposal`; `Pause`, `Stop`, or
+no recorded decision keep proposal work blocked. `Readiness action plan` adds
+the blocker-specific operator path through `Continue setup/test path`,
 `Copy readiness action plan`, and `local_services_readiness_action_plan`.
 `Open proof drawer` adds `Readiness proof drawer`, `Copy readiness proof`, and
 `local_services_readiness_proof_drawer` as the compact evidence view behind the
@@ -998,12 +1000,14 @@ Current shell readiness for P3:
    contract.
 35. `Pilot setup readiness`, `Paid pilot gate`,
    `Ready for first paid pilot`, `Not ready for paid pilot`,
-   `local_services_pilot_setup_readiness`, and `pilot_setup_readiness` are
-   visible as the first paid pilot readiness contract.
+   `Week-one owner decision`, `local_services_pilot_setup_readiness`, and
+   `pilot_setup_readiness` are visible as the first paid pilot readiness
+   contract.
 36. `Readiness action plan`, `Continue setup/test path`,
    `Copy readiness action plan`, `local_services_readiness_action_plan`, and
    `readiness_action_plan` are visible as the blocker-specific operator action
-   contract.
+   contract, including the `Week-one review` primary surface when the owner
+   decision is not `Continue`.
 37. `Open proof drawer`, `Readiness proof drawer`, `Copy readiness proof`,
    `local_services_readiness_proof_drawer`, and `readiness_evidence_view` are
    visible as the compact readiness evidence contract.

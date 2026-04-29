@@ -232,7 +232,10 @@ Allowed reply statuses:
    `Focus leading category`; explain that this is planning only, not automation.
    Show `Pilot setup readiness`, `Paid pilot gate`, and
    `Not ready for paid pilot`; explain that paid-pilot posture is blocked until
-   proof, setup, dry-run, owner-conversation, and metric gates are complete.
+   proof, setup, dry-run, owner-conversation, metric, and `Week-one owner
+   decision` gates are complete. Only `Continue` can unlock `Paid pilot
+   proposal`; `Pause`, `Stop`, or no recorded decision keeps proposal work
+   blocked.
 14. Open `Open intake evidence` / `Transcript + evidence` and show
    `Saved intake evidence`, `Intake transcript + evidence link`,
    `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,

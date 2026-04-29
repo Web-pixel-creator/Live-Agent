@@ -251,7 +251,10 @@ Local-services expansion spec:
   `Focus leading category` actions. `Pilot setup readiness`, `Paid pilot gate`,
   `Ready for first paid pilot`, and `Not ready for paid pilot` make the first
   paid pilot posture explicit before any live channel, CRM, analytics, billing,
-  or customer-send integration is activated. `Readiness action plan`,
+  or customer-send integration is activated. The gate now includes `Week-one
+  owner decision`: only `Continue` can move the lane toward `Paid pilot proposal`,
+  while `Pause`, `Stop`, or no recorded decision keep proposal work blocked.
+  `Readiness action plan`,
   `Continue setup/test path`, `Copy readiness action plan`, and
   `local_services_readiness_action_plan` connect the gate back to the exact
   setup/test surface instead of leaving the operator with a static blocker.

@@ -717,6 +717,8 @@ type LocalServiceLeadingCategoryActionLayer = {
 type LocalServiceLeadingCategoryPilotReadiness = {
   serviceId: string;
   serviceTitle: string;
+  ownerDecision: LocalServiceWeekOneOwnerDecision;
+  ownerDecisionLabel: string;
   readinessLabel: "Ready for first paid pilot" | "Pilot setup almost ready" | "Not ready for paid pilot";
   progressLabel: string;
   paidPilotGate: string;
@@ -731,7 +733,12 @@ type LocalServicePilotReadinessActionPlan = {
   serviceId: string;
   serviceTitle: string;
   exportSurface: "local_services_readiness_action_plan";
-  primarySurface: "Setup path" | "Founder batch review" | "Pilot metrics tracker" | "Paid pilot proposal";
+  primarySurface:
+    | "Setup path"
+    | "Founder batch review"
+    | "Pilot metrics tracker"
+    | "Week-one review"
+    | "Paid pilot proposal";
   primaryAction: string;
   secondaryAction: string;
   operatorScript: string;
@@ -2116,6 +2123,7 @@ function buildLocalServiceLeadingCategoryPilotReadiness(
   setupReady: boolean,
   testCallPassed: boolean,
   metricStatus: LocalServicePilotMetricStatus,
+  ownerDecision: LocalServiceWeekOneOwnerDecision,
 ): LocalServiceLeadingCategoryPilotReadiness {
   const setupPrerequisites: LocalServiceSetupStepId[] = [
     "business_profile",
@@ -2131,6 +2139,15 @@ function buildLocalServiceLeadingCategoryPilotReadiness(
     (score?.counts.pilotCandidates ?? 0) > 0;
   const hasRealConversation = (score?.counts.discoveryCalls ?? 0) > 0 || (score?.counts.pilotCandidates ?? 0) > 0;
   const metricStarted = metricStatus !== "not_started";
+  const ownerDecisionLabel = LOCAL_SERVICE_WEEK_ONE_OWNER_DECISION_LABELS[ownerDecision];
+  const ownerDecisionStatus =
+    ownerDecision === "continue"
+      ? "Continue recorded; paid-pilot proposal path can open if all other gates pass"
+      : ownerDecision === "pause"
+        ? "Pause recorded; resolve owner blockers before any proposal"
+        : ownerDecision === "stop"
+          ? "Stop recorded; do not prepare a paid pilot proposal"
+          : "Needs Continue, Pause, or Stop recorded from week-one review";
   const checklist = [
     {
       label: "Category proof signal",
@@ -2164,25 +2181,46 @@ function buildLocalServiceLeadingCategoryPilotReadiness(
       status: LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus],
       done: metricStarted,
     },
+    {
+      label: "Week-one owner decision",
+      status: ownerDecisionStatus,
+      done: ownerDecision === "continue",
+    },
   ];
   const completed = checklist.filter((item) => item.done).length;
   const readyToPilot = checklist.every((item) => item.done);
-  const readinessLabel: LocalServiceLeadingCategoryPilotReadiness["readinessLabel"] = readyToPilot
-    ? "Ready for first paid pilot"
-    : completed >= 4
-      ? "Pilot setup almost ready"
-      : "Not ready for paid pilot";
+  const ownerDecisionBlocksPaidPilot = ownerDecision === "pause" || ownerDecision === "stop";
+  const readinessLabel: LocalServiceLeadingCategoryPilotReadiness["readinessLabel"] =
+    readyToPilot
+      ? "Ready for first paid pilot"
+      : ownerDecisionBlocksPaidPilot
+        ? "Not ready for paid pilot"
+        : completed >= 5
+          ? "Pilot setup almost ready"
+          : "Not ready for paid pilot";
   const blockers = checklist.filter((item) => !item.done).map((item) => `${item.label}: ${item.status}`);
   const readySignals = checklist.filter((item) => item.done).map((item) => `${item.label}: ${item.status}`);
   const nextAction =
-    blockers[0] ?? `Prepare one paid ${actionLayer.serviceTitle} pilot proposal and keep sends operator-approved.`;
-  const paidPilotGate = readyToPilot
-    ? "Paid pilot proposal can be prepared; live sends, bookings, CRM, and billing still require operator approval."
-    : "Do not sell or activate a paid pilot yet; finish the blocking proof, setup, dry-run, conversation, and metric gates first.";
+    ownerDecision === "pause"
+      ? "Open week-one review, capture the owner blocker, and do not prepare a proposal until Continue is recorded."
+      : ownerDecision === "stop"
+        ? "Prepare a clean stop packet and do not move this lane into paid-pilot proposal work."
+        : blockers[0] ??
+          `Prepare one paid ${actionLayer.serviceTitle} pilot proposal and keep sends operator-approved.`;
+  const paidPilotGate =
+    ownerDecision === "stop"
+      ? "Owner decision is Stop; do not prepare a paid pilot proposal for this lane."
+      : ownerDecision === "pause"
+        ? "Owner decision is Pause; keep proof collection manual and resolve blockers before proposal work."
+        : readyToPilot
+          ? "Paid pilot proposal can be prepared; live sends, bookings, CRM, and billing still require operator approval."
+          : "Do not sell or activate a paid pilot yet; finish the blocking proof, setup, dry-run, conversation, metric, and owner-decision gates first.";
 
   return {
     serviceId: actionLayer.serviceId,
     serviceTitle: actionLayer.serviceTitle,
+    ownerDecision,
+    ownerDecisionLabel,
     readinessLabel,
     progressLabel: `${completed}/${checklist.length}`,
     paidPilotGate,
@@ -2208,6 +2246,8 @@ function buildLocalServicePilotReadinessActionPlan(
         ? "Founder batch review"
         : firstBlocker.includes("Metric baseline")
           ? "Pilot metrics tracker"
+          : firstBlocker.includes("Week-one owner decision")
+            ? "Week-one review"
           : "Paid pilot proposal";
   const primaryAction =
     primarySurface === "Setup path"
@@ -2216,6 +2256,8 @@ function buildLocalServicePilotReadinessActionPlan(
         ? `Open batch review, capture real owner proof for ${actionLayer.serviceTitle}, and keep the next batch manual.`
         : primarySurface === "Pilot metrics tracker"
           ? `Open metrics tracker for ${actionLayer.serviceTitle} and record the baseline before any paid pilot promise.`
+          : primarySurface === "Week-one review"
+            ? `Open week-one review for ${actionLayer.serviceTitle}, record Continue/Pause/Stop, and keep proposal work blocked unless Continue is recorded.`
           : `Prepare one operator-approved ${actionLayer.serviceTitle} paid pilot proposal; do not activate live channels yet.`;
   const secondaryAction = readiness.readyToPilot
     ? "Prepare proposal copy and keep final send, booking, CRM, analytics, and billing behind operator approval."
@@ -2235,6 +2277,7 @@ function buildLocalServicePilotReadinessActionPlan(
     copyLabel: "Copy readiness action plan",
     noGo: [
       "No paid pilot sale until every readiness gate is complete.",
+      "No paid pilot proposal unless Week-one owner decision is Continue.",
       "No live phone, Telegram, WhatsApp, CRM, calendar, analytics, billing, or customer send from this surface.",
       "No category expansion while the leading category has unresolved proof, setup, dry-run, owner-conversation, or metric blockers.",
     ],
@@ -2488,6 +2531,8 @@ function buildLocalServicePaidPilotProposalPreview(
     "Export kind: operator_approved_proposal_preview",
     `Proposal status: ${proposalStatus}`,
     `Paid pilot gate: ${readiness.paidPilotGate}`,
+    `Week-one owner decision: ${readiness.ownerDecisionLabel}`,
+    "Owner decision state key: weekOneOwnerDecisionByProspectKey",
     `Target prospect: ${targetCompany}`,
     `Pricing policy: ${pricingPolicy}`,
     "",
@@ -2521,10 +2566,15 @@ function buildLocalServicePaidPilotProposalPreview(
       service_title: actionLayer.serviceTitle,
       proposal_status: readiness.readyToPilot ? "ready_for_operator_approval" : "blocked_by_readiness_gate",
       paid_pilot_gate: readiness.paidPilotGate,
+      week_one_owner_decision: readiness.ownerDecision,
+      week_one_owner_decision_label: readiness.ownerDecisionLabel,
+      owner_decision_state_key: "weekOneOwnerDecisionByProspectKey",
       readiness: {
         label: readiness.readinessLabel,
         progress: readiness.progressLabel,
         ready_to_pilot: readiness.readyToPilot,
+        week_one_owner_decision: readiness.ownerDecision,
+        week_one_owner_decision_label: readiness.ownerDecisionLabel,
         blockers: readiness.blockers,
         ready_signals: readiness.readySignals,
       },
@@ -2584,6 +2634,7 @@ function buildLocalServicePaidPilotProposalPreview(
       { label: "Proposal status", value: proposalStatus },
       { label: "Service", value: actionLayer.serviceTitle },
       { label: "Readiness", value: `${readiness.readinessLabel} / ${readiness.progressLabel}` },
+      { label: "Week-one owner decision", value: readiness.ownerDecisionLabel },
       { label: "Target prospect", value: targetCompany },
       { label: "Offer", value: template.detail.pilotKit.offerSummary },
       { label: "Pricing policy", value: pricingPolicy },
@@ -2592,6 +2643,7 @@ function buildLocalServicePaidPilotProposalPreview(
     ],
     checklist: [
       "Open the readiness proof drawer first and confirm the proof snippets are current.",
+      "Confirm Week-one owner decision is Continue before proposal approval.",
       "Do not send the proposal while any readiness blocker remains.",
       "Fill pricing and commercial terms manually with the founder or owner.",
       "Keep final customer message, booking, CRM write, analytics sync, and billing behind explicit operator approval.",
@@ -2677,6 +2729,7 @@ function buildLocalServiceProposalApprovalHandoff(
     handoff_fields: template.detail.handoffFields,
     operator_handoff: template.detail.operatorHandoff,
     readiness_label: readiness.readinessLabel,
+    week_one_owner_decision: readiness.ownerDecisionLabel,
     proof_progress: proofProgress,
   };
   const blockerLines =
@@ -2688,6 +2741,8 @@ function buildLocalServiceProposalApprovalHandoff(
     `Approval status: ${approvalStatus}`,
     `Target prospect: ${targetCompany}`,
     `Paid pilot gate: ${readiness.paidPilotGate}`,
+    `Week-one owner decision: ${readiness.ownerDecisionLabel}`,
+    "Owner decision state key: weekOneOwnerDecisionByProspectKey",
     "",
     "Approval checklist:",
     ...approvalItems.map((item) => `- ${item.label} | owner: ${item.owner} | ${item.detail}`),
@@ -2719,6 +2774,9 @@ function buildLocalServiceProposalApprovalHandoff(
       service_title: actionLayer.serviceTitle,
       approval_status: readiness.readyToPilot ? "waiting_operator_approval" : "blocked_by_readiness_gate",
       paid_pilot_gate: readiness.paidPilotGate,
+      week_one_owner_decision: readiness.ownerDecision,
+      week_one_owner_decision_label: readiness.ownerDecisionLabel,
+      owner_decision_state_key: "weekOneOwnerDecisionByProspectKey",
       target_prospect: targetRow
         ? {
             key: targetRow.key,
@@ -2740,6 +2798,8 @@ function buildLocalServiceProposalApprovalHandoff(
         label: readiness.readinessLabel,
         progress: readiness.progressLabel,
         ready_to_pilot: readiness.readyToPilot,
+        week_one_owner_decision: readiness.ownerDecision,
+        week_one_owner_decision_label: readiness.ownerDecisionLabel,
         blockers: readiness.blockers,
         ready_signals: readiness.readySignals,
       },
@@ -2784,6 +2844,7 @@ function buildLocalServiceProposalApprovalHandoff(
       { label: "Service", value: actionLayer.serviceTitle },
       { label: "Target prospect", value: targetCompany },
       { label: "Readiness", value: `${readiness.readinessLabel} / ${readiness.progressLabel}` },
+      { label: "Week-one owner decision", value: readiness.ownerDecisionLabel },
       { label: "Price owner", value: "Founder / business owner" },
       { label: "CRM payload", value: "Preview only; no write" },
       { label: "Booking policy", value: "Manual owner approval required" },
@@ -2839,6 +2900,14 @@ function buildLocalServicePilotKickoffGate(
       done: readiness.readyToPilot,
     },
     {
+      label: "Week-one owner decision",
+      status:
+        readiness.ownerDecision === "continue"
+          ? "Continue recorded"
+          : `${readiness.ownerDecisionLabel}; kickoff stays blocked`,
+      done: readiness.ownerDecision === "continue",
+    },
+    {
       label: "Setup ready",
       status: setupReady ? "Ready for pilot test recorded" : "Setup path needs ready gate",
       done: setupReady,
@@ -2880,6 +2949,8 @@ function buildLocalServicePilotKickoffGate(
     `Kickoff status: ${kickoffStatus}`,
     `Kickoff progress: ${completed}/${kickoffChecks.length}`,
     `Target prospect: ${targetCompany}`,
+    `Week-one owner decision: ${readiness.ownerDecisionLabel}`,
+    "Owner decision state key: weekOneOwnerDecisionByProspectKey",
     `Next kickoff action: ${nextKickoffAction}`,
     "",
     "Kickoff checks:",
@@ -2907,6 +2978,9 @@ function buildLocalServicePilotKickoffGate(
       service_title: actionLayer.serviceTitle,
       kickoff_status: completed === kickoffChecks.length ? "ready_for_manual_day_one_setup" : "blocked",
       kickoff_progress: `${completed}/${kickoffChecks.length}`,
+      week_one_owner_decision: readiness.ownerDecision,
+      week_one_owner_decision_label: readiness.ownerDecisionLabel,
+      owner_decision_state_key: "weekOneOwnerDecisionByProspectKey",
       next_kickoff_action: nextKickoffAction,
       target_prospect: targetRow
         ? {
@@ -2970,6 +3044,7 @@ function buildLocalServicePilotKickoffGate(
       { label: "Progress", value: `${completed}/${kickoffChecks.length}` },
       { label: "Service", value: actionLayer.serviceTitle },
       { label: "Target prospect", value: targetCompany },
+      { label: "Week-one owner decision", value: readiness.ownerDecisionLabel },
       { label: "Next action", value: nextKickoffAction },
       { label: "Day-one setup", value: "Manual setup only; no live channel activation" },
       { label: "Metric baseline", value: LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus] },
@@ -5489,6 +5564,19 @@ const LocalServicesDispatchDemoPanel = ({
   }/${LOCAL_SERVICE_TEST_CALL_CHECK_IDS.length}`;
   const leadingCategoryMetricStatus =
     pilotWorkspaceState.metricStatusByService[leadingCategoryActionLayer.serviceId] ?? "not_started";
+  const leadingCategoryFounderRows = founderContactRows.filter(
+    (row) => row.serviceId === leadingCategoryActionLayer.serviceId,
+  );
+  const recordedLeadingCategoryWeekOneOwnerDecision =
+    leadingCategoryFounderRows
+      .map((row) => pilotWorkspaceState.weekOneOwnerDecisionByProspectKey[row.key] ?? "not_recorded")
+      .find((decision) => decision !== "not_recorded") ?? "not_recorded";
+  const selectedLeadingCategoryWeekOneOwnerDecision =
+    selectedTemplate.id === leadingCategoryActionLayer.serviceId ? currentWeekOneOwnerDecision : "not_recorded";
+  const leadingCategoryWeekOneOwnerDecision =
+    selectedLeadingCategoryWeekOneOwnerDecision !== "not_recorded"
+      ? selectedLeadingCategoryWeekOneOwnerDecision
+      : recordedLeadingCategoryWeekOneOwnerDecision;
   const leadingCategoryPilotReadiness = useMemo(
     () =>
       buildLocalServiceLeadingCategoryPilotReadiness(
@@ -5498,14 +5586,17 @@ const LocalServicesDispatchDemoPanel = ({
         leadingCategorySetupReady,
         leadingCategoryTestCallPassed,
         leadingCategoryMetricStatus,
+        leadingCategoryWeekOneOwnerDecision,
       ),
     [
+      founderContactRows,
       leadingCategoryActionLayer,
       leadingCategoryMetricStatus,
       leadingCategoryPilotScore,
       leadingCategorySetupCompletion,
       leadingCategorySetupReady,
       leadingCategoryTestCallPassed,
+      leadingCategoryWeekOneOwnerDecision,
     ],
   );
   const leadingCategoryReadinessActionPlan = useMemo(
