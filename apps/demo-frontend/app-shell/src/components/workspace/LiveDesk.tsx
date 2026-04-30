@@ -6834,6 +6834,49 @@ const LocalServicesDispatchDemoPanel = ({
       : currentAccountBatchReviewHandoffCopied
         ? "Batch handoff copied"
       : "Ready for batch review handoff";
+  const pilotDailyBriefingStatus = !pilotOpsTodayRow
+    ? "Blocked by account"
+    : !pilotOpsPrepComplete
+      ? "Blocked by prep"
+      : !currentAccountContactPacketCopied
+        ? "Needs contact packet"
+        : !pilotOpsTodayRow.manualMessageSent
+          ? "Ready for manual contact"
+          : !currentAccountOutcomeRecorded
+            ? "Needs outcome"
+            : !currentAccountBatchReviewHandoffCopied
+              ? "Needs batch handoff"
+              : "Ready for next-day review";
+  const pilotDailyBriefingRows = [
+    {
+      label: "Schedule",
+      value: "Daily 09:00 Asia/Tashkent / manual-only preview",
+    },
+    {
+      label: "Status",
+      value: pilotDailyBriefingStatus,
+    },
+    {
+      label: "Current account",
+      value: pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "No account selected.",
+    },
+    {
+      label: "Next review",
+      value: pilotOpsTodayRow
+        ? `${pilotOpsTodayAction} / proof: ${pilotOpsTodayProof}`
+        : "Pick one account from the outreach list.",
+    },
+    {
+      label: "Approval gate",
+      value: currentAccountBatchReviewHandoffCopied
+        ? "Batch handoff reviewed; open batch review before continuation."
+        : "Operator must review packet, proof, outcome, scorecard row, and batch handoff first.",
+    },
+    {
+      label: "Output",
+      value: "Copyable briefing only; no cron, no outbound send, no CRM write.",
+    },
+  ];
   const pilotOpsActionPathItems = [
     {
       label: "Account",
@@ -6979,6 +7022,8 @@ const LocalServicesDispatchDemoPanel = ({
     `Batch review handoff status: ${currentAccountBatchReviewHandoffStatus}`,
     `Batch handoff copied: ${currentAccountBatchReviewHandoffCopied ? "yes" : "no"}`,
     "Batch handoff state: batchReviewHandoffCopiedByProspectKey",
+    "Daily pilot briefing: local_services_daily_pilot_briefing",
+    `Daily briefing status: ${pilotDailyBriefingStatus}`,
     "Current account mini-audit: local_services_current_account_mini_audit",
     "Pilot communication preview: local_services_pilot_communication_preview",
     `Mini-audit events: ${currentAccountMiniAuditSummary}`,
@@ -7036,6 +7081,25 @@ const LocalServicesDispatchDemoPanel = ({
     `- next_manual_action: ${pilotOpsTodayAction}`,
     `- batch_review_gate: ${founderDecisionGate.verdictLabel}`,
     "Next: open local_services_first_contact_batch_review before any continue, pause, stop, CRM, or weekly scorecard decision.",
+  ].join("\n");
+  const pilotDailyBriefingText = [
+    "local_services_daily_pilot_briefing",
+    `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
+    "Scheduled-task preview. scheduled_task_preview_manual_only. No real cron, no Slack send, no Telegram send, no WhatsApp send, no phone action, no CRM write, no analytics sync, no billing, and no Markdown mutation.",
+    `Schedule: Daily 09:00 Asia/Tashkent`,
+    `Status: ${pilotDailyBriefingStatus}`,
+    `Current account: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "none"}`,
+    `Service lane: ${pilotOpsTodayRow ? pilotOpsTodayRow.serviceTitle : "none"}`,
+    `Next manual action: ${pilotOpsTodayAction}`,
+    `Proof to capture: ${pilotOpsTodayProof}`,
+    `Contact packet copied: ${currentAccountContactPacketCopied ? "yes" : "no"}`,
+    `Manual send logged: ${pilotOpsTodayRow?.manualMessageSent ? "yes" : "no"}`,
+    `First request outcome: ${currentAccountFirstRequestOutcomeLabel}`,
+    `Scorecard row copied: ${currentAccountScorecardRowCopied ? "yes" : "no"}`,
+    `Batch handoff copied: ${currentAccountBatchReviewHandoffCopied ? "yes" : "no"}`,
+    `Batch review gate: ${founderDecisionGate.verdictLabel}`,
+    `Weekly scorecard sync gate: ${currentAccountWeeklySyncGate}`,
+    "Next: copy this briefing for founder/operator review, then complete the current account gate chain before any real follow-up.",
   ].join("\n");
   const currentAccountBatchReviewHandoffRows = [
     {
@@ -8976,6 +9040,49 @@ const LocalServicesDispatchDemoPanel = ({
                   <span className="ml-2 font-medium text-foreground">
                     {pilotOpsTodayRow ? pilotOpsTodayRow.prospect.nextStep : "Load a target from the outreach list."}
                   </span>
+                </div>
+              </div>
+              <div
+                className="mt-3 rounded-md border border-border/50 bg-background/30 px-3 py-2.5"
+                aria-label="Daily pilot briefing"
+              >
+                <div className="flex flex-col gap-2 xl:flex-row xl:items-start xl:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                      <Clock className="h-3.5 w-3.5" strokeWidth={1.8} />
+                      Daily pilot briefing
+                    </div>
+                    <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                      Scheduled-task preview for the founder/operator. It summarizes the next review without creating a
+                      real cron, sending reminders, writing CRM, syncing analytics, billing, or mutating docs.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex w-fit rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                      local_services_daily_pilot_briefing
+                    </span>
+                    <span className="inline-flex w-fit rounded-[5px] bg-card/45 px-2 py-1 text-[10px] text-muted-foreground">
+                      {pilotDailyBriefingStatus}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => onCopyText(pilotDailyBriefingText, "Daily pilot briefing copied")}
+                      className="h-7"
+                    >
+                      Copy daily briefing
+                    </Button>
+                  </div>
+                </div>
+                <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                  {pilotDailyBriefingRows.map((item) => (
+                    <div key={item.label} className="rounded-[5px] border border-border/50 bg-card/25 px-2 py-2 text-[11px]">
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                        {item.label}
+                      </div>
+                      <p className="mt-1.5 leading-relaxed text-foreground">{item.value}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
               <div

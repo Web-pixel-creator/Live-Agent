@@ -283,7 +283,11 @@ Local-services expansion spec:
   preview, channel/message/proof/guardrail prep checklist, the account ->
   preview -> manual contact -> proof -> continue gate path, latest account-local
   proof events, and the browser-local proof marker to update after the real
-  action happens. It also
+  action happens. `Daily pilot briefing`, `Copy daily briefing`, and
+  `local_services_daily_pilot_briefing` add a manual-only scheduled-task preview
+  for the founder/operator review; it is not a real cron and cannot send Slack,
+  Telegram, WhatsApp, phone, CRM, analytics, billing, or Markdown side effects.
+  It also
   shows `Category pilot score`, `Leading category`, and
   `No category expansion without proof` so AC, plumbing, cleaning, and
   measurement are ranked by proof rather than preference. `Leading category

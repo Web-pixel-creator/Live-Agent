@@ -267,7 +267,12 @@ manual pilot has one current account, one next manual action,
 browser-local account override, phone/Telegram/WhatsApp preview,
 channel/message/proof/guardrail prep checklist, an account -> preview ->
 manual contact -> proof -> continue gate path, latest account-local proof
-events, and one browser-local proof marker to update after the real action. It now adds `Category pilot score`,
+events, and one browser-local proof marker to update after the real action. It
+now adds `Daily pilot briefing`, `Copy daily briefing`, and
+`local_services_daily_pilot_briefing` as a manual-only scheduled-task preview
+for founder/operator daily review; it is not a real cron and cannot send Slack,
+Telegram, WhatsApp, phone, CRM, analytics, billing, or Markdown side effects. It
+now adds `Category pilot score`,
 `Leading category`, and `No category expansion without proof` so AC, plumbing,
 cleaning, and measurement are ranked from observed proof. `Leading category
 action layer` converts that rank into `Next manual batch`, `Discovery

@@ -143,10 +143,11 @@ Pilot execution surfaces:
 6. `Current account outcome capture`
 7. `Current account scorecard sync preview`
 8. `Current account batch review handoff`
-9. `Current account mini-audit`
-10. `Open account history`
-11. `Pilot proof update rail`
-12. `Open batch review`
+9. `Daily pilot briefing`
+10. `Current account mini-audit`
+11. `Open account history`
+12. `Pilot proof update rail`
+13. `Open batch review`
 
 Review and handoff surfaces:
 
@@ -171,8 +172,9 @@ The current account path is intentionally sequential:
 6. Record first request outcome.
 7. Copy scorecard row.
 8. Copy batch handoff.
-9. Open first-contact batch review.
-10. Decide continue, pause, stop, CRM handoff, or weekly scorecard action.
+9. Copy or review `Daily pilot briefing` as a manual-only scheduled-task preview.
+10. Open first-contact batch review.
+11. Decide continue, pause, stop, CRM handoff, or weekly scorecard action.
 
 Gate markers:
 
@@ -187,6 +189,10 @@ Gate markers:
 
 All exports are review artifacts. They do not send messages, create bookings,
 write CRM, sync analytics, bill, or mutate Markdown docs.
+
+`local_services_daily_pilot_briefing` is also only a review artifact. It is a
+scheduled-task preview, not a real cron. It does not send Slack, Telegram,
+WhatsApp, phone, CRM, analytics, billing, or Markdown side effects.
 
 Important export surfaces:
 
@@ -203,6 +209,7 @@ Important export surfaces:
 | `local_services_current_account_contact_packet` | Manual-only current account contact packet. |
 | `local_services_current_account_scorecard_sync_preview` | Private scorecard row preview. |
 | `local_services_current_account_batch_review_handoff` | Current account batch-review handoff. |
+| `local_services_daily_pilot_briefing` | Manual-only scheduled-task preview for founder/operator daily review. |
 | `local_services_first_contact_batch_review` | First 10 contacts review export. |
 | `local_services_account_history_drawer` | Current account browser-local history export. |
 | `local_services_manual_weekly_scorecard_sync` | Private weekly scorecard sync packet. |

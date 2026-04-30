@@ -269,7 +269,11 @@ current account, one next manual action, browser-local account override,
 phone/Telegram/WhatsApp preview, channel/message/proof/guardrail prep
 checklist, the account -> preview -> manual contact -> proof -> continue gate
 path, latest account-local proof events, and one browser-local proof marker to
-capture afterward. It
+capture afterward. `Daily pilot briefing`, `Copy daily briefing`, and
+`local_services_daily_pilot_briefing` give the founder/operator a manual-only
+scheduled-task preview for daily review; it is not a real cron and cannot send
+Slack, Telegram, WhatsApp, phone, CRM, analytics, billing, or Markdown side
+effects. It
 is still manual-only and must not be
 treated as proof of external delivery. `Category pilot score`,
 `Leading category`, and `No category expansion without proof` rank AC,

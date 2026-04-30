@@ -848,6 +848,11 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Pilot ops today/);
   assert.match(liveDesk, /Copy pilot ops handoff/);
   assert.match(liveDesk, /local_services_pilot_ops_today/);
+  assert.match(liveDesk, /Daily pilot briefing/);
+  assert.match(liveDesk, /Copy daily briefing/);
+  assert.match(liveDesk, /local_services_daily_pilot_briefing/);
+  assert.match(liveDesk, /scheduled_task_preview_manual_only/);
+  assert.match(liveDesk, /No real cron/);
   assert.match(liveDesk, /Open ops confirmation/);
   assert.match(liveDesk, /Pilot ops confirmation drawer/);
   assert.match(liveDesk, /Copy ops confirmation/);

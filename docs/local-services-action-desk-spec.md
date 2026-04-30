@@ -810,6 +810,10 @@ show the last account-local proof/status events before a continue/stop decision;
 `Open account history` and `local_services_account_history_drawer` expand that
 into a current-account history drawer with proof markers, latest activity, next
 manual action, and manual-only guardrails;
+`Daily pilot briefing`, `Copy daily briefing`, and
+`local_services_daily_pilot_briefing` add the manual-only scheduled-task preview
+for founder/operator daily review. It is not a real cron and cannot send Slack,
+Telegram, WhatsApp, phone, CRM, analytics, billing, or Markdown side effects;
 the `Category pilot score`, `Leading category`, and
 `No category expansion without proof` controls rank AC, plumbing, cleaning, and
 measurement from those same markers. `Leading category action layer` converts

@@ -214,6 +214,10 @@ action, browser-local account override, phone/Telegram/WhatsApp preview, the
 channel/message/proof/guardrail prep checklist, account -> preview -> manual
 contact -> proof -> continue gate path, latest account-local proof events, and
 browser-local proof marker to update after the real action.
+`Daily pilot briefing`, `Copy daily briefing`, and
+`local_services_daily_pilot_briefing` add the manual-only scheduled-task preview
+for founder/operator daily review; it is not a real cron and cannot send Slack,
+Telegram, WhatsApp, phone, CRM, analytics, billing, or Markdown side effects.
 `Category pilot score`,
 `Leading category`, and
 `No category expansion without proof` compare AC, plumbing, cleaning, and
