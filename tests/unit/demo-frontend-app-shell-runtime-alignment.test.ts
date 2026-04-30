@@ -454,6 +454,7 @@ test("live desk, operator console, and simulation drilldowns share case-driven j
 test("live desk exposes the seven-minute visa intake product path", () => {
   const liveDesk = readAppShellSource("components/workspace/LiveDesk.tsx");
   const readme = readRepoSource("README.md");
+  const productMasterPlan = readRepoSource("docs/product-master-plan.md");
   const localDevelopment = readRepoSource("docs/local-development.md");
   const operatorGuide = readRepoSource("docs/operator-guide.md");
   const simplificationPlan = readRepoSource("docs/quality-simplification-plan.md");
@@ -468,6 +469,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   const pilotRunbook = readRepoSource("docs/local-services-pilot-runbook.md");
   const outreachExecutionPack = readRepoSource("docs/local-services-outreach-execution-pack.md");
   const founderExecutionLog = readRepoSource("docs/local-services-founder-execution-log.md");
+  const localServicesDeveloperMap = readRepoSource("docs/local-services-developer-map.md");
   const demoFrontendServer = readRepoSource("apps/demo-frontend/src/server.ts");
 
   assert.match(liveDesk, /const visaIntakeDemo = searchParams\.get\("demo"\) === "visa-intake";/);
@@ -1030,6 +1032,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Founder proof recorded/);
   assert.match(liveDesk, /local_services_founder_contact_workspace/);
   assert.match(demoFrontendServer, /local-services-founder-execution-log\.md/);
+  assert.match(demoFrontendServer, /local-services-developer-map\.md/);
   assert.match(liveDesk, /Pilot metrics/);
   assert.match(liveDesk, /Missed-call recovery/);
   assert.match(liveDesk, /Manual operator edits/);
@@ -1443,6 +1446,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /day_one_recap_to_week_one_review/);
   assert.match(readme, /docs\/local-services-pilot-runbook\.md/);
   assert.match(readme, /docs\/local-services-outreach-execution-pack\.md/);
+  assert.match(readme, /docs\/local-services-developer-map\.md/);
+  assert.match(productMasterPlan, /docs\/local-services-developer-map\.md/);
   assert.match(readme, /Open outreach execution pack/);
   assert.match(readme, /Start 7-minute demo/);
   assert.match(readme, /docs\/evidence-and-trust\.md/);
@@ -1754,6 +1759,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /90-second recording mode/);
   assert.match(localDevelopment, /http:\/\/localhost:3000\/workspace-docs\/local-services-pilot-runbook\.md/);
   assert.match(localDevelopment, /http:\/\/localhost:3000\/workspace-docs\/local-services-outreach-execution-pack\.md/);
+  assert.match(localDevelopment, /http:\/\/localhost:3000\/workspace-docs\/local-services-developer-map\.md/);
   assert.match(localDevelopment, /Start 7-minute demo/);
   assert.match(localDevelopment, /Visa lead qualification/);
   assert.match(localDevelopment, /Each template card previews `Outcome`, `Approval`, `Evidence`, and `Deliverable`/);
@@ -2897,6 +2903,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /scorecard_row_copied/);
   assert.match(localServicesSpec, /batch_handoff_copied/);
   assert.match(localServicesSpec, /no_booking_created/);
+  assert.match(localServicesSpec, /docs\/local-services-developer-map\.md/);
   assert.match(localServicesSpec, /Category pilot score/);
   assert.match(localServicesSpec, /Leading category/);
   assert.match(localServicesSpec, /No category expansion without proof/);
@@ -3720,6 +3727,18 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(outreachExecutionPack, /batchReviewHandoffCopiedByProspectKey/);
   assert.match(outreachExecutionPack, /First-contact batch review\s+rows/);
   assert.match(outreachExecutionPack, /review_decision/);
+
+  assert.match(localServicesDeveloperMap, /# Local Services Developer Map/);
+  assert.match(localServicesDeveloperMap, /AI Dispatcher for local service businesses/);
+  assert.match(localServicesDeveloperMap, /liveDesk:localServicesPilotWorkspace:v1/);
+  assert.match(localServicesDeveloperMap, /batchReviewHandoffCopiedByProspectKey/);
+  assert.match(localServicesDeveloperMap, /local_services_current_account_batch_review_handoff/);
+  assert.match(localServicesDeveloperMap, /local_services_first_contact_batch_review/);
+  assert.match(localServicesDeveloperMap, /First-contact batch review rows/);
+  assert.match(localServicesDeveloperMap, /review_decision/);
+  assert.match(localServicesDeveloperMap, /scorecard_row_copied/);
+  assert.match(localServicesDeveloperMap, /batch_handoff_copied/);
+  assert.match(localServicesDeveloperMap, /Do not add:/);
   assert.match(outreachExecutionPack, /Pilot\s+proof update rail/);
   assert.match(outreachExecutionPack, /local_services_pilot_proof_update_rail/);
   assert.match(outreachExecutionPack, /Current account\s+mini-audit/);

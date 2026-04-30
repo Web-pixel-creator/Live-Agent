@@ -432,6 +432,7 @@ Priority decision filter:
 - Architecture: `docs/architecture.md`
 - Product Master Plan: `docs/product-master-plan.md`
 - Local Services Action Desk Spec: `docs/local-services-action-desk-spec.md`
+- Local Services Developer Map: `docs/local-services-developer-map.md`
 - Local Services Pilot Runbook: `docs/local-services-pilot-runbook.md`
 - Local Services Outreach Execution Pack: `docs/local-services-outreach-execution-pack.md`
 - Product Backlog: `docs/product-backlog.md`

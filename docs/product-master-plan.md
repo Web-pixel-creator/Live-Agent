@@ -10,6 +10,7 @@ Companion execution backlog:
 - `docs/startup-wedge-90-day-plan.md`
 - `docs/quality-simplification-plan.md`
 - `docs/local-services-action-desk-spec.md`
+- `docs/local-services-developer-map.md`
 
 ## Source of Truth
 
@@ -70,6 +71,10 @@ The next practical commercial expansion candidate is documented separately in
 `docs/local-services-action-desk-spec.md`: one `AI Dispatcher for local service
 businesses`, starting with HVAC/AC repair, plumbing, cleaning, and measurement
 visits for windows, doors, ceilings, and fit-out requests.
+The developer implementation map for that expansion is
+`docs/local-services-developer-map.md`; it lists the route surfaces,
+browser-local state keys, export contracts, gate chain, served docs, and safe
+extension rules.
 That expansion must stay one dispatcher product, not a collection of unrelated
 vertical products. Restaurants can be a secondary demo path, but should not
 displace the local-services wedge before pilot signal exists.

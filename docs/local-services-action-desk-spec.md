@@ -4,6 +4,8 @@ Status: canonical expansion spec for the next commercial wedge.
 
 Last reviewed: 2026-04-26.
 
+Developer implementation map: `docs/local-services-developer-map.md`.
+
 ## Decision
 
 Build one clear product for the next market test:
