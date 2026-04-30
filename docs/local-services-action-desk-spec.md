@@ -791,8 +791,9 @@ capture`, `local_services_current_account_outcome_capture`, and
 current account after manual contact without sending follow-up or writing CRM;
 `Current account scorecard sync preview`,
 `local_services_current_account_scorecard_sync_preview`, and
-`Copy scorecard row` show exactly what the operator copies into the private
-scorecard before batch review or weekly sync;
+`Copy scorecard row`, `Scorecard row copied`, `Reset scorecard row review`, and
+`scorecardRowCopiedByProspectKey` show exactly what the operator copies into
+the private scorecard before batch review or weekly sync;
 `Pilot proof update rail` and `local_services_pilot_proof_update_rail` make the
 next browser-local proof marker update explicit after the real manual action;
 `Current account mini-audit` and `local_services_current_account_mini_audit`
@@ -1072,7 +1073,9 @@ Current shell readiness for P3:
    `firstRequestOutcomeByProspectKey`,
    `Current account scorecard sync preview`,
    `local_services_current_account_scorecard_sync_preview`,
-   `Copy scorecard row`, `Pilot proof update rail`, and
+   `Copy scorecard row`, `Scorecard row copied`,
+   `Reset scorecard row review`, `scorecardRowCopiedByProspectKey`,
+   `Pilot proof update rail`, and
    `local_services_pilot_proof_update_rail`, `Current account mini-audit`, and
    `local_services_current_account_mini_audit`, plus `Open account history`
    and `local_services_account_history_drawer`, are visible as the one-account

@@ -290,7 +290,8 @@ Allowed reply statuses:
    `firstRequestOutcomeByProspectKey`, then show
    `Current account scorecard sync preview`,
    `local_services_current_account_scorecard_sync_preview`, and
-   `Copy scorecard row` before `Pilot proof update rail`
+   `Copy scorecard row`, `Scorecard row copied`, `Reset scorecard row review`,
+   and `scorecardRowCopiedByProspectKey` before `Pilot proof update rail`
    and `local_services_pilot_proof_update_rail`, plus
    `Current account mini-audit`, `local_services_current_account_mini_audit`,
    `Open account history`, and `local_services_account_history_drawer`; explain that

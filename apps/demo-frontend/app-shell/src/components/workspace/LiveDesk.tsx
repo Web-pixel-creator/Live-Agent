@@ -584,6 +584,7 @@ type LocalServicePilotActivityKind =
   | "proposal_approval"
   | "kickoff_decision"
   | "contact_packet_review"
+  | "scorecard_row_review"
   | "prep_review"
   | "weekly_sync_review";
 type LocalServicePilotActivityEvent = {
@@ -609,6 +610,7 @@ type LocalServicePilotWorkspaceState = {
   weeklyScorecardSyncReviewedByService: Record<string, boolean>;
   messagePreviewReviewedByProspectKey: Record<string, boolean>;
   contactPacketCopiedByProspectKey: Record<string, boolean>;
+  scorecardRowCopiedByProspectKey: Record<string, boolean>;
   metricStatusByService: Record<string, LocalServicePilotMetricStatus>;
   setupStepCompletionByService: Record<string, LocalServiceSetupStepCompletion>;
   setupReadyByService: Record<string, boolean>;
@@ -946,6 +948,7 @@ function isLocalServicePilotActivityKind(value: unknown): value is LocalServiceP
     value === "proposal_approval" ||
     value === "kickoff_decision" ||
     value === "contact_packet_review" ||
+    value === "scorecard_row_review" ||
     value === "prep_review" ||
     value === "weekly_sync_review"
   );
@@ -1159,6 +1162,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
     weeklyScorecardSyncReviewedByService: {},
     messagePreviewReviewedByProspectKey: {},
     contactPacketCopiedByProspectKey: {},
+    scorecardRowCopiedByProspectKey: {},
     metricStatusByService: {},
     setupStepCompletionByService: {},
     setupReadyByService: {},
@@ -1192,6 +1196,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
       weeklyScorecardSyncReviewedByService: readBooleanRecord(parsed.weeklyScorecardSyncReviewedByService),
       messagePreviewReviewedByProspectKey: readBooleanRecord(parsed.messagePreviewReviewedByProspectKey),
       contactPacketCopiedByProspectKey: readBooleanRecord(parsed.contactPacketCopiedByProspectKey),
+      scorecardRowCopiedByProspectKey: readBooleanRecord(parsed.scorecardRowCopiedByProspectKey),
       metricStatusByService: readPilotMetricStatusRecord(parsed.metricStatusByService),
       setupStepCompletionByService: readSetupStepCompletionByService(parsed.setupStepCompletionByService),
       setupReadyByService: readBooleanRecord(parsed.setupReadyByService),
@@ -6698,13 +6703,17 @@ const LocalServicesDispatchDemoPanel = ({
     },
   ];
   const currentAccountOutcomeRecorded = currentAccountFirstRequestOutcome !== "not_recorded";
+  const currentAccountScorecardRowCopied =
+    Boolean(pilotOpsTodayRow) && pilotWorkspaceState.scorecardRowCopiedByProspectKey[pilotOpsTodayRow.key] === true;
   const currentAccountScorecardSyncStatus = !pilotOpsTodayRow
     ? "Blocked by account"
     : !pilotOpsTodayRow.manualMessageSent
       ? "Waiting for manual contact"
       : !currentAccountOutcomeRecorded
         ? "Waiting for outcome"
-        : "Ready for manual scorecard sync";
+        : currentAccountScorecardRowCopied
+          ? "Scorecard row copied"
+          : "Ready for manual scorecard sync";
   const currentAccountWeeklySyncGate =
     pilotOpsTodayRow?.serviceId === leadingCategoryActionLayer.serviceId
       ? leadingCategoryWeeklyScorecardSyncGate
@@ -6723,6 +6732,14 @@ const LocalServicesDispatchDemoPanel = ({
     {
       label: "Outcome to copy",
       value: currentAccountFirstRequestOutcomeLabel,
+    },
+    {
+      label: "Row copy",
+      value: currentAccountScorecardRowCopied
+        ? "Copied to private scorecard handoff."
+        : currentAccountOutcomeRecorded
+          ? "Not copied yet."
+          : "Waiting for outcome.",
     },
     {
       label: "Batch review",
@@ -6823,6 +6840,8 @@ const LocalServicesDispatchDemoPanel = ({
     "Outcome state: firstRequestOutcomeByProspectKey",
     "Current account scorecard sync preview: local_services_current_account_scorecard_sync_preview",
     `Scorecard sync preview status: ${currentAccountScorecardSyncStatus}`,
+    `Scorecard row copied: ${currentAccountScorecardRowCopied ? "yes" : "no"}`,
+    "Scorecard row state: scorecardRowCopiedByProspectKey",
     `Weekly scorecard sync gate: ${currentAccountWeeklySyncGate}`,
     "Current account mini-audit: local_services_current_account_mini_audit",
     "Pilot communication preview: local_services_pilot_communication_preview",
@@ -6859,6 +6878,8 @@ const LocalServicesDispatchDemoPanel = ({
     `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
     "Manual-only scorecard sync preview. It does not send a follow-up, write CRM, sync analytics, mutate Markdown docs, or mark the weekly scorecard reviewed.",
     `Sync status: ${currentAccountScorecardSyncStatus}`,
+    `Scorecard row copied: ${currentAccountScorecardRowCopied ? "yes" : "no"}`,
+    "State field: scorecardRowCopiedByProspectKey",
     `Current account: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "none"}`,
     `Service lane: ${pilotOpsTodayRow ? pilotOpsTodayRow.serviceTitle : "none"}`,
     `Status to copy: ${pilotOpsTodayRow ? pilotOpsTodayRow.statusLabel : "none"}`,
@@ -6931,6 +6952,7 @@ const LocalServicesDispatchDemoPanel = ({
     "Pilot proof update rail: local_services_pilot_proof_update_rail",
     "Current account scorecard sync preview: local_services_current_account_scorecard_sync_preview",
     `Current account scorecard sync status: ${currentAccountScorecardSyncStatus}`,
+    `Current account scorecard row copied: ${currentAccountScorecardRowCopied ? "yes" : "no"}`,
     "Current account mini-audit: local_services_current_account_mini_audit",
     "Pilot communication preview: local_services_pilot_communication_preview",
     `Current account mini-audit events: ${currentAccountMiniAuditSummary}`,
@@ -7673,6 +7695,31 @@ const LocalServicesDispatchDemoPanel = ({
     if (!pilotOpsTodayRow || !pilotOpsPrepComplete) return;
     updateCurrentAccountContactPacketCopied(true);
     onCopyText(currentAccountContactPacketText, "Current account contact packet copied");
+  };
+  const updateCurrentAccountScorecardRowCopied = (copied: boolean) => {
+    if (!pilotOpsTodayRow) return;
+    const row = pilotOpsTodayRow;
+    setPilotWorkspaceState((prev) => ({
+      ...prev,
+      scorecardRowCopiedByProspectKey: {
+        ...prev.scorecardRowCopiedByProspectKey,
+        [row.key]: copied,
+      },
+      activityLog: appendLocalServicePilotActivity(prev.activityLog, {
+        kind: "scorecard_row_review",
+        label: "Current account scorecard row reviewed",
+        value: copied ? "Scorecard row copied" : "Scorecard row review reset",
+        serviceId: row.serviceId,
+        serviceTitle: row.serviceTitle,
+        prospectId: row.prospect.id,
+        company: row.prospect.company,
+      }),
+    }));
+  };
+  const copyCurrentAccountScorecardRow = () => {
+    if (!pilotOpsTodayRow || !currentAccountOutcomeRecorded) return;
+    updateCurrentAccountScorecardRowCopied(true);
+    onCopyText(currentAccountScorecardSyncText, "Current account scorecard row copied");
   };
   const pilotOpsProofRailActions = pilotOpsTodayRow
     ? [
@@ -9029,11 +9076,21 @@ const LocalServicesDispatchDemoPanel = ({
                         size="sm"
                         variant={currentAccountOutcomeRecorded ? "default" : "secondary"}
                         disabled={!pilotOpsTodayRow || !currentAccountOutcomeRecorded}
-                        onClick={() => onCopyText(currentAccountScorecardSyncText, "Current account scorecard row copied")}
+                        onClick={copyCurrentAccountScorecardRow}
                         className="h-7"
                       >
                         Copy scorecard row
                       </Button>
+                      {currentAccountScorecardRowCopied && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => updateCurrentAccountScorecardRowCopied(false)}
+                          className="h-7"
+                        >
+                          Reset scorecard row review
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="secondary"

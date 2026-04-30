@@ -264,7 +264,8 @@ Local-services expansion spec:
   `firstRequestOutcomeByProspectKey`,
   `Current account scorecard sync preview`,
   `local_services_current_account_scorecard_sync_preview`,
-  `Copy scorecard row`,
+  `Copy scorecard row`, `Scorecard row copied`,
+  `Reset scorecard row review`, `scorecardRowCopiedByProspectKey`,
   `Pilot proof update rail`, and
   `local_services_pilot_proof_update_rail`, `Current account mini-audit`, and
   `local_services_current_account_mini_audit`, plus `Open account history` /
