@@ -6639,18 +6639,32 @@ const LocalServicesDispatchDemoPanel = ({
       tone: pilotOpsTodayRow ? "ready" : "blocked",
     },
     {
+      label: "Prep gate",
+      state: pilotOpsPrepComplete ? "Ready" : "Blocked by prep",
+      detail: pilotOpsPrepComplete
+        ? "Current account prep is complete before manual contact."
+        : "Finish channel, preview, proof marker, and manual-only checks before contact.",
+      tone: pilotOpsPrepComplete ? "ready" : "blocked",
+    },
+    {
       label: "Preview",
-      state: pilotOpsTodayRow && !pilotOpsTodayRow.manualMessageSent ? "Current" : "Review",
+      state: currentAccountMessagePreviewReviewed ? "Reviewed" : "Current",
       detail: "Open communication preview before any phone, Telegram, or WhatsApp action.",
-      tone: pilotOpsTodayRow && !pilotOpsTodayRow.manualMessageSent ? "active" : "ready",
+      tone: currentAccountMessagePreviewReviewed ? "ready" : "active",
     },
     {
       label: "Manual contact",
-      state: pilotOpsTodayRow?.manualMessageSent ? "Logged" : "Manual-only",
+      state: pilotOpsTodayRow?.manualMessageSent
+        ? "Logged"
+        : pilotOpsPrepComplete
+          ? "Manual-only"
+          : "Blocked by prep",
       detail: pilotOpsTodayRow?.manualMessageSent
         ? "Manual send proof is already browser-local."
-        : "Human sends or calls outside the shell only.",
-      tone: pilotOpsTodayRow?.manualMessageSent ? "ready" : "active",
+        : pilotOpsPrepComplete
+          ? "Human sends or calls outside the shell only."
+          : "Complete prep before the human contacts this account.",
+      tone: pilotOpsTodayRow?.manualMessageSent ? "ready" : pilotOpsPrepComplete ? "active" : "blocked",
     },
     {
       label: "Proof marker",
@@ -6674,6 +6688,7 @@ const LocalServicesDispatchDemoPanel = ({
     "Current account prep checklist: local_services_current_account_prep_checklist",
     `Message preview reviewed: ${currentAccountMessagePreviewReviewed ? "yes" : "no"}`,
     `Prep complete: ${pilotOpsPrepComplete ? "yes" : "no"} (${pilotOpsPrepChecklistCompleteCount}/${pilotOpsPrepChecklistItems.length})`,
+    "Current account prep gate: local_services_current_account_prep_gate",
     "Current account action path: local_services_current_account_action_path",
     `Current account: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "none"}`,
     `Service lane: ${pilotOpsTodayRow ? pilotOpsTodayRow.serviceTitle : "none"}`,
@@ -8614,7 +8629,7 @@ const LocalServicesDispatchDemoPanel = ({
                     local_services_current_account_action_path
                   </span>
                 </div>
-                <div className="mt-2 grid gap-2 md:grid-cols-5">
+                <div className="mt-2 grid gap-2 md:grid-cols-3 xl:grid-cols-6">
                   {pilotOpsActionPathItems.map((item) => (
                     <div
                       key={item.label}

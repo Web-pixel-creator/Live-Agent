@@ -277,7 +277,9 @@ Allowed reply statuses:
    `local_services_current_account_prep_checklist`, `Prep status`,
    `Channel verified`, `Message preview reviewed`, `Proof marker selected`, and
    `Manual-only guardrail`; use `Mark preview reviewed` / `Reset preview review`
-   to show `Prep complete` from `messagePreviewReviewedByProspectKey` before
+   to show `Prep complete` from `messagePreviewReviewedByProspectKey`. Then
+   show `Prep gate`, `local_services_current_account_prep_gate`, and
+   `Blocked by prep` before
    `Current account action path` and
    `local_services_current_account_action_path` before `Pilot proof update rail`
    and `local_services_pilot_proof_update_rail`, plus

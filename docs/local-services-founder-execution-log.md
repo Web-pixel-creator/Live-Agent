@@ -32,7 +32,8 @@ restores the default queue. `Current account prep checklist` /
 `Manual-only guardrail` before the operator moves into the action path.
 `Mark preview reviewed` / `Reset preview review` update
 `messagePreviewReviewedByProspectKey` and `Prep complete` in browser-local state
-only.
+only. `Prep gate` / `local_services_current_account_prep_gate` shows
+`Blocked by prep` until those checks are complete.
 `Current account action path` /
 `local_services_current_account_action_path` keeps the account -> preview ->
 manual contact -> proof -> continue gate order visible before proof is marked.
