@@ -403,6 +403,13 @@ preview` for manual human use. It must not send SMS, Telegram, WhatsApp, email,
 write CRM, collect payment, create a booking, dispatch a technician, or activate
 a channel.
 
+`Review queue` is the fourth actionable product view. Its `Review queue
+decision rail` can update only `weekOneOwnerDecisionByProspectKey` and
+`weeklyScorecardSyncReviewedByService` in the browser-local pilot workspace and
+can copy a `Review queue decision summary` for human review. It must not write
+CRM, change billing, message customers, activate channels, prepare a live paid
+pilot, or make the Continue/Pause/Stop decision autonomously.
+
 ### Minute 1-3: Intake
 
 Show a simulated customer request:

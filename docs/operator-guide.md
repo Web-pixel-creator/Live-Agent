@@ -86,6 +86,12 @@ send a message, write CRM, collect payment, or activate channels.
 `Consent-safe confirmation preview`. Use it to review customer copy and consent
 posture before a human manually sends anything; the shell still does not send
 SMS, Telegram, WhatsApp, email, CRM updates, payments, bookings, or dispatches.
+`Review queue` includes a `Review queue decision rail` with
+`weekOneOwnerDecisionByProspectKey`, `weeklyScorecardSyncReviewedByService`,
+`Review decision actions`, and `Copy review queue summary`. Use it to record
+Continue/Pause/Stop and weekly scorecard sync review before a human prepares
+the evidence pack; the shell still does not write CRM, change billing, message
+customers, activate channels, or make the pilot decision autonomously.
 It now also exposes `Open intake evidence` and `Transcript + evidence`, which
 opens a `Saved intake evidence` drawer with `Intake transcript + evidence link`,
 `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,

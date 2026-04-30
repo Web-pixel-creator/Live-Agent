@@ -7789,6 +7789,40 @@ const LocalServicesDispatchDemoPanel = ({
       detail: "Carried into local_services_pilot_evidence_pack after redaction.",
     },
   ];
+  const reviewQueueDecisionRows = [
+    {
+      label: "Selected account",
+      value: selectedOutreachProspect?.company ?? "No account selected",
+      detail: selectedOutreachProspect?.nextStep ?? "Select a pilot account before recording the review decision.",
+    },
+    {
+      label: "Owner decision",
+      value: currentWeekOneOwnerDecisionLabel,
+      detail: "Saved under weekOneOwnerDecisionByProspectKey for the selected account.",
+    },
+    {
+      label: "Weekly scorecard sync",
+      value: currentWeeklyScorecardSyncReviewedLabel,
+      detail: "Saved under weeklyScorecardSyncReviewedByService before the evidence pack is copied.",
+    },
+    {
+      label: "Continue gate",
+      value: founderDecisionGate.verdictLabel,
+      detail: founderDecisionGate.proofSummary,
+    },
+  ];
+  const reviewQueueSummaryText = [
+    "Review queue decision summary:",
+    `Service: ${selectedTemplate.ref} - ${selectedTemplate.title}`,
+    `Selected account: ${selectedOutreachProspect?.company ?? "none"}`,
+    `Owner decision: ${currentWeekOneOwnerDecisionLabel}`,
+    `Weekly scorecard sync: ${currentWeeklyScorecardSyncReviewedLabel}`,
+    `Continue gate: ${founderDecisionGate.verdictLabel}`,
+    "State keys:",
+    "- weekOneOwnerDecisionByProspectKey",
+    "- weeklyScorecardSyncReviewedByService",
+    "Manual-only rule: no CRM write, billing change, customer message, or autonomous pilot decision.",
+  ].join("\n");
   const hidePilotPlanning = recordingMode || setupWizardMode;
   const localServiceHighlightValue = (template: LocalServiceDemoTemplate, label: string) =>
     template.highlights.find((highlight) => highlight.label === label)?.value ?? "Operator review";
@@ -9230,6 +9264,106 @@ const LocalServicesDispatchDemoPanel = ({
                           {score.proofSummary}
                         </p>
                       </div>
+                    ))}
+                  </div>
+                </section>
+                <section
+                  aria-label="Review queue decision rail"
+                  className="rounded-md border border-[hsl(var(--tint-rose)/0.24)] bg-[hsl(var(--tint-rose)/0.07)] px-3 py-3 xl:col-span-2"
+                >
+                  <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="min-w-0">
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--tint-rose-fg))]">
+                        Review queue decision rail
+                      </div>
+                      <p className="mt-1.5 max-w-3xl text-[12px] leading-relaxed text-foreground">
+                        Browser-local Continue/Pause/Stop and scorecard sync gate for the selected pilot account.
+                        This makes the review step explicit without sending a customer message, writing CRM, changing
+                        billing, or starting a pilot autonomously.
+                      </p>
+                    </div>
+                    <span className="shrink-0 rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-rose-fg))] ring-1 ring-inset ring-[hsl(var(--tint-rose)/0.24)]">
+                      browser-local review
+                    </span>
+                  </div>
+                  <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                    {reviewQueueDecisionRows.map((row) => (
+                      <div key={row.label} className="rounded-md border border-border/45 bg-card/25 px-2.5 py-2">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          {row.label}
+                        </div>
+                        <div className="mt-1 text-[12px] font-medium text-foreground">{row.value}</div>
+                        <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">{row.detail}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                        Review decision actions
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {LOCAL_SERVICE_WEEK_ONE_OWNER_DECISION_ACTIONS.map((action) => (
+                          <Button
+                            key={action.decision}
+                            size="sm"
+                            variant={currentWeekOneOwnerDecision === action.decision ? "default" : "secondary"}
+                            onClick={() => updateWeekOneOwnerDecision(action.decision)}
+                            className="h-7"
+                          >
+                            {action.label}
+                          </Button>
+                        ))}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => updateWeekOneOwnerDecision("not_recorded")}
+                          className="h-7"
+                        >
+                          Reset owner decision
+                        </Button>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant={currentWeeklyScorecardSyncReviewed ? "default" : "secondary"}
+                          onClick={() => updateWeeklyScorecardSyncReviewed(true)}
+                          className="h-7"
+                        >
+                          Record weekly sync reviewed
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => updateWeeklyScorecardSyncReviewed(false)}
+                          className="h-7"
+                        >
+                          Reset weekly sync review
+                        </Button>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => onCopyText(reviewQueueSummaryText, "Review queue summary copied")}
+                      className="h-8"
+                    >
+                      Copy review queue summary
+                    </Button>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {[
+                      "weekOneOwnerDecisionByProspectKey",
+                      "weeklyScorecardSyncReviewedByService",
+                      "No CRM write",
+                      "No autonomous pilot decision",
+                    ].map((item) => (
+                      <span
+                        key={item}
+                        className="inline-flex rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-muted-foreground ring-1 ring-inset ring-border/50"
+                      >
+                        {item}
+                      </span>
                     ))}
                   </div>
                 </section>

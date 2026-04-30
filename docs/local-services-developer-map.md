@@ -120,6 +120,13 @@ approved action. Its buttons may update only `customerConfirmationByService`;
 `Consent-safe confirmation preview` is a manual note, not SMS, Telegram,
 WhatsApp, email, CRM, payment, booking, dispatch, or channel activation.
 
+`view=reviews` has the fourth actionable panel contract. `Review queue decision
+rail` renders selected account, owner decision, weekly scorecard sync, and
+continue gate. Its buttons may update only `weekOneOwnerDecisionByProspectKey`
+and `weeklyScorecardSyncReviewedByService`; `Copy review queue summary` is a
+manual founder note, not CRM, billing, customer messaging, channel activation,
+paid-pilot launch, or autonomous Continue/Pause/Stop.
+
 ## Main Source Files
 
 UI implementation:

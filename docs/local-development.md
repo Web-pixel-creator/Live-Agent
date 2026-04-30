@@ -72,6 +72,12 @@ CRM, collect payment, or activate a live channel.
 `Consent-safe confirmation preview`. These controls are browser-local review
 notes only; they do not send SMS, Telegram, WhatsApp, email, CRM updates,
 payments, bookings, or dispatches.
+`Review queue` contains a `Review queue decision rail`,
+`weekOneOwnerDecisionByProspectKey` state,
+`weeklyScorecardSyncReviewedByService` state, `Review decision actions`, and a
+`Copy review queue summary` action. These controls are browser-local founder
+review notes only; they do not write CRM, change billing, send customer
+messages, activate channels, or make an autonomous pilot decision.
 3.2. The same local-services route now includes view-only pilot list controls:
 `Outreach list filters`, `Column settings`, `Service filter`, `Status filter`,
 `Filtered candidates`, `Filtered outreach list`, `All services`,

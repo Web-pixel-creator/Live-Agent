@@ -98,6 +98,11 @@ Local-services expansion spec:
   `Customer directory` includes a `Customer confirmation rail`, local
   `customerConfirmationByService` decisions, and a `Consent-safe confirmation
   preview`; these are manual review notes, not customer sends or CRM writes.
+  `Review queue` includes a `Review queue decision rail`, local
+  `weekOneOwnerDecisionByProspectKey` and
+  `weeklyScorecardSyncReviewedByService` gates, and a `Copy review queue
+  summary` action; these are founder review notes, not CRM, billing, customer
+  message, or autonomous pilot actions.
 - the same route switches the top chrome and first heading to `AI Dispatcher`
   and hides the old runtime alerts, visa demo button, case filters, case search,
   and `New case` action from the local-services header.
