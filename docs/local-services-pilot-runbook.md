@@ -140,7 +140,9 @@ Do not use the pilot to build:
    `local_services_current_account_scorecard_sync_preview` and
    `Copy scorecard row` to copy only the private scorecard row before batch
    review or weekly sync. `Scorecard row copied`, `Reset scorecard row review`,
-   and `scorecardRowCopiedByProspectKey` are browser-local review proof only.
+   `scorecardRowCopiedByProspectKey`, and
+   `scorecard_row_copy_required_for_batch_review` are browser-local review
+   proof only; batch review and weekly sync stay blocked until it is recorded.
    Use
    `Pilot proof update rail` / `local_services_pilot_proof_update_rail` only
    after the real action happens outside the shell. Check `Current account

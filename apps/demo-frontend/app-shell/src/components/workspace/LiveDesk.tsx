@@ -6457,10 +6457,15 @@ const LocalServicesDispatchDemoPanel = ({
     : "not_recorded";
   const leadingCategoryFirstRequestOutcomeLabel =
     LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_LABELS[leadingCategoryFirstRequestOutcome];
+  const leadingCategoryScorecardRowCopied =
+    Boolean(leadingCategoryOutcomeTargetRow) &&
+    pilotWorkspaceState.scorecardRowCopiedByProspectKey[leadingCategoryOutcomeTargetRow.key] === true;
   const leadingCategoryWeeklyScorecardSyncGate = !leadingCategoryOutcomeTargetRow
     ? "Blocked until a day-one target is selected"
     : leadingCategoryFirstRequestOutcome === "not_recorded"
       ? "Blocked until first request outcome is recorded"
+      : !leadingCategoryScorecardRowCopied
+        ? "Blocked until scorecard row copy is reviewed"
       : leadingCategoryMetricStatus === "review_ready"
         ? "Ready for manual weekly scorecard sync"
         : "Outcome captured; metrics still need review-ready status";
@@ -6469,6 +6474,7 @@ const LocalServicesDispatchDemoPanel = ({
   const canRecordLeadingCategoryWeeklySync =
     Boolean(leadingCategoryOutcomeTargetRow) &&
     leadingCategoryFirstRequestOutcome !== "not_recorded" &&
+    leadingCategoryScorecardRowCopied &&
     leadingCategoryMetricStatus === "review_ready";
   const recordedLeadingCategoryWeekOneOwnerDecision =
     leadingCategoryFounderRows
@@ -6714,6 +6720,13 @@ const LocalServicesDispatchDemoPanel = ({
         : currentAccountScorecardRowCopied
           ? "Scorecard row copied"
           : "Ready for manual scorecard sync";
+  const currentAccountScorecardReviewGate = !pilotOpsTodayRow
+    ? "Blocked by account"
+    : !currentAccountOutcomeRecorded
+      ? "Waiting for outcome"
+      : currentAccountScorecardRowCopied
+        ? "Ready for batch review"
+        : "Blocked until scorecard row copy is reviewed";
   const currentAccountWeeklySyncGate =
     pilotOpsTodayRow?.serviceId === leadingCategoryActionLayer.serviceId
       ? leadingCategoryWeeklyScorecardSyncGate
@@ -6743,7 +6756,7 @@ const LocalServicesDispatchDemoPanel = ({
     },
     {
       label: "Batch review",
-      value: founderDecisionGate.verdictLabel,
+      value: currentAccountScorecardReviewGate,
     },
   ];
   const pilotOpsActionPathItems = [
@@ -6806,10 +6819,32 @@ const LocalServicesDispatchDemoPanel = ({
       tone: currentAccountHistoryEvents.length > 0 ? "ready" : "blocked",
     },
     {
+      label: "Scorecard gate",
+      state: currentAccountScorecardRowCopied
+        ? "Row copied"
+        : currentAccountOutcomeRecorded
+          ? "Copy row"
+          : "Waiting outcome",
+      detail: currentAccountScorecardRowCopied
+        ? "The private scorecard row is prepared before batch review."
+        : currentAccountOutcomeRecorded
+          ? "Copy the scorecard row before opening batch review for this account."
+          : "Record the first request outcome before the scorecard row can be copied.",
+      tone: currentAccountScorecardRowCopied ? "ready" : currentAccountOutcomeRecorded ? "active" : "blocked",
+    },
+    {
       label: "Continue gate",
-      state: founderDecisionGate.verdictLabel,
-      detail: "Open batch review before continue, pause, or stop.",
-      tone: founderDecisionGate.tone === "continue" ? "ready" : founderDecisionGate.tone === "stop" ? "blocked" : "active",
+      state: currentAccountScorecardRowCopied ? founderDecisionGate.verdictLabel : "Blocked by scorecard row",
+      detail: currentAccountScorecardRowCopied
+        ? "Open batch review before continue, pause, or stop."
+        : "Copy and review the current account scorecard row before batch review.",
+      tone: currentAccountScorecardRowCopied
+        ? founderDecisionGate.tone === "continue"
+          ? "ready"
+          : founderDecisionGate.tone === "stop"
+            ? "blocked"
+            : "active"
+        : "blocked",
     },
   ];
   const pilotOpsTodayHandoffText = [
@@ -6842,6 +6877,8 @@ const LocalServicesDispatchDemoPanel = ({
     `Scorecard sync preview status: ${currentAccountScorecardSyncStatus}`,
     `Scorecard row copied: ${currentAccountScorecardRowCopied ? "yes" : "no"}`,
     "Scorecard row state: scorecardRowCopiedByProspectKey",
+    `Scorecard review gate: ${currentAccountScorecardReviewGate}`,
+    "Scorecard row copy gate: scorecard_row_copy_required_for_batch_review",
     `Weekly scorecard sync gate: ${currentAccountWeeklySyncGate}`,
     "Current account mini-audit: local_services_current_account_mini_audit",
     "Pilot communication preview: local_services_pilot_communication_preview",
@@ -6880,6 +6917,8 @@ const LocalServicesDispatchDemoPanel = ({
     `Sync status: ${currentAccountScorecardSyncStatus}`,
     `Scorecard row copied: ${currentAccountScorecardRowCopied ? "yes" : "no"}`,
     "State field: scorecardRowCopiedByProspectKey",
+    `Scorecard review gate: ${currentAccountScorecardReviewGate}`,
+    "Gate marker: scorecard_row_copy_required_for_batch_review",
     `Current account: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "none"}`,
     `Service lane: ${pilotOpsTodayRow ? pilotOpsTodayRow.serviceTitle : "none"}`,
     `Status to copy: ${pilotOpsTodayRow ? pilotOpsTodayRow.statusLabel : "none"}`,
@@ -6953,6 +6992,8 @@ const LocalServicesDispatchDemoPanel = ({
     "Current account scorecard sync preview: local_services_current_account_scorecard_sync_preview",
     `Current account scorecard sync status: ${currentAccountScorecardSyncStatus}`,
     `Current account scorecard row copied: ${currentAccountScorecardRowCopied ? "yes" : "no"}`,
+    `Current account scorecard review gate: ${currentAccountScorecardReviewGate}`,
+    "Current account scorecard row gate: scorecard_row_copy_required_for_batch_review",
     "Current account mini-audit: local_services_current_account_mini_audit",
     "Pilot communication preview: local_services_pilot_communication_preview",
     `Current account mini-audit events: ${currentAccountMiniAuditSummary}`,
@@ -9072,6 +9113,9 @@ const LocalServicesDispatchDemoPanel = ({
                       <span className="inline-flex w-fit rounded-[5px] bg-card/45 px-2 py-1 text-[10px] text-muted-foreground">
                         {currentAccountScorecardSyncStatus}
                       </span>
+                      <span className="inline-flex w-fit rounded-[5px] bg-card/45 px-2 py-1 text-[10px] text-muted-foreground">
+                        {currentAccountScorecardReviewGate}
+                      </span>
                       <Button
                         size="sm"
                         variant={currentAccountOutcomeRecorded ? "default" : "secondary"}
@@ -9094,6 +9138,7 @@ const LocalServicesDispatchDemoPanel = ({
                       <Button
                         size="sm"
                         variant="secondary"
+                        disabled={!currentAccountScorecardRowCopied}
                         onClick={() => {
                           setFounderBatchReviewMode("human");
                           setFounderBatchReviewOpen(true);
@@ -9116,6 +9161,9 @@ const LocalServicesDispatchDemoPanel = ({
                   </div>
                   <div className="mt-2 rounded-[5px] bg-background/35 px-2 py-1.5 text-[11px] leading-relaxed text-muted-foreground">
                     Weekly scorecard sync gate: <span className="text-foreground">{currentAccountWeeklySyncGate}</span>
+                  </div>
+                  <div className="mt-2 rounded-[5px] bg-background/35 px-2 py-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                    Batch review gate: <span className="text-foreground">{currentAccountScorecardReviewGate}</span>
                   </div>
                 </div>
                 <div className="mt-3 rounded-md border border-border/50 bg-card/25 px-3 py-2.5">
@@ -9690,7 +9738,7 @@ const LocalServicesDispatchDemoPanel = ({
                             {leadingCategoryFirstRequestOutcomeLabel}
                           </span>
                         </div>
-                        <div className="mt-3 grid gap-2 text-[11px] lg:grid-cols-3">
+                        <div className="mt-3 grid gap-2 text-[11px] lg:grid-cols-4">
                           <div className="rounded-[5px] bg-background/35 px-2 py-1.5">
                             <span className="text-muted-foreground">Target</span>
                             <span className="ml-2 font-medium text-foreground">
@@ -9702,6 +9750,12 @@ const LocalServicesDispatchDemoPanel = ({
                           <div className="rounded-[5px] bg-background/35 px-2 py-1.5">
                             <span className="text-muted-foreground">Weekly scorecard sync gate</span>
                             <span className="ml-2 font-medium text-foreground">{leadingCategoryWeeklyScorecardSyncGate}</span>
+                          </div>
+                          <div className="rounded-[5px] bg-background/35 px-2 py-1.5">
+                            <span className="text-muted-foreground">Scorecard row copied</span>
+                            <span className="ml-2 font-medium text-foreground">
+                              {leadingCategoryScorecardRowCopied ? "Reviewed" : "Not reviewed"}
+                            </span>
                           </div>
                           <div className="rounded-[5px] bg-background/35 px-2 py-1.5">
                             <span className="text-muted-foreground">Weekly sync reviewed</span>
