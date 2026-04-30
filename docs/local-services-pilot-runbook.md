@@ -143,7 +143,10 @@ Do not use the pilot to build:
    `scorecardRowCopiedByProspectKey`, and
    `scorecard_row_copy_required_for_batch_review` are browser-local review
    proof only; batch review and weekly sync stay blocked until it is recorded.
-   Use
+   Use `Current account batch review handoff` /
+   `local_services_current_account_batch_review_handoff` and
+   `Copy batch handoff` to prepare the current account packet before opening
+   the first-contact batch review. Use
    `Pilot proof update rail` / `local_services_pilot_proof_update_rail` only
    after the real action happens outside the shell. Check `Current account
    mini-audit` / `local_services_current_account_mini_audit` before batch

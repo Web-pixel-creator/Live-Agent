@@ -6759,6 +6759,11 @@ const LocalServicesDispatchDemoPanel = ({
       value: currentAccountScorecardReviewGate,
     },
   ];
+  const currentAccountBatchReviewHandoffStatus = !pilotOpsTodayRow
+    ? "Blocked by account"
+    : !currentAccountScorecardRowCopied
+      ? "Blocked by scorecard row"
+      : "Ready for batch review handoff";
   const pilotOpsActionPathItems = [
     {
       label: "Account",
@@ -6880,6 +6885,8 @@ const LocalServicesDispatchDemoPanel = ({
     `Scorecard review gate: ${currentAccountScorecardReviewGate}`,
     "Scorecard row copy gate: scorecard_row_copy_required_for_batch_review",
     `Weekly scorecard sync gate: ${currentAccountWeeklySyncGate}`,
+    "Current account batch review handoff: local_services_current_account_batch_review_handoff",
+    `Batch review handoff status: ${currentAccountBatchReviewHandoffStatus}`,
     "Current account mini-audit: local_services_current_account_mini_audit",
     "Pilot communication preview: local_services_pilot_communication_preview",
     `Mini-audit events: ${currentAccountMiniAuditSummary}`,
@@ -6936,6 +6943,42 @@ const LocalServicesDispatchDemoPanel = ({
     `- next_manual_action: ${pilotOpsTodayAction}`,
     `- batch_review_gate: ${founderDecisionGate.verdictLabel}`,
     "Next: open local_services_first_contact_batch_review before any continue, pause, stop, CRM, or weekly scorecard decision.",
+  ].join("\n");
+  const currentAccountBatchReviewHandoffRows = [
+    {
+      label: "Handoff status",
+      value: currentAccountBatchReviewHandoffStatus,
+    },
+    {
+      label: "Batch review gate",
+      value: founderDecisionGate.verdictLabel,
+    },
+    {
+      label: "Decision action",
+      value: founderDecisionGate.action,
+    },
+    {
+      label: "Target lane",
+      value: founderDecisionGate.targetLane,
+    },
+  ];
+  const currentAccountBatchReviewHandoffText = [
+    "local_services_current_account_batch_review_handoff",
+    `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
+    "Manual-only batch review handoff. It does not mark batch review complete, write CRM, sync analytics, mutate Markdown docs, or approve continuation.",
+    `Handoff status: ${currentAccountBatchReviewHandoffStatus}`,
+    `Gate marker: scorecard_row_copy_required_for_batch_review`,
+    `Current account: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "none"}`,
+    `Service lane: ${pilotOpsTodayRow ? pilotOpsTodayRow.serviceTitle : "none"}`,
+    `Contact status: ${pilotOpsTodayRow ? pilotOpsTodayRow.statusLabel : "none"}`,
+    `First request outcome: ${currentAccountFirstRequestOutcomeLabel}`,
+    `Scorecard row copied: ${currentAccountScorecardRowCopied ? "yes" : "no"}`,
+    `Proof marker: ${pilotOpsTodayProof}`,
+    `Batch review gate: ${founderDecisionGate.verdictLabel}`,
+    `Founder decision action: ${founderDecisionGate.action}`,
+    `Target lane: ${founderDecisionGate.targetLane}`,
+    `Proof summary: ${founderDecisionGate.proofSummary}`,
+    "Next: open local_services_first_contact_batch_review and compare this handoff against the first 10 manual contacts before any continue, pause, stop, CRM, or weekly scorecard decision.",
   ].join("\n");
   const pilotOpsConfirmationExport = buildLocalServicePilotOpsConfirmationExport(
     pilotOpsTodayRow,
@@ -6994,6 +7037,8 @@ const LocalServicesDispatchDemoPanel = ({
     `Current account scorecard row copied: ${currentAccountScorecardRowCopied ? "yes" : "no"}`,
     `Current account scorecard review gate: ${currentAccountScorecardReviewGate}`,
     "Current account scorecard row gate: scorecard_row_copy_required_for_batch_review",
+    "Current account batch review handoff: local_services_current_account_batch_review_handoff",
+    `Current account batch review handoff status: ${currentAccountBatchReviewHandoffStatus}`,
     "Current account mini-audit: local_services_current_account_mini_audit",
     "Pilot communication preview: local_services_pilot_communication_preview",
     `Current account mini-audit events: ${currentAccountMiniAuditSummary}`,
@@ -9164,6 +9209,49 @@ const LocalServicesDispatchDemoPanel = ({
                   </div>
                   <div className="mt-2 rounded-[5px] bg-background/35 px-2 py-1.5 text-[11px] leading-relaxed text-muted-foreground">
                     Batch review gate: <span className="text-foreground">{currentAccountScorecardReviewGate}</span>
+                  </div>
+                  <div className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-2.5" aria-label="Current account batch review handoff">
+                    <div className="flex flex-col gap-2 xl:flex-row xl:items-start xl:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          <ClipboardCheck className="h-3.5 w-3.5" strokeWidth={1.8} />
+                          Current account batch review handoff
+                        </div>
+                        <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                          Copy this after the scorecard row is reviewed. It prepares the batch review packet without
+                          marking review complete or approving continuation.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex w-fit rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                          local_services_current_account_batch_review_handoff
+                        </span>
+                        <span className="inline-flex w-fit rounded-[5px] bg-card/45 px-2 py-1 text-[10px] text-muted-foreground">
+                          {currentAccountBatchReviewHandoffStatus}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant={currentAccountScorecardRowCopied ? "default" : "secondary"}
+                          disabled={!currentAccountScorecardRowCopied}
+                          onClick={() =>
+                            onCopyText(currentAccountBatchReviewHandoffText, "Current account batch review handoff copied")
+                          }
+                          className="h-7"
+                        >
+                          Copy batch handoff
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                      {currentAccountBatchReviewHandoffRows.map((item) => (
+                        <div key={item.label} className="rounded-[5px] border border-border/50 bg-card/25 px-2 py-2 text-[11px]">
+                          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                            {item.label}
+                          </div>
+                          <p className="mt-1.5 leading-relaxed text-foreground">{item.value}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 <div className="mt-3 rounded-md border border-border/50 bg-card/25 px-3 py-2.5">

@@ -52,6 +52,9 @@ review or weekly sync. `Scorecard row copied`, `Reset scorecard row review`,
 `scorecardRowCopiedByProspectKey`, and
 `scorecard_row_copy_required_for_batch_review` keep that copy review
 browser-local and block batch review / weekly sync until it is recorded.
+`Current account batch review handoff` /
+`local_services_current_account_batch_review_handoff` and `Copy batch handoff`
+prepare the current account packet without marking batch review complete.
 `Pilot proof update rail` /
 `local_services_pilot_proof_update_rail` is the browser-local shortcut for the
 current account after the real manual action happens. `Current account
