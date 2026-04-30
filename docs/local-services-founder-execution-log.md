@@ -42,6 +42,9 @@ blocked until the packet was copied.
 `Current account action path` /
 `local_services_current_account_action_path` keeps the account -> preview ->
 manual contact -> proof -> continue gate order visible before proof is marked.
+`Current account outcome capture` /
+`local_services_current_account_outcome_capture` records only
+`firstRequestOutcomeByProspectKey` after manual contact.
 `Pilot proof update rail` /
 `local_services_pilot_proof_update_rail` is the browser-local shortcut for the
 current account after the real manual action happens. `Current account

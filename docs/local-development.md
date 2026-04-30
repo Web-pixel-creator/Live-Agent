@@ -141,6 +141,9 @@ contact batch review drawer`, `Copy batch review`, `Copy founder workspace`,
 `Copy contact packet`, `Packet copied`, `Reset packet review`,
 `contactPacketCopiedByProspectKey`, `Packet needed`,
 `Current account action path`, `local_services_current_account_action_path`,
+`Current account outcome capture`,
+`local_services_current_account_outcome_capture`,
+`firstRequestOutcomeByProspectKey`,
 `Pilot proof update rail`, and
 `local_services_pilot_proof_update_rail`, `Current account mini-audit`, and
 `local_services_current_account_mini_audit`, plus `Open account history` /

@@ -6667,6 +6667,36 @@ const LocalServicesDispatchDemoPanel = ({
       value: `Update ${pilotOpsTodayProof} in the proof rail.`,
     },
   ];
+  const currentAccountFirstRequestOutcome = pilotOpsTodayRow
+    ? pilotWorkspaceState.firstRequestOutcomeByProspectKey[pilotOpsTodayRow.key] ?? "not_recorded"
+    : "not_recorded";
+  const currentAccountFirstRequestOutcomeLabel =
+    LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_LABELS[currentAccountFirstRequestOutcome];
+  const currentAccountOutcomeCaptureStatus = !pilotOpsTodayRow
+    ? "Blocked by account"
+    : !pilotOpsTodayRow.manualMessageSent
+      ? "Waiting for manual contact"
+      : currentAccountFirstRequestOutcome === "not_recorded"
+        ? "Outcome needed"
+        : "Outcome recorded";
+  const currentAccountOutcomeRows = [
+    {
+      label: "Manual contact",
+      value: pilotOpsTodayRow?.manualMessageSent ? "Logged" : "Waiting",
+    },
+    {
+      label: "First request outcome",
+      value: currentAccountFirstRequestOutcomeLabel,
+    },
+    {
+      label: "Discovery call",
+      value: pilotOpsTodayRow?.discoveryCallCompleted ? "Recorded" : "Not recorded",
+    },
+    {
+      label: "Pilot candidate",
+      value: pilotOpsTodayRow?.pilotCandidate ? "Recorded" : "Not recorded",
+    },
+  ];
   const pilotOpsActionPathItems = [
     {
       label: "Account",
@@ -6755,6 +6785,10 @@ const LocalServicesDispatchDemoPanel = ({
     `Next manual action: ${pilotOpsTodayAction}`,
     `Proof to capture: ${pilotOpsTodayProof}`,
     "Proof update rail: local_services_pilot_proof_update_rail",
+    "Current account outcome capture: local_services_current_account_outcome_capture",
+    `Outcome capture status: ${currentAccountOutcomeCaptureStatus}`,
+    `First request outcome: ${currentAccountFirstRequestOutcomeLabel}`,
+    "Outcome state: firstRequestOutcomeByProspectKey",
     "Current account mini-audit: local_services_current_account_mini_audit",
     "Pilot communication preview: local_services_pilot_communication_preview",
     `Mini-audit events: ${currentAccountMiniAuditSummary}`,
@@ -6778,6 +6812,8 @@ const LocalServicesDispatchDemoPanel = ({
     `Scorecard focus: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.scorecardFocus : "none"}`,
     `Next manual action: ${pilotOpsTodayAction}`,
     `Proof marker after real contact: ${pilotOpsTodayProof}`,
+    `Outcome capture after manual contact: ${currentAccountOutcomeCaptureStatus}`,
+    `First request outcome: ${currentAccountFirstRequestOutcomeLabel}`,
     "Use the approved phone, Telegram, or WhatsApp draft from local_services_pilot_communication_preview.",
     "After the real manual contact, update local_services_pilot_proof_update_rail and then review local_services_account_history_drawer.",
   ].join("\n");
@@ -8843,6 +8879,67 @@ const LocalServicesDispatchDemoPanel = ({
                       <span className="ml-1.5 text-[10px] opacity-75">{action.stateLabel}</span>
                     </Button>
                   ))}
+                </div>
+                <div className="mt-3 rounded-md border border-border/50 bg-card/25 px-3 py-2.5" aria-label="Current account outcome capture">
+                  <div className="flex flex-col gap-2 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                        <ClipboardCheck className="h-3.5 w-3.5" strokeWidth={1.8} />
+                        Current account outcome capture
+                      </div>
+                      <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                        Records only `firstRequestOutcomeByProspectKey` for this account after the real manual contact.
+                        It does not send a follow-up, book a call, write CRM, or change the Markdown scorecard.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex w-fit rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                        local_services_current_account_outcome_capture
+                      </span>
+                      <span className="inline-flex w-fit rounded-[5px] bg-card/45 px-2 py-1 text-[10px] text-muted-foreground">
+                        {currentAccountOutcomeCaptureStatus}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                    {currentAccountOutcomeRows.map((item) => (
+                      <div key={item.label} className="rounded-[5px] border border-border/50 bg-background/35 px-2 py-2 text-[11px]">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          {item.label}
+                        </div>
+                        <p className="mt-1.5 leading-relaxed text-foreground">{item.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_ACTIONS.map((action) => (
+                      <Button
+                        key={action.outcome}
+                        size="sm"
+                        variant={currentAccountFirstRequestOutcome === action.outcome ? "default" : "secondary"}
+                        disabled={!pilotOpsTodayRow || !pilotOpsTodayRow.manualMessageSent}
+                        onClick={() => {
+                          if (!pilotOpsTodayRow) return;
+                          updateFirstRequestOutcomeForTarget(pilotOpsTodayRow, action.outcome);
+                        }}
+                        className="h-7"
+                      >
+                        {action.label}
+                      </Button>
+                    ))}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={!pilotOpsTodayRow || !pilotOpsTodayRow.manualMessageSent}
+                      onClick={() => {
+                        if (!pilotOpsTodayRow) return;
+                        updateFirstRequestOutcomeForTarget(pilotOpsTodayRow, "not_recorded");
+                      }}
+                      className="h-7"
+                    >
+                      Reset current outcome
+                    </Button>
+                  </div>
                 </div>
                 <div className="mt-3 rounded-md border border-border/50 bg-card/25 px-3 py-2.5">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

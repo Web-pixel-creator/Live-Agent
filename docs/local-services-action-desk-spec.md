@@ -785,7 +785,10 @@ a copyable manual-only handoff after prep is complete and keep manual-send proof
 blocked until the packet is copied;
 `Current account action path` and `local_services_current_account_action_path`
 make the account -> preview -> manual contact -> proof -> continue gate order
-visible before the operator touches the proof controls;
+visible before the operator touches the proof controls; `Current account outcome
+capture`, `local_services_current_account_outcome_capture`, and
+`firstRequestOutcomeByProspectKey` record the first-request result for the
+current account after manual contact without sending follow-up or writing CRM;
 `Pilot proof update rail` and `local_services_pilot_proof_update_rail` make the
 next browser-local proof marker update explicit after the real manual action;
 `Current account mini-audit` and `local_services_current_account_mini_audit`
@@ -1059,7 +1062,10 @@ Current shell readiness for P3:
    `Copy contact packet`, `Packet copied`, `Reset packet review`,
    `contactPacketCopiedByProspectKey`, `Packet needed`,
    `Current account action path`,
-   `local_services_current_account_action_path`, `Pilot proof update rail`, and
+   `local_services_current_account_action_path`,
+   `Current account outcome capture`,
+   `local_services_current_account_outcome_capture`,
+   `firstRequestOutcomeByProspectKey`, `Pilot proof update rail`, and
    `local_services_pilot_proof_update_rail`, `Current account mini-audit`, and
    `local_services_current_account_mini_audit`, plus `Open account history`
    and `local_services_account_history_drawer`, are visible as the one-account

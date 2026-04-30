@@ -133,6 +133,9 @@ Do not use the pilot to build:
    Check `Current account action path`
    / `local_services_current_account_action_path` to keep the account ->
    preview -> manual contact -> proof -> continue gate order visible. Use
+   `Current account outcome capture` /
+   `local_services_current_account_outcome_capture` to update only
+   `firstRequestOutcomeByProspectKey` after the manual contact. Use
    `Pilot proof update rail` / `local_services_pilot_proof_update_rail` only
    after the real action happens outside the shell. Check `Current account
    mini-audit` / `local_services_current_account_mini_audit` before batch
