@@ -598,6 +598,7 @@ type LocalServicePilotActivityEvent = {
 
 type LocalServicePilotWorkspaceState = {
   selectedProspectByService: Record<string, string>;
+  currentOpsAccountKey: string;
   statusByProspectKey: Record<string, LocalServicePilotStatus>;
   firstRequestOutcomeByProspectKey: Record<string, LocalServiceFirstRequestOutcome>;
   weekOneOwnerDecisionByProspectKey: Record<string, LocalServiceWeekOneOwnerDecision>;
@@ -1142,6 +1143,7 @@ function appendLocalServicePilotActivity(
 function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState {
   const emptyState: LocalServicePilotWorkspaceState = {
     selectedProspectByService: {},
+    currentOpsAccountKey: "",
     statusByProspectKey: {},
     firstRequestOutcomeByProspectKey: {},
     weekOneOwnerDecisionByProspectKey: {},
@@ -1167,6 +1169,8 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     return {
       selectedProspectByService: readStringRecord(parsed.selectedProspectByService),
+      currentOpsAccountKey:
+        typeof parsed.currentOpsAccountKey === "string" ? parsed.currentOpsAccountKey : "",
       statusByProspectKey: readPilotStatusRecord(parsed.statusByProspectKey),
       firstRequestOutcomeByProspectKey: readFirstRequestOutcomeRecord(
         parsed.firstRequestOutcomeByProspectKey,
@@ -6528,7 +6532,7 @@ const LocalServicesDispatchDemoPanel = ({
     () => buildLocalServiceFounderDecisionGate(founderContactRows, founderContactCounts),
     [founderContactCounts, founderContactRows],
   );
-  const pilotOpsTodayRow =
+  const autoPilotOpsTodayRow =
     founderContactRows.find((row) => !row.channelChecked) ??
     founderContactRows.find((row) => !row.manualMessageSent) ??
     founderContactRows.find((row) => row.status !== "reply_received" && row.status !== "rejected_for_now") ??
@@ -6536,6 +6540,11 @@ const LocalServicesDispatchDemoPanel = ({
     founderContactRows.find((row) => !row.demoBooked) ??
     founderContactRows.find((row) => !row.pilotCandidate) ??
     founderContactRows[0];
+  const manuallySelectedPilotOpsRow = founderContactRows.find(
+    (row) => row.key === pilotWorkspaceState.currentOpsAccountKey,
+  );
+  const pilotOpsTodayRow = manuallySelectedPilotOpsRow ?? autoPilotOpsTodayRow;
+  const pilotOpsAccountPickerMode = manuallySelectedPilotOpsRow ? "Manual account selection" : "Auto next account";
   const pilotOpsTodayAction = !pilotOpsTodayRow
     ? "No target loaded. Open the outreach list before running the pilot."
     : !pilotOpsTodayRow.channelChecked
@@ -6620,6 +6629,8 @@ const LocalServicesDispatchDemoPanel = ({
     "local_services_pilot_ops_today",
     `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
     "Manual execution view. No outbound send, CRM write, booking, billing, analytics sync, or Markdown mutation.",
+    "Current account picker: local_services_current_account_picker",
+    `Picker mode: ${pilotOpsAccountPickerMode}`,
     "Current account action path: local_services_current_account_action_path",
     `Current account: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "none"}`,
     `Service lane: ${pilotOpsTodayRow ? pilotOpsTodayRow.serviceTitle : "none"}`,
@@ -8413,6 +8424,68 @@ const LocalServicesDispatchDemoPanel = ({
                     {pilotOpsTodayRow ? pilotOpsTodayRow.prospect.nextStep : "Load a target from the outreach list."}
                   </span>
                 </div>
+              </div>
+              <div
+                className="mt-3 rounded-md border border-border/50 bg-background/30 px-3 py-2.5"
+                aria-label="Current account picker"
+              >
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    <Search className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    Current account picker
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex w-fit rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                      local_services_current_account_picker
+                    </span>
+                    <span className="inline-flex w-fit rounded-[5px] bg-card/45 px-2 py-1 text-[10px] text-muted-foreground">
+                      {pilotOpsAccountPickerMode}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant={manuallySelectedPilotOpsRow ? "secondary" : "default"}
+                      onClick={() =>
+                        setPilotWorkspaceState((prev) => ({
+                          ...prev,
+                          currentOpsAccountKey: "",
+                        }))
+                      }
+                      className="h-7"
+                    >
+                      Auto next account
+                    </Button>
+                  </div>
+                </div>
+                <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-5">
+                  {founderContactRows.map((row) => {
+                    const isSelected = pilotOpsTodayRow?.key === row.key;
+                    return (
+                      <Button
+                        key={row.key}
+                        size="sm"
+                        variant={isSelected ? "default" : "secondary"}
+                        onClick={() =>
+                          setPilotWorkspaceState((prev) => ({
+                            ...prev,
+                            currentOpsAccountKey: row.key,
+                          }))
+                        }
+                        className="h-auto min-h-11 justify-start px-2 py-2 text-left"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-[11px] font-semibold">{row.prospect.company}</span>
+                          <span className="mt-0.5 block truncate text-[10px] opacity-75">
+                            {isSelected ? "Selected account" : "Select account"} / {row.proofStatus}
+                          </span>
+                        </span>
+                      </Button>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                  Picker is browser-local only. It changes which account the preview, proof rail, and history drawer
+                  inspect; it does not send, call, book, write CRM, sync analytics, bill, or mutate docs.
+                </p>
               </div>
               <div
                 className="mt-3 rounded-md border border-border/50 bg-background/30 px-3 py-2.5"

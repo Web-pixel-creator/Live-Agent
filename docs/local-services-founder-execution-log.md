@@ -23,7 +23,10 @@ opens `local_services_pilot_ops_confirmation` before any proof marker is used
 for a continue/stop decision. `Open communication preview` /
 `local_services_pilot_communication_preview` shows the phone script, Telegram
 draft, WhatsApp-style draft, and approval gate before the operator contacts the
-account manually. `Current account action path` /
+account manually. `Current account picker` /
+`local_services_current_account_picker` lets the operator override the
+auto-selected current account in browser-local state only; `Auto next account`
+restores the default queue. `Current account action path` /
 `local_services_current_account_action_path` keeps the account -> preview ->
 manual contact -> proof -> continue gate order visible before proof is marked.
 `Pilot proof update rail` /

@@ -113,7 +113,10 @@ Do not use the pilot to build:
    that proof marker is used for a continue, revise, or stop decision. Use
    `Open communication preview` / `local_services_pilot_communication_preview`
    to review the phone script, Telegram draft, WhatsApp-style draft, and
-   approval gate before any manual contact. Check `Current account action path`
+   approval gate before any manual contact. Use `Current account picker` /
+   `local_services_current_account_picker` when the operator needs to override
+   the auto-selected account; `Auto next account` returns to the default queue.
+   Check `Current account action path`
    / `local_services_current_account_action_path` to keep the account ->
    preview -> manual contact -> proof -> continue gate order visible. Use
    `Pilot proof update rail` / `local_services_pilot_proof_update_rail` only

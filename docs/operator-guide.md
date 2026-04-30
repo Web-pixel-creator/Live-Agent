@@ -232,15 +232,17 @@ browser-local proof buttons for channel check, manual send, discovery call,
 demo booking, and pilot candidate. `Pilot ops today`, `Copy pilot ops handoff`,
 `Open ops confirmation`, `Open communication preview`,
 `local_services_pilot_ops_today`, `local_services_pilot_ops_confirmation`,
-`local_services_pilot_communication_preview`, `Current account action path`,
-`local_services_current_account_action_path`, `Pilot proof update rail`, and
+`local_services_pilot_communication_preview`, `Current account picker`,
+`local_services_current_account_picker`, `Auto next account`, `Select account`,
+`Current account action path`, `local_services_current_account_action_path`,
+`Pilot proof update rail`, and
 `local_services_pilot_proof_update_rail`, `Current account mini-audit`, and
 `local_services_current_account_mini_audit`, plus `Open account history` /
 `local_services_account_history_drawer` reduce the live pilot run to one
-current account, one next manual action, phone/Telegram/WhatsApp preview, the
-account -> preview -> manual contact -> proof -> continue gate path, latest
-account-local proof events, and one browser-local proof marker to capture
-afterward. It
+current account, one next manual action, browser-local account override,
+phone/Telegram/WhatsApp preview, the account -> preview -> manual contact ->
+proof -> continue gate path, latest account-local proof events, and one
+browser-local proof marker to capture afterward. It
 is still manual-only and must not be
 treated as proof of external delivery. `Category pilot score`,
 `Leading category`, and `No category expansion without proof` rank AC,

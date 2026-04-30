@@ -231,14 +231,16 @@ and `Copy founder workspace`. It now adds `Pilot ops today`,
 `Open communication preview`, `local_services_pilot_ops_today`,
 `local_services_pilot_ops_confirmation`,
 `local_services_pilot_communication_preview`,
+`Current account picker`, `local_services_current_account_picker`,
+`Auto next account`, `Select account`,
 `Current account action path`, `local_services_current_account_action_path`,
 `Pilot proof update rail`, `local_services_pilot_proof_update_rail`,
 `Current account mini-audit`, `local_services_current_account_mini_audit`,
 `Open account history`, and `local_services_account_history_drawer` so the live
 manual pilot has one current account, one next manual action,
-phone/Telegram/WhatsApp preview, an account -> preview -> manual contact ->
-proof -> continue gate path, latest account-local proof events, and one
-browser-local proof marker to update after the real action. It now adds `Category pilot score`,
+browser-local account override, phone/Telegram/WhatsApp preview, an account ->
+preview -> manual contact -> proof -> continue gate path, latest account-local
+proof events, and one browser-local proof marker to update after the real action. It now adds `Category pilot score`,
 `Leading category`, and `No category expansion without proof` so AC, plumbing,
 cleaning, and measurement are ranked from observed proof. `Leading category
 action layer` converts that rank into `Next manual batch`, `Discovery
