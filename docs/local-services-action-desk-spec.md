@@ -367,6 +367,22 @@ The top chrome should also read `AI Dispatcher` and keep runtime/SLA/device
 alerts, the visa demo button, case filters, case search, and `New case` out of
 the local-services first scan.
 
+### Product view contract
+
+The product sidebar must open concrete local-services panels, not dead
+navigation labels:
+
+1. `view=requests` -> `Requests inbox`.
+2. `view=schedule` -> `Schedule / Dispatch board`.
+3. `view=customers` -> `Customer directory`.
+4. `view=setup` / `setup=7min&view=setup` -> `Knowledge setup state`.
+5. `view=reviews` -> `Review queue`.
+
+All five views are browser-local posture changes over the same source data,
+payload previews, setup state, evidence drawers, and review drawers. They must
+not send messages, create bookings, dispatch a master, collect payment, write
+CRM, activate phone/Telegram/WhatsApp, or mutate Markdown docs.
+
 ### Minute 1-3: Intake
 
 Show a simulated customer request:

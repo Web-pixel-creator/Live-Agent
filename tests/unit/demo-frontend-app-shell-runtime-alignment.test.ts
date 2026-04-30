@@ -494,6 +494,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /const localServicesRecordingMode = localServicesDispatchDemo && searchParams\.get\("recording"\) === "90s";/);
   assert.match(liveDesk, /const localServicesSetupWizardMode = localServicesDispatchDemo && searchParams\.get\("setup"\) === "7min";/);
   assert.match(liveDesk, /const activeLocalServiceId = searchParams\.get\("service"\);/);
+  assert.match(liveDesk, /type LocalServiceProductView = "dispatcher" \| "requests" \| "schedule" \| "customers" \| "setup" \| "reviews";/);
+  assert.match(liveDesk, /const resolveLocalServiceProductView = \(/);
+  assert.match(liveDesk, /const activeLocalServiceView = resolveLocalServiceProductView\(/);
   assert.match(liveDesk, /const openVisaIntakeDemo = \(\) => \{/);
   assert.match(liveDesk, /const openLocalServicesDispatchDemo = \(\) => \{/);
   assert.match(liveDesk, /const openLocalServicesRecordingMode = \(\) => \{/);
@@ -504,8 +507,16 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /next\.set\("service", "ac-repair-dispatch"\);/);
   assert.match(liveDesk, /next\.set\("recording", "90s"\);/);
   assert.match(liveDesk, /next\.set\("setup", "7min"\);/);
+  assert.match(liveDesk, /next\.set\("view", "setup"\);/);
   assert.match(liveDesk, /const SevenMinuteVisaIntakePanel = \(\{/);
   assert.match(liveDesk, /const LocalServicesDispatchDemoPanel = \(\{/);
+  assert.match(liveDesk, /activeView: LocalServiceProductView;/);
+  assert.match(liveDesk, /activeView=\{activeLocalServiceView\}/);
+  assert.match(liveDesk, /Requests inbox/);
+  assert.match(liveDesk, /Schedule \/ Dispatch board/);
+  assert.match(liveDesk, /Customer directory/);
+  assert.match(liveDesk, /Knowledge setup state/);
+  assert.match(liveDesk, /Review queue/);
   assert.match(liveDesk, /recordingMode: boolean;/);
   assert.match(liveDesk, /recordingMode=\{localServicesRecordingMode\}/);
   assert.match(liveDesk, /90s recording/);
@@ -1172,6 +1183,13 @@ test("live desk exposes the seven-minute visa intake product path", () => {
 
   assert.match(readme, /Seven-minute product path:/);
   assert.match(readme, /\/app\?demo=local-services-dispatch&service=ac-repair-dispatch/);
+  assert.match(readme, /Product view states:/);
+  assert.match(readme, /view=requests/);
+  assert.match(readme, /Requests inbox/);
+  assert.match(readme, /Schedule \/ Dispatch board/);
+  assert.match(readme, /Customer directory/);
+  assert.match(readme, /Knowledge setup state/);
+  assert.match(readme, /Review queue/);
   assert.match(readme, /AI Dispatcher for local service businesses/);
   assert.match(readme, /AC repair dispatch/);
   assert.match(readme, /Plumbing emergency/);
@@ -1487,6 +1505,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /docs\/evidence-and-trust\.md/);
   assert.match(localDevelopment, /replay, signing, release evidence/);
   assert.match(localDevelopment, /\/app\?demo=local-services-dispatch&service=ac-repair-dispatch/);
+  assert.match(localDevelopment, /local-services product view states/);
+  assert.match(localDevelopment, /view=schedule/);
+  assert.match(localDevelopment, /view=customers/);
+  assert.match(localDevelopment, /view=reviews/);
   assert.match(localDevelopment, /AI Dispatcher for Local Services/);
   assert.match(localDevelopment, /Measurement visit booking/);
   assert.match(localDevelopment, /measurement lane is construction-adjacent P0/);
@@ -1795,6 +1817,12 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /replay, signing,\s+release evidence/);
   assert.match(operatorGuide, /Local-services demo note:/);
   assert.match(operatorGuide, /\/app\?demo=local-services-dispatch&service=ac-repair-dispatch/);
+  assert.match(operatorGuide, /Product view states/);
+  assert.match(operatorGuide, /Requests inbox/);
+  assert.match(operatorGuide, /Schedule \/ Dispatch board/);
+  assert.match(operatorGuide, /Customer directory/);
+  assert.match(operatorGuide, /Knowledge setup state/);
+  assert.match(operatorGuide, /Review queue/);
   assert.match(operatorGuide, /AI Dispatcher\s+for Local Services/);
   assert.match(operatorGuide, /Start 7-minute\s+demo/);
   assert.match(operatorGuide, /Open dispatch drawer/);
@@ -3001,6 +3029,12 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /Actual external execution still remains outside the shell/);
   assert.match(localServicesSpec, /same approval-gated job-card payload/);
   assert.match(localServicesSpec, /operator-approved action/);
+  assert.match(localServicesSpec, /Product view contract/);
+  assert.match(localServicesSpec, /`view=requests`/);
+  assert.match(localServicesSpec, /`view=schedule`/);
+  assert.match(localServicesSpec, /`view=customers`/);
+  assert.match(localServicesSpec, /`view=setup`/);
+  assert.match(localServicesSpec, /`view=reviews`/);
 
   assert.match(pilotOffer, /# Local Services Pilot Offer/);
   assert.match(pilotOffer, /AI Dispatcher for Local Services/);
@@ -3753,6 +3787,12 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesDeveloperMap, /# Local Services Developer Map/);
   assert.match(localServicesDeveloperMap, /AI Dispatcher for local service businesses/);
   assert.match(localServicesDeveloperMap, /Product-Mode Sidebar/);
+  assert.match(localServicesDeveloperMap, /Product View Routes/);
+  assert.match(localServicesDeveloperMap, /`view=requests`/);
+  assert.match(localServicesDeveloperMap, /`view=schedule`/);
+  assert.match(localServicesDeveloperMap, /`view=customers`/);
+  assert.match(localServicesDeveloperMap, /`view=setup`/);
+  assert.match(localServicesDeveloperMap, /`view=reviews`/);
   assert.match(localServicesDeveloperMap, /Service workspace/);
   assert.match(localServicesDeveloperMap, /Schedule \/ Dispatch/);
   assert.match(localServicesDeveloperMap, /Advanced \/ Runtime/);

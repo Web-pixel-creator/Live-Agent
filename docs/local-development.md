@@ -53,6 +53,13 @@ The same route switches the top chrome from `Live Desk` to `AI Dispatcher`,
 hides runtime/SLA/device alerts from the first scan, and removes the old visa
 demo button, case filters, case search, and `New case` action from the
 local-services header.
+3.1b. The local-services product view states are now query-backed:
+`view=requests` opens `Requests inbox`, `view=schedule` opens
+`Schedule / Dispatch board`, `view=customers` opens `Customer directory`,
+`setup=7min&view=setup` opens `Knowledge setup state`, and `view=reviews`
+opens `Review queue`. They are browser-local, view-only panels over the same
+operator-approved dispatch payloads, setup state, evidence drawers, and review
+drawers; they do not send, book, dispatch, or write CRM.
 3.2. The same local-services route now includes view-only pilot list controls:
 `Outreach list filters`, `Column settings`, `Service filter`, `Status filter`,
 `Filtered candidates`, `Filtered outreach list`, `All services`,

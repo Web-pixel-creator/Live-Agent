@@ -83,6 +83,12 @@ Local-services expansion spec:
   quieter `Advanced / Runtime` group. Runtime/judge pages stay reachable, but
   `VIP cases`, `Judge artifacts`, `Presentation Bundle`, and visa case refs do
   not occupy the first scan for this wedge.
+- Product view states: `view=requests` opens `Requests inbox`,
+  `view=schedule` opens `Schedule / Dispatch board`, `view=customers` opens
+  `Customer directory`, `setup=7min&view=setup` opens `Knowledge setup state`,
+  and `view=reviews` opens `Review queue`. These states are view-only product
+  panels layered over the same operator-approved payload, evidence, setup, and
+  review drawers; they do not send, book, dispatch, or write CRM.
 - the same route switches the top chrome and first heading to `AI Dispatcher`
   and hides the old runtime alerts, visa demo button, case filters, case search,
   and `New case` action from the local-services header.

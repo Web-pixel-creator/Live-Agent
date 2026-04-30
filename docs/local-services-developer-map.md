@@ -83,6 +83,25 @@ runtime/live badge, degraded-node alert, SLA-burning strip, visa demo button,
 case filters, case search, and `New case` action from the first scan. Those
 controls remain available in the normal `Live Desk` route.
 
+## Product View Routes
+
+`LiveDesk.tsx` resolves `view=` through `resolveLocalServiceProductView` and
+passes the result into `LocalServicesDispatchDemoPanel` as
+`activeView: LocalServiceProductView`.
+
+Current product view contract:
+
+1. `view=requests` opens `Requests inbox`.
+2. `view=schedule` opens `Schedule / Dispatch board`.
+3. `view=customers` opens `Customer directory`.
+4. `view=setup` / `setup=7min&view=setup` opens `Knowledge setup state`.
+5. `view=reviews` opens `Review queue`.
+
+These views are safe product navigation states. They only change the visible
+operator panel over the existing local-services demo data and browser-local
+state. They must not send, book, dispatch, bill, write CRM, activate a channel,
+or mutate the Markdown docs.
+
 ## Main Source Files
 
 UI implementation:

@@ -66,6 +66,12 @@ handoff, keeps the `Dispatch payload preview` behind review, and exposes
 operator-approved `Human-readable` / `JSON` exports. The same detail panel now
 shows `Telegram intake prototype`, so a message-based customer request is
 normalized into the same job-card payload instead of creating a second workflow.
+Product view states are available from the same sidebar: `Requests inbox`,
+`Schedule / Dispatch board`, `Customer directory`, `Knowledge setup state`, and
+`Review queue`. They are query-backed (`view=requests`, `view=schedule`,
+`view=customers`, `setup=7min&view=setup`, `view=reviews`) and are safe for demo
+navigation because they only change the visible panel; they do not trigger a
+send, booking, dispatch, payment, CRM write, or channel activation.
 It now also exposes `Open intake evidence` and `Transcript + evidence`, which
 opens a `Saved intake evidence` drawer with `Intake transcript + evidence link`,
 `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,

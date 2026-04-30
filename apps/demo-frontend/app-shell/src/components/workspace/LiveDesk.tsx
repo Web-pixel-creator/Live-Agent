@@ -385,6 +385,26 @@ type PlaybookPayloadPreview = {
 
 type PlaybookExportMode = "human" | "json";
 type LocalServiceExportKind = "dispatch" | "customer" | "handoff";
+type LocalServiceProductView = "dispatcher" | "requests" | "schedule" | "customers" | "setup" | "reviews";
+
+const LOCAL_SERVICE_PRODUCT_VIEWS: LocalServiceProductView[] = [
+  "dispatcher",
+  "requests",
+  "schedule",
+  "customers",
+  "setup",
+  "reviews",
+];
+
+const resolveLocalServiceProductView = (
+  value: string | null,
+  setupWizardMode: boolean,
+): LocalServiceProductView => {
+  if (setupWizardMode) return "setup";
+  return LOCAL_SERVICE_PRODUCT_VIEWS.includes(value as LocalServiceProductView)
+    ? (value as LocalServiceProductView)
+    : "dispatcher";
+};
 
 type PlaybookOperatorExport = {
   title: string;
@@ -6271,6 +6291,7 @@ const LOCAL_SERVICE_DEMO_TEMPLATES: LocalServiceDemoTemplate[] = [
 
 const LocalServicesDispatchDemoPanel = ({
   activeServiceId,
+  activeView,
   recordingMode,
   setupWizardMode,
   onSelectService,
@@ -6282,6 +6303,7 @@ const LocalServicesDispatchDemoPanel = ({
   onOpenSetupWizard,
 }: {
   activeServiceId: string | null;
+  activeView: LocalServiceProductView;
   recordingMode: boolean;
   setupWizardMode: boolean;
   onSelectService: (id: string) => void;
@@ -7672,6 +7694,89 @@ const LocalServicesDispatchDemoPanel = ({
     },
   ];
   const hidePilotPlanning = recordingMode || setupWizardMode;
+  const localServiceHighlightValue = (template: LocalServiceDemoTemplate, label: string) =>
+    template.highlights.find((highlight) => highlight.label === label)?.value ?? "Operator review";
+  const selectedOutcome = localServiceHighlightValue(selectedTemplate, "Outcome");
+  const selectedApproval = localServiceHighlightValue(selectedTemplate, "Approval");
+  const selectedEvidence = localServiceHighlightValue(selectedTemplate, "Evidence");
+  const selectedDeliverable = localServiceHighlightValue(selectedTemplate, "Deliverable");
+  const selectedScheduleWindow =
+    [
+      selectedTemplate.payload.preferred_date,
+      selectedTemplate.payload.preferred_time,
+      selectedTemplate.payload.preferred_slot,
+      selectedTemplate.payload.preferred_window,
+    ]
+      .filter(Boolean)
+      .map((value) => formatPayloadValue(value))
+      .join(" / ") || "operator review";
+  const selectedCustomerRows = [
+    ["Customer", formatPayloadValue(selectedTemplate.payload.customer_name ?? "Unknown")],
+    ["Phone", formatPayloadValue(selectedTemplate.payload.phone ?? "Collected by assistant")],
+    ["District", formatPayloadValue(selectedTemplate.payload.district ?? "Needs confirmation")],
+    ["Service", selectedTemplate.title],
+    ["Channel", selectedTemplate.channel],
+    ["Approval", selectedApproval],
+  ];
+  const activeProductViewMeta: Record<
+    LocalServiceProductView,
+    {
+      title: string;
+      kicker: string;
+      description: string;
+      Icon: typeof ClipboardCheck;
+      tone: "violet" | "rose" | "amber" | "mint" | "slate";
+    }
+  > = {
+    dispatcher: {
+      title: "Dispatcher workspace",
+      kicker: "dispatcher",
+      description: "Default local-services workspace with service lanes, intake proof, and operator handoff drawers.",
+      Icon: BriefcaseBusiness,
+      tone: "violet",
+    },
+    requests: {
+      title: "Requests inbox",
+      kicker: "requests",
+      description:
+        "Inbound phone and Telegram requests grouped by lane before any booking, pricing, or master dispatch happens.",
+      Icon: Inbox,
+      tone: "amber",
+    },
+    schedule: {
+      title: "Schedule / Dispatch board",
+      kicker: "schedule / dispatch",
+      description:
+        "Operator-approved visit windows, dispatch owners, and handoff status for the current local service lanes.",
+      Icon: CalendarCheck,
+      tone: "mint",
+    },
+    customers: {
+      title: "Customer directory",
+      kicker: "customers",
+      description:
+        "The customer-facing confirmation state and contact fields that the assistant prepared from the intake.",
+      Icon: User,
+      tone: "slate",
+    },
+    setup: {
+      title: "Knowledge setup state",
+      kicker: "knowledge & setup",
+      description:
+        "Browser-local setup, dry-run, and launch-readiness checks before any real phone, Telegram, or CRM channel is connected.",
+      Icon: UserRoundCog,
+      tone: "violet",
+    },
+    reviews: {
+      title: "Review queue",
+      kicker: "reviews",
+      description:
+        "Founder/operator review of outreach proof, first-request outcomes, scorecard sync, and continue-or-stop gates.",
+      Icon: Star,
+      tone: "rose",
+    },
+  };
+  const ActiveProductViewIcon = activeProductViewMeta[activeView].Icon;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -8234,6 +8339,404 @@ const LocalServicesDispatchDemoPanel = ({
       </div>
 
       <div className="p-5 space-y-4">
+        {activeView !== "dispatcher" && (
+          <section
+            aria-label={`Local services ${activeView} product view`}
+            className="rounded-md border border-border/60 bg-background/35 p-4"
+          >
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+              <div className="flex min-w-0 items-start gap-3">
+                <span
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md ring-1 ring-inset"
+                  style={{
+                    backgroundColor: `hsl(var(--tint-${activeProductViewMeta[activeView].tone}) / 0.14)`,
+                    color: `hsl(var(--tint-${activeProductViewMeta[activeView].tone}-fg))`,
+                    ["--tw-ring-color" as const]: `hsl(var(--tint-${activeProductViewMeta[activeView].tone}) / 0.24)`,
+                  }}
+                >
+                  <ActiveProductViewIcon className="h-4 w-4" strokeWidth={1.85} />
+                </span>
+                <div className="min-w-0">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    {activeProductViewMeta[activeView].kicker}
+                  </div>
+                  <h3 className="mt-1 text-[15px] font-semibold tracking-tight text-foreground">
+                    {activeProductViewMeta[activeView].title}
+                  </h3>
+                  <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground max-w-3xl">
+                    {activeProductViewMeta[activeView].description}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                  view={activeView}
+                </span>
+                <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                  {selectedTemplate.ref}
+                </span>
+                <span className="inline-flex rounded-[5px] bg-[hsl(var(--tint-amber)/0.13)] px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-amber-fg))] ring-1 ring-inset ring-[hsl(var(--tint-amber)/0.22)]">
+                  operator-approved
+                </span>
+              </div>
+            </div>
+
+            {activeView === "requests" && (
+              <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+                <section className="rounded-md border border-border/50 bg-card/25 px-3 py-3">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Current request preview
+                  </div>
+                  <p className="mt-2 rounded-md border border-border/50 bg-background/35 px-3 py-2 text-[12px] leading-relaxed text-foreground">
+                    {selectedTemplate.detail.sampleInput}
+                  </p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {[
+                      ["Outcome", selectedOutcome],
+                      ["Approval", selectedApproval],
+                      ["Evidence", selectedEvidence],
+                      ["Deliverable", selectedDeliverable],
+                    ].map(([label, value]) => (
+                      <div key={label} className="rounded-md bg-background/35 px-2.5 py-2">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          {label}
+                        </div>
+                        <div className="mt-1 text-[11.5px] text-foreground">{value}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button size="sm" onClick={() => onOpenDispatchDrawer("dispatch")} className="h-8">
+                      Open dispatch drawer
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => setIntakeEvidenceOpen(true)} className="h-8">
+                      Open intake evidence
+                    </Button>
+                  </div>
+                </section>
+                <section className="rounded-md border border-border/50 bg-card/25 px-3 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                      Request lanes
+                    </div>
+                    <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                      {LOCAL_SERVICE_DEMO_TEMPLATES.length} active
+                    </span>
+                  </div>
+                  <div className="mt-3 grid gap-2">
+                    {LOCAL_SERVICE_DEMO_TEMPLATES.map((template) => (
+                      <button
+                        key={template.id}
+                        type="button"
+                        onClick={() => onSelectService(template.id)}
+                        className={`rounded-md border px-3 py-2.5 text-left transition-smooth hover:bg-card/40 ${
+                          template.id === selectedTemplate.id
+                            ? "border-[hsl(var(--tint-violet)/0.28)] bg-[hsl(var(--tint-violet)/0.08)]"
+                            : "border-border/45 bg-background/35"
+                        }`}
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[12px] font-semibold text-foreground">{template.title}</span>
+                          <Pill tone={template.tone} size="sm">
+                            {template.ref}
+                          </Pill>
+                          <span className="rounded-[5px] bg-secondary/45 px-2 py-0.5 text-[10px] text-muted-foreground">
+                            {template.channel}
+                          </span>
+                        </div>
+                        <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">
+                          {localServiceHighlightValue(template, "Outcome")}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              </div>
+            )}
+
+            {activeView === "schedule" && (
+              <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)]">
+                <section className="rounded-md border border-border/50 bg-card/25 px-3 py-3">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Selected dispatch slot
+                  </div>
+                  <div className="mt-2 grid gap-2">
+                    {[
+                      ["Window", selectedScheduleWindow],
+                      ["District", formatPayloadValue(selectedTemplate.payload.district ?? "Needs confirmation")],
+                      ["Owner", formatPayloadValue(selectedTemplate.payload.operator_owner ?? "dispatch_queue")],
+                      ["Status", formatPayloadValue(selectedTemplate.payload.handoff_status ?? "approval_required")],
+                    ].map(([label, value]) => (
+                      <div key={label} className="rounded-md bg-background/35 px-3 py-2">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          {label}
+                        </div>
+                        <div className="mt-1 text-[12px] text-foreground">{value}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button size="sm" onClick={() => onOpenDispatchDrawer("handoff")} className="h-8">
+                      Open handoff drawer
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => onOpenPath(selectedTemplate.bundlePath)} className="h-8">
+                      Open bundle
+                    </Button>
+                  </div>
+                </section>
+                <section className="rounded-md border border-border/50 bg-card/25 px-3 py-3">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Dispatch board lanes
+                  </div>
+                  <div className="mt-3 grid gap-2 md:grid-cols-2">
+                    {LOCAL_SERVICE_DEMO_TEMPLATES.map((template) => {
+                      const dispatchWindow =
+                        [
+                          template.payload.preferred_date,
+                          template.payload.preferred_time,
+                          template.payload.preferred_slot,
+                          template.payload.preferred_window,
+                        ]
+                          .filter(Boolean)
+                          .map((value) => formatPayloadValue(value))
+                          .join(" / ") || "operator review";
+                      return (
+                        <button
+                          key={template.id}
+                          type="button"
+                          onClick={() => onSelectService(template.id)}
+                          className="rounded-md border border-border/45 bg-background/35 px-3 py-2.5 text-left transition-smooth hover:bg-card/40"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-[12px] font-semibold text-foreground">{template.title}</span>
+                            <Pill tone={template.tone} size="sm">
+                              {template.ref}
+                            </Pill>
+                          </div>
+                          <div className="mt-2 grid gap-1.5 text-[11px] text-muted-foreground">
+                            <div>Window: <span className="text-foreground">{dispatchWindow}</span></div>
+                            <div>Owner: <span className="text-foreground">{formatPayloadValue(template.payload.operator_owner ?? "dispatch_queue")}</span></div>
+                            <div>Gate: <span className="text-foreground">{localServiceHighlightValue(template, "Approval")}</span></div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              </div>
+            )}
+
+            {activeView === "customers" && (
+              <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)]">
+                <section className="rounded-md border border-border/50 bg-card/25 px-3 py-3">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Selected customer
+                  </div>
+                  <div className="mt-2 grid gap-2">
+                    {selectedCustomerRows.map(([label, value]) => (
+                      <div key={label} className="rounded-md bg-background/35 px-3 py-2">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          {label}
+                        </div>
+                        <div className="mt-1 text-[12px] text-foreground">{value}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-2 text-[12px] leading-relaxed text-foreground">
+                    {selectedTemplate.detail.customerConfirmation}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => onCopyText(selectedTemplate.detail.customerConfirmation, "Customer confirmation copied")}
+                      className="h-8"
+                    >
+                      Copy confirmation
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => onOpenDispatchDrawer("customer")} className="h-8">
+                      Customer drawer
+                    </Button>
+                  </div>
+                </section>
+                <section className="rounded-md border border-border/50 bg-card/25 px-3 py-3">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Customer request list
+                  </div>
+                  <div className="mt-3 grid gap-2 md:grid-cols-2">
+                    {LOCAL_SERVICE_DEMO_TEMPLATES.map((template) => (
+                      <button
+                        key={template.id}
+                        type="button"
+                        onClick={() => onSelectService(template.id)}
+                        className="rounded-md border border-border/45 bg-background/35 px-3 py-2.5 text-left transition-smooth hover:bg-card/40"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[12px] font-semibold text-foreground">
+                            {formatPayloadValue(template.payload.customer_name ?? "Customer")}
+                          </span>
+                          <Pill tone={template.tone} size="sm">
+                            {template.ref}
+                          </Pill>
+                        </div>
+                        <div className="mt-2 grid gap-1.5 text-[11px] text-muted-foreground">
+                          <div>Service: <span className="text-foreground">{template.title}</span></div>
+                          <div>District: <span className="text-foreground">{formatPayloadValue(template.payload.district ?? "Needs confirmation")}</span></div>
+                          <div>Phone: <span className="text-foreground">{formatPayloadValue(template.payload.phone ?? "Collected")}</span></div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              </div>
+            )}
+
+            {activeView === "setup" && (
+              <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+                <section className="rounded-md border border-border/50 bg-card/25 px-3 py-3">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Setup readiness
+                  </div>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    {[
+                      ["Setup progress", setupWizardProgress],
+                      ["Test call progress", testCallProgress],
+                      ["Pilot test", setupReadyForPilot ? "Ready" : "Not ready"],
+                      ["Dry run", testCallPassed ? "Passed" : "Pending"],
+                    ].map(([label, value]) => (
+                      <div key={label} className="rounded-md bg-background/35 px-3 py-2">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          {label}
+                        </div>
+                        <div className="mt-1 text-[12px] text-foreground">{value}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button size="sm" onClick={() => onOpenSetupWizard(selectedTemplate.id)} className="h-8">
+                      Open setup wizard
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => onCopyText(setupBriefWithState, agentSetupBrief.copyLabel)} className="h-8">
+                      Copy setup brief
+                    </Button>
+                  </div>
+                </section>
+                <section className="rounded-md border border-border/50 bg-card/25 px-3 py-3">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Setup checklist
+                  </div>
+                  <div className="mt-3 grid gap-2 md:grid-cols-2">
+                    {agentSetupBrief.setupSteps.map((step) => {
+                      const complete = setupStepCompletion[step.id] === true;
+                      return (
+                        <div
+                          key={step.id}
+                          className={`rounded-md border px-3 py-2.5 ${
+                            complete
+                              ? "border-[hsl(var(--tint-mint)/0.24)] bg-[hsl(var(--tint-mint)/0.08)]"
+                              : "border-border/45 bg-background/35"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-[12px] font-semibold text-foreground">{step.label}</span>
+                            <span className="rounded-[5px] bg-secondary/45 px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
+                              {complete ? "done" : step.status}
+                            </span>
+                          </div>
+                          <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">{step.value}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              </div>
+            )}
+
+            {activeView === "reviews" && (
+              <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+                <section className="rounded-md border border-border/50 bg-card/25 px-3 py-3">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Review gates
+                  </div>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    {[
+                      ["Proof progress", founderProofProgress],
+                      ["Decision", founderDecisionGate.verdictLabel],
+                      ["Manual sends", `${founderContactCounts.manualMessageSent}/10`],
+                      ["Replies/rejections", `${founderContactCounts.repliesOrRejections}/3`],
+                      ["Pilot candidates", `${founderContactCounts.pilotCandidates}/1`],
+                      ["Weekly sync", currentWeeklyScorecardSyncReviewedLabel],
+                    ].map(([label, value]) => (
+                      <div key={label} className="rounded-md bg-background/35 px-3 py-2">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          {label}
+                        </div>
+                        <div className="mt-1 text-[12px] text-foreground">{value}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setFounderBatchReviewMode("human");
+                        setFounderBatchReviewOpen(true);
+                      }}
+                      className="h-8"
+                    >
+                      Open batch review
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        setPilotEvidencePackMode("human");
+                        setPilotEvidencePackOpen(true);
+                      }}
+                      className="h-8"
+                    >
+                      Evidence pack
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        setPilotMetricsTrackerMode("human");
+                        setPilotMetricsTrackerOpen(true);
+                      }}
+                      className="h-8"
+                    >
+                      Metrics tracker
+                    </Button>
+                  </div>
+                </section>
+                <section className="rounded-md border border-border/50 bg-card/25 px-3 py-3">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Category score review
+                  </div>
+                  <div className="mt-3 grid gap-2">
+                    {categoryPilotScores.slice(0, 4).map((score) => (
+                      <div key={score.serviceId} className="rounded-md border border-border/45 bg-background/35 px-3 py-2.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[12px] font-semibold text-foreground">{score.serviceTitle}</span>
+                          <span className="rounded-[5px] bg-secondary/45 px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
+                            score {score.score}
+                          </span>
+                          <span className="rounded-[5px] bg-secondary/45 px-2 py-0.5 text-[10px] text-muted-foreground">
+                            {score.signalLabel}
+                          </span>
+                        </div>
+                        <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">
+                          {score.proofSummary}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              </div>
+            )}
+          </section>
+        )}
+
         {recordingMode && (
           <section
             aria-label="90-second recording mode"
@@ -13913,6 +14416,10 @@ export const LiveDesk = () => {
   const localServicesSetupWizardMode = localServicesDispatchDemo && searchParams.get("setup") === "7min";
   const activePlaybookId = searchParams.get("playbook");
   const activeLocalServiceId = searchParams.get("service");
+  const activeLocalServiceView = resolveLocalServiceProductView(
+    searchParams.get("view"),
+    localServicesSetupWizardMode,
+  );
   const activeLocalServiceTemplate = useMemo(
     () =>
       LOCAL_SERVICE_DEMO_TEMPLATES.find((template) => template.id === activeLocalServiceId) ??
@@ -13950,6 +14457,7 @@ export const LiveDesk = () => {
       next.delete("service");
       next.delete("recording");
       next.delete("setup");
+      next.delete("view");
       return next;
     });
   };
@@ -13978,6 +14486,7 @@ export const LiveDesk = () => {
       next.set("service", "ac-repair-dispatch");
       next.delete("recording");
       next.delete("setup");
+      next.delete("view");
       return next;
     });
   };
@@ -13999,6 +14508,7 @@ export const LiveDesk = () => {
       next.set("service", "ac-repair-dispatch");
       next.set("recording", "90s");
       next.delete("setup");
+      next.delete("view");
       return next;
     });
   };
@@ -14026,6 +14536,7 @@ export const LiveDesk = () => {
       next.set("demo", "local-services-dispatch");
       next.set("service", serviceId ?? activeLocalServiceId ?? "ac-repair-dispatch");
       next.set("setup", "7min");
+      next.set("view", "setup");
       next.delete("recording");
       return next;
     });
@@ -14034,6 +14545,7 @@ export const LiveDesk = () => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       next.delete("setup");
+      next.delete("view");
       return next;
     });
   };
@@ -14045,6 +14557,7 @@ export const LiveDesk = () => {
       next.delete("service");
       next.delete("recording");
       next.delete("setup");
+      next.delete("view");
       return next;
     });
   };
@@ -15147,6 +15660,7 @@ export const LiveDesk = () => {
       {localServicesDispatchDemo && (
         <LocalServicesDispatchDemoPanel
           activeServiceId={activeLocalServiceId}
+          activeView={activeLocalServiceView}
           recordingMode={localServicesRecordingMode}
           setupWizardMode={localServicesSetupWizardMode}
           onSelectService={(id) =>
