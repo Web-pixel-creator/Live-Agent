@@ -6631,6 +6631,25 @@ const LocalServicesDispatchDemoPanel = ({
   ];
   const pilotOpsPrepChecklistCompleteCount = pilotOpsPrepChecklistItems.filter((item) => item.done).length;
   const pilotOpsPrepComplete = pilotOpsPrepChecklistCompleteCount === pilotOpsPrepChecklistItems.length;
+  const currentAccountContactPacketStatus = pilotOpsPrepComplete ? "Ready for manual contact" : "Blocked by prep";
+  const currentAccountContactPacketRows = [
+    {
+      label: "Packet status",
+      value: currentAccountContactPacketStatus,
+    },
+    {
+      label: "Channel fit",
+      value: pilotOpsTodayRow?.prospect.channelFit ?? "Select an account before preparing contact.",
+    },
+    {
+      label: "Scorecard focus",
+      value: pilotOpsTodayRow?.prospect.scorecardFocus ?? "No scorecard focus selected.",
+    },
+    {
+      label: "After contact",
+      value: `Update ${pilotOpsTodayProof} in the proof rail.`,
+    },
+  ];
   const pilotOpsActionPathItems = [
     {
       label: "Account",
@@ -6689,6 +6708,8 @@ const LocalServicesDispatchDemoPanel = ({
     `Message preview reviewed: ${currentAccountMessagePreviewReviewed ? "yes" : "no"}`,
     `Prep complete: ${pilotOpsPrepComplete ? "yes" : "no"} (${pilotOpsPrepChecklistCompleteCount}/${pilotOpsPrepChecklistItems.length})`,
     "Current account prep gate: local_services_current_account_prep_gate",
+    "Current account contact packet: local_services_current_account_contact_packet",
+    `Contact packet status: ${currentAccountContactPacketStatus}`,
     "Current account action path: local_services_current_account_action_path",
     `Current account: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "none"}`,
     `Service lane: ${pilotOpsTodayRow ? pilotOpsTodayRow.serviceTitle : "none"}`,
@@ -6704,6 +6725,22 @@ const LocalServicesDispatchDemoPanel = ({
     `Batch proof progress: ${founderProofProgress}`,
     `Decision gate: ${founderDecisionGate.verdictLabel}`,
     "Operator rule: update only browser-local proof markers after the real manual action happens.",
+  ].join("\n");
+  const currentAccountContactPacketText = [
+    "local_services_current_account_contact_packet",
+    `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
+    "Manual-only contact packet. It does not send outreach, start a call, create a booking, write CRM, sync analytics, bill, or mutate Markdown docs.",
+    `Packet status: ${currentAccountContactPacketStatus}`,
+    `Prep complete: ${pilotOpsPrepComplete ? "yes" : "no"} (${pilotOpsPrepChecklistCompleteCount}/${pilotOpsPrepChecklistItems.length})`,
+    `Current account: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "none"}`,
+    `Service lane: ${pilotOpsTodayRow ? pilotOpsTodayRow.serviceTitle : "none"}`,
+    `Segment: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.segment : "none"}`,
+    `Channel fit: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.channelFit : "none"}`,
+    `Scorecard focus: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.scorecardFocus : "none"}`,
+    `Next manual action: ${pilotOpsTodayAction}`,
+    `Proof marker after real contact: ${pilotOpsTodayProof}`,
+    "Use the approved phone, Telegram, or WhatsApp draft from local_services_pilot_communication_preview.",
+    "After the real manual contact, update local_services_pilot_proof_update_rail and then review local_services_account_history_drawer.",
   ].join("\n");
   const pilotOpsConfirmationExport = buildLocalServicePilotOpsConfirmationExport(
     pilotOpsTodayRow,
@@ -8648,6 +8685,50 @@ const LocalServicesDispatchDemoPanel = ({
                         </span>
                       </div>
                       <p className="mt-1.5 leading-relaxed text-muted-foreground">{item.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div
+                className="mt-3 rounded-md border border-border/50 bg-background/30 px-3 py-2.5"
+                aria-label="Current account contact packet"
+              >
+                <div className="flex flex-col gap-2 xl:flex-row xl:items-start xl:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                      <PhoneCall className="h-3.5 w-3.5" strokeWidth={1.8} />
+                      Current account contact packet
+                    </div>
+                    <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                      Copy this only after prep is complete. The packet gives the human operator the account, channel,
+                      scorecard focus, next manual action, and proof marker without starting any external contact.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex w-fit rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                      local_services_current_account_contact_packet
+                    </span>
+                    <span className="inline-flex w-fit rounded-[5px] bg-card/45 px-2 py-1 text-[10px] text-muted-foreground">
+                      {currentAccountContactPacketStatus}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant={pilotOpsPrepComplete ? "default" : "secondary"}
+                      disabled={!pilotOpsTodayRow || !pilotOpsPrepComplete}
+                      onClick={() => onCopyText(currentAccountContactPacketText, "Current account contact packet copied")}
+                      className="h-7"
+                    >
+                      Copy contact packet
+                    </Button>
+                  </div>
+                </div>
+                <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                  {currentAccountContactPacketRows.map((item) => (
+                    <div key={item.label} className="rounded-[5px] border border-border/50 bg-card/25 px-2 py-2 text-[11px]">
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                        {item.label}
+                      </div>
+                      <p className="mt-1.5 leading-relaxed text-foreground">{item.value}</p>
                     </div>
                   ))}
                 </div>

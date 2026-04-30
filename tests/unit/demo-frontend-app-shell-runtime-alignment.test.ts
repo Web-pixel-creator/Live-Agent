@@ -873,6 +873,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Prep gate/);
   assert.match(liveDesk, /local_services_current_account_prep_gate/);
   assert.match(liveDesk, /Blocked by prep/);
+  assert.match(liveDesk, /Current account contact packet/);
+  assert.match(liveDesk, /local_services_current_account_contact_packet/);
+  assert.match(liveDesk, /Ready for manual contact/);
+  assert.match(liveDesk, /Copy contact packet/);
   assert.match(liveDesk, /Current account\s+action path/);
   assert.match(liveDesk, /local_services_current_account_action_path/);
   assert.match(liveDesk, /Manual contact/);
@@ -1321,6 +1325,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Mark preview\s+reviewed/);
   assert.match(readme, /messagePreviewReviewedByProspectKey/);
   assert.match(readme, /local_services_current_account_prep_gate/);
+  assert.match(readme, /local_services_current_account_contact_packet/);
   assert.match(readme, /Current account\s+action path/);
   assert.match(readme, /local_services_current_account_action_path/);
   assert.match(readme, /Pilot\s+proof update rail/);
@@ -1615,6 +1620,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /Mark preview\s+reviewed/);
   assert.match(localDevelopment, /messagePreviewReviewedByProspectKey/);
   assert.match(localDevelopment, /local_services_current_account_prep_gate/);
+  assert.match(localDevelopment, /local_services_current_account_contact_packet/);
   assert.match(localDevelopment, /Current account\s+action path/);
   assert.match(localDevelopment, /local_services_current_account_action_path/);
   assert.match(localDevelopment, /Pilot\s+proof update rail/);
@@ -1892,6 +1898,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Mark preview\s+reviewed/);
   assert.match(operatorGuide, /messagePreviewReviewedByProspectKey/);
   assert.match(operatorGuide, /local_services_current_account_prep_gate/);
+  assert.match(operatorGuide, /local_services_current_account_contact_packet/);
   assert.match(operatorGuide, /Current account\s+action path/);
   assert.match(operatorGuide, /local_services_current_account_action_path/);
   assert.match(operatorGuide, /Pilot\s+proof update rail/);
@@ -2161,6 +2168,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /Mark preview\s+reviewed/);
   assert.match(simplificationPlan, /messagePreviewReviewedByProspectKey/);
   assert.match(simplificationPlan, /local_services_current_account_prep_gate/);
+  assert.match(simplificationPlan, /local_services_current_account_contact_packet/);
   assert.match(simplificationPlan, /Current account\s+action path/);
   assert.match(simplificationPlan, /local_services_current_account_action_path/);
   assert.match(simplificationPlan, /Pilot\s+proof update rail/);
@@ -2431,6 +2439,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /Mark preview\s+reviewed/);
   assert.match(gettingStarted, /messagePreviewReviewedByProspectKey/);
   assert.match(gettingStarted, /local_services_current_account_prep_gate/);
+  assert.match(gettingStarted, /local_services_current_account_contact_packet/);
   assert.match(gettingStarted, /Current account\s+action path/);
   assert.match(gettingStarted, /local_services_current_account_action_path/);
   assert.match(gettingStarted, /Pilot\s+proof update rail/);
@@ -2746,6 +2755,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /Mark preview\s+reviewed/);
   assert.match(localServicesSpec, /messagePreviewReviewedByProspectKey/);
   assert.match(localServicesSpec, /local_services_current_account_prep_gate/);
+  assert.match(localServicesSpec, /local_services_current_account_contact_packet/);
   assert.match(localServicesSpec, /Current account\s+action path/);
   assert.match(localServicesSpec, /local_services_current_account_action_path/);
   assert.match(localServicesSpec, /Pilot\s+proof update rail/);
@@ -3095,6 +3105,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotScorecard, /Mark preview\s+reviewed/);
   assert.match(pilotScorecard, /messagePreviewReviewedByProspectKey/);
   assert.match(pilotScorecard, /local_services_current_account_prep_gate/);
+  assert.match(pilotScorecard, /local_services_current_account_contact_packet/);
   assert.match(pilotScorecard, /Current account\s+action path/);
   assert.match(pilotScorecard, /local_services_current_account_action_path/);
   assert.match(pilotScorecard, /Pilot\s+proof update rail/);
@@ -3308,6 +3319,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotRunbook, /Mark preview\s+reviewed/);
   assert.match(pilotRunbook, /messagePreviewReviewedByProspectKey/);
   assert.match(pilotRunbook, /local_services_current_account_prep_gate/);
+  assert.match(pilotRunbook, /local_services_current_account_contact_packet/);
   assert.match(pilotRunbook, /Current account\s+action path/);
   assert.match(pilotRunbook, /local_services_current_account_action_path/);
   assert.match(pilotRunbook, /Pilot\s+proof update rail/);
@@ -3444,6 +3456,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(founderExecutionLog, /Mark preview\s+reviewed/);
   assert.match(founderExecutionLog, /messagePreviewReviewedByProspectKey/);
   assert.match(founderExecutionLog, /local_services_current_account_prep_gate/);
+  assert.match(founderExecutionLog, /local_services_current_account_contact_packet/);
   assert.match(founderExecutionLog, /Current account\s+action path/);
   assert.match(founderExecutionLog, /local_services_current_account_action_path/);
   assert.match(founderExecutionLog, /Pilot\s+proof update rail/);
@@ -3530,6 +3543,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(outreachExecutionPack, /Mark preview\s+reviewed/);
   assert.match(outreachExecutionPack, /messagePreviewReviewedByProspectKey/);
   assert.match(outreachExecutionPack, /local_services_current_account_prep_gate/);
+  assert.match(outreachExecutionPack, /local_services_current_account_contact_packet/);
   assert.match(outreachExecutionPack, /Current account\s+action path/);
   assert.match(outreachExecutionPack, /local_services_current_account_action_path/);
   assert.match(outreachExecutionPack, /Pilot\s+proof update rail/);

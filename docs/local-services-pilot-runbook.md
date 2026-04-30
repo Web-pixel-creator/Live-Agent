@@ -124,7 +124,10 @@ Do not use the pilot to build:
    review`, `Prep complete`, and `messagePreviewReviewedByProspectKey` remain
    browser-local prep state, not external delivery proof. `Prep gate` /
    `local_services_current_account_prep_gate` should show `Blocked by prep`
-   until the checklist is complete.
+   until the checklist is complete. Use `Current account contact packet` /
+   `local_services_current_account_contact_packet` and `Copy contact packet`
+   only after it shows `Ready for manual contact`; the copy is a human handoff,
+   not an outbound send.
    Check `Current account action path`
    / `local_services_current_account_action_path` to keep the account ->
    preview -> manual contact -> proof -> continue gate order visible. Use
