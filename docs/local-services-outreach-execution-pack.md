@@ -276,7 +276,9 @@ Allowed reply statuses:
    account. Then show `Current account prep checklist`,
    `local_services_current_account_prep_checklist`, `Prep status`,
    `Channel verified`, `Message preview reviewed`, `Proof marker selected`, and
-   `Manual-only guardrail` before `Current account action path` and
+   `Manual-only guardrail`; use `Mark preview reviewed` / `Reset preview review`
+   to show `Prep complete` from `messagePreviewReviewedByProspectKey` before
+   `Current account action path` and
    `local_services_current_account_action_path` before `Pilot proof update rail`
    and `local_services_pilot_proof_update_rail`, plus
    `Current account mini-audit`, `local_services_current_account_mini_audit`,

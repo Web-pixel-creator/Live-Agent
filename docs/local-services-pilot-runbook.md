@@ -119,7 +119,10 @@ Do not use the pilot to build:
    Check `Current account prep checklist` /
    `local_services_current_account_prep_checklist` for `Prep status`,
    `Channel verified`, `Message preview reviewed`, `Proof marker selected`, and
-   `Manual-only guardrail` before touching the action path.
+   `Manual-only guardrail` before touching the action path. Use `Mark preview
+   reviewed` after the communication preview is inspected; `Reset preview
+   review`, `Prep complete`, and `messagePreviewReviewedByProspectKey` remain
+   browser-local prep state, not external delivery proof.
    Check `Current account action path`
    / `local_services_current_account_action_path` to keep the account ->
    preview -> manual contact -> proof -> continue gate order visible. Use

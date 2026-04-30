@@ -772,7 +772,10 @@ auto-selected current account inside browser-local state only;
 `local_services_current_account_prep_checklist`, `Prep status`,
 `Channel verified`, `Message preview reviewed`, `Proof marker selected`, and
 `Manual-only guardrail` make the channel, preview, proof marker, and no-side-effect
-checks visible before the operator touches the action path;
+checks visible before the operator touches the action path; `Mark preview
+reviewed`, `Reset preview review`, `Prep complete`, and
+`messagePreviewReviewedByProspectKey` persist the preview review as
+browser-local prep state only;
 `Current account action path` and `local_services_current_account_action_path`
 make the account -> preview -> manual contact -> proof -> continue gate order
 visible before the operator touches the proof controls;
@@ -1041,7 +1044,9 @@ Current shell readiness for P3:
    `Select account`, `Current account prep checklist`,
    `local_services_current_account_prep_checklist`, `Prep status`,
    `Channel verified`, `Message preview reviewed`, `Proof marker selected`,
-   `Manual-only guardrail`, `Current account action path`,
+   `Manual-only guardrail`, `Mark preview reviewed`, `Reset preview review`,
+   `Prep complete`, `messagePreviewReviewedByProspectKey`,
+   `Current account action path`,
    `local_services_current_account_action_path`, `Pilot proof update rail`, and
    `local_services_pilot_proof_update_rail`, `Current account mini-audit`, and
    `local_services_current_account_mini_audit`, plus `Open account history`

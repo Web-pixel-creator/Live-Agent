@@ -583,6 +583,7 @@ type LocalServicePilotActivityKind =
   | "owner_decision"
   | "proposal_approval"
   | "kickoff_decision"
+  | "prep_review"
   | "weekly_sync_review";
 type LocalServicePilotActivityEvent = {
   id: string;
@@ -605,6 +606,7 @@ type LocalServicePilotWorkspaceState = {
   proposalApprovalByService: Record<string, LocalServiceProposalApprovalDecision>;
   kickoffDecisionByService: Record<string, LocalServiceKickoffDecision>;
   weeklyScorecardSyncReviewedByService: Record<string, boolean>;
+  messagePreviewReviewedByProspectKey: Record<string, boolean>;
   metricStatusByService: Record<string, LocalServicePilotMetricStatus>;
   setupStepCompletionByService: Record<string, LocalServiceSetupStepCompletion>;
   setupReadyByService: Record<string, boolean>;
@@ -940,7 +942,9 @@ function isLocalServicePilotActivityKind(value: unknown): value is LocalServiceP
     value === "outcome_change" ||
     value === "owner_decision" ||
     value === "proposal_approval" ||
-    value === "kickoff_decision"
+    value === "kickoff_decision" ||
+    value === "prep_review" ||
+    value === "weekly_sync_review"
   );
 }
 
@@ -1150,6 +1154,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
     proposalApprovalByService: {},
     kickoffDecisionByService: {},
     weeklyScorecardSyncReviewedByService: {},
+    messagePreviewReviewedByProspectKey: {},
     metricStatusByService: {},
     setupStepCompletionByService: {},
     setupReadyByService: {},
@@ -1181,6 +1186,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
       proposalApprovalByService: readProposalApprovalDecisionRecord(parsed.proposalApprovalByService),
       kickoffDecisionByService: readKickoffDecisionRecord(parsed.kickoffDecisionByService),
       weeklyScorecardSyncReviewedByService: readBooleanRecord(parsed.weeklyScorecardSyncReviewedByService),
+      messagePreviewReviewedByProspectKey: readBooleanRecord(parsed.messagePreviewReviewedByProspectKey),
       metricStatusByService: readPilotMetricStatusRecord(parsed.metricStatusByService),
       setupStepCompletionByService: readSetupStepCompletionByService(parsed.setupStepCompletionByService),
       setupReadyByService: readBooleanRecord(parsed.setupReadyByService),
@@ -6591,6 +6597,10 @@ const LocalServicesDispatchDemoPanel = ({
     currentAccountMiniAuditEvents.length > 0
       ? currentAccountMiniAuditEvents.map((event) => `${event.createdAt} | ${event.label}: ${event.value}`).join("; ")
       : "No browser-local events yet for this account.";
+  const currentAccountMessagePreviewReviewed =
+    Boolean(pilotOpsTodayRow) &&
+    (pilotWorkspaceState.messagePreviewReviewedByProspectKey[pilotOpsTodayRow.key] === true ||
+      pilotOpsTodayRow.manualMessageSent);
   const pilotOpsPrepChecklistItems = [
     {
       label: "Channel verified",
@@ -6602,9 +6612,9 @@ const LocalServicesDispatchDemoPanel = ({
     },
     {
       label: "Message preview reviewed",
-      state: pilotOpsTodayRow?.manualMessageSent ? "Sent proof logged" : "Review first",
+      state: currentAccountMessagePreviewReviewed ? "Reviewed" : "Review first",
       detail: "Open communication preview and keep the final contact outside the shell.",
-      done: pilotOpsTodayRow?.manualMessageSent === true,
+      done: currentAccountMessagePreviewReviewed,
     },
     {
       label: "Proof marker selected",
@@ -6620,6 +6630,7 @@ const LocalServicesDispatchDemoPanel = ({
     },
   ];
   const pilotOpsPrepChecklistCompleteCount = pilotOpsPrepChecklistItems.filter((item) => item.done).length;
+  const pilotOpsPrepComplete = pilotOpsPrepChecklistCompleteCount === pilotOpsPrepChecklistItems.length;
   const pilotOpsActionPathItems = [
     {
       label: "Account",
@@ -6661,6 +6672,8 @@ const LocalServicesDispatchDemoPanel = ({
     "Current account picker: local_services_current_account_picker",
     `Picker mode: ${pilotOpsAccountPickerMode}`,
     "Current account prep checklist: local_services_current_account_prep_checklist",
+    `Message preview reviewed: ${currentAccountMessagePreviewReviewed ? "yes" : "no"}`,
+    `Prep complete: ${pilotOpsPrepComplete ? "yes" : "no"} (${pilotOpsPrepChecklistCompleteCount}/${pilotOpsPrepChecklistItems.length})`,
     "Current account action path: local_services_current_account_action_path",
     `Current account: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "none"}`,
     `Service lane: ${pilotOpsTodayRow ? pilotOpsTodayRow.serviceTitle : "none"}`,
@@ -7426,6 +7439,26 @@ const LocalServicesDispatchDemoPanel = ({
         }),
       };
     });
+  };
+  const updateCurrentAccountMessagePreviewReviewed = (reviewed: boolean) => {
+    if (!pilotOpsTodayRow) return;
+    const row = pilotOpsTodayRow;
+    setPilotWorkspaceState((prev) => ({
+      ...prev,
+      messagePreviewReviewedByProspectKey: {
+        ...prev.messagePreviewReviewedByProspectKey,
+        [row.key]: reviewed,
+      },
+      activityLog: appendLocalServicePilotActivity(prev.activityLog, {
+        kind: "prep_review",
+        label: "Current account prep reviewed",
+        value: reviewed ? "Message preview reviewed" : "Message preview review reset",
+        serviceId: row.serviceId,
+        serviceTitle: row.serviceTitle,
+        prospectId: row.prospect.id,
+        company: row.prospect.company,
+      }),
+    }));
   };
   const pilotOpsProofRailActions = pilotOpsTodayRow
     ? [
@@ -8533,6 +8566,18 @@ const LocalServicesDispatchDemoPanel = ({
                     <span className="inline-flex w-fit rounded-[5px] bg-card/45 px-2 py-1 text-[10px] text-muted-foreground">
                       Prep status {pilotOpsPrepChecklistCompleteCount}/{pilotOpsPrepChecklistItems.length}
                     </span>
+                    <span className="inline-flex w-fit rounded-[5px] bg-card/45 px-2 py-1 text-[10px] text-muted-foreground">
+                      {pilotOpsPrepComplete ? "Prep complete" : "Prep incomplete"}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant={currentAccountMessagePreviewReviewed ? "secondary" : "default"}
+                      disabled={!pilotOpsTodayRow}
+                      onClick={() => updateCurrentAccountMessagePreviewReviewed(!currentAccountMessagePreviewReviewed)}
+                      className="h-7"
+                    >
+                      {currentAccountMessagePreviewReviewed ? "Reset preview review" : "Mark preview reviewed"}
+                    </Button>
                   </div>
                 </div>
                 <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-4">

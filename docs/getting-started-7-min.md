@@ -183,7 +183,8 @@ a redacted manual summary. `Pilot ops today`, `Copy pilot ops handoff`,
 `Current account prep checklist`,
 `local_services_current_account_prep_checklist`, `Prep status`,
 `Channel verified`, `Message preview reviewed`, `Proof marker selected`,
-`Manual-only guardrail`,
+`Manual-only guardrail`, `Mark preview reviewed`, `Reset preview review`,
+`Prep complete`, `messagePreviewReviewedByProspectKey`,
 `Current account action path`, `local_services_current_account_action_path`,
 `Pilot proof update rail`, and
 `local_services_pilot_proof_update_rail`, `Current account mini-audit`, and
