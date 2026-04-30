@@ -89,6 +89,10 @@ Local-services expansion spec:
   and `view=reviews` opens `Review queue`. These states are view-only product
   panels layered over the same operator-approved payload, evidence, setup, and
   review drawers; they do not send, book, dispatch, or write CRM.
+  `path=7min&view=requests` opens the `7-minute launch path`: a guided
+  `Request intake -> Approval-ready slot -> Customer confirmation -> Setup and
+  dry run -> Founder review` stepper that jumps between those same views and
+  copies a manual-only launch summary.
   `Requests inbox` also includes an `Operator action rail` that records only
   browser-local `statusByProspectKey` and `firstRequestOutcomeByProspectKey`
   notes for the selected pilot account.

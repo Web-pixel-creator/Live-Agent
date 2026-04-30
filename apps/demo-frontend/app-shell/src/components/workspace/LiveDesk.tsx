@@ -386,6 +386,17 @@ type PlaybookPayloadPreview = {
 type PlaybookExportMode = "human" | "json";
 type LocalServiceExportKind = "dispatch" | "customer" | "handoff";
 type LocalServiceProductView = "dispatcher" | "requests" | "schedule" | "customers" | "setup" | "reviews";
+type LocalServiceLaunchPathStep = {
+  id: string;
+  view: Exclude<LocalServiceProductView, "dispatcher">;
+  minute: string;
+  title: string;
+  outcome: string;
+  proof: string;
+  queryHint: string;
+  tone: "violet" | "rose" | "amber" | "mint" | "slate";
+  Icon: typeof ClipboardCheck;
+};
 
 const LOCAL_SERVICE_PRODUCT_VIEWS: LocalServiceProductView[] = [
   "dispatcher",
@@ -405,6 +416,64 @@ const resolveLocalServiceProductView = (
     ? (value as LocalServiceProductView)
     : "dispatcher";
 };
+
+const LOCAL_SERVICE_SEVEN_MINUTE_LAUNCH_PATH: LocalServiceLaunchPathStep[] = [
+  {
+    id: "request",
+    view: "requests",
+    minute: "00:00-01:30",
+    title: "Request intake",
+    outcome: "Show the phone/Telegram request and browser-local first outcome note.",
+    proof: "statusByProspectKey + firstRequestOutcomeByProspectKey",
+    queryHint: "view=requests",
+    tone: "mint",
+    Icon: Inbox,
+  },
+  {
+    id: "schedule",
+    view: "schedule",
+    minute: "01:30-03:00",
+    title: "Approval-ready slot",
+    outcome: "Review slot, owner, approval gate, and manual booking handoff.",
+    proof: "dispatchApprovalByService",
+    queryHint: "view=schedule",
+    tone: "amber",
+    Icon: CalendarCheck,
+  },
+  {
+    id: "customer",
+    view: "customers",
+    minute: "03:00-04:15",
+    title: "Customer confirmation",
+    outcome: "Review consent-safe customer copy before any human sends it.",
+    proof: "customerConfirmationByService",
+    queryHint: "view=customers",
+    tone: "slate",
+    Icon: User,
+  },
+  {
+    id: "setup",
+    view: "setup",
+    minute: "04:15-05:45",
+    title: "Setup and dry run",
+    outcome: "Show business profile, knowledge sources, behavior, and test call readiness.",
+    proof: "setupStepCompletionByService + testCallChecklistByService",
+    queryHint: "view=setup",
+    tone: "violet",
+    Icon: UserRoundCog,
+  },
+  {
+    id: "review",
+    view: "reviews",
+    minute: "05:45-07:00",
+    title: "Founder review",
+    outcome: "Record Continue/Pause/Stop and weekly scorecard sync proof.",
+    proof: "weekOneOwnerDecisionByProspectKey + weeklyScorecardSyncReviewedByService",
+    queryHint: "view=reviews",
+    tone: "rose",
+    Icon: Star,
+  },
+];
 
 type PlaybookOperatorExport = {
   title: string;
@@ -6388,6 +6457,7 @@ const LOCAL_SERVICE_DEMO_TEMPLATES: LocalServiceDemoTemplate[] = [
 const LocalServicesDispatchDemoPanel = ({
   activeServiceId,
   activeView,
+  launchPathMode,
   recordingMode,
   setupWizardMode,
   onSelectService,
@@ -6396,10 +6466,12 @@ const LocalServicesDispatchDemoPanel = ({
   onCopyText,
   onOpenDispatchDrawer,
   onOpenPath,
+  onOpenProductView,
   onOpenSetupWizard,
 }: {
   activeServiceId: string | null;
   activeView: LocalServiceProductView;
+  launchPathMode: boolean;
   recordingMode: boolean;
   setupWizardMode: boolean;
   onSelectService: (id: string) => void;
@@ -6408,6 +6480,7 @@ const LocalServicesDispatchDemoPanel = ({
   onCopyText: (text: string, label: string) => void;
   onOpenDispatchDrawer: (kind?: LocalServiceExportKind) => void;
   onOpenPath: (path: string) => void;
+  onOpenProductView: (view: LocalServiceProductView) => void;
   onOpenSetupWizard: (serviceId: string) => void;
 }) => {
   const selectedTemplate =
@@ -7823,6 +7896,24 @@ const LocalServicesDispatchDemoPanel = ({
     "- weeklyScorecardSyncReviewedByService",
     "Manual-only rule: no CRM write, billing change, customer message, or autonomous pilot decision.",
   ].join("\n");
+  const launchPathActiveIndex =
+    activeView === "dispatcher"
+      ? -1
+      : LOCAL_SERVICE_SEVEN_MINUTE_LAUNCH_PATH.findIndex((step) => step.view === activeView);
+  const launchPathProgress =
+    launchPathActiveIndex >= 0
+      ? `${launchPathActiveIndex + 1}/${LOCAL_SERVICE_SEVEN_MINUTE_LAUNCH_PATH.length}`
+      : `0/${LOCAL_SERVICE_SEVEN_MINUTE_LAUNCH_PATH.length}`;
+  const launchPathSummaryText = [
+    "7-minute launch path:",
+    `Service: ${selectedTemplate.ref} - ${selectedTemplate.title}`,
+    `Progress: ${launchPathProgress}`,
+    ...LOCAL_SERVICE_SEVEN_MINUTE_LAUNCH_PATH.map(
+      (step, index) =>
+        `${index + 1}. ${step.minute} | ${step.title} | ${step.queryHint} | ${step.proof}`,
+    ),
+    "Manual-only rule: no autonomous send, booking, dispatch, CRM write, billing change, or pilot decision.",
+  ].join("\n");
   const hidePilotPlanning = recordingMode || setupWizardMode;
   const localServiceHighlightValue = (template: LocalServiceDemoTemplate, label: string) =>
     template.highlights.find((highlight) => highlight.label === label)?.value ?? "Operator review";
@@ -8640,6 +8731,90 @@ const LocalServicesDispatchDemoPanel = ({
       </div>
 
       <div className="p-5 space-y-4">
+        {launchPathMode && (
+          <section
+            aria-label="7-minute launch path"
+            className="rounded-md border border-[hsl(var(--tint-mint)/0.24)] bg-[hsl(var(--tint-mint)/0.07)] px-4 py-3"
+          >
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--tint-mint-fg))]">
+                  <Clock className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  7-minute launch path
+                </div>
+                <p className="mt-1.5 max-w-3xl text-[12px] leading-relaxed text-foreground">
+                  One guided operator demo from first request to founder review. Each step opens an existing
+                  query-backed product view and records only browser-local review state.
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <span className="inline-flex rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.24)]">
+                    path=7min
+                  </span>
+                  <span className="inline-flex rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.24)]">
+                    Progress {launchPathProgress}
+                  </span>
+                  <span className="inline-flex rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.24)]">
+                    No external side effects
+                  </span>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => onCopyText(launchPathSummaryText, "7-minute launch path copied")}
+                className="h-8"
+              >
+                <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                Copy 7-minute launch path
+              </Button>
+            </div>
+            <div className="mt-3 grid gap-2 lg:grid-cols-5">
+              {LOCAL_SERVICE_SEVEN_MINUTE_LAUNCH_PATH.map((step, index) => {
+                const StepIcon = step.Icon;
+                const active = activeView === step.view;
+                const completed = launchPathActiveIndex > index;
+                return (
+                  <button
+                    key={step.id}
+                    type="button"
+                    onClick={() => onOpenProductView(step.view)}
+                    aria-current={active ? "step" : undefined}
+                    className={`min-h-[148px] rounded-md border px-3 py-3 text-left transition-smooth ${
+                      active
+                        ? "border-[hsl(var(--tint-mint)/0.36)] bg-background/55 shadow-[0_12px_28px_-24px_rgba(0,0,0,0.7)]"
+                        : "border-border/45 bg-background/30 hover:bg-background/45"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md ring-1 ring-inset"
+                        style={{
+                          backgroundColor: `hsl(var(--tint-${step.tone}) / 0.14)`,
+                          color: `hsl(var(--tint-${step.tone}-fg))`,
+                          ["--tw-ring-color" as const]: `hsl(var(--tint-${step.tone}) / 0.24)`,
+                        }}
+                      >
+                        <StepIcon className="h-3.5 w-3.5" strokeWidth={1.8} />
+                      </span>
+                      <span className="rounded-[5px] bg-secondary/45 px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
+                        {completed ? "done" : active ? "now" : step.minute}
+                      </span>
+                    </div>
+                    <div className="mt-2 font-mono text-[10px] text-muted-foreground">
+                      {String(index + 1).padStart(2, "0")} · {step.queryHint}
+                    </div>
+                    <div className="mt-1 text-[12px] font-semibold text-foreground">{step.title}</div>
+                    <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">{step.outcome}</p>
+                    <div className="mt-2 break-words rounded-[5px] bg-card/35 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                      {step.proof}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         {activeView !== "dispatcher" && (
           <section
             aria-label={`Local services ${activeView} product view`}
@@ -15049,6 +15224,7 @@ export const LiveDesk = () => {
   const localServicesDispatchDemo = searchParams.get("demo") === "local-services-dispatch";
   const localServicesRecordingMode = localServicesDispatchDemo && searchParams.get("recording") === "90s";
   const localServicesSetupWizardMode = localServicesDispatchDemo && searchParams.get("setup") === "7min";
+  const localServicesLaunchPathMode = localServicesDispatchDemo && searchParams.get("path") === "7min";
   const activePlaybookId = searchParams.get("playbook");
   const activeLocalServiceId = searchParams.get("service");
   const activeLocalServiceView = resolveLocalServiceProductView(
@@ -15121,7 +15297,54 @@ export const LiveDesk = () => {
       next.set("service", "ac-repair-dispatch");
       next.delete("recording");
       next.delete("setup");
+      next.delete("path");
       next.delete("view");
+      return next;
+    });
+  };
+  const openLocalServicesLaunchPath = () => {
+    setPlaybookExportDrawerOpen(false);
+    setQuery("");
+    setOnlyMine(false);
+    setMineOnly(false);
+    setVipOnly(false);
+    clearSelection();
+    setFocusedRef(null);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("node");
+      next.delete("infra");
+      next.delete("burning");
+      next.delete("playbook");
+      next.delete("recording");
+      next.delete("setup");
+      next.set("demo", "local-services-dispatch");
+      next.set("service", activeLocalServiceId ?? "ac-repair-dispatch");
+      next.set("path", "7min");
+      next.set("view", "requests");
+      return next;
+    });
+  };
+  const closeLocalServicesLaunchPath = () => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("path");
+      return next;
+    });
+  };
+  const openLocalServicesProductView = (view: LocalServiceProductView) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("node");
+      next.delete("infra");
+      next.delete("burning");
+      next.delete("playbook");
+      next.delete("recording");
+      next.delete("setup");
+      next.set("demo", "local-services-dispatch");
+      next.set("service", activeLocalServiceId ?? "ac-repair-dispatch");
+      next.set("path", "7min");
+      next.set("view", view);
       return next;
     });
   };
@@ -15143,6 +15366,7 @@ export const LiveDesk = () => {
       next.set("service", "ac-repair-dispatch");
       next.set("recording", "90s");
       next.delete("setup");
+      next.delete("path");
       next.delete("view");
       return next;
     });
@@ -15172,6 +15396,7 @@ export const LiveDesk = () => {
       next.set("service", serviceId ?? activeLocalServiceId ?? "ac-repair-dispatch");
       next.set("setup", "7min");
       next.set("view", "setup");
+      next.delete("path");
       next.delete("recording");
       return next;
     });
@@ -15192,6 +15417,7 @@ export const LiveDesk = () => {
       next.delete("service");
       next.delete("recording");
       next.delete("setup");
+      next.delete("path");
       next.delete("view");
       return next;
     });
@@ -16021,6 +16247,11 @@ export const LiveDesk = () => {
                 7-min setup
               </Pill>
             )}
+            {localServicesLaunchPathMode && (
+              <Pill tone="mint" size="sm">
+                7-min path
+              </Pill>
+            )}
           </div>
           <p className="mt-1.5 text-[12px] text-muted-foreground/85 max-w-2xl leading-relaxed">
             {localServicesDispatchDemo
@@ -16049,6 +16280,24 @@ export const LiveDesk = () => {
               </>
             )}
           </Button>
+          {localServicesDispatchDemo && (
+            <Button
+              size="sm"
+              variant={localServicesLaunchPathMode ? "secondary" : "outline"}
+              onClick={
+                localServicesLaunchPathMode
+                  ? closeLocalServicesLaunchPath
+                  : openLocalServicesLaunchPath
+              }
+              className="h-8 text-xs"
+            >
+              <Clock className="mr-0 sm:mr-1.5 h-3.5 w-3.5" strokeWidth={2} />
+              <span className="hidden sm:inline">
+                {localServicesLaunchPathMode ? "Exit 7-minute path" : "7-minute path"}
+              </span>
+              <span className="sm:hidden">Path</span>
+            </Button>
+          )}
           {localServicesDispatchDemo && (
             <Button
               size="sm"
@@ -16296,6 +16545,7 @@ export const LiveDesk = () => {
         <LocalServicesDispatchDemoPanel
           activeServiceId={activeLocalServiceId}
           activeView={activeLocalServiceView}
+          launchPathMode={localServicesLaunchPathMode}
           recordingMode={localServicesRecordingMode}
           setupWizardMode={localServicesSetupWizardMode}
           onSelectService={(id) =>
@@ -16312,6 +16562,7 @@ export const LiveDesk = () => {
           onCopyText={copyLocalServicePilotWorkspaceExport}
           onOpenDispatchDrawer={openActiveLocalServiceDispatchDrawer}
           onOpenPath={openLocalServiceDemoPath}
+          onOpenProductView={openLocalServicesProductView}
           onOpenSetupWizard={openLocalServicesSetupWizard}
         />
       )}

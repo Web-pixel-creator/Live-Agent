@@ -102,6 +102,12 @@ operator panel over the existing local-services demo data and browser-local
 state. They must not send, book, dispatch, bill, write CRM, activate a channel,
 or mutate the Markdown docs.
 
+`path=7min&view=requests` enables the `7-minute launch path` guide. The guide is
+implemented from `LOCAL_SERVICE_SEVEN_MINUTE_LAUNCH_PATH`, renders the five
+operator steps, and calls the same query-backed view opener used by the sidebar.
+`Copy 7-minute launch path` copies a manual summary only; it must not create
+external side effects.
+
 `view=requests` has the first actionable panel contract. `Operator action rail`
 renders local request status, first-request outcome, and next approved action
 for the selected pilot account. Its buttons may update only

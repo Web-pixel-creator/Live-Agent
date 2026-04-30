@@ -78,6 +78,12 @@ payments, bookings, or dispatches.
 `Copy review queue summary` action. These controls are browser-local founder
 review notes only; they do not write CRM, change billing, send customer
 messages, activate channels, or make an autonomous pilot decision.
+`path=7min&view=requests` opens the `7-minute launch path`, a guided stepper
+over `Request intake`, `Approval-ready slot`, `Customer confirmation`, `Setup
+and dry run`, and `Founder review`. It only changes query-backed product views
+and can copy a `Copy 7-minute launch path` manual summary; it does not send,
+book, dispatch, write CRM, change billing, activate channels, or make the pilot
+decision.
 3.2. The same local-services route now includes view-only pilot list controls:
 `Outreach list filters`, `Column settings`, `Service filter`, `Status filter`,
 `Filtered candidates`, `Filtered outreach list`, `All services`,

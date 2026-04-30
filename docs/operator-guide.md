@@ -92,6 +92,12 @@ SMS, Telegram, WhatsApp, email, CRM updates, payments, bookings, or dispatches.
 Continue/Pause/Stop and weekly scorecard sync review before a human prepares
 the evidence pack; the shell still does not write CRM, change billing, message
 customers, activate channels, or make the pilot decision autonomously.
+Use `path=7min&view=requests` or the `7-minute path` button for the guided
+first demo. The `7-minute launch path` walks through `Request intake`,
+`Approval-ready slot`, `Customer confirmation`, `Setup and dry run`, and
+`Founder review`, then exposes `Copy 7-minute launch path` for a manual launch
+summary. It is a navigation and explanation layer only; it does not create
+external side effects.
 It now also exposes `Open intake evidence` and `Transcript + evidence`, which
 opens a `Saved intake evidence` drawer with `Intake transcript + evidence link`,
 `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,

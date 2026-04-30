@@ -383,6 +383,14 @@ payload previews, setup state, evidence drawers, and review drawers. They must
 not send messages, create bookings, dispatch a master, collect payment, write
 CRM, activate phone/Telegram/WhatsApp, or mutate Markdown docs.
 
+`path=7min&view=requests` must show the `7-minute launch path`, a guided
+operator stepper over `Request intake`, `Approval-ready slot`, `Customer
+confirmation`, `Setup and dry run`, and `Founder review`. It can navigate only
+between the five product views and expose `Copy 7-minute launch path` for a
+manual launch summary. It must not send, book, dispatch, write CRM, change
+billing, activate channels, prepare a live paid pilot, or make a
+Continue/Pause/Stop decision.
+
 `Requests inbox` is the first actionable product view. Its `Operator action
 rail` can update only `statusByProspectKey` and
 `firstRequestOutcomeByProspectKey` in the browser-local pilot workspace. It must
