@@ -67,6 +67,11 @@ request outcome notes only.
 `Booking handoff preview`. These controls are browser-local operator notes only;
 they do not create appointments, dispatch technicians, message customers, write
 CRM, collect payment, or activate a live channel.
+`Customer directory` contains a `Customer confirmation rail`,
+`customerConfirmationByService` state, `Customer confirmation actions`, and a
+`Consent-safe confirmation preview`. These controls are browser-local review
+notes only; they do not send SMS, Telegram, WhatsApp, email, CRM updates,
+payments, bookings, or dispatches.
 3.2. The same local-services route now includes view-only pilot list controls:
 `Outreach list filters`, `Column settings`, `Service filter`, `Status filter`,
 `Filtered candidates`, `Filtered outreach list`, `All services`,

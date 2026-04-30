@@ -95,6 +95,9 @@ Local-services expansion spec:
   `Schedule / Dispatch board` includes a `Schedule approval rail`, local
   `dispatchApprovalByService` decisions, and a `Booking handoff preview`; these
   are manual approval notes, not live appointment or dispatch actions.
+  `Customer directory` includes a `Customer confirmation rail`, local
+  `customerConfirmationByService` decisions, and a `Consent-safe confirmation
+  preview`; these are manual review notes, not customer sends or CRM writes.
 - the same route switches the top chrome and first heading to `AI Dispatcher`
   and hides the old runtime alerts, visa demo button, case filters, case search,
   and `New case` action from the local-services header.

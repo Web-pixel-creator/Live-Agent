@@ -396,6 +396,13 @@ browser-local pilot workspace and can show a `Booking handoff preview` for a
 human owner or dispatcher. It must not create a booking, dispatch a technician,
 send a customer message, write CRM, collect payment, or activate a channel.
 
+`Customer directory` is the third actionable product view. Its `Customer
+confirmation rail` can update only `customerConfirmationByService` in the
+browser-local pilot workspace and can show a `Consent-safe confirmation
+preview` for manual human use. It must not send SMS, Telegram, WhatsApp, email,
+write CRM, collect payment, create a booking, dispatch a technician, or activate
+a channel.
+
 ### Minute 1-3: Intake
 
 Show a simulated customer request:

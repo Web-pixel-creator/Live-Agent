@@ -114,6 +114,12 @@ action. Its buttons may update only `dispatchApprovalByService`; `Booking
 handoff preview` is a manual note, not a live appointment, customer send,
 technician dispatch, CRM write, payment, or channel activation.
 
+`view=customers` has the third actionable panel contract. `Customer confirmation
+rail` renders contact status, consent posture, dispatch dependency, and next
+approved action. Its buttons may update only `customerConfirmationByService`;
+`Consent-safe confirmation preview` is a manual note, not SMS, Telegram,
+WhatsApp, email, CRM, payment, booking, dispatch, or channel activation.
+
 ## Main Source Files
 
 UI implementation:

@@ -81,6 +81,11 @@ channel activation.
 handoff preview`. Use it to decide whether a human owner can manually confirm a
 slot; the shell still does not create the appointment, dispatch a technician,
 send a message, write CRM, collect payment, or activate channels.
+`Customer directory` includes a `Customer confirmation rail` with
+`customerConfirmationByService`, `Customer confirmation actions`, and a
+`Consent-safe confirmation preview`. Use it to review customer copy and consent
+posture before a human manually sends anything; the shell still does not send
+SMS, Telegram, WhatsApp, email, CRM updates, payments, bookings, or dispatches.
 It now also exposes `Open intake evidence` and `Transcript + evidence`, which
 opens a `Saved intake evidence` drawer with `Intake transcript + evidence link`,
 `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,

@@ -595,6 +595,12 @@ type LocalServiceDispatchApprovalDecision =
   | "owner_approved"
   | "needs_changes"
   | "blocked";
+type LocalServiceCustomerConfirmationDecision =
+  | "not_reviewed"
+  | "draft_reviewed"
+  | "consent_confirmed"
+  | "needs_changes"
+  | "blocked";
 type LocalServiceFounderContactField =
   | "channelChecked"
   | "manualMessageSent"
@@ -611,6 +617,7 @@ type LocalServicePilotActivityKind =
   | "proposal_approval"
   | "kickoff_decision"
   | "dispatch_approval"
+  | "customer_confirmation"
   | "contact_packet_review"
   | "scorecard_row_review"
   | "batch_handoff_review"
@@ -637,6 +644,7 @@ type LocalServicePilotWorkspaceState = {
   proposalApprovalByService: Record<string, LocalServiceProposalApprovalDecision>;
   kickoffDecisionByService: Record<string, LocalServiceKickoffDecision>;
   dispatchApprovalByService: Record<string, LocalServiceDispatchApprovalDecision>;
+  customerConfirmationByService: Record<string, LocalServiceCustomerConfirmationDecision>;
   weeklyScorecardSyncReviewedByService: Record<string, boolean>;
   messagePreviewReviewedByProspectKey: Record<string, boolean>;
   contactPacketCopiedByProspectKey: Record<string, boolean>;
@@ -938,6 +946,22 @@ const LOCAL_SERVICE_DISPATCH_APPROVAL_ACTIONS: {
   { decision: "needs_changes", label: "Needs slot change" },
   { decision: "blocked", label: "Block dispatch" },
 ];
+const LOCAL_SERVICE_CUSTOMER_CONFIRMATION_LABELS: Record<LocalServiceCustomerConfirmationDecision, string> = {
+  not_reviewed: "Customer confirmation not reviewed",
+  draft_reviewed: "Draft reviewed",
+  consent_confirmed: "Consent confirmed for manual send",
+  needs_changes: "Needs customer copy change",
+  blocked: "Customer send blocked",
+};
+const LOCAL_SERVICE_CUSTOMER_CONFIRMATION_ACTIONS: {
+  decision: Exclude<LocalServiceCustomerConfirmationDecision, "not_reviewed">;
+  label: string;
+}[] = [
+  { decision: "draft_reviewed", label: "Mark draft reviewed" },
+  { decision: "consent_confirmed", label: "Confirm manual consent" },
+  { decision: "needs_changes", label: "Needs copy change" },
+  { decision: "blocked", label: "Block customer send" },
+];
 const LOCAL_SERVICE_FOUNDER_CONTACT_FIELD_LABELS: Record<LocalServiceFounderContactField, string> = {
   channelChecked: "Channel checked",
   manualMessageSent: "Manual sent",
@@ -994,6 +1018,16 @@ function isLocalServiceDispatchApprovalDecision(value: unknown): value is LocalS
   );
 }
 
+function isLocalServiceCustomerConfirmationDecision(value: unknown): value is LocalServiceCustomerConfirmationDecision {
+  return (
+    value === "not_reviewed" ||
+    value === "draft_reviewed" ||
+    value === "consent_confirmed" ||
+    value === "needs_changes" ||
+    value === "blocked"
+  );
+}
+
 function isLocalServiceFirstRequestOutcome(value: unknown): value is LocalServiceFirstRequestOutcome {
   return (
     value === "not_recorded" ||
@@ -1014,6 +1048,7 @@ function isLocalServicePilotActivityKind(value: unknown): value is LocalServiceP
     value === "proposal_approval" ||
     value === "kickoff_decision" ||
     value === "dispatch_approval" ||
+    value === "customer_confirmation" ||
     value === "contact_packet_review" ||
     value === "scorecard_row_review" ||
     value === "prep_review" ||
@@ -1112,6 +1147,18 @@ function readDispatchApprovalDecisionRecord(value: unknown): Record<string, Loca
     Object.entries(value as Record<string, unknown>).filter(
       (entry): entry is [string, LocalServiceDispatchApprovalDecision] =>
         isLocalServiceDispatchApprovalDecision(entry[1]),
+    ),
+  );
+}
+
+function readCustomerConfirmationDecisionRecord(
+  value: unknown,
+): Record<string, LocalServiceCustomerConfirmationDecision> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).filter(
+      (entry): entry is [string, LocalServiceCustomerConfirmationDecision] =>
+        isLocalServiceCustomerConfirmationDecision(entry[1]),
     ),
   );
 }
@@ -1237,6 +1284,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
     proposalApprovalByService: {},
     kickoffDecisionByService: {},
     dispatchApprovalByService: {},
+    customerConfirmationByService: {},
     weeklyScorecardSyncReviewedByService: {},
     messagePreviewReviewedByProspectKey: {},
     contactPacketCopiedByProspectKey: {},
@@ -1273,6 +1321,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
       proposalApprovalByService: readProposalApprovalDecisionRecord(parsed.proposalApprovalByService),
       kickoffDecisionByService: readKickoffDecisionRecord(parsed.kickoffDecisionByService),
       dispatchApprovalByService: readDispatchApprovalDecisionRecord(parsed.dispatchApprovalByService),
+      customerConfirmationByService: readCustomerConfirmationDecisionRecord(parsed.customerConfirmationByService),
       weeklyScorecardSyncReviewedByService: readBooleanRecord(parsed.weeklyScorecardSyncReviewedByService),
       messagePreviewReviewedByProspectKey: readBooleanRecord(parsed.messagePreviewReviewedByProspectKey),
       contactPacketCopiedByProspectKey: readBooleanRecord(parsed.contactPacketCopiedByProspectKey),
@@ -7815,6 +7864,57 @@ const LocalServicesDispatchDemoPanel = ({
     ["Channel", selectedTemplate.channel],
     ["Approval", selectedApproval],
   ];
+  const currentCustomerConfirmationDecision =
+    pilotWorkspaceState.customerConfirmationByService[selectedTemplate.id] ?? "not_reviewed";
+  const currentCustomerConfirmationLabel =
+    LOCAL_SERVICE_CUSTOMER_CONFIRMATION_LABELS[currentCustomerConfirmationDecision];
+  const customerConfirmationNextAction =
+    currentCustomerConfirmationDecision === "consent_confirmed"
+      ? "Copy preview for manual send after owner approval"
+      : currentCustomerConfirmationDecision === "draft_reviewed"
+        ? "Confirm consent before customer-facing send"
+        : currentCustomerConfirmationDecision === "needs_changes"
+          ? "Revise customer copy or contact details"
+          : currentCustomerConfirmationDecision === "blocked"
+            ? "Keep customer send blocked"
+            : "Review contact details and confirmation copy";
+  const customerSafeConfirmationPreviewText = [
+    "local_services_customer_safe_confirmation",
+    `Service: ${selectedTemplate.title}`,
+    `Case: ${selectedTemplate.ref}`,
+    `Customer: ${formatPayloadValue(selectedTemplate.payload.customer_name ?? "Unknown")}`,
+    `Phone: ${formatPayloadValue(selectedTemplate.payload.phone ?? "Collected by assistant")}`,
+    `District: ${formatPayloadValue(selectedTemplate.payload.district ?? "Needs confirmation")}`,
+    `Dispatch approval: ${currentDispatchApprovalLabel}`,
+    `Customer confirmation: ${currentCustomerConfirmationLabel}`,
+    `Draft: ${selectedTemplate.detail.customerConfirmation}`,
+    "Consent rule: copy this only after the operator confirms consent, owner approval, and contact details. The shell does not send SMS, Telegram, WhatsApp, email, CRM updates, payments, bookings, or dispatches.",
+  ].join("\n");
+  const customerConfirmationRows = [
+    {
+      label: "Contact status",
+      value: currentCustomerConfirmationLabel,
+      detail: "Saved under customerConfirmationByService in this browser.",
+    },
+    {
+      label: "Consent posture",
+      value:
+        currentCustomerConfirmationDecision === "consent_confirmed"
+          ? "Manual consent confirmed"
+          : "Consent required before send",
+      detail: "The product prepares a confirmation note but does not transmit it.",
+    },
+    {
+      label: "Dispatch dependency",
+      value: currentDispatchApprovalLabel,
+      detail: "Customer copy should wait for the schedule/dispatch owner approval gate.",
+    },
+    {
+      label: "Next approved action",
+      value: customerConfirmationNextAction,
+      detail: "Operator note only: no customer send, CRM write, payment, booking, or technician dispatch.",
+    },
+  ];
   const requestInboxNextAction =
     currentFirstRequestOutcome === "booked_manually"
       ? "Open schedule view after human booking"
@@ -8080,6 +8180,24 @@ const LocalServicesDispatchDemoPanel = ({
       activityLog: appendLocalServicePilotActivity(prev.activityLog, {
         kind: "dispatch_approval",
         label: "Dispatch approval decision recorded",
+        value: nextDecisionLabel,
+        serviceId: selectedTemplate.id,
+        serviceTitle: selectedTemplate.title,
+      }),
+    }));
+  };
+
+  const updateCustomerConfirmationDecision = (decision: LocalServiceCustomerConfirmationDecision) => {
+    const nextDecisionLabel = LOCAL_SERVICE_CUSTOMER_CONFIRMATION_LABELS[decision];
+    setPilotWorkspaceState((prev) => ({
+      ...prev,
+      customerConfirmationByService: {
+        ...prev.customerConfirmationByService,
+        [selectedTemplate.id]: decision,
+      },
+      activityLog: appendLocalServicePilotActivity(prev.activityLog, {
+        kind: "customer_confirmation",
+        label: "Customer confirmation decision recorded",
         value: nextDecisionLabel,
         serviceId: selectedTemplate.id,
         serviceTitle: selectedTemplate.title,
@@ -8861,6 +8979,84 @@ const LocalServicesDispatchDemoPanel = ({
                     <Button size="sm" variant="secondary" onClick={() => onOpenDispatchDrawer("customer")} className="h-8">
                       Customer drawer
                     </Button>
+                  </div>
+                  <div className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-2.5">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          Customer confirmation rail
+                        </div>
+                        <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                          Consent-safe customer confirmation state for the selected service lane. This rail records
+                          local review posture without sending a message.
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                        customerConfirmationByService
+                      </span>
+                    </div>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      {customerConfirmationRows.map((row) => (
+                        <div key={row.label} className="rounded-md border border-border/45 bg-card/25 px-2.5 py-2">
+                          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                            {row.label}
+                          </div>
+                          <div className="mt-1 text-[12px] font-medium text-foreground">{row.value}</div>
+                          <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">{row.detail}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3">
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                        Customer confirmation actions
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {LOCAL_SERVICE_CUSTOMER_CONFIRMATION_ACTIONS.map((action) => (
+                          <Button
+                            key={action.decision}
+                            size="sm"
+                            variant={currentCustomerConfirmationDecision === action.decision ? "default" : "secondary"}
+                            onClick={() => updateCustomerConfirmationDecision(action.decision)}
+                            className="h-7"
+                          >
+                            {action.label}
+                          </Button>
+                        ))}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => updateCustomerConfirmationDecision("not_reviewed")}
+                          className="h-7"
+                        >
+                          Reset customer confirmation
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="mt-3 rounded-md border border-border/45 bg-card/25 px-3 py-2.5">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                            Consent-safe confirmation preview
+                          </div>
+                          <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                            Human-readable confirmation note for manual use after consent and owner approval.
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() =>
+                            onCopyText(customerSafeConfirmationPreviewText, "Customer-safe confirmation copied")
+                          }
+                          className="h-8"
+                        >
+                          Copy customer-safe preview
+                        </Button>
+                      </div>
+                      <pre className="mt-3 max-h-44 overflow-auto rounded-md bg-background/45 p-3 font-mono text-[10.5px] leading-relaxed text-muted-foreground">
+                        {customerSafeConfirmationPreviewText}
+                      </pre>
+                    </div>
                   </div>
                 </section>
                 <section className="rounded-md border border-border/50 bg-card/25 px-3 py-3">
