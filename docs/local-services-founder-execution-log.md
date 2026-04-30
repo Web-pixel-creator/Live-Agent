@@ -20,7 +20,10 @@ Use `Pilot ops today` before each real manual action. `Copy pilot ops handoff`
 exports `local_services_pilot_ops_today`: current account, service lane, next
 manual action, and proof marker to update afterward. `Open ops confirmation`
 opens `local_services_pilot_ops_confirmation` before any proof marker is used
-for a continue/stop decision. `Pilot proof update rail` /
+for a continue/stop decision. `Open communication preview` /
+`local_services_pilot_communication_preview` shows the phone script, Telegram
+draft, WhatsApp-style draft, and approval gate before the operator contacts the
+account manually. `Pilot proof update rail` /
 `local_services_pilot_proof_update_rail` is the browser-local shortcut for the
 current account after the real manual action happens. `Current account
 mini-audit` / `local_services_current_account_mini_audit` shows the latest

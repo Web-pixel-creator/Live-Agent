@@ -761,8 +761,10 @@ operator shell with `First 10 contacts workspace`, `Pilot proof checklist`,
 `Copy founder workspace`. The controls are browser-local proof markers for
 channel check, manual send, discovery call, demo booking, and pilot candidate;
 `Pilot ops today`, `Copy pilot ops handoff`, `Open ops confirmation`,
-`local_services_pilot_ops_today`, and `local_services_pilot_ops_confirmation`
-add the one-account live execution queue and manual proof confirmation drawer;
+`local_services_pilot_ops_today`, `local_services_pilot_ops_confirmation`,
+`Open communication preview`, and `local_services_pilot_communication_preview`
+add the one-account live execution queue, manual proof confirmation drawer, and
+current-account phone/Telegram/WhatsApp preview;
 `Pilot proof update rail` and `local_services_pilot_proof_update_rail` make the
 next browser-local proof marker update explicit after the real manual action;
 `Current account mini-audit` and `local_services_current_account_mini_audit`
@@ -1021,13 +1023,15 @@ Current shell readiness for P3:
    browser-local validation controls.
 33. `Pilot ops today`, `Copy pilot ops handoff`, `Open ops confirmation`,
    `Pilot ops confirmation drawer`, `Copy ops confirmation`,
-   `local_services_pilot_ops_today`, and
-   `local_services_pilot_ops_confirmation`, `Pilot proof update rail`, and
+   `Open communication preview`, `local_services_pilot_ops_today`,
+   `local_services_pilot_ops_confirmation`,
+   `local_services_pilot_communication_preview`, `Pilot proof update rail`, and
    `local_services_pilot_proof_update_rail`, `Current account mini-audit`, and
    `local_services_current_account_mini_audit`, plus `Open account history`
    and `local_services_account_history_drawer`, are visible as the one-account
-   manual execution queue, proof confirmation drawer, browser-local proof
-   update rail, account-local audit trail, and current-account history drawer.
+   manual execution queue, proof confirmation drawer, communication preview,
+   browser-local proof update rail, account-local audit trail, and
+   current-account history drawer.
 34. `Category pilot score`, `Leading category`,
    `No category expansion without proof`, `local_services_category_pilot_score`,
    and `category_pilot_score` are visible as the category validation contract.

@@ -2242,6 +2242,153 @@ function buildLocalServiceAccountHistoryExport(
   };
 }
 
+function buildLocalServicePilotCommunicationPreview(
+  template: LocalServiceDemoTemplate,
+  row: LocalServiceFounderContactRow | undefined,
+  nextManualAction: string,
+  proofMarker: string,
+  events: LocalServicePilotActivityEvent[],
+  decisionGate: LocalServiceFounderDecisionGate,
+): LocalServicePilotWorkspaceExport {
+  const company = row?.prospect.company ?? "No account selected";
+  const segment = row?.prospect.segment ?? "unknown";
+  const statusLabel = row?.statusLabel ?? "none";
+  const latestActivity = events[0] ? `${events[0].label}: ${events[0].value}` : "No browser-local events yet";
+  const channelFit = row?.prospect.channelFit ?? "Review outreach list before choosing a channel.";
+  const scorecardFocus = row?.prospect.scorecardFocus ?? "No scorecard focus selected.";
+  const baseMessage = row
+    ? `Hi. We help ${row.serviceTitle.toLowerCase()} teams answer missed phone and Telegram requests, collect the right details, and prepare an operator-approved job card. Can I show a 7-minute demo using your current ${row.prospect.segment.toLowerCase()} workflow?`
+    : template.detail.pilotKit.outreachWizard.testMessage;
+  const phoneScript = [
+    `Opening: Hi, this is a quick founder call about ${template.title}.`,
+    `Context: I am reviewing ${company} because the lane looks like ${channelFit}.`,
+    `Ask: ${row ? row.prospect.nextStep : template.detail.pilotKit.outreachWizard.confirmationGate}`,
+    "Close: If it is useful, I can show the 7-minute demo and then you decide whether to test one manual pilot path.",
+  ];
+  const telegramDraft = row
+    ? `${baseMessage} The shell will not send this automatically; I will send it manually only after approval.`
+    : `${baseMessage} Manual send only after operator approval.`;
+  const whatsappDraft = row
+    ? `${baseMessage} If WhatsApp is easier than Telegram, I can keep the same job-card example and show the demo first.`
+    : `${baseMessage} WhatsApp-style draft for manual approval only.`;
+  const approvalGate = [
+    "Confirm this is the exact current account.",
+    "Confirm the selected channel is where the owner actually responds.",
+    "Remove private phone numbers, customer names, addresses, and payment details before copying.",
+    "Operator sends manually outside the shell only after approval.",
+    "After the real manual contact, update the proof rail and account history.",
+  ];
+  const humanLines = [
+    "Pilot communication preview: Local services current account",
+    "Export surface: local_services_pilot_communication_preview",
+    `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
+    "Account history drawer: local_services_account_history_drawer",
+    "Manual preview only. This drawer does not send Telegram, WhatsApp, SMS, email, make phone calls, create bookings, write CRM, sync analytics, bill, or mutate Markdown docs.",
+    `Current account: ${company}`,
+    `Service lane: ${row ? row.serviceTitle : template.title}`,
+    `Segment: ${segment}`,
+    `Status: ${statusLabel}`,
+    `Next manual action: ${nextManualAction}`,
+    `Proof marker to update afterward: ${proofMarker}`,
+    `Latest account activity: ${latestActivity}`,
+    `Scorecard focus: ${scorecardFocus}`,
+    `Decision gate: ${decisionGate.verdictLabel}`,
+    "",
+    "Phone script:",
+    ...phoneScript.map((line) => `- ${line}`),
+    "",
+    "Telegram draft:",
+    telegramDraft,
+    "",
+    "WhatsApp-style draft:",
+    whatsappDraft,
+    "",
+    "Approval gate:",
+    ...approvalGate.map((line) => `- ${line}`),
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_pilot_communication_preview",
+      export_kind: "manual_current_account_message_preview",
+      storage_key: LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY,
+      related_surfaces: [
+        "local_services_pilot_ops_today",
+        "local_services_pilot_proof_update_rail",
+        "local_services_account_history_drawer",
+      ],
+      current_account: row
+        ? {
+            key: row.key,
+            service_id: row.serviceId,
+            service_title: row.serviceTitle,
+            prospect_id: row.prospect.id,
+            company: row.prospect.company,
+            segment: row.prospect.segment,
+            channel_fit: row.prospect.channelFit,
+            scorecard_focus: row.prospect.scorecardFocus,
+            status: row.status,
+            status_label: row.statusLabel,
+            next_step: row.prospect.nextStep,
+          }
+        : null,
+      next_manual_action: nextManualAction,
+      proof_marker: proofMarker,
+      latest_activity: events[0] ?? null,
+      scripts: {
+        phone: phoneScript,
+        telegram: telegramDraft,
+        whatsapp: whatsappDraft,
+      },
+      approval_gate: approvalGate,
+      decision_gate: {
+        verdict: decisionGate.verdictLabel,
+        action: decisionGate.action,
+        target_lane: decisionGate.targetLane,
+      },
+      guardrails: [
+        "manual_preview_only",
+        "operator_approval_required_before_manual_send",
+        "no_outbound_message_sent",
+        "no_phone_call_started",
+        "no_booking_created",
+        "no_crm_write",
+        "no_analytics_sync",
+        "no_billing_action",
+        "no_markdown_mutation",
+      ],
+    },
+    null,
+    2,
+  );
+
+  return {
+    title: "Pilot communication preview",
+    description:
+      "Review the current account's phone script, Telegram draft, WhatsApp-style draft, and approval gate before any manual contact.",
+    eyebrow: "Communication preview",
+    modeLabel: "Communication preview mode",
+    copyLabel: "Copy communication preview",
+    reviewTitle: "Manual communication approval gate",
+    reviewDescription:
+      "This preview is safe to inspect and copy as an internal note. Real outreach still happens manually outside the shell.",
+    executionActionLabel: "Open outreach execution pack",
+    scorecardActionLabel: "Open pilot scorecard",
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: [
+      { label: "Current account", value: company },
+      { label: "Service lane", value: row ? row.serviceTitle : template.title },
+      { label: "Status", value: statusLabel },
+      { label: "Channel fit", value: channelFit },
+      { label: "Next manual action", value: nextManualAction },
+      { label: "Proof marker", value: proofMarker },
+      { label: "Latest activity", value: latestActivity },
+      { label: "Guardrail", value: "Manual preview only; no autonomous send" },
+    ],
+    checklist: approvalGate,
+  };
+}
+
 function buildLocalServiceFounderDecisionGate(
   rows: LocalServiceFounderContactRow[],
   counts: {
@@ -6084,6 +6231,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [pilotOpsConfirmationMode, setPilotOpsConfirmationMode] = useState<PlaybookExportMode>("human");
   const [accountHistoryOpen, setAccountHistoryOpen] = useState(false);
   const [accountHistoryMode, setAccountHistoryMode] = useState<PlaybookExportMode>("human");
+  const [pilotCommunicationPreviewOpen, setPilotCommunicationPreviewOpen] = useState(false);
+  const [pilotCommunicationPreviewMode, setPilotCommunicationPreviewMode] = useState<PlaybookExportMode>("human");
   const [readinessProofOpen, setReadinessProofOpen] = useState(false);
   const [readinessProofMode, setReadinessProofMode] = useState<PlaybookExportMode>("human");
   const [paidPilotProposalPreviewOpen, setPaidPilotProposalPreviewOpen] = useState(false);
@@ -6417,6 +6566,10 @@ const LocalServicesDispatchDemoPanel = ({
               : !pilotOpsTodayRow.pilotCandidate
                 ? "pilotCandidate"
                 : "founder_batch_review";
+  const pilotOpsTodayTemplate =
+    (pilotOpsTodayRow
+      ? LOCAL_SERVICE_DEMO_TEMPLATES.find((template) => template.id === pilotOpsTodayRow.serviceId)
+      : undefined) ?? selectedTemplate;
   const currentAccountHistoryEvents = pilotOpsTodayRow
     ? pilotWorkspaceState.activityLog
         .filter(
@@ -6441,6 +6594,7 @@ const LocalServicesDispatchDemoPanel = ({
     `Proof to capture: ${pilotOpsTodayProof}`,
     "Proof update rail: local_services_pilot_proof_update_rail",
     "Current account mini-audit: local_services_current_account_mini_audit",
+    "Pilot communication preview: local_services_pilot_communication_preview",
     `Mini-audit events: ${currentAccountMiniAuditSummary}`,
     `Owner next step: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.nextStep : "none"}`,
     `Batch proof progress: ${founderProofProgress}`,
@@ -6452,6 +6606,14 @@ const LocalServicesDispatchDemoPanel = ({
     pilotOpsTodayAction,
     pilotOpsTodayProof,
     founderProofProgress,
+    founderDecisionGate,
+  );
+  const pilotCommunicationPreviewExport = buildLocalServicePilotCommunicationPreview(
+    pilotOpsTodayTemplate,
+    pilotOpsTodayRow,
+    pilotOpsTodayAction,
+    pilotOpsTodayProof,
+    currentAccountHistoryEvents,
     founderDecisionGate,
   );
   const accountHistoryExport = buildLocalServiceAccountHistoryExport(
@@ -6492,6 +6654,7 @@ const LocalServicesDispatchDemoPanel = ({
     `Pilot ops proof to capture: ${pilotOpsTodayProof}`,
     "Pilot proof update rail: local_services_pilot_proof_update_rail",
     "Current account mini-audit: local_services_current_account_mini_audit",
+    "Pilot communication preview: local_services_pilot_communication_preview",
     `Current account mini-audit events: ${currentAccountMiniAuditSummary}`,
     "No category expansion without proof.",
     `Manual sends logged: ${founderContactCounts.manualMessageSent}/10`,
@@ -8160,6 +8323,16 @@ const LocalServicesDispatchDemoPanel = ({
                     className="h-7"
                   >
                     Open ops confirmation
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={!pilotOpsTodayRow}
+                    onClick={() => setPilotCommunicationPreviewOpen(true)}
+                    className="h-7"
+                  >
+                    <MessageSquareText className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                    Open communication preview
                   </Button>
                   <Button
                     size="sm"
@@ -10275,6 +10448,16 @@ const LocalServicesDispatchDemoPanel = ({
         onCopy={onCopyText}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH)}
+      />
+      <LocalServicePilotWorkspaceExportDrawer
+        open={pilotCommunicationPreviewOpen}
+        onOpenChange={setPilotCommunicationPreviewOpen}
+        exportView={pilotCommunicationPreviewExport}
+        mode={pilotCommunicationPreviewMode}
+        onModeChange={setPilotCommunicationPreviewMode}
+        onCopy={onCopyText}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+        onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
       />
       <LocalServicePilotWorkspaceExportDrawer
         open={readinessProofOpen}

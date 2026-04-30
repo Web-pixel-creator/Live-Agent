@@ -244,13 +244,15 @@ Local-services expansion spec:
   `Copy founder workspace` so the first manual validation batch can be tracked
   and exported as a reviewed browser-local note before touching private CRM or
   spreadsheets. It also shows `Pilot ops today`, `Copy pilot ops handoff`,
-  `Open ops confirmation`, `local_services_pilot_ops_today`, and
-  `local_services_pilot_ops_confirmation`, `Pilot proof update rail`, and
+  `Open ops confirmation`, `Open communication preview`,
+  `local_services_pilot_ops_today`, `local_services_pilot_ops_confirmation`,
+  `local_services_pilot_communication_preview`, `Pilot proof update rail`, and
   `local_services_pilot_proof_update_rail`, `Current account mini-audit`, and
   `local_services_current_account_mini_audit`, plus `Open account history` /
   `local_services_account_history_drawer`: one current account, one next
-  manual action, proof markers, latest account-local proof events, and the
-  browser-local proof marker to update after the real action happens. It also
+  manual action, phone/Telegram/WhatsApp preview, proof markers, latest
+  account-local proof events, and the browser-local proof marker to update
+  after the real action happens. It also
   shows `Category pilot score`, `Leading category`, and
   `No category expansion without proof` so AC, plumbing, cleaning, and
   measurement are ranked by proof rather than preference. `Leading category
