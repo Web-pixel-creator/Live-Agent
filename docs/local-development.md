@@ -62,6 +62,11 @@ operator-approved dispatch payloads, setup state, evidence drawers, and review
 drawers; they do not send, book, dispatch, or write CRM. `Requests inbox`
 contains an `Operator action rail` for browser-local request status and first
 request outcome notes only.
+`Schedule / Dispatch board` contains a `Schedule approval rail`,
+`dispatchApprovalByService` state, `Dispatch approval actions`, and a
+`Booking handoff preview`. These controls are browser-local operator notes only;
+they do not create appointments, dispatch technicians, message customers, write
+CRM, collect payment, or activate a live channel.
 3.2. The same local-services route now includes view-only pilot list controls:
 `Outreach list filters`, `Column settings`, `Service filter`, `Status filter`,
 `Filtered candidates`, `Filtered outreach list`, `All services`,

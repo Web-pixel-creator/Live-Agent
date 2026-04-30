@@ -390,6 +390,12 @@ keep the next action as an operator note and must not create an appointment,
 send a customer message, write CRM, dispatch a technician, or activate a live
 channel.
 
+`Schedule / Dispatch board` is the second actionable product view. Its
+`Schedule approval rail` can update only `dispatchApprovalByService` in the
+browser-local pilot workspace and can show a `Booking handoff preview` for a
+human owner or dispatcher. It must not create a booking, dispatch a technician,
+send a customer message, write CRM, collect payment, or activate a channel.
+
 ### Minute 1-3: Intake
 
 Show a simulated customer request:

@@ -76,6 +76,11 @@ send, booking, dispatch, payment, CRM write, or channel activation.
 and first-request outcome notes. It updates browser-local pilot workspace state
 only and is not an external send, booking, dispatch, payment, CRM write, or
 channel activation.
+`Schedule / Dispatch board` includes a `Schedule approval rail` with
+`dispatchApprovalByService`, `Dispatch approval actions`, and a `Booking
+handoff preview`. Use it to decide whether a human owner can manually confirm a
+slot; the shell still does not create the appointment, dispatch a technician,
+send a message, write CRM, collect payment, or activate channels.
 It now also exposes `Open intake evidence` and `Transcript + evidence`, which
 opens a `Saved intake evidence` drawer with `Intake transcript + evidence link`,
 `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,

@@ -523,6 +523,13 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /statusByProspectKey/);
   assert.match(liveDesk, /firstRequestOutcomeByProspectKey/);
   assert.match(liveDesk, /Reset request status/);
+  assert.match(liveDesk, /type LocalServiceDispatchApprovalDecision =/);
+  assert.match(liveDesk, /const LOCAL_SERVICE_DISPATCH_APPROVAL_LABELS:/);
+  assert.match(liveDesk, /dispatchApprovalByService/);
+  assert.match(liveDesk, /Schedule approval rail/);
+  assert.match(liveDesk, /Dispatch approval actions/);
+  assert.match(liveDesk, /Booking handoff preview/);
+  assert.match(liveDesk, /Copy schedule handoff/);
   assert.match(liveDesk, /recordingMode: boolean;/);
   assert.match(liveDesk, /recordingMode=\{localServicesRecordingMode\}/);
   assert.match(liveDesk, /90s recording/);
@@ -1199,6 +1206,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Operator action rail/);
   assert.match(readme, /statusByProspectKey/);
   assert.match(readme, /firstRequestOutcomeByProspectKey/);
+  assert.match(readme, /Schedule approval rail/);
+  assert.match(readme, /dispatchApprovalByService/);
+  assert.match(readme, /Booking handoff preview/);
   assert.match(readme, /AI Dispatcher for local service businesses/);
   assert.match(readme, /AC repair dispatch/);
   assert.match(readme, /Plumbing emergency/);
@@ -1834,6 +1844,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Review queue/);
   assert.match(operatorGuide, /Operator action rail/);
   assert.match(operatorGuide, /first-request outcome notes/);
+  assert.match(operatorGuide, /Schedule approval rail/);
+  assert.match(operatorGuide, /Dispatch approval actions/);
+  assert.match(operatorGuide, /Booking\s+handoff preview/);
   assert.match(operatorGuide, /AI Dispatcher\s+for Local Services/);
   assert.match(operatorGuide, /Start 7-minute\s+demo/);
   assert.match(operatorGuide, /Open dispatch drawer/);
@@ -3051,6 +3064,11 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /firstRequestOutcomeByProspectKey/);
   assert.match(localServicesDeveloperMap, /Operator action rail/);
   assert.match(localServicesDeveloperMap, /next approved action/);
+  assert.match(localServicesSpec, /Schedule approval\s+rail/);
+  assert.match(localServicesSpec, /dispatchApprovalByService/);
+  assert.match(localServicesSpec, /Booking handoff preview/);
+  assert.match(localServicesDeveloperMap, /Schedule approval\s+rail/);
+  assert.match(localServicesDeveloperMap, /Booking\s+handoff preview/);
 
   assert.match(pilotOffer, /# Local Services Pilot Offer/);
   assert.match(pilotOffer, /AI Dispatcher for Local Services/);

@@ -589,6 +589,12 @@ type LocalServicePilotMetricStatus = "not_started" | "baseline_captured" | "trac
 type LocalServiceWeekOneOwnerDecision = "not_recorded" | "continue" | "pause" | "stop";
 type LocalServiceProposalApprovalDecision = "not_reviewed" | "approved" | "needs_changes" | "blocked";
 type LocalServiceKickoffDecision = "not_reviewed" | "ready" | "needs_more_prep" | "blocked";
+type LocalServiceDispatchApprovalDecision =
+  | "not_reviewed"
+  | "slot_reviewed"
+  | "owner_approved"
+  | "needs_changes"
+  | "blocked";
 type LocalServiceFounderContactField =
   | "channelChecked"
   | "manualMessageSent"
@@ -604,6 +610,7 @@ type LocalServicePilotActivityKind =
   | "owner_decision"
   | "proposal_approval"
   | "kickoff_decision"
+  | "dispatch_approval"
   | "contact_packet_review"
   | "scorecard_row_review"
   | "batch_handoff_review"
@@ -629,6 +636,7 @@ type LocalServicePilotWorkspaceState = {
   weekOneOwnerDecisionByProspectKey: Record<string, LocalServiceWeekOneOwnerDecision>;
   proposalApprovalByService: Record<string, LocalServiceProposalApprovalDecision>;
   kickoffDecisionByService: Record<string, LocalServiceKickoffDecision>;
+  dispatchApprovalByService: Record<string, LocalServiceDispatchApprovalDecision>;
   weeklyScorecardSyncReviewedByService: Record<string, boolean>;
   messagePreviewReviewedByProspectKey: Record<string, boolean>;
   contactPacketCopiedByProspectKey: Record<string, boolean>;
@@ -914,6 +922,22 @@ const LOCAL_SERVICE_KICKOFF_DECISION_ACTIONS: {
   { decision: "needs_more_prep", label: "Needs more prep" },
   { decision: "blocked", label: "Block kickoff" },
 ];
+const LOCAL_SERVICE_DISPATCH_APPROVAL_LABELS: Record<LocalServiceDispatchApprovalDecision, string> = {
+  not_reviewed: "Dispatch not reviewed",
+  slot_reviewed: "Slot reviewed",
+  owner_approved: "Owner approved manual handoff",
+  needs_changes: "Needs slot or owner change",
+  blocked: "Dispatch blocked",
+};
+const LOCAL_SERVICE_DISPATCH_APPROVAL_ACTIONS: {
+  decision: Exclude<LocalServiceDispatchApprovalDecision, "not_reviewed">;
+  label: string;
+}[] = [
+  { decision: "slot_reviewed", label: "Mark slot reviewed" },
+  { decision: "owner_approved", label: "Approve manual handoff" },
+  { decision: "needs_changes", label: "Needs slot change" },
+  { decision: "blocked", label: "Block dispatch" },
+];
 const LOCAL_SERVICE_FOUNDER_CONTACT_FIELD_LABELS: Record<LocalServiceFounderContactField, string> = {
   channelChecked: "Channel checked",
   manualMessageSent: "Manual sent",
@@ -960,6 +984,16 @@ function isLocalServiceKickoffDecision(value: unknown): value is LocalServiceKic
   return value === "not_reviewed" || value === "ready" || value === "needs_more_prep" || value === "blocked";
 }
 
+function isLocalServiceDispatchApprovalDecision(value: unknown): value is LocalServiceDispatchApprovalDecision {
+  return (
+    value === "not_reviewed" ||
+    value === "slot_reviewed" ||
+    value === "owner_approved" ||
+    value === "needs_changes" ||
+    value === "blocked"
+  );
+}
+
 function isLocalServiceFirstRequestOutcome(value: unknown): value is LocalServiceFirstRequestOutcome {
   return (
     value === "not_recorded" ||
@@ -979,6 +1013,7 @@ function isLocalServicePilotActivityKind(value: unknown): value is LocalServiceP
     value === "owner_decision" ||
     value === "proposal_approval" ||
     value === "kickoff_decision" ||
+    value === "dispatch_approval" ||
     value === "contact_packet_review" ||
     value === "scorecard_row_review" ||
     value === "prep_review" ||
@@ -1067,6 +1102,16 @@ function readKickoffDecisionRecord(value: unknown): Record<string, LocalServiceK
   return Object.fromEntries(
     Object.entries(value as Record<string, unknown>).filter(
       (entry): entry is [string, LocalServiceKickoffDecision] => isLocalServiceKickoffDecision(entry[1]),
+    ),
+  );
+}
+
+function readDispatchApprovalDecisionRecord(value: unknown): Record<string, LocalServiceDispatchApprovalDecision> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).filter(
+      (entry): entry is [string, LocalServiceDispatchApprovalDecision] =>
+        isLocalServiceDispatchApprovalDecision(entry[1]),
     ),
   );
 }
@@ -1191,6 +1236,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
     weekOneOwnerDecisionByProspectKey: {},
     proposalApprovalByService: {},
     kickoffDecisionByService: {},
+    dispatchApprovalByService: {},
     weeklyScorecardSyncReviewedByService: {},
     messagePreviewReviewedByProspectKey: {},
     contactPacketCopiedByProspectKey: {},
@@ -1226,6 +1272,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
       ),
       proposalApprovalByService: readProposalApprovalDecisionRecord(parsed.proposalApprovalByService),
       kickoffDecisionByService: readKickoffDecisionRecord(parsed.kickoffDecisionByService),
+      dispatchApprovalByService: readDispatchApprovalDecisionRecord(parsed.dispatchApprovalByService),
       weeklyScorecardSyncReviewedByService: readBooleanRecord(parsed.weeklyScorecardSyncReviewedByService),
       messagePreviewReviewedByProspectKey: readBooleanRecord(parsed.messagePreviewReviewedByProspectKey),
       contactPacketCopiedByProspectKey: readBooleanRecord(parsed.contactPacketCopiedByProspectKey),
@@ -7710,6 +7757,56 @@ const LocalServicesDispatchDemoPanel = ({
       .filter(Boolean)
       .map((value) => formatPayloadValue(value))
       .join(" / ") || "operator review";
+  const currentDispatchApprovalDecision =
+    pilotWorkspaceState.dispatchApprovalByService[selectedTemplate.id] ?? "not_reviewed";
+  const currentDispatchApprovalLabel =
+    LOCAL_SERVICE_DISPATCH_APPROVAL_LABELS[currentDispatchApprovalDecision];
+  const scheduleBoardNextAction =
+    currentDispatchApprovalDecision === "owner_approved"
+      ? "Copy handoff and confirm manually outside product"
+      : currentDispatchApprovalDecision === "slot_reviewed"
+        ? "Get owner approval before customer confirmation"
+        : currentDispatchApprovalDecision === "needs_changes"
+          ? "Revise slot, owner, or customer note"
+          : currentDispatchApprovalDecision === "blocked"
+            ? "Keep request paused until operator clears blocker"
+            : "Review slot, owner, evidence, and approval policy";
+  const scheduleHandoffPreviewText = [
+    "local_services_schedule_dispatch_handoff",
+    `Service: ${selectedTemplate.title}`,
+    `Case: ${selectedTemplate.ref}`,
+    `Customer: ${formatPayloadValue(selectedTemplate.payload.customer_name ?? "Unknown")}`,
+    `Window: ${selectedScheduleWindow}`,
+    `District: ${formatPayloadValue(selectedTemplate.payload.district ?? "Needs confirmation")}`,
+    `Owner: ${formatPayloadValue(selectedTemplate.payload.operator_owner ?? "dispatch_queue")}`,
+    `Dispatch approval: ${currentDispatchApprovalLabel}`,
+    `Request status: ${currentPilotStatusLabel}`,
+    `First request outcome: ${currentFirstRequestOutcomeLabel}`,
+    `Evidence: ${selectedTemplate.evidencePath}`,
+    "Operator rule: this is a manual handoff preview only. It does not create a booking, customer send, CRM write, payment, or technician dispatch.",
+  ].join("\n");
+  const scheduleApprovalRows = [
+    {
+      label: "Slot window",
+      value: selectedScheduleWindow,
+      detail: "Prepared from the intake payload, still pending operator review.",
+    },
+    {
+      label: "Dispatch owner",
+      value: formatPayloadValue(selectedTemplate.payload.operator_owner ?? "dispatch_queue"),
+      detail: "The human owner or dispatcher who must approve before any customer-facing confirmation.",
+    },
+    {
+      label: "Approval gate",
+      value: currentDispatchApprovalLabel,
+      detail: "Saved under dispatchApprovalByService in this browser.",
+    },
+    {
+      label: "Next approved action",
+      value: scheduleBoardNextAction,
+      detail: "Operator note only: no booking, customer send, CRM write, payment, or technician dispatch.",
+    },
+  ];
   const selectedCustomerRows = [
     ["Customer", formatPayloadValue(selectedTemplate.payload.customer_name ?? "Unknown")],
     ["Phone", formatPayloadValue(selectedTemplate.payload.phone ?? "Collected by assistant")],
@@ -7968,6 +8065,24 @@ const LocalServicesDispatchDemoPanel = ({
         value: nextDecisionLabel,
         serviceId: leadingCategoryActionLayer.serviceId,
         serviceTitle: leadingCategoryActionLayer.serviceTitle,
+      }),
+    }));
+  };
+
+  const updateDispatchApprovalDecision = (decision: LocalServiceDispatchApprovalDecision) => {
+    const nextDecisionLabel = LOCAL_SERVICE_DISPATCH_APPROVAL_LABELS[decision];
+    setPilotWorkspaceState((prev) => ({
+      ...prev,
+      dispatchApprovalByService: {
+        ...prev.dispatchApprovalByService,
+        [selectedTemplate.id]: decision,
+      },
+      activityLog: appendLocalServicePilotActivity(prev.activityLog, {
+        kind: "dispatch_approval",
+        label: "Dispatch approval decision recorded",
+        value: nextDecisionLabel,
+        serviceId: selectedTemplate.id,
+        serviceTitle: selectedTemplate.title,
       }),
     }));
   };
@@ -8595,6 +8710,83 @@ const LocalServicesDispatchDemoPanel = ({
                     <Button size="sm" variant="secondary" onClick={() => onOpenPath(selectedTemplate.bundlePath)} className="h-8">
                       Open bundle
                     </Button>
+                  </div>
+                  <div className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-2.5">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          Schedule approval rail
+                        </div>
+                        <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                          Operator-only slot and dispatch decision for the selected service lane. This rail records
+                          local approval posture without creating a booking or dispatch.
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                        dispatchApprovalByService
+                      </span>
+                    </div>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      {scheduleApprovalRows.map((row) => (
+                        <div key={row.label} className="rounded-md border border-border/45 bg-card/25 px-2.5 py-2">
+                          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                            {row.label}
+                          </div>
+                          <div className="mt-1 text-[12px] font-medium text-foreground">{row.value}</div>
+                          <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">{row.detail}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3">
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                        Dispatch approval actions
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {LOCAL_SERVICE_DISPATCH_APPROVAL_ACTIONS.map((action) => (
+                          <Button
+                            key={action.decision}
+                            size="sm"
+                            variant={currentDispatchApprovalDecision === action.decision ? "default" : "secondary"}
+                            onClick={() => updateDispatchApprovalDecision(action.decision)}
+                            className="h-7"
+                          >
+                            {action.label}
+                          </Button>
+                        ))}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => updateDispatchApprovalDecision("not_reviewed")}
+                          className="h-7"
+                        >
+                          Reset dispatch approval
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="mt-3 rounded-md border border-border/45 bg-card/25 px-3 py-2.5">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                            Booking handoff preview
+                          </div>
+                          <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                            Human-readable note for a dispatcher or owner. Copying it is still manual-only and does
+                            not confirm the appointment.
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => onCopyText(scheduleHandoffPreviewText, "Schedule handoff copied")}
+                          className="h-8"
+                        >
+                          Copy schedule handoff
+                        </Button>
+                      </div>
+                      <pre className="mt-3 max-h-44 overflow-auto rounded-md bg-background/45 p-3 font-mono text-[10.5px] leading-relaxed text-muted-foreground">
+                        {scheduleHandoffPreviewText}
+                      </pre>
+                    </div>
                   </div>
                 </section>
                 <section className="rounded-md border border-border/50 bg-card/25 px-3 py-3">

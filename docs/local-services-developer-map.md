@@ -108,6 +108,12 @@ for the selected pilot account. Its buttons may update only
 `statusByProspectKey` and `firstRequestOutcomeByProspectKey`; they must not add
 external side effects.
 
+`view=schedule` has the second actionable panel contract. `Schedule approval
+rail` renders slot window, dispatch owner, approval gate, and next approved
+action. Its buttons may update only `dispatchApprovalByService`; `Booking
+handoff preview` is a manual note, not a live appointment, customer send,
+technician dispatch, CRM write, payment, or channel activation.
+
 ## Main Source Files
 
 UI implementation:

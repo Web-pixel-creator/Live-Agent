@@ -92,6 +92,9 @@ Local-services expansion spec:
   `Requests inbox` also includes an `Operator action rail` that records only
   browser-local `statusByProspectKey` and `firstRequestOutcomeByProspectKey`
   notes for the selected pilot account.
+  `Schedule / Dispatch board` includes a `Schedule approval rail`, local
+  `dispatchApprovalByService` decisions, and a `Booking handoff preview`; these
+  are manual approval notes, not live appointment or dispatch actions.
 - the same route switches the top chrome and first heading to `AI Dispatcher`
   and hides the old runtime alerts, visa demo button, case filters, case search,
   and `New case` action from the local-services header.
