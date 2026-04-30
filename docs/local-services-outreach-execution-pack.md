@@ -273,16 +273,20 @@ Allowed reply statuses:
    `local_services_pilot_communication_preview`, then show `Current account
    picker`, `local_services_current_account_picker`, `Auto next account`, and
    `Select account`; explain that this changes only the browser-local current
-   account. Then show `Current account action path` and
+   account. Then show `Current account prep checklist`,
+   `local_services_current_account_prep_checklist`, `Prep status`,
+   `Channel verified`, `Message preview reviewed`, `Proof marker selected`, and
+   `Manual-only guardrail` before `Current account action path` and
    `local_services_current_account_action_path` before `Pilot proof update rail`
    and `local_services_pilot_proof_update_rail`, plus
    `Current account mini-audit`, `local_services_current_account_mini_audit`,
    `Open account history`, and `local_services_account_history_drawer`; explain that
    the shell now chooses one current account, one next manual action, a
-   browser-local account override, phone/Telegram/WhatsApp preview, the account
-   -> preview -> manual contact -> proof -> continue gate path, the latest
-   account-local proof events, proof markers, and one proof marker to update
-   after the real action.
+   browser-local account override, phone/Telegram/WhatsApp preview,
+   channel/message/proof/guardrail prep checklist, the account -> preview ->
+   manual contact -> proof -> continue gate path, the latest account-local
+   proof events, proof markers, and one proof marker to update after the real
+   action.
 19. Show `Open discovery prep`, `Discovery call prep`, `Questions to ask`,
    `Pilot success criteria`, `Copy discovery call prep`, and
    `local_services_discovery_call_prep`; explain that this prepares the first

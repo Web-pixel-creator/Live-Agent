@@ -26,7 +26,11 @@ draft, WhatsApp-style draft, and approval gate before the operator contacts the
 account manually. `Current account picker` /
 `local_services_current_account_picker` lets the operator override the
 auto-selected current account in browser-local state only; `Auto next account`
-restores the default queue. `Current account action path` /
+restores the default queue. `Current account prep checklist` /
+`local_services_current_account_prep_checklist` shows `Prep status`,
+`Channel verified`, `Message preview reviewed`, `Proof marker selected`, and
+`Manual-only guardrail` before the operator moves into the action path.
+`Current account action path` /
 `local_services_current_account_action_path` keeps the account -> preview ->
 manual contact -> proof -> continue gate order visible before proof is marked.
 `Pilot proof update rail` /

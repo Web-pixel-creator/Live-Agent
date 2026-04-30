@@ -116,6 +116,10 @@ Do not use the pilot to build:
    approval gate before any manual contact. Use `Current account picker` /
    `local_services_current_account_picker` when the operator needs to override
    the auto-selected account; `Auto next account` returns to the default queue.
+   Check `Current account prep checklist` /
+   `local_services_current_account_prep_checklist` for `Prep status`,
+   `Channel verified`, `Message preview reviewed`, `Proof marker selected`, and
+   `Manual-only guardrail` before touching the action path.
    Check `Current account action path`
    / `local_services_current_account_action_path` to keep the account ->
    preview -> manual contact -> proof -> continue gate order visible. Use

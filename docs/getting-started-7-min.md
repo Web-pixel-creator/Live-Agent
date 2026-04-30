@@ -180,15 +180,19 @@ a redacted manual summary. `Pilot ops today`, `Copy pilot ops handoff`,
 `local_services_pilot_ops_today`, `local_services_pilot_ops_confirmation`,
 `local_services_pilot_communication_preview`, `Current account picker`,
 `local_services_current_account_picker`, `Auto next account`, `Select account`,
+`Current account prep checklist`,
+`local_services_current_account_prep_checklist`, `Prep status`,
+`Channel verified`, `Message preview reviewed`, `Proof marker selected`,
+`Manual-only guardrail`,
 `Current account action path`, `local_services_current_account_action_path`,
 `Pilot proof update rail`, and
 `local_services_pilot_proof_update_rail`, `Current account mini-audit`, and
 `local_services_current_account_mini_audit`, plus `Open account history` /
 `local_services_account_history_drawer` show the current account, next manual
 action, browser-local account override, phone/Telegram/WhatsApp preview, the
-account -> preview -> manual contact -> proof -> continue gate path, latest
-account-local proof events, and browser-local proof marker to update after the
-real action.
+channel/message/proof/guardrail prep checklist, account -> preview -> manual
+contact -> proof -> continue gate path, latest account-local proof events, and
+browser-local proof marker to update after the real action.
 `Category pilot score`,
 `Leading category`, and
 `No category expansion without proof` compare AC, plumbing, cleaning, and

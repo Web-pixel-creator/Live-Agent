@@ -768,6 +768,11 @@ current-account phone/Telegram/WhatsApp preview;
 `Current account picker`, `local_services_current_account_picker`,
 `Auto next account`, and `Select account` let the operator override the
 auto-selected current account inside browser-local state only;
+`Current account prep checklist`,
+`local_services_current_account_prep_checklist`, `Prep status`,
+`Channel verified`, `Message preview reviewed`, `Proof marker selected`, and
+`Manual-only guardrail` make the channel, preview, proof marker, and no-side-effect
+checks visible before the operator touches the action path;
 `Current account action path` and `local_services_current_account_action_path`
 make the account -> preview -> manual contact -> proof -> continue gate order
 visible before the operator touches the proof controls;
@@ -1033,14 +1038,18 @@ Current shell readiness for P3:
    `local_services_pilot_ops_confirmation`,
    `local_services_pilot_communication_preview`, `Current account picker`,
    `local_services_current_account_picker`, `Auto next account`,
-   `Select account`, `Current account action path`,
+   `Select account`, `Current account prep checklist`,
+   `local_services_current_account_prep_checklist`, `Prep status`,
+   `Channel verified`, `Message preview reviewed`, `Proof marker selected`,
+   `Manual-only guardrail`, `Current account action path`,
    `local_services_current_account_action_path`, `Pilot proof update rail`, and
    `local_services_pilot_proof_update_rail`, `Current account mini-audit`, and
    `local_services_current_account_mini_audit`, plus `Open account history`
    and `local_services_account_history_drawer`, are visible as the one-account
    manual execution queue, proof confirmation drawer, communication preview,
-   browser-local account picker, explicit action path, browser-local proof
-   update rail, account-local audit trail, and current-account history drawer.
+   browser-local account picker, prep checklist, explicit action path,
+   browser-local proof update rail, account-local audit trail, and
+   current-account history drawer.
 34. `Category pilot score`, `Leading category`,
    `No category expansion without proof`, `local_services_category_pilot_score`,
    and `category_pilot_score` are visible as the category validation contract.

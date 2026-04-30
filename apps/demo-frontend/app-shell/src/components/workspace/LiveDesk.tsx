@@ -6591,6 +6591,35 @@ const LocalServicesDispatchDemoPanel = ({
     currentAccountMiniAuditEvents.length > 0
       ? currentAccountMiniAuditEvents.map((event) => `${event.createdAt} | ${event.label}: ${event.value}`).join("; ")
       : "No browser-local events yet for this account.";
+  const pilotOpsPrepChecklistItems = [
+    {
+      label: "Channel verified",
+      state: pilotOpsTodayRow?.channelChecked ? "Ready" : "Needs check",
+      detail: pilotOpsTodayRow?.channelChecked
+        ? "Contact channel is already marked checked in browser-local proof."
+        : "Verify phone, Telegram, or WhatsApp owner channel before any message.",
+      done: pilotOpsTodayRow?.channelChecked === true,
+    },
+    {
+      label: "Message preview reviewed",
+      state: pilotOpsTodayRow?.manualMessageSent ? "Sent proof logged" : "Review first",
+      detail: "Open communication preview and keep the final contact outside the shell.",
+      done: pilotOpsTodayRow?.manualMessageSent === true,
+    },
+    {
+      label: "Proof marker selected",
+      state: pilotOpsTodayProof,
+      detail: "This is the browser-local marker to update after the real manual action.",
+      done: Boolean(pilotOpsTodayRow),
+    },
+    {
+      label: "Manual-only guardrail",
+      state: "No external side effect",
+      detail: "No send, call, booking, CRM write, analytics sync, billing, or docs mutation.",
+      done: true,
+    },
+  ];
+  const pilotOpsPrepChecklistCompleteCount = pilotOpsPrepChecklistItems.filter((item) => item.done).length;
   const pilotOpsActionPathItems = [
     {
       label: "Account",
@@ -6631,6 +6660,7 @@ const LocalServicesDispatchDemoPanel = ({
     "Manual execution view. No outbound send, CRM write, booking, billing, analytics sync, or Markdown mutation.",
     "Current account picker: local_services_current_account_picker",
     `Picker mode: ${pilotOpsAccountPickerMode}`,
+    "Current account prep checklist: local_services_current_account_prep_checklist",
     "Current account action path: local_services_current_account_action_path",
     `Current account: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "none"}`,
     `Service lane: ${pilotOpsTodayRow ? pilotOpsTodayRow.serviceTitle : "none"}`,
@@ -8486,6 +8516,45 @@ const LocalServicesDispatchDemoPanel = ({
                   Picker is browser-local only. It changes which account the preview, proof rail, and history drawer
                   inspect; it does not send, call, book, write CRM, sync analytics, bill, or mutate docs.
                 </p>
+              </div>
+              <div
+                className="mt-3 rounded-md border border-border/50 bg-background/30 px-3 py-2.5"
+                aria-label="Current account prep checklist"
+              >
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    <ClipboardCheck className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    Current account prep checklist
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex w-fit rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                      local_services_current_account_prep_checklist
+                    </span>
+                    <span className="inline-flex w-fit rounded-[5px] bg-card/45 px-2 py-1 text-[10px] text-muted-foreground">
+                      Prep status {pilotOpsPrepChecklistCompleteCount}/{pilotOpsPrepChecklistItems.length}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                  {pilotOpsPrepChecklistItems.map((item) => (
+                    <div
+                      key={item.label}
+                      className={`rounded-[5px] border px-2 py-2 text-[11px] ${
+                        item.done
+                          ? "border-[hsl(var(--tint-mint)/0.22)] bg-[hsl(var(--tint-mint)/0.10)]"
+                          : "border-[hsl(var(--tint-amber)/0.24)] bg-[hsl(var(--tint-amber)/0.10)]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-foreground">{item.label}</span>
+                        <span className="rounded-[4px] bg-background/45 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                          {item.state}
+                        </span>
+                      </div>
+                      <p className="mt-1.5 leading-relaxed text-muted-foreground">{item.detail}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
               <div
                 className="mt-3 rounded-md border border-border/50 bg-background/30 px-3 py-2.5"
