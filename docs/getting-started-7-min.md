@@ -188,7 +188,8 @@ a redacted manual summary. `Pilot ops today`, `Copy pilot ops handoff`,
 `Prep gate`, `local_services_current_account_prep_gate`, `Blocked by prep`,
 `Current account contact packet`,
 `local_services_current_account_contact_packet`, `Ready for manual contact`,
-`Copy contact packet`,
+`Copy contact packet`, `Packet copied`, `Reset packet review`,
+`contactPacketCopiedByProspectKey`, `Packet needed`,
 `Current account action path`, `local_services_current_account_action_path`,
 `Pilot proof update rail`, and
 `local_services_pilot_proof_update_rail`, `Current account mini-audit`, and

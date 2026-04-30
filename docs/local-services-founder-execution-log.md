@@ -36,7 +36,9 @@ only. `Prep gate` / `local_services_current_account_prep_gate` shows
 `Blocked by prep` until those checks are complete. `Current account contact
 packet` / `local_services_current_account_contact_packet` shows
 `Ready for manual contact` and enables `Copy contact packet` only as a
-manual-only human handoff.
+manual-only human handoff; `Packet copied`, `Reset packet review`,
+`contactPacketCopiedByProspectKey`, and `Packet needed` keep manual-send proof
+blocked until the packet was copied.
 `Current account action path` /
 `local_services_current_account_action_path` keeps the account -> preview ->
 manual contact -> proof -> continue gate order visible before proof is marked.

@@ -779,8 +779,10 @@ browser-local prep state only; `Prep gate`,
 `local_services_current_account_prep_gate`, and `Blocked by prep` make manual
 contact visibly blocked until that prep is complete; `Current account contact
 packet`, `local_services_current_account_contact_packet`, `Ready for manual
-contact`, and `Copy contact packet` give the human operator a copyable
-manual-only handoff after prep is complete;
+contact`, `Copy contact packet`, `Packet copied`, `Reset packet review`,
+`contactPacketCopiedByProspectKey`, and `Packet needed` give the human operator
+a copyable manual-only handoff after prep is complete and keep manual-send proof
+blocked until the packet is copied;
 `Current account action path` and `local_services_current_account_action_path`
 make the account -> preview -> manual contact -> proof -> continue gate order
 visible before the operator touches the proof controls;
@@ -1054,7 +1056,8 @@ Current shell readiness for P3:
    `Prep gate`, `local_services_current_account_prep_gate`, `Blocked by prep`,
    `Current account contact packet`,
    `local_services_current_account_contact_packet`, `Ready for manual contact`,
-   `Copy contact packet`,
+   `Copy contact packet`, `Packet copied`, `Reset packet review`,
+   `contactPacketCopiedByProspectKey`, `Packet needed`,
    `Current account action path`,
    `local_services_current_account_action_path`, `Pilot proof update rail`, and
    `local_services_pilot_proof_update_rail`, `Current account mini-audit`, and

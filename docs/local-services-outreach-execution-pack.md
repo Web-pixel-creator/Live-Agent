@@ -281,7 +281,8 @@ Allowed reply statuses:
    show `Prep gate`, `local_services_current_account_prep_gate`, and
    `Blocked by prep`; once it is ready, show `Current account contact packet`,
    `local_services_current_account_contact_packet`, `Ready for manual contact`,
-   and `Copy contact packet` before
+   `Copy contact packet`, `Packet copied`, `Reset packet review`,
+   `contactPacketCopiedByProspectKey`, and `Packet needed` before
    `Current account action path` and
    `local_services_current_account_action_path` before `Pilot proof update rail`
    and `local_services_pilot_proof_update_rail`, plus

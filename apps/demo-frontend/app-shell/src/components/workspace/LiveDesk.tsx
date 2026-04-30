@@ -583,6 +583,7 @@ type LocalServicePilotActivityKind =
   | "owner_decision"
   | "proposal_approval"
   | "kickoff_decision"
+  | "contact_packet_review"
   | "prep_review"
   | "weekly_sync_review";
 type LocalServicePilotActivityEvent = {
@@ -607,6 +608,7 @@ type LocalServicePilotWorkspaceState = {
   kickoffDecisionByService: Record<string, LocalServiceKickoffDecision>;
   weeklyScorecardSyncReviewedByService: Record<string, boolean>;
   messagePreviewReviewedByProspectKey: Record<string, boolean>;
+  contactPacketCopiedByProspectKey: Record<string, boolean>;
   metricStatusByService: Record<string, LocalServicePilotMetricStatus>;
   setupStepCompletionByService: Record<string, LocalServiceSetupStepCompletion>;
   setupReadyByService: Record<string, boolean>;
@@ -943,6 +945,7 @@ function isLocalServicePilotActivityKind(value: unknown): value is LocalServiceP
     value === "owner_decision" ||
     value === "proposal_approval" ||
     value === "kickoff_decision" ||
+    value === "contact_packet_review" ||
     value === "prep_review" ||
     value === "weekly_sync_review"
   );
@@ -1155,6 +1158,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
     kickoffDecisionByService: {},
     weeklyScorecardSyncReviewedByService: {},
     messagePreviewReviewedByProspectKey: {},
+    contactPacketCopiedByProspectKey: {},
     metricStatusByService: {},
     setupStepCompletionByService: {},
     setupReadyByService: {},
@@ -1187,6 +1191,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
       kickoffDecisionByService: readKickoffDecisionRecord(parsed.kickoffDecisionByService),
       weeklyScorecardSyncReviewedByService: readBooleanRecord(parsed.weeklyScorecardSyncReviewedByService),
       messagePreviewReviewedByProspectKey: readBooleanRecord(parsed.messagePreviewReviewedByProspectKey),
+      contactPacketCopiedByProspectKey: readBooleanRecord(parsed.contactPacketCopiedByProspectKey),
       metricStatusByService: readPilotMetricStatusRecord(parsed.metricStatusByService),
       setupStepCompletionByService: readSetupStepCompletionByService(parsed.setupStepCompletionByService),
       setupReadyByService: readBooleanRecord(parsed.setupReadyByService),
@@ -6631,19 +6636,31 @@ const LocalServicesDispatchDemoPanel = ({
   ];
   const pilotOpsPrepChecklistCompleteCount = pilotOpsPrepChecklistItems.filter((item) => item.done).length;
   const pilotOpsPrepComplete = pilotOpsPrepChecklistCompleteCount === pilotOpsPrepChecklistItems.length;
-  const currentAccountContactPacketStatus = pilotOpsPrepComplete ? "Ready for manual contact" : "Blocked by prep";
+  const currentAccountContactPacketCopied =
+    Boolean(pilotOpsTodayRow) && pilotWorkspaceState.contactPacketCopiedByProspectKey[pilotOpsTodayRow.key] === true;
+  const currentAccountContactPacketStatus = !pilotOpsTodayRow
+    ? "Blocked by account"
+    : !pilotOpsPrepComplete
+      ? "Blocked by prep"
+      : currentAccountContactPacketCopied
+        ? "Packet copied"
+        : "Ready for manual contact";
   const currentAccountContactPacketRows = [
     {
       label: "Packet status",
       value: currentAccountContactPacketStatus,
     },
     {
-      label: "Channel fit",
-      value: pilotOpsTodayRow?.prospect.channelFit ?? "Select an account before preparing contact.",
+      label: "Packet copy",
+      value: currentAccountContactPacketCopied
+        ? "Copied to operator handoff."
+        : pilotOpsPrepComplete
+          ? "Not copied yet."
+          : "Waiting for prep.",
     },
     {
-      label: "Scorecard focus",
-      value: pilotOpsTodayRow?.prospect.scorecardFocus ?? "No scorecard focus selected.",
+      label: "Channel fit",
+      value: pilotOpsTodayRow?.prospect.channelFit ?? "Select an account before preparing contact.",
     },
     {
       label: "After contact",
@@ -6666,6 +6683,20 @@ const LocalServicesDispatchDemoPanel = ({
       tone: pilotOpsPrepComplete ? "ready" : "blocked",
     },
     {
+      label: "Contact packet",
+      state: currentAccountContactPacketCopied
+        ? "Copied"
+        : pilotOpsPrepComplete
+          ? "Ready"
+          : "Blocked",
+      detail: currentAccountContactPacketCopied
+        ? "Operator has copied the manual-only packet for this account."
+        : pilotOpsPrepComplete
+          ? "Copy the contact packet before leaving the product for manual contact."
+          : "Prep gate must pass before the packet can be used.",
+      tone: currentAccountContactPacketCopied ? "ready" : pilotOpsPrepComplete ? "active" : "blocked",
+    },
+    {
       label: "Preview",
       state: currentAccountMessagePreviewReviewed ? "Reviewed" : "Current",
       detail: "Open communication preview before any phone, Telegram, or WhatsApp action.",
@@ -6675,15 +6706,19 @@ const LocalServicesDispatchDemoPanel = ({
       label: "Manual contact",
       state: pilotOpsTodayRow?.manualMessageSent
         ? "Logged"
-        : pilotOpsPrepComplete
+        : currentAccountContactPacketCopied
           ? "Manual-only"
-          : "Blocked by prep",
+          : pilotOpsPrepComplete
+            ? "Packet needed"
+            : "Blocked by prep",
       detail: pilotOpsTodayRow?.manualMessageSent
         ? "Manual send proof is already browser-local."
-        : pilotOpsPrepComplete
+        : currentAccountContactPacketCopied
           ? "Human sends or calls outside the shell only."
+          : pilotOpsPrepComplete
+            ? "Copy the contact packet before the human contacts this account."
           : "Complete prep before the human contacts this account.",
-      tone: pilotOpsTodayRow?.manualMessageSent ? "ready" : pilotOpsPrepComplete ? "active" : "blocked",
+      tone: pilotOpsTodayRow?.manualMessageSent ? "ready" : currentAccountContactPacketCopied ? "active" : "blocked",
     },
     {
       label: "Proof marker",
@@ -6710,6 +6745,8 @@ const LocalServicesDispatchDemoPanel = ({
     "Current account prep gate: local_services_current_account_prep_gate",
     "Current account contact packet: local_services_current_account_contact_packet",
     `Contact packet status: ${currentAccountContactPacketStatus}`,
+    `Contact packet copied: ${currentAccountContactPacketCopied ? "yes" : "no"}`,
+    "Contact packet state: contactPacketCopiedByProspectKey",
     "Current account action path: local_services_current_account_action_path",
     `Current account: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "none"}`,
     `Service lane: ${pilotOpsTodayRow ? pilotOpsTodayRow.serviceTitle : "none"}`,
@@ -6731,6 +6768,8 @@ const LocalServicesDispatchDemoPanel = ({
     `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
     "Manual-only contact packet. It does not send outreach, start a call, create a booking, write CRM, sync analytics, bill, or mutate Markdown docs.",
     `Packet status: ${currentAccountContactPacketStatus}`,
+    `Packet copied: ${currentAccountContactPacketCopied ? "yes" : "no"}`,
+    "State field: contactPacketCopiedByProspectKey",
     `Prep complete: ${pilotOpsPrepComplete ? "yes" : "no"} (${pilotOpsPrepChecklistCompleteCount}/${pilotOpsPrepChecklistItems.length})`,
     `Current account: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "none"}`,
     `Service lane: ${pilotOpsTodayRow ? pilotOpsTodayRow.serviceTitle : "none"}`,
@@ -7512,6 +7551,31 @@ const LocalServicesDispatchDemoPanel = ({
       }),
     }));
   };
+  const updateCurrentAccountContactPacketCopied = (copied: boolean) => {
+    if (!pilotOpsTodayRow) return;
+    const row = pilotOpsTodayRow;
+    setPilotWorkspaceState((prev) => ({
+      ...prev,
+      contactPacketCopiedByProspectKey: {
+        ...prev.contactPacketCopiedByProspectKey,
+        [row.key]: copied,
+      },
+      activityLog: appendLocalServicePilotActivity(prev.activityLog, {
+        kind: "contact_packet_review",
+        label: "Current account contact packet reviewed",
+        value: copied ? "Contact packet copied" : "Contact packet review reset",
+        serviceId: row.serviceId,
+        serviceTitle: row.serviceTitle,
+        prospectId: row.prospect.id,
+        company: row.prospect.company,
+      }),
+    }));
+  };
+  const copyCurrentAccountContactPacket = () => {
+    if (!pilotOpsTodayRow || !pilotOpsPrepComplete) return;
+    updateCurrentAccountContactPacketCopied(true);
+    onCopyText(currentAccountContactPacketText, "Current account contact packet copied");
+  };
   const pilotOpsProofRailActions = pilotOpsTodayRow
     ? [
         {
@@ -7523,9 +7587,14 @@ const LocalServicesDispatchDemoPanel = ({
         },
         {
           label: "Mark manual sent",
-          stateLabel: pilotOpsTodayRow.manualMessageSent ? "Recorded" : "Needed",
+          stateLabel: pilotOpsTodayRow.manualMessageSent
+            ? "Recorded"
+            : currentAccountContactPacketCopied
+              ? "Needed"
+              : "Packet needed",
           active: pilotOpsTodayRow.manualMessageSent,
           recommended: pilotOpsTodayProof === "manualMessageSent",
+          disabled: !currentAccountContactPacketCopied && !pilotOpsTodayRow.manualMessageSent,
           onClick: () =>
             updateFounderContactProof(pilotOpsTodayRow, "manualMessageSent", !pilotOpsTodayRow.manualMessageSent),
         },
@@ -8715,11 +8784,21 @@ const LocalServicesDispatchDemoPanel = ({
                       size="sm"
                       variant={pilotOpsPrepComplete ? "default" : "secondary"}
                       disabled={!pilotOpsTodayRow || !pilotOpsPrepComplete}
-                      onClick={() => onCopyText(currentAccountContactPacketText, "Current account contact packet copied")}
+                      onClick={copyCurrentAccountContactPacket}
                       className="h-7"
                     >
                       Copy contact packet
                     </Button>
+                    {currentAccountContactPacketCopied && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => updateCurrentAccountContactPacketCopied(false)}
+                        className="h-7"
+                      >
+                        Reset packet review
+                      </Button>
+                    )}
                   </div>
                 </div>
                 <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
@@ -8755,6 +8834,7 @@ const LocalServicesDispatchDemoPanel = ({
                       key={action.label}
                       size="sm"
                       variant={action.active || action.recommended ? "default" : "secondary"}
+                      disabled={"disabled" in action ? action.disabled : false}
                       onClick={action.onClick}
                       className="h-7"
                     >
