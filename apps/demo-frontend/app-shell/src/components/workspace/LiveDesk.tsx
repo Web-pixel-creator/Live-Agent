@@ -7718,6 +7718,40 @@ const LocalServicesDispatchDemoPanel = ({
     ["Channel", selectedTemplate.channel],
     ["Approval", selectedApproval],
   ];
+  const requestInboxNextAction =
+    currentFirstRequestOutcome === "booked_manually"
+      ? "Open schedule view after human booking"
+      : currentFirstRequestOutcome === "qualified" || currentPilotStatus === "reply_received"
+        ? "Prepare discovery call handoff"
+        : currentFirstRequestOutcome === "needs_follow_up"
+          ? "Keep follow-up in manual queue"
+          : currentPilotStatus === "contacted_manually"
+            ? "Wait for owner reply"
+            : currentPilotStatus === "draft_ready"
+              ? "Manual contact outside product"
+              : "Review request and record draft";
+  const requestInboxActionRows = [
+    {
+      label: "Selected pilot account",
+      value: selectedOutreachProspect?.company ?? "No pilot account selected",
+      detail: selectedOutreachProspect?.nextStep ?? "Pick a company in the scorecard before outreach.",
+    },
+    {
+      label: "Request status",
+      value: currentPilotStatusLabel,
+      detail: "Saved under statusByProspectKey in this browser.",
+    },
+    {
+      label: "First request outcome",
+      value: currentFirstRequestOutcomeLabel,
+      detail: "Saved under firstRequestOutcomeByProspectKey in this browser.",
+    },
+    {
+      label: "Next approved action",
+      value: requestInboxNextAction,
+      detail: "Operator note only: no customer send, CRM write, calendar booking, or technician dispatch.",
+    },
+  ];
   const activeProductViewMeta: Record<
     LocalServiceProductView,
     {
@@ -8412,6 +8446,85 @@ const LocalServicesDispatchDemoPanel = ({
                     <Button size="sm" variant="secondary" onClick={() => setIntakeEvidenceOpen(true)} className="h-8">
                       Open intake evidence
                     </Button>
+                  </div>
+                  <div className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-2.5">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          Operator action rail
+                        </div>
+                        <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                          Browser-local request state for the selected pilot account. These controls do not send
+                          messages, write CRM, create bookings, or dispatch a technician.
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                        local only
+                      </span>
+                    </div>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      {requestInboxActionRows.map((row) => (
+                        <div key={row.label} className="rounded-md border border-border/45 bg-card/25 px-2.5 py-2">
+                          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                            {row.label}
+                          </div>
+                          <div className="mt-1 text-[12px] font-medium text-foreground">{row.value}</div>
+                          <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">{row.detail}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3">
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                        Status actions
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {LOCAL_SERVICE_PILOT_STATUS_ACTIONS.map((action) => (
+                          <Button
+                            key={action.status}
+                            size="sm"
+                            variant={currentPilotStatus === action.status ? "default" : "secondary"}
+                            onClick={() => updatePilotWorkspaceStatus(action.status)}
+                            className="h-7"
+                          >
+                            {action.label}
+                          </Button>
+                        ))}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => updatePilotWorkspaceStatus("not_contacted")}
+                          className="h-7"
+                        >
+                          Reset request status
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                        First request outcome
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_ACTIONS.map((action) => (
+                          <Button
+                            key={action.outcome}
+                            size="sm"
+                            variant={currentFirstRequestOutcome === action.outcome ? "default" : "secondary"}
+                            onClick={() => updateFirstRequestOutcome(action.outcome)}
+                            className="h-7"
+                          >
+                            {action.label}
+                          </Button>
+                        ))}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => updateFirstRequestOutcome("not_recorded")}
+                          className="h-7"
+                        >
+                          Reset outcome
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </section>
                 <section className="rounded-md border border-border/50 bg-card/25 px-3 py-3">

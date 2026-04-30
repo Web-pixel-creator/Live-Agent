@@ -517,6 +517,12 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Customer directory/);
   assert.match(liveDesk, /Knowledge setup state/);
   assert.match(liveDesk, /Review queue/);
+  assert.match(liveDesk, /const requestInboxNextAction =/);
+  assert.match(liveDesk, /const requestInboxActionRows =/);
+  assert.match(liveDesk, /Operator action rail/);
+  assert.match(liveDesk, /statusByProspectKey/);
+  assert.match(liveDesk, /firstRequestOutcomeByProspectKey/);
+  assert.match(liveDesk, /Reset request status/);
   assert.match(liveDesk, /recordingMode: boolean;/);
   assert.match(liveDesk, /recordingMode=\{localServicesRecordingMode\}/);
   assert.match(liveDesk, /90s recording/);
@@ -1190,6 +1196,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Customer directory/);
   assert.match(readme, /Knowledge setup state/);
   assert.match(readme, /Review queue/);
+  assert.match(readme, /Operator action rail/);
+  assert.match(readme, /statusByProspectKey/);
+  assert.match(readme, /firstRequestOutcomeByProspectKey/);
   assert.match(readme, /AI Dispatcher for local service businesses/);
   assert.match(readme, /AC repair dispatch/);
   assert.match(readme, /Plumbing emergency/);
@@ -1823,6 +1832,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Customer directory/);
   assert.match(operatorGuide, /Knowledge setup state/);
   assert.match(operatorGuide, /Review queue/);
+  assert.match(operatorGuide, /Operator action rail/);
+  assert.match(operatorGuide, /first-request outcome notes/);
   assert.match(operatorGuide, /AI Dispatcher\s+for Local Services/);
   assert.match(operatorGuide, /Start 7-minute\s+demo/);
   assert.match(operatorGuide, /Open dispatch drawer/);
@@ -3035,6 +3046,11 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /`view=customers`/);
   assert.match(localServicesSpec, /`view=setup`/);
   assert.match(localServicesSpec, /`view=reviews`/);
+  assert.match(localServicesSpec, /Operator action\s+rail/);
+  assert.match(localServicesSpec, /statusByProspectKey/);
+  assert.match(localServicesSpec, /firstRequestOutcomeByProspectKey/);
+  assert.match(localServicesDeveloperMap, /Operator action rail/);
+  assert.match(localServicesDeveloperMap, /next approved action/);
 
   assert.match(pilotOffer, /# Local Services Pilot Offer/);
   assert.match(pilotOffer, /AI Dispatcher for Local Services/);

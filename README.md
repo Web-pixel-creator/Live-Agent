@@ -89,6 +89,9 @@ Local-services expansion spec:
   and `view=reviews` opens `Review queue`. These states are view-only product
   panels layered over the same operator-approved payload, evidence, setup, and
   review drawers; they do not send, book, dispatch, or write CRM.
+  `Requests inbox` also includes an `Operator action rail` that records only
+  browser-local `statusByProspectKey` and `firstRequestOutcomeByProspectKey`
+  notes for the selected pilot account.
 - the same route switches the top chrome and first heading to `AI Dispatcher`
   and hides the old runtime alerts, visa demo button, case filters, case search,
   and `New case` action from the local-services header.

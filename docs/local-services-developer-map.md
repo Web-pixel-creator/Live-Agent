@@ -102,6 +102,12 @@ operator panel over the existing local-services demo data and browser-local
 state. They must not send, book, dispatch, bill, write CRM, activate a channel,
 or mutate the Markdown docs.
 
+`view=requests` has the first actionable panel contract. `Operator action rail`
+renders local request status, first-request outcome, and next approved action
+for the selected pilot account. Its buttons may update only
+`statusByProspectKey` and `firstRequestOutcomeByProspectKey`; they must not add
+external side effects.
+
 ## Main Source Files
 
 UI implementation:

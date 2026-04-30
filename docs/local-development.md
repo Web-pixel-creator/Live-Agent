@@ -59,7 +59,9 @@ local-services header.
 `setup=7min&view=setup` opens `Knowledge setup state`, and `view=reviews`
 opens `Review queue`. They are browser-local, view-only panels over the same
 operator-approved dispatch payloads, setup state, evidence drawers, and review
-drawers; they do not send, book, dispatch, or write CRM.
+drawers; they do not send, book, dispatch, or write CRM. `Requests inbox`
+contains an `Operator action rail` for browser-local request status and first
+request outcome notes only.
 3.2. The same local-services route now includes view-only pilot list controls:
 `Outreach list filters`, `Column settings`, `Service filter`, `Status filter`,
 `Filtered candidates`, `Filtered outreach list`, `All services`,

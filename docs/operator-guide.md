@@ -72,6 +72,10 @@ Product view states are available from the same sidebar: `Requests inbox`,
 `view=customers`, `setup=7min&view=setup`, `view=reviews`) and are safe for demo
 navigation because they only change the visible panel; they do not trigger a
 send, booking, dispatch, payment, CRM write, or channel activation.
+`Requests inbox` includes an `Operator action rail` for local request status
+and first-request outcome notes. It updates browser-local pilot workspace state
+only and is not an external send, booking, dispatch, payment, CRM write, or
+channel activation.
 It now also exposes `Open intake evidence` and `Transcript + evidence`, which
 opens a `Saved intake evidence` drawer with `Intake transcript + evidence link`,
 `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,

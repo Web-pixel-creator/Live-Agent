@@ -383,6 +383,13 @@ payload previews, setup state, evidence drawers, and review drawers. They must
 not send messages, create bookings, dispatch a master, collect payment, write
 CRM, activate phone/Telegram/WhatsApp, or mutate Markdown docs.
 
+`Requests inbox` is the first actionable product view. Its `Operator action
+rail` can update only `statusByProspectKey` and
+`firstRequestOutcomeByProspectKey` in the browser-local pilot workspace. It must
+keep the next action as an operator note and must not create an appointment,
+send a customer message, write CRM, dispatch a technician, or activate a live
+channel.
+
 ### Minute 1-3: Intake
 
 Show a simulated customer request:
