@@ -1157,9 +1157,13 @@ Current shell readiness for P3:
    week-one review handoff contract.
 50. `contactProofByProspectKey` and `Founder proof recorded` are present in the
    browser-local pilot workspace contract, without any external side effect.
-51. `local_services_first_contact_batch_review`, `founder_manual_validation_review`,
-   and `no_booking_created` are present in the first-batch review export
-   contract.
+51. `local_services_first_contact_batch_review`,
+   `founder_manual_validation_review`, `First-contact batch review rows`,
+   `review_decision`, `scorecard_row_copied`, `batch_handoff_copied`, and
+   `no_booking_created` are present in the first-batch review export contract.
+   The drawer shows the operator-ready row contract as
+   `Account -> Lane -> Scorecard row -> Batch handoff -> Proof -> Decision`
+   before continue, pause, stop, CRM, or weekly scorecard decisions.
 52. `/workspace-docs/local-services-pilot-runbook.md` resolves to the repo-owned
    14-day pilot runbook from the same local frontend server.
 53. `/workspace-docs/local-services-outreach-execution-pack.md` resolves to the

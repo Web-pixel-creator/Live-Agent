@@ -1020,6 +1020,11 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /day_one_recap_to_week_one_review/);
   assert.match(liveDesk, /local_services_first_contact_batch_review/);
   assert.match(liveDesk, /founder_manual_validation_review/);
+  assert.match(liveDesk, /First-contact batch review rows/);
+  assert.match(liveDesk, /review_decision/);
+  assert.match(liveDesk, /scorecard_row_copied/);
+  assert.match(liveDesk, /batch_handoff_copied/);
+  assert.match(liveDesk, /Batch handoff needed/);
   assert.match(liveDesk, /no_booking_created/);
   assert.match(liveDesk, /Copy founder workspace/);
   assert.match(liveDesk, /Founder proof recorded/);
@@ -1371,6 +1376,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /local_services_current_account_batch_review_handoff/);
   assert.match(readme, /Copy batch\s+handoff/);
   assert.match(readme, /batchReviewHandoffCopiedByProspectKey/);
+  assert.match(readme, /First-contact batch review\s+rows/);
+  assert.match(readme, /review_decision/);
   assert.match(readme, /Pilot\s+proof update rail/);
   assert.match(readme, /local_services_pilot_proof_update_rail/);
   assert.match(readme, /Current account mini-audit/);
@@ -1968,6 +1975,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /local_services_current_account_batch_review_handoff/);
   assert.match(operatorGuide, /Copy batch\s+handoff/);
   assert.match(operatorGuide, /batchReviewHandoffCopiedByProspectKey/);
+  assert.match(operatorGuide, /First-contact batch review\s+rows/);
+  assert.match(operatorGuide, /review_decision/);
   assert.match(operatorGuide, /Pilot\s+proof update rail/);
   assert.match(operatorGuide, /local_services_pilot_proof_update_rail/);
   assert.match(operatorGuide, /Current account mini-audit/);
@@ -2250,6 +2259,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /local_services_current_account_batch_review_handoff/);
   assert.match(simplificationPlan, /Copy batch\s+handoff/);
   assert.match(simplificationPlan, /batchReviewHandoffCopiedByProspectKey/);
+  assert.match(simplificationPlan, /First-contact batch review\s+rows/);
+  assert.match(simplificationPlan, /review_decision/);
   assert.match(simplificationPlan, /Pilot\s+proof update rail/);
   assert.match(simplificationPlan, /local_services_pilot_proof_update_rail/);
   assert.match(simplificationPlan, /Current account mini-audit/);
@@ -2533,6 +2544,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /local_services_current_account_batch_review_handoff/);
   assert.match(gettingStarted, /Copy batch\s+handoff/);
   assert.match(gettingStarted, /batchReviewHandoffCopiedByProspectKey/);
+  assert.match(gettingStarted, /First-contact batch review\s+rows/);
+  assert.match(gettingStarted, /review_decision/);
   assert.match(gettingStarted, /Pilot\s+proof update rail/);
   assert.match(gettingStarted, /local_services_pilot_proof_update_rail/);
   assert.match(gettingStarted, /Current account mini-audit/);
@@ -2879,6 +2892,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /Founder proof recorded/);
   assert.match(localServicesSpec, /local_services_first_contact_batch_review/);
   assert.match(localServicesSpec, /founder_manual_validation_review/);
+  assert.match(localServicesSpec, /First-contact batch review\s+rows/);
+  assert.match(localServicesSpec, /review_decision/);
+  assert.match(localServicesSpec, /scorecard_row_copied/);
+  assert.match(localServicesSpec, /batch_handoff_copied/);
   assert.match(localServicesSpec, /no_booking_created/);
   assert.match(localServicesSpec, /Category pilot score/);
   assert.match(localServicesSpec, /Leading category/);
@@ -3449,6 +3466,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotRunbook, /local_services_current_account_batch_review_handoff/);
   assert.match(pilotRunbook, /Copy batch\s+handoff/);
   assert.match(pilotRunbook, /batchReviewHandoffCopiedByProspectKey/);
+  assert.match(pilotRunbook, /First-contact batch review\s+rows/);
+  assert.match(pilotRunbook, /review_decision/);
   assert.match(pilotRunbook, /Pilot\s+proof update rail/);
   assert.match(pilotRunbook, /local_services_pilot_proof_update_rail/);
   assert.match(pilotRunbook, /Current account\s+mini-audit/);
@@ -3598,6 +3617,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(founderExecutionLog, /local_services_current_account_batch_review_handoff/);
   assert.match(founderExecutionLog, /Copy batch\s+handoff/);
   assert.match(founderExecutionLog, /batchReviewHandoffCopiedByProspectKey/);
+  assert.match(founderExecutionLog, /First-contact batch review\s+rows/);
+  assert.match(founderExecutionLog, /review_decision/);
   assert.match(founderExecutionLog, /Pilot\s+proof update rail/);
   assert.match(founderExecutionLog, /local_services_pilot_proof_update_rail/);
   assert.match(founderExecutionLog, /Current account\s+mini-audit/);
@@ -3697,6 +3718,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(outreachExecutionPack, /local_services_current_account_batch_review_handoff/);
   assert.match(outreachExecutionPack, /Copy batch\s+handoff/);
   assert.match(outreachExecutionPack, /batchReviewHandoffCopiedByProspectKey/);
+  assert.match(outreachExecutionPack, /First-contact batch review\s+rows/);
+  assert.match(outreachExecutionPack, /review_decision/);
   assert.match(outreachExecutionPack, /Pilot\s+proof update rail/);
   assert.match(outreachExecutionPack, /local_services_pilot_proof_update_rail/);
   assert.match(outreachExecutionPack, /Current account\s+mini-audit/);

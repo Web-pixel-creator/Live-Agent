@@ -15,7 +15,10 @@ workspace stores only browser-local proof markers in
 bookings, write CRM, sync analytics, bill, or mutate this Markdown file.
 Use `Open batch review` in that workspace to open the `First contact batch
 review drawer` and `Copy batch review` only after the browser-local markers
-match the private founder notes.
+match the private founder notes. The drawer shows `First-contact batch review
+rows` as `Account -> Lane -> Scorecard row -> Batch handoff -> Proof ->
+Decision`, and its JSON carries `review_decision`, `scorecard_row_copied`, and
+`batch_handoff_copied`.
 Use `Pilot ops today` before each real manual action. `Copy pilot ops handoff`
 exports `local_services_pilot_ops_today`: current account, service lane, next
 manual action, and proof marker to update afterward. `Open ops confirmation`

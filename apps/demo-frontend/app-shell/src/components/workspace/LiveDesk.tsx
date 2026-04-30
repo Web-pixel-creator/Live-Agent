@@ -395,6 +395,7 @@ type PlaybookOperatorExport = {
   humanText: string;
   jsonText: string;
   rows: { label: string; value: string }[];
+  batchReviewRows?: LocalServiceFirstContactBatchReviewRow[];
   checklist: string[];
 };
 
@@ -771,6 +772,15 @@ type LocalServicePilotExecutionStep = {
   owner: string;
   detail: string;
   done: boolean;
+};
+
+type LocalServiceFirstContactBatchReviewRow = {
+  company: string;
+  service: string;
+  scorecardRow: string;
+  batchHandoff: string;
+  proof: string;
+  decision: string;
 };
 
 const LOCAL_SERVICES_PILOT_OFFER_PATH = "/workspace-docs/local-services-pilot-offer.md";
@@ -1731,11 +1741,52 @@ function buildLocalServiceFounderBatchReviewExport(
   actionLayer: LocalServiceLeadingCategoryActionLayer,
   pilotReadiness: LocalServiceLeadingCategoryPilotReadiness,
   readinessActionPlan: LocalServicePilotReadinessActionPlan,
+  reviewState: {
+    firstRequestOutcomeByProspectKey: Record<string, LocalServiceFirstRequestOutcome>;
+    scorecardRowCopiedByProspectKey: Record<string, boolean>;
+    batchReviewHandoffCopiedByProspectKey: Record<string, boolean>;
+  },
   activityLog: LocalServicePilotActivityEvent[] = [],
 ): LocalServicePilotWorkspaceExport {
+  const batchReviewRows: LocalServiceFirstContactBatchReviewRow[] = rows.map((row) => {
+    const firstRequestOutcome = reviewState.firstRequestOutcomeByProspectKey[row.key] ?? "not_recorded";
+    const scorecardCopied = reviewState.scorecardRowCopiedByProspectKey[row.key] === true;
+    const handoffCopied = reviewState.batchReviewHandoffCopiedByProspectKey[row.key] === true;
+    const scorecardRow = scorecardCopied
+      ? "Scorecard row copied"
+      : firstRequestOutcome !== "not_recorded"
+        ? "Scorecard row needed"
+        : "Outcome needed";
+    const batchHandoff = handoffCopied
+      ? "Batch handoff copied"
+      : scorecardCopied
+        ? "Batch handoff needed"
+        : "Blocked by scorecard row";
+    const decision = row.pilotCandidate
+      ? "Continue / pilot candidate"
+      : row.demoBooked
+        ? "Continue / demo booked"
+        : row.discoveryCallCompleted
+          ? "Continue / discovery done"
+          : row.status === "reply_received"
+            ? "Needs discovery follow-up"
+            : row.status === "rejected_for_now"
+              ? "Pause / clear rejection"
+              : row.manualMessageSent
+                ? "Wait for owner reply"
+                : "Manual contact needed";
+    return {
+      company: row.prospect.company,
+      service: row.serviceTitle,
+      scorecardRow,
+      batchHandoff,
+      proof: row.proofStatus,
+      decision,
+    };
+  });
   const contactLines = rows.map(
     (row, index) =>
-      `${index + 1}. ${row.prospect.company} | ${row.serviceTitle} | ${row.prospect.segment} | ${row.statusLabel} | ${row.proofStatus} | next: ${row.prospect.nextStep}`,
+      `${index + 1}. ${row.prospect.company} | ${row.serviceTitle} | ${row.prospect.segment} | ${row.statusLabel} | ${batchReviewRows[index]?.scorecardRow ?? "Outcome needed"} | ${batchReviewRows[index]?.batchHandoff ?? "Blocked by scorecard row"} | ${row.proofStatus} | ${batchReviewRows[index]?.decision ?? "Manual contact needed"}`,
   );
   const checklistLines = proofChecklist.map((item) => `- ${item.done ? "done" : "pending"} | ${item.label}: ${item.status}`);
   const recentProofEvents = activityLog.filter((event) => event.kind === "contact_proof").slice(0, 8);
@@ -1815,6 +1866,7 @@ function buildLocalServiceFounderBatchReviewExport(
     ...readinessActionPlanLines,
     "",
     "First 10 contact review:",
+    "Columns: account | lane | segment | status | scorecard row | batch handoff | proof | decision.",
     ...contactLines,
     "",
     "Recent proof activity:",
@@ -1901,6 +1953,9 @@ function buildLocalServiceFounderBatchReviewExport(
       },
       proof_checklist: proofChecklist,
       first_contacts: rows.map((row, index) => ({
+        review_decision: batchReviewRows[index]?.decision,
+        scorecard_row: batchReviewRows[index]?.scorecardRow,
+        batch_handoff: batchReviewRows[index]?.batchHandoff,
         index: index + 1,
         key: row.key,
         service_id: row.serviceId,
@@ -1922,6 +1977,10 @@ function buildLocalServiceFounderBatchReviewExport(
           demo_booked: row.demoBooked,
           pilot_candidate: row.pilotCandidate,
         },
+        first_request_outcome:
+          reviewState.firstRequestOutcomeByProspectKey[row.key] ?? "not_recorded",
+        scorecard_row_copied: reviewState.scorecardRowCopiedByProspectKey[row.key] === true,
+        batch_handoff_copied: reviewState.batchReviewHandoffCopiedByProspectKey[row.key] === true,
       })),
       recent_proof_activity: recentProofEvents.map((event) => ({
         id: event.id,
@@ -1963,6 +2022,7 @@ function buildLocalServiceFounderBatchReviewExport(
   ];
   const checklist = [
     "Confirm the first 10 contact markers match real manual actions outside the shell.",
+    "Confirm each row has a reviewed scorecard row and batch handoff before using it for continue, pause, or stop.",
     "Confirm the leading category is based on proof markers, not preference or market guesswork.",
     "Confirm the pilot setup readiness gate is complete before selling or activating a paid pilot.",
     "Confirm the readiness action plan points to the next blocker surface before continuing.",
@@ -1987,6 +2047,7 @@ function buildLocalServiceFounderBatchReviewExport(
     humanText: humanLines.join("\n"),
     jsonText,
     rows: rowsSummary,
+    batchReviewRows,
     checklist,
   };
 }
@@ -7140,6 +7201,11 @@ const LocalServicesDispatchDemoPanel = ({
     leadingCategoryActionLayer,
     leadingCategoryPilotReadiness,
     leadingCategoryReadinessActionPlan,
+    {
+      firstRequestOutcomeByProspectKey: pilotWorkspaceState.firstRequestOutcomeByProspectKey,
+      scorecardRowCopiedByProspectKey: pilotWorkspaceState.scorecardRowCopiedByProspectKey,
+      batchReviewHandoffCopiedByProspectKey: pilotWorkspaceState.batchReviewHandoffCopiedByProspectKey,
+    },
     pilotWorkspaceState.activityLog,
   );
   const readinessProofExport = buildLocalServiceReadinessProofDrawer(
@@ -11960,6 +12026,45 @@ const LocalServicePilotWorkspaceExportDrawer = ({
               ))}
             </div>
           </section>
+
+          {exportView.batchReviewRows && exportView.batchReviewRows.length > 0 ? (
+            <section className="px-7 py-5 border-b border-border/50 space-y-3">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  First-contact batch review rows
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Operator-ready view of each account before continue, pause, stop, CRM, or weekly scorecard decisions.
+                </p>
+              </div>
+              <div className="overflow-x-auto rounded-md border border-border/60">
+                <table className="min-w-[760px] w-full text-left text-[11.5px]">
+                  <thead className="bg-card/45 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/75">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Account</th>
+                      <th className="px-3 py-2 font-medium">Lane</th>
+                      <th className="px-3 py-2 font-medium">Scorecard row</th>
+                      <th className="px-3 py-2 font-medium">Batch handoff</th>
+                      <th className="px-3 py-2 font-medium">Proof</th>
+                      <th className="px-3 py-2 font-medium">Decision</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/50">
+                    {exportView.batchReviewRows.map((row) => (
+                      <tr key={`${row.company}:${row.service}`} className="bg-background/25 align-top">
+                        <td className="px-3 py-2 font-medium text-foreground">{row.company}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{row.service}</td>
+                        <td className="px-3 py-2 text-foreground">{row.scorecardRow}</td>
+                        <td className="px-3 py-2 text-foreground">{row.batchHandoff}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{row.proof}</td>
+                        <td className="px-3 py-2 text-foreground">{row.decision}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          ) : null}
 
           <section className="px-7 py-5 border-b border-border/50 space-y-3">
             <div className="flex items-center justify-between gap-3">

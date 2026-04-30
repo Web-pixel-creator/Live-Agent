@@ -149,7 +149,11 @@ Do not use the pilot to build:
    the first-contact batch review. `Batch handoff copied`,
    `Reset batch handoff review`, and
    `batchReviewHandoffCopiedByProspectKey` are browser-local proof only, and
-   `Open batch review` stays blocked until the copy is recorded. Use
+   `Open batch review` stays blocked until the copy is recorded. In the review
+   drawer, `First-contact batch review rows` show
+   `Account -> Lane -> Scorecard row -> Batch handoff -> Proof -> Decision`,
+   with `review_decision`, `scorecard_row_copied`, and
+   `batch_handoff_copied` in JSON. Use
    `Pilot proof update rail` / `local_services_pilot_proof_update_rail` only
    after the real action happens outside the shell. Check `Current account
    mini-audit` / `local_services_current_account_mini_audit` before batch

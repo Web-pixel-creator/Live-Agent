@@ -226,7 +226,11 @@ storage.
 The product shell now mirrors that worksheet with an in-app `First 10 contacts
 workspace`, `Pilot proof checklist`, `Stop / Continue decision gate`,
 `Open batch review`, `First contact batch review drawer`, `Copy batch review`,
-and `Copy founder workspace`. It now adds `Pilot ops today`,
+and `Copy founder workspace`. The drawer now has `First-contact batch review
+rows` with `Account -> Lane -> Scorecard row -> Batch handoff -> Proof ->
+Decision`, backed by `review_decision`, `scorecard_row_copied`, and
+`batch_handoff_copied`, so the 7-minute path explains the batch review without
+reading Markdown. It now adds `Pilot ops today`,
 `Copy pilot ops handoff`, `Open ops confirmation`,
 `Open communication preview`, `local_services_pilot_ops_today`,
 `local_services_pilot_ops_confirmation`,

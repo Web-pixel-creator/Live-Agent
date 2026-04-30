@@ -297,7 +297,11 @@ Allowed reply statuses:
    `local_services_current_account_batch_review_handoff`, and
    `Copy batch handoff`, `Batch handoff copied`,
    `Reset batch handoff review`, and
-   `batchReviewHandoffCopiedByProspectKey` before `Pilot proof update rail`
+   `batchReviewHandoffCopiedByProspectKey`, then verify
+   `First-contact batch review rows` with `Account -> Lane -> Scorecard row ->
+   Batch handoff -> Proof -> Decision`, `review_decision`,
+   `scorecard_row_copied`, and `batch_handoff_copied` before
+   `Pilot proof update rail`
    and `local_services_pilot_proof_update_rail`, plus
    `Current account mini-audit`, `local_services_current_account_mini_audit`,
    `Open account history`, and `local_services_account_history_drawer`; explain that

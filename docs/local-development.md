@@ -124,6 +124,8 @@ store private customer data in public docs.
 3.12. The same route now includes `First 10 contacts workspace`, `Pilot proof
 checklist`, `Stop / Continue decision gate`, `Open batch review`, `First
 contact batch review drawer`, `Copy batch review`, `Copy founder workspace`,
+`First-contact batch review rows`, `review_decision`,
+`scorecard_row_copied`, and `batch_handoff_copied`,
 `Channel checked`, `Manual sent`, `Discovery call`, `Demo booked`, and
 `Pilot candidate`. It also includes `Pilot ops today`, `Copy pilot ops handoff`,
 `Open ops confirmation`, `Open communication preview`,

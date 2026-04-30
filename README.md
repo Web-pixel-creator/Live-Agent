@@ -243,7 +243,11 @@ Local-services expansion spec:
   `Stop / Continue decision gate`, `Open batch review` / `Copy batch review` /
   `Copy founder workspace` so the first manual validation batch can be tracked
   and exported as a reviewed browser-local note before touching private CRM or
-  spreadsheets. It also shows `Pilot ops today`, `Copy pilot ops handoff`,
+  spreadsheets. The first-contact batch review drawer now includes
+  `First-contact batch review rows` with `Account -> Lane -> Scorecard row ->
+  Batch handoff -> Proof -> Decision`, plus JSON fields `review_decision`,
+  `scorecard_row_copied`, and `batch_handoff_copied`. It also shows
+  `Pilot ops today`, `Copy pilot ops handoff`,
   `Open ops confirmation`, `Open communication preview`,
   `local_services_pilot_ops_today`, `local_services_pilot_ops_confirmation`,
   `local_services_pilot_communication_preview`, `Current account picker`,

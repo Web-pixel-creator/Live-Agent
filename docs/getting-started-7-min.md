@@ -175,7 +175,10 @@ you need a live browser-local view. `Pilot proof checklist` shows whether the
 first batch has enough proof to continue, `Stop / Continue decision gate` keeps
 category expansion honest, `Open batch review` opens the `First contact batch
 review drawer`, and `Copy batch review` / `Copy founder workspace` exports only
-a redacted manual summary. `Pilot ops today`, `Copy pilot ops handoff`,
+a redacted manual summary. The drawer includes `First-contact batch review
+rows` with `Account -> Lane -> Scorecard row -> Batch handoff -> Proof ->
+Decision`, backed by `review_decision`, `scorecard_row_copied`, and
+`batch_handoff_copied`. `Pilot ops today`, `Copy pilot ops handoff`,
 `Open ops confirmation`, `Open communication preview`,
 `local_services_pilot_ops_today`, `local_services_pilot_ops_confirmation`,
 `local_services_pilot_communication_preview`, `Current account picker`,

@@ -228,6 +228,10 @@ Use the in-app `First 10 contacts workspace` before private spreadsheets when
 the founder/operator is validating demand. It shows `Pilot proof checklist`,
 `Stop / Continue decision gate`, `Open batch review`, `First contact batch
 review drawer`, `Copy batch review`, `Copy founder workspace`, and
+`First-contact batch review rows` with `Account -> Lane -> Scorecard row ->
+Batch handoff -> Proof -> Decision` plus JSON `review_decision`,
+`scorecard_row_copied`, and `batch_handoff_copied`; use it before any
+continue, pause, stop, CRM, or weekly scorecard decision. It also shows
 browser-local proof buttons for channel check, manual send, discovery call,
 demo booking, and pilot candidate. `Pilot ops today`, `Copy pilot ops handoff`,
 `Open ops confirmation`, `Open communication preview`,
