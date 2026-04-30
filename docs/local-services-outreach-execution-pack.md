@@ -270,13 +270,15 @@ Allowed reply statuses:
 18. Show `Pilot ops today`, `Copy pilot ops handoff`, `Open ops confirmation`,
    `Open communication preview`, `local_services_pilot_ops_today`,
    `local_services_pilot_ops_confirmation`, and
-   `local_services_pilot_communication_preview`, then show `Pilot proof update rail`
-   and `local_services_pilot_proof_update_rail`, plus `Current account
-   mini-audit`, `local_services_current_account_mini_audit`,
+   `local_services_pilot_communication_preview`, then show `Current account
+   action path` and `local_services_current_account_action_path` before `Pilot
+   proof update rail` and `local_services_pilot_proof_update_rail`, plus
+   `Current account mini-audit`, `local_services_current_account_mini_audit`,
    `Open account history`, and `local_services_account_history_drawer`; explain that
    the shell now chooses one current account, one next manual action, a
-   phone/Telegram/WhatsApp preview, the latest account-local proof events,
-   proof markers, and one proof marker to update after the real action.
+   phone/Telegram/WhatsApp preview, the account -> preview -> manual contact ->
+   proof -> continue gate path, the latest account-local proof events, proof
+   markers, and one proof marker to update after the real action.
 19. Show `Open discovery prep`, `Discovery call prep`, `Questions to ask`,
    `Pilot success criteria`, `Copy discovery call prep`, and
    `local_services_discovery_call_prep`; explain that this prepares the first

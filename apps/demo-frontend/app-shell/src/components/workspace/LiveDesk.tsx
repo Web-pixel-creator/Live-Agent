@@ -6582,10 +6582,45 @@ const LocalServicesDispatchDemoPanel = ({
     currentAccountMiniAuditEvents.length > 0
       ? currentAccountMiniAuditEvents.map((event) => `${event.createdAt} | ${event.label}: ${event.value}`).join("; ")
       : "No browser-local events yet for this account.";
+  const pilotOpsActionPathItems = [
+    {
+      label: "Account",
+      state: pilotOpsTodayRow ? "Selected" : "Blocked",
+      detail: pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "Pick one account from the outreach list.",
+      tone: pilotOpsTodayRow ? "ready" : "blocked",
+    },
+    {
+      label: "Preview",
+      state: pilotOpsTodayRow && !pilotOpsTodayRow.manualMessageSent ? "Current" : "Review",
+      detail: "Open communication preview before any phone, Telegram, or WhatsApp action.",
+      tone: pilotOpsTodayRow && !pilotOpsTodayRow.manualMessageSent ? "active" : "ready",
+    },
+    {
+      label: "Manual contact",
+      state: pilotOpsTodayRow?.manualMessageSent ? "Logged" : "Manual-only",
+      detail: pilotOpsTodayRow?.manualMessageSent
+        ? "Manual send proof is already browser-local."
+        : "Human sends or calls outside the shell only.",
+      tone: pilotOpsTodayRow?.manualMessageSent ? "ready" : "active",
+    },
+    {
+      label: "Proof marker",
+      state: currentAccountHistoryEvents.length > 0 ? "Visible" : "Waiting",
+      detail: `After the real action, update ${pilotOpsTodayProof}.`,
+      tone: currentAccountHistoryEvents.length > 0 ? "ready" : "blocked",
+    },
+    {
+      label: "Continue gate",
+      state: founderDecisionGate.verdictLabel,
+      detail: "Open batch review before continue, pause, or stop.",
+      tone: founderDecisionGate.tone === "continue" ? "ready" : founderDecisionGate.tone === "stop" ? "blocked" : "active",
+    },
+  ];
   const pilotOpsTodayHandoffText = [
     "local_services_pilot_ops_today",
     `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
     "Manual execution view. No outbound send, CRM write, booking, billing, analytics sync, or Markdown mutation.",
+    "Current account action path: local_services_current_account_action_path",
     `Current account: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "none"}`,
     `Service lane: ${pilotOpsTodayRow ? pilotOpsTodayRow.serviceTitle : "none"}`,
     `Segment: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.segment : "none"}`,
@@ -8377,6 +8412,42 @@ const LocalServicesDispatchDemoPanel = ({
                   <span className="ml-2 font-medium text-foreground">
                     {pilotOpsTodayRow ? pilotOpsTodayRow.prospect.nextStep : "Load a target from the outreach list."}
                   </span>
+                </div>
+              </div>
+              <div
+                className="mt-3 rounded-md border border-border/50 bg-background/30 px-3 py-2.5"
+                aria-label="Current account action path"
+              >
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    Current account action path
+                  </div>
+                  <span className="inline-flex w-fit rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                    local_services_current_account_action_path
+                  </span>
+                </div>
+                <div className="mt-2 grid gap-2 md:grid-cols-5">
+                  {pilotOpsActionPathItems.map((item) => (
+                    <div
+                      key={item.label}
+                      className={`rounded-[5px] border px-2 py-2 text-[11px] ${
+                        item.tone === "ready"
+                          ? "border-[hsl(var(--tint-mint)/0.22)] bg-[hsl(var(--tint-mint)/0.10)]"
+                          : item.tone === "blocked"
+                            ? "border-border/50 bg-card/25"
+                            : "border-[hsl(var(--tint-amber)/0.24)] bg-[hsl(var(--tint-amber)/0.10)]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-foreground">{item.label}</span>
+                        <span className="rounded-[4px] bg-background/45 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                          {item.state}
+                        </span>
+                      </div>
+                      <p className="mt-1.5 leading-relaxed text-muted-foreground">{item.detail}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
               <div className="mt-3 rounded-md border border-border/50 bg-background/30 px-3 py-2.5">
