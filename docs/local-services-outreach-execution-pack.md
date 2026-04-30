@@ -287,7 +287,10 @@ Allowed reply statuses:
    `local_services_current_account_action_path`; show
    `Current account outcome capture`,
    `local_services_current_account_outcome_capture`, and
-   `firstRequestOutcomeByProspectKey` before `Pilot proof update rail`
+   `firstRequestOutcomeByProspectKey`, then show
+   `Current account scorecard sync preview`,
+   `local_services_current_account_scorecard_sync_preview`, and
+   `Copy scorecard row` before `Pilot proof update rail`
    and `local_services_pilot_proof_update_rail`, plus
    `Current account mini-audit`, `local_services_current_account_mini_audit`,
    `Open account history`, and `local_services_account_history_drawer`; explain that

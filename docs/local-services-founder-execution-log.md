@@ -45,6 +45,10 @@ manual contact -> proof -> continue gate order visible before proof is marked.
 `Current account outcome capture` /
 `local_services_current_account_outcome_capture` records only
 `firstRequestOutcomeByProspectKey` after manual contact.
+`Current account scorecard sync preview` /
+`local_services_current_account_scorecard_sync_preview` and
+`Copy scorecard row` show the exact private scorecard row to copy before batch
+review or weekly sync.
 `Pilot proof update rail` /
 `local_services_pilot_proof_update_rail` is the browser-local shortcut for the
 current account after the real manual action happens. `Current account

@@ -248,6 +248,9 @@ demo booking, and pilot candidate. `Pilot ops today`, `Copy pilot ops handoff`,
 `Current account outcome capture`,
 `local_services_current_account_outcome_capture`,
 `firstRequestOutcomeByProspectKey`,
+`Current account scorecard sync preview`,
+`local_services_current_account_scorecard_sync_preview`,
+`Copy scorecard row`,
 `Pilot proof update rail`, and
 `local_services_pilot_proof_update_rail`, `Current account mini-audit`, and
 `local_services_current_account_mini_audit`, plus `Open account history` /

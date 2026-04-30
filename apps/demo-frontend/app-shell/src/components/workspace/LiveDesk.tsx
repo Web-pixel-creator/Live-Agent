@@ -6697,6 +6697,38 @@ const LocalServicesDispatchDemoPanel = ({
       value: pilotOpsTodayRow?.pilotCandidate ? "Recorded" : "Not recorded",
     },
   ];
+  const currentAccountOutcomeRecorded = currentAccountFirstRequestOutcome !== "not_recorded";
+  const currentAccountScorecardSyncStatus = !pilotOpsTodayRow
+    ? "Blocked by account"
+    : !pilotOpsTodayRow.manualMessageSent
+      ? "Waiting for manual contact"
+      : !currentAccountOutcomeRecorded
+        ? "Waiting for outcome"
+        : "Ready for manual scorecard sync";
+  const currentAccountWeeklySyncGate =
+    pilotOpsTodayRow?.serviceId === leadingCategoryActionLayer.serviceId
+      ? leadingCategoryWeeklyScorecardSyncGate
+      : "Weekly sync belongs to the leading category gate.";
+  const currentAccountScorecardSyncRows = [
+    {
+      label: "Scorecard row",
+      value: pilotOpsTodayRow
+        ? `${pilotOpsTodayRow.prospect.company} / ${pilotOpsTodayRow.serviceTitle}`
+        : "No current account selected.",
+    },
+    {
+      label: "Status to copy",
+      value: pilotOpsTodayRow?.statusLabel ?? "No status selected.",
+    },
+    {
+      label: "Outcome to copy",
+      value: currentAccountFirstRequestOutcomeLabel,
+    },
+    {
+      label: "Batch review",
+      value: founderDecisionGate.verdictLabel,
+    },
+  ];
   const pilotOpsActionPathItems = [
     {
       label: "Account",
@@ -6789,6 +6821,9 @@ const LocalServicesDispatchDemoPanel = ({
     `Outcome capture status: ${currentAccountOutcomeCaptureStatus}`,
     `First request outcome: ${currentAccountFirstRequestOutcomeLabel}`,
     "Outcome state: firstRequestOutcomeByProspectKey",
+    "Current account scorecard sync preview: local_services_current_account_scorecard_sync_preview",
+    `Scorecard sync preview status: ${currentAccountScorecardSyncStatus}`,
+    `Weekly scorecard sync gate: ${currentAccountWeeklySyncGate}`,
     "Current account mini-audit: local_services_current_account_mini_audit",
     "Pilot communication preview: local_services_pilot_communication_preview",
     `Mini-audit events: ${currentAccountMiniAuditSummary}`,
@@ -6814,8 +6849,33 @@ const LocalServicesDispatchDemoPanel = ({
     `Proof marker after real contact: ${pilotOpsTodayProof}`,
     `Outcome capture after manual contact: ${currentAccountOutcomeCaptureStatus}`,
     `First request outcome: ${currentAccountFirstRequestOutcomeLabel}`,
+    `Scorecard sync preview: ${currentAccountScorecardSyncStatus}`,
+    `Weekly scorecard sync gate: ${currentAccountWeeklySyncGate}`,
     "Use the approved phone, Telegram, or WhatsApp draft from local_services_pilot_communication_preview.",
     "After the real manual contact, update local_services_pilot_proof_update_rail and then review local_services_account_history_drawer.",
+  ].join("\n");
+  const currentAccountScorecardSyncText = [
+    "local_services_current_account_scorecard_sync_preview",
+    `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
+    "Manual-only scorecard sync preview. It does not send a follow-up, write CRM, sync analytics, mutate Markdown docs, or mark the weekly scorecard reviewed.",
+    `Sync status: ${currentAccountScorecardSyncStatus}`,
+    `Current account: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "none"}`,
+    `Service lane: ${pilotOpsTodayRow ? pilotOpsTodayRow.serviceTitle : "none"}`,
+    `Status to copy: ${pilotOpsTodayRow ? pilotOpsTodayRow.statusLabel : "none"}`,
+    `First request outcome: ${currentAccountFirstRequestOutcomeLabel}`,
+    `Outcome state: firstRequestOutcomeByProspectKey`,
+    `Proof marker: ${pilotOpsTodayProof}`,
+    `Batch review gate: ${founderDecisionGate.verdictLabel}`,
+    `Founder decision action: ${founderDecisionGate.action}`,
+    `Weekly scorecard sync gate: ${currentAccountWeeklySyncGate}`,
+    "Scorecard fields:",
+    `- company: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "none"}`,
+    `- service_lane: ${pilotOpsTodayRow ? pilotOpsTodayRow.serviceTitle : "none"}`,
+    `- contact_status: ${pilotOpsTodayRow ? pilotOpsTodayRow.statusLabel : "none"}`,
+    `- first_request_outcome: ${currentAccountFirstRequestOutcomeLabel}`,
+    `- next_manual_action: ${pilotOpsTodayAction}`,
+    `- batch_review_gate: ${founderDecisionGate.verdictLabel}`,
+    "Next: open local_services_first_contact_batch_review before any continue, pause, stop, CRM, or weekly scorecard decision.",
   ].join("\n");
   const pilotOpsConfirmationExport = buildLocalServicePilotOpsConfirmationExport(
     pilotOpsTodayRow,
@@ -6869,6 +6929,8 @@ const LocalServicesDispatchDemoPanel = ({
     `Pilot ops next manual action: ${pilotOpsTodayAction}`,
     `Pilot ops proof to capture: ${pilotOpsTodayProof}`,
     "Pilot proof update rail: local_services_pilot_proof_update_rail",
+    "Current account scorecard sync preview: local_services_current_account_scorecard_sync_preview",
+    `Current account scorecard sync status: ${currentAccountScorecardSyncStatus}`,
     "Current account mini-audit: local_services_current_account_mini_audit",
     "Pilot communication preview: local_services_pilot_communication_preview",
     `Current account mini-audit events: ${currentAccountMiniAuditSummary}`,
@@ -8939,6 +9001,64 @@ const LocalServicesDispatchDemoPanel = ({
                     >
                       Reset current outcome
                     </Button>
+                  </div>
+                </div>
+                <div
+                  className="mt-3 rounded-md border border-border/50 bg-card/25 px-3 py-2.5"
+                  aria-label="Current account scorecard sync preview"
+                >
+                  <div className="flex flex-col gap-2 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                        <FileText className="h-3.5 w-3.5" strokeWidth={1.8} />
+                        Current account scorecard sync preview
+                      </div>
+                      <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                        Copy the exact row the operator should update in the private scorecard. It stays manual-only
+                        and points back to batch review before any continue, pause, stop, CRM, or weekly sync decision.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex w-fit rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                        local_services_current_account_scorecard_sync_preview
+                      </span>
+                      <span className="inline-flex w-fit rounded-[5px] bg-card/45 px-2 py-1 text-[10px] text-muted-foreground">
+                        {currentAccountScorecardSyncStatus}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant={currentAccountOutcomeRecorded ? "default" : "secondary"}
+                        disabled={!pilotOpsTodayRow || !currentAccountOutcomeRecorded}
+                        onClick={() => onCopyText(currentAccountScorecardSyncText, "Current account scorecard row copied")}
+                        className="h-7"
+                      >
+                        Copy scorecard row
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => {
+                          setFounderBatchReviewMode("human");
+                          setFounderBatchReviewOpen(true);
+                        }}
+                        className="h-7"
+                      >
+                        Open batch review
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                    {currentAccountScorecardSyncRows.map((item) => (
+                      <div key={item.label} className="rounded-[5px] border border-border/50 bg-background/35 px-2 py-2 text-[11px]">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          {item.label}
+                        </div>
+                        <p className="mt-1.5 leading-relaxed text-foreground">{item.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-2 rounded-[5px] bg-background/35 px-2 py-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                    Weekly scorecard sync gate: <span className="text-foreground">{currentAccountWeeklySyncGate}</span>
                   </div>
                 </div>
                 <div className="mt-3 rounded-md border border-border/50 bg-card/25 px-3 py-2.5">
