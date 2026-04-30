@@ -55,6 +55,9 @@ browser-local and block batch review / weekly sync until it is recorded.
 `Current account batch review handoff` /
 `local_services_current_account_batch_review_handoff` and `Copy batch handoff`
 prepare the current account packet without marking batch review complete.
+`Batch handoff copied`, `Reset batch handoff review`, and
+`batchReviewHandoffCopiedByProspectKey` keep that proof browser-local and block
+`Open batch review` until the handoff copy is recorded.
 `Pilot proof update rail` /
 `local_services_pilot_proof_update_rail` is the browser-local shortcut for the
 current account after the real manual action happens. `Current account

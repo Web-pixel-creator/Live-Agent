@@ -146,7 +146,10 @@ Do not use the pilot to build:
    Use `Current account batch review handoff` /
    `local_services_current_account_batch_review_handoff` and
    `Copy batch handoff` to prepare the current account packet before opening
-   the first-contact batch review. Use
+   the first-contact batch review. `Batch handoff copied`,
+   `Reset batch handoff review`, and
+   `batchReviewHandoffCopiedByProspectKey` are browser-local proof only, and
+   `Open batch review` stays blocked until the copy is recorded. Use
    `Pilot proof update rail` / `local_services_pilot_proof_update_rail` only
    after the real action happens outside the shell. Check `Current account
    mini-audit` / `local_services_current_account_mini_audit` before batch

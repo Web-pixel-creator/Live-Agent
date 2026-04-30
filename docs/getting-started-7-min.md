@@ -201,7 +201,8 @@ a redacted manual summary. `Pilot ops today`, `Copy pilot ops handoff`,
 `scorecard_row_copy_required_for_batch_review`,
 `Current account batch review handoff`,
 `local_services_current_account_batch_review_handoff`,
-`Copy batch handoff`,
+`Copy batch handoff`, `Batch handoff copied`,
+`Reset batch handoff review`, `batchReviewHandoffCopiedByProspectKey`,
 `Pilot proof update rail`, and
 `local_services_pilot_proof_update_rail`, `Current account mini-audit`, and
 `local_services_current_account_mini_audit`, plus `Open account history` /

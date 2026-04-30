@@ -798,7 +798,9 @@ the private scorecard before batch review or weekly sync; the
 weekly sync until that copy review is recorded; `Current account batch review
 handoff`, `local_services_current_account_batch_review_handoff`, and
 `Copy batch handoff` prepare the current account's batch-review packet without
-marking review complete;
+marking review complete; `Batch handoff copied`, `Reset batch handoff review`,
+and `batchReviewHandoffCopiedByProspectKey` keep that review browser-local and
+block `Open batch review` until the operator copies the handoff;
 `Pilot proof update rail` and `local_services_pilot_proof_update_rail` make the
 next browser-local proof marker update explicit after the real manual action;
 `Current account mini-audit` and `local_services_current_account_mini_audit`
@@ -1083,7 +1085,8 @@ Current shell readiness for P3:
    `scorecard_row_copy_required_for_batch_review`,
    `Current account batch review handoff`,
    `local_services_current_account_batch_review_handoff`,
-   `Copy batch handoff`,
+   `Copy batch handoff`, `Batch handoff copied`,
+   `Reset batch handoff review`, `batchReviewHandoffCopiedByProspectKey`,
    `Pilot proof update rail`, and
    `local_services_pilot_proof_update_rail`, `Current account mini-audit`, and
    `local_services_current_account_mini_audit`, plus `Open account history`

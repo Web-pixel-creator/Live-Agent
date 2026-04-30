@@ -585,6 +585,7 @@ type LocalServicePilotActivityKind =
   | "kickoff_decision"
   | "contact_packet_review"
   | "scorecard_row_review"
+  | "batch_handoff_review"
   | "prep_review"
   | "weekly_sync_review";
 type LocalServicePilotActivityEvent = {
@@ -611,6 +612,7 @@ type LocalServicePilotWorkspaceState = {
   messagePreviewReviewedByProspectKey: Record<string, boolean>;
   contactPacketCopiedByProspectKey: Record<string, boolean>;
   scorecardRowCopiedByProspectKey: Record<string, boolean>;
+  batchReviewHandoffCopiedByProspectKey: Record<string, boolean>;
   metricStatusByService: Record<string, LocalServicePilotMetricStatus>;
   setupStepCompletionByService: Record<string, LocalServiceSetupStepCompletion>;
   setupReadyByService: Record<string, boolean>;
@@ -1163,6 +1165,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
     messagePreviewReviewedByProspectKey: {},
     contactPacketCopiedByProspectKey: {},
     scorecardRowCopiedByProspectKey: {},
+    batchReviewHandoffCopiedByProspectKey: {},
     metricStatusByService: {},
     setupStepCompletionByService: {},
     setupReadyByService: {},
@@ -1197,6 +1200,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
       messagePreviewReviewedByProspectKey: readBooleanRecord(parsed.messagePreviewReviewedByProspectKey),
       contactPacketCopiedByProspectKey: readBooleanRecord(parsed.contactPacketCopiedByProspectKey),
       scorecardRowCopiedByProspectKey: readBooleanRecord(parsed.scorecardRowCopiedByProspectKey),
+      batchReviewHandoffCopiedByProspectKey: readBooleanRecord(parsed.batchReviewHandoffCopiedByProspectKey),
       metricStatusByService: readPilotMetricStatusRecord(parsed.metricStatusByService),
       setupStepCompletionByService: readSetupStepCompletionByService(parsed.setupStepCompletionByService),
       setupReadyByService: readBooleanRecord(parsed.setupReadyByService),
@@ -6711,6 +6715,9 @@ const LocalServicesDispatchDemoPanel = ({
   const currentAccountOutcomeRecorded = currentAccountFirstRequestOutcome !== "not_recorded";
   const currentAccountScorecardRowCopied =
     Boolean(pilotOpsTodayRow) && pilotWorkspaceState.scorecardRowCopiedByProspectKey[pilotOpsTodayRow.key] === true;
+  const currentAccountBatchReviewHandoffCopied =
+    Boolean(pilotOpsTodayRow) &&
+    pilotWorkspaceState.batchReviewHandoffCopiedByProspectKey[pilotOpsTodayRow.key] === true;
   const currentAccountScorecardSyncStatus = !pilotOpsTodayRow
     ? "Blocked by account"
     : !pilotOpsTodayRow.manualMessageSent
@@ -6763,6 +6770,8 @@ const LocalServicesDispatchDemoPanel = ({
     ? "Blocked by account"
     : !currentAccountScorecardRowCopied
       ? "Blocked by scorecard row"
+      : currentAccountBatchReviewHandoffCopied
+        ? "Batch handoff copied"
       : "Ready for batch review handoff";
   const pilotOpsActionPathItems = [
     {
@@ -6838,12 +6847,32 @@ const LocalServicesDispatchDemoPanel = ({
       tone: currentAccountScorecardRowCopied ? "ready" : currentAccountOutcomeRecorded ? "active" : "blocked",
     },
     {
+      label: "Batch handoff",
+      state: currentAccountBatchReviewHandoffCopied
+        ? "Copied"
+        : currentAccountScorecardRowCopied
+          ? "Copy handoff"
+          : "Blocked by scorecard row",
+      detail: currentAccountBatchReviewHandoffCopied
+        ? "The batch review handoff packet is copied and ready for review."
+        : currentAccountScorecardRowCopied
+          ? "Copy the batch handoff before opening batch review."
+          : "Review the scorecard row before preparing the batch handoff.",
+      tone: currentAccountBatchReviewHandoffCopied ? "ready" : currentAccountScorecardRowCopied ? "active" : "blocked",
+    },
+    {
       label: "Continue gate",
-      state: currentAccountScorecardRowCopied ? founderDecisionGate.verdictLabel : "Blocked by scorecard row",
-      detail: currentAccountScorecardRowCopied
+      state: currentAccountBatchReviewHandoffCopied
+        ? founderDecisionGate.verdictLabel
+        : currentAccountScorecardRowCopied
+          ? "Blocked by batch handoff"
+          : "Blocked by scorecard row",
+      detail: currentAccountBatchReviewHandoffCopied
         ? "Open batch review before continue, pause, or stop."
-        : "Copy and review the current account scorecard row before batch review.",
-      tone: currentAccountScorecardRowCopied
+        : currentAccountScorecardRowCopied
+          ? "Copy the batch handoff before opening batch review."
+          : "Copy and review the current account scorecard row before batch review.",
+      tone: currentAccountBatchReviewHandoffCopied
         ? founderDecisionGate.tone === "continue"
           ? "ready"
           : founderDecisionGate.tone === "stop"
@@ -6887,6 +6916,8 @@ const LocalServicesDispatchDemoPanel = ({
     `Weekly scorecard sync gate: ${currentAccountWeeklySyncGate}`,
     "Current account batch review handoff: local_services_current_account_batch_review_handoff",
     `Batch review handoff status: ${currentAccountBatchReviewHandoffStatus}`,
+    `Batch handoff copied: ${currentAccountBatchReviewHandoffCopied ? "yes" : "no"}`,
+    "Batch handoff state: batchReviewHandoffCopiedByProspectKey",
     "Current account mini-audit: local_services_current_account_mini_audit",
     "Pilot communication preview: local_services_pilot_communication_preview",
     `Mini-audit events: ${currentAccountMiniAuditSummary}`,
@@ -6935,6 +6966,7 @@ const LocalServicesDispatchDemoPanel = ({
     `Batch review gate: ${founderDecisionGate.verdictLabel}`,
     `Founder decision action: ${founderDecisionGate.action}`,
     `Weekly scorecard sync gate: ${currentAccountWeeklySyncGate}`,
+    `Batch handoff copied: ${currentAccountBatchReviewHandoffCopied ? "yes" : "no"}`,
     "Scorecard fields:",
     `- company: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "none"}`,
     `- service_lane: ${pilotOpsTodayRow ? pilotOpsTodayRow.serviceTitle : "none"}`,
@@ -6948,6 +6980,14 @@ const LocalServicesDispatchDemoPanel = ({
     {
       label: "Handoff status",
       value: currentAccountBatchReviewHandoffStatus,
+    },
+    {
+      label: "Handoff copy",
+      value: currentAccountBatchReviewHandoffCopied
+        ? "Copied to batch review handoff."
+        : currentAccountScorecardRowCopied
+          ? "Ready to copy."
+          : "Waiting for scorecard row.",
     },
     {
       label: "Batch review gate",
@@ -6968,6 +7008,8 @@ const LocalServicesDispatchDemoPanel = ({
     "Manual-only batch review handoff. It does not mark batch review complete, write CRM, sync analytics, mutate Markdown docs, or approve continuation.",
     `Handoff status: ${currentAccountBatchReviewHandoffStatus}`,
     `Gate marker: scorecard_row_copy_required_for_batch_review`,
+    `Handoff copied: ${currentAccountBatchReviewHandoffCopied ? "yes" : "no"}`,
+    "State field: batchReviewHandoffCopiedByProspectKey",
     `Current account: ${pilotOpsTodayRow ? pilotOpsTodayRow.prospect.company : "none"}`,
     `Service lane: ${pilotOpsTodayRow ? pilotOpsTodayRow.serviceTitle : "none"}`,
     `Contact status: ${pilotOpsTodayRow ? pilotOpsTodayRow.statusLabel : "none"}`,
@@ -7039,6 +7081,7 @@ const LocalServicesDispatchDemoPanel = ({
     "Current account scorecard row gate: scorecard_row_copy_required_for_batch_review",
     "Current account batch review handoff: local_services_current_account_batch_review_handoff",
     `Current account batch review handoff status: ${currentAccountBatchReviewHandoffStatus}`,
+    `Current account batch handoff copied: ${currentAccountBatchReviewHandoffCopied ? "yes" : "no"}`,
     "Current account mini-audit: local_services_current_account_mini_audit",
     "Pilot communication preview: local_services_pilot_communication_preview",
     `Current account mini-audit events: ${currentAccountMiniAuditSummary}`,
@@ -7791,6 +7834,10 @@ const LocalServicesDispatchDemoPanel = ({
         ...prev.scorecardRowCopiedByProspectKey,
         [row.key]: copied,
       },
+      batchReviewHandoffCopiedByProspectKey: {
+        ...prev.batchReviewHandoffCopiedByProspectKey,
+        [row.key]: copied ? prev.batchReviewHandoffCopiedByProspectKey[row.key] === true : false,
+      },
       activityLog: appendLocalServicePilotActivity(prev.activityLog, {
         kind: "scorecard_row_review",
         label: "Current account scorecard row reviewed",
@@ -7806,6 +7853,31 @@ const LocalServicesDispatchDemoPanel = ({
     if (!pilotOpsTodayRow || !currentAccountOutcomeRecorded) return;
     updateCurrentAccountScorecardRowCopied(true);
     onCopyText(currentAccountScorecardSyncText, "Current account scorecard row copied");
+  };
+  const updateCurrentAccountBatchReviewHandoffCopied = (copied: boolean) => {
+    if (!pilotOpsTodayRow) return;
+    const row = pilotOpsTodayRow;
+    setPilotWorkspaceState((prev) => ({
+      ...prev,
+      batchReviewHandoffCopiedByProspectKey: {
+        ...prev.batchReviewHandoffCopiedByProspectKey,
+        [row.key]: copied,
+      },
+      activityLog: appendLocalServicePilotActivity(prev.activityLog, {
+        kind: "batch_handoff_review",
+        label: "Current account batch handoff reviewed",
+        value: copied ? "Batch handoff copied" : "Batch handoff review reset",
+        serviceId: row.serviceId,
+        serviceTitle: row.serviceTitle,
+        prospectId: row.prospect.id,
+        company: row.prospect.company,
+      }),
+    }));
+  };
+  const copyCurrentAccountBatchReviewHandoff = () => {
+    if (!pilotOpsTodayRow || !currentAccountScorecardRowCopied) return;
+    updateCurrentAccountBatchReviewHandoffCopied(true);
+    onCopyText(currentAccountBatchReviewHandoffText, "Current account batch review handoff copied");
   };
   const pilotOpsProofRailActions = pilotOpsTodayRow
     ? [
@@ -9183,7 +9255,7 @@ const LocalServicesDispatchDemoPanel = ({
                       <Button
                         size="sm"
                         variant="secondary"
-                        disabled={!currentAccountScorecardRowCopied}
+                        disabled={!currentAccountBatchReviewHandoffCopied}
                         onClick={() => {
                           setFounderBatchReviewMode("human");
                           setFounderBatchReviewOpen(true);
@@ -9231,15 +9303,23 @@ const LocalServicesDispatchDemoPanel = ({
                         </span>
                         <Button
                           size="sm"
-                          variant={currentAccountScorecardRowCopied ? "default" : "secondary"}
+                          variant={currentAccountScorecardRowCopied && !currentAccountBatchReviewHandoffCopied ? "default" : "secondary"}
                           disabled={!currentAccountScorecardRowCopied}
-                          onClick={() =>
-                            onCopyText(currentAccountBatchReviewHandoffText, "Current account batch review handoff copied")
-                          }
+                          onClick={copyCurrentAccountBatchReviewHandoff}
                           className="h-7"
                         >
                           Copy batch handoff
                         </Button>
+                        {currentAccountBatchReviewHandoffCopied && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => updateCurrentAccountBatchReviewHandoffCopied(false)}
+                            className="h-7"
+                          >
+                            Reset batch handoff review
+                          </Button>
+                        )}
                       </div>
                     </div>
                     <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
