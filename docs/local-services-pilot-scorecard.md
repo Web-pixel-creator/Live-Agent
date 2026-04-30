@@ -170,9 +170,10 @@ plumbing, cleaning, and measurement must compete on manual proof markers.
 `Pilot ops today`, `Copy pilot ops handoff`, `Open ops confirmation`,
 `local_services_pilot_ops_today`, `local_services_pilot_ops_confirmation`,
 `Pilot proof update rail`, `local_services_pilot_proof_update_rail`,
-`Current account mini-audit`, and `local_services_current_account_mini_audit`
-show the current account, next manual action, latest account-local proof events,
-and browser-local proof marker to update after the real action.
+`Current account mini-audit`, `local_services_current_account_mini_audit`,
+`Open account history`, and `local_services_account_history_drawer` show the
+current account, next manual action, proof markers, latest account-local proof
+events, and browser-local proof marker to update after the real action.
 `Leading category action layer` then provides the `Next manual batch`,
 `Discovery questions`, `Pilot setup checklist`, `Integration hold`, and
 `Focus leading category` action that should guide the next scorecard update.

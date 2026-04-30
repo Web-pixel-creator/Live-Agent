@@ -24,8 +24,10 @@ for a continue/stop decision. `Pilot proof update rail` /
 `local_services_pilot_proof_update_rail` is the browser-local shortcut for the
 current account after the real manual action happens. `Current account
 mini-audit` / `local_services_current_account_mini_audit` shows the latest
-account-local browser events before the batch review. It is still a handoff
-note, not an outbound send.
+account-local browser events before the batch review. `Open account history` /
+`local_services_account_history_drawer` expands that into proof markers, recent
+activity, next manual action, and manual-only guardrails for the current
+account. It is still a handoff note, not an outbound send.
 Use the `Stop / Continue decision gate` as the category expansion rule: continue
 only when the first batch proves real service-operator pain. The broader product
 direction remains a NEWO-style AI employee platform for selected local-service

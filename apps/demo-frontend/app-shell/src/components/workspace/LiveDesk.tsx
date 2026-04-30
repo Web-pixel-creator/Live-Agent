@@ -2093,6 +2093,155 @@ function buildLocalServicePilotOpsConfirmationExport(
   };
 }
 
+function buildLocalServiceAccountHistoryExport(
+  row: LocalServiceFounderContactRow | undefined,
+  events: LocalServicePilotActivityEvent[],
+  nextManualAction: string,
+  proofMarker: string,
+  proofProgress: string,
+  decisionGate: LocalServiceFounderDecisionGate,
+): LocalServicePilotWorkspaceExport {
+  const proofRows = row
+    ? (Object.keys(LOCAL_SERVICE_FOUNDER_CONTACT_FIELD_LABELS) as LocalServiceFounderContactField[]).map(
+        (field) => ({
+          field,
+          label: LOCAL_SERVICE_FOUNDER_CONTACT_FIELD_LABELS[field],
+          recorded: row[field],
+        }),
+      )
+    : [];
+  const proofLines =
+    proofRows.length > 0
+      ? proofRows.map((proof) => `- ${proof.label}: ${proof.recorded ? "recorded" : "needed"}`)
+      : ["- No account selected."];
+  const activityLines =
+    events.length > 0
+      ? events.map(
+          (event) =>
+            `- ${event.createdAt} | ${event.serviceTitle} | ${event.company ?? "account"} | ${event.label}: ${event.value}`,
+        )
+      : ["- No browser-local account events yet."];
+  const latestActivity = events[0] ? `${events[0].label}: ${events[0].value}` : "No browser-local events yet";
+  const humanLines = [
+    "Account history drawer: Local services current account",
+    "Export surface: local_services_account_history_drawer",
+    `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
+    "Current account mini-audit: local_services_current_account_mini_audit",
+    "Browser-local account history only. This drawer does not send outreach, call customers, create bookings, write CRM, sync analytics, bill, or mutate Markdown docs.",
+    `Current account: ${row ? row.prospect.company : "none"}`,
+    `Service lane: ${row ? row.serviceTitle : "none"}`,
+    `Segment: ${row ? row.prospect.segment : "none"}`,
+    `Status: ${row ? row.statusLabel : "none"}`,
+    `Next manual action: ${nextManualAction}`,
+    `Proof marker to capture: ${proofMarker}`,
+    `Owner next step: ${row ? row.prospect.nextStep : "none"}`,
+    `Batch proof progress: ${proofProgress}`,
+    `Decision gate: ${decisionGate.verdictLabel}`,
+    "",
+    "Proof markers:",
+    ...proofLines,
+    "",
+    "Recent browser-local events:",
+    ...activityLines,
+    "",
+    "Operator rule: use this before a real manual call, message, booking prep, or continue/stop review. Copy only as an internal note after confirming the current account.",
+  ];
+  const jsonText = JSON.stringify(
+    {
+      export_surface: "local_services_account_history_drawer",
+      export_kind: "browser_local_account_history",
+      storage_key: LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY,
+      mini_audit_surface: "local_services_current_account_mini_audit",
+      current_account: row
+        ? {
+            key: row.key,
+            service_id: row.serviceId,
+            service_title: row.serviceTitle,
+            prospect_id: row.prospect.id,
+            company: row.prospect.company,
+            segment: row.prospect.segment,
+            channel_fit: row.prospect.channelFit,
+            scorecard_focus: row.prospect.scorecardFocus,
+            status: row.status,
+            status_label: row.statusLabel,
+            proof_status: row.proofStatus,
+            next_step: row.prospect.nextStep,
+          }
+        : null,
+      next_manual_action: nextManualAction,
+      proof_marker: proofMarker,
+      proof_progress: proofProgress,
+      decision_gate: {
+        verdict: decisionGate.verdictLabel,
+        action: decisionGate.action,
+        target_lane: decisionGate.targetLane,
+      },
+      proof_markers: proofRows.map((proof) => ({
+        field: proof.field,
+        label: proof.label,
+        recorded: proof.recorded,
+      })),
+      activity_events: events.map((event) => ({
+        id: event.id,
+        kind: event.kind,
+        label: event.label,
+        value: event.value,
+        service_id: event.serviceId,
+        service_title: event.serviceTitle,
+        prospect_id: event.prospectId,
+        company: event.company,
+        created_at: event.createdAt,
+      })),
+      guardrails: [
+        "browser_local_history_only",
+        "operator_review_required_before_copy",
+        "no_outbound_message_sent",
+        "no_phone_call_started",
+        "no_booking_created",
+        "no_crm_write",
+        "no_analytics_sync",
+        "no_billing_action",
+        "no_markdown_mutation",
+      ],
+    },
+    null,
+    2,
+  );
+
+  return {
+    title: "Account history drawer",
+    description:
+      "Review the current local-services account, proof markers, next manual action, and browser-local activity before the operator continues.",
+    eyebrow: "Account history",
+    modeLabel: "Account history mode",
+    copyLabel: "Copy account history",
+    reviewTitle: "Current account review checklist",
+    reviewDescription:
+      "This is a browser-local history view only. It is not outreach, CRM, booking, billing, analytics, or document mutation.",
+    executionActionLabel: "Open founder execution log",
+    scorecardActionLabel: "Open pilot scorecard",
+    humanText: humanLines.join("\n"),
+    jsonText,
+    rows: [
+      { label: "Current account", value: row ? row.prospect.company : "No account selected" },
+      { label: "Service lane", value: row ? row.serviceTitle : "No service lane" },
+      { label: "Status", value: row ? row.statusLabel : "none" },
+      { label: "Next manual action", value: nextManualAction },
+      { label: "Proof marker", value: proofMarker },
+      { label: "Latest activity", value: latestActivity },
+      { label: "Activity events", value: String(events.length) },
+      { label: "Decision gate", value: decisionGate.verdictLabel },
+    ],
+    checklist: [
+      "Confirm the account and service lane match the manual work about to happen.",
+      "Review proof markers before changing the next browser-local state.",
+      "Review the latest account activity before copying any internal note.",
+      "Keep phone numbers, addresses, private owner names, and payment details outside this drawer.",
+      "Do not use this drawer as proof that the platform sent outreach, made a call, booked work, wrote CRM, or billed.",
+    ],
+  };
+}
+
 function buildLocalServiceFounderDecisionGate(
   rows: LocalServiceFounderContactRow[],
   counts: {
@@ -5933,6 +6082,8 @@ const LocalServicesDispatchDemoPanel = ({
   const [founderBatchReviewMode, setFounderBatchReviewMode] = useState<PlaybookExportMode>("human");
   const [pilotOpsConfirmationOpen, setPilotOpsConfirmationOpen] = useState(false);
   const [pilotOpsConfirmationMode, setPilotOpsConfirmationMode] = useState<PlaybookExportMode>("human");
+  const [accountHistoryOpen, setAccountHistoryOpen] = useState(false);
+  const [accountHistoryMode, setAccountHistoryMode] = useState<PlaybookExportMode>("human");
   const [readinessProofOpen, setReadinessProofOpen] = useState(false);
   const [readinessProofMode, setReadinessProofMode] = useState<PlaybookExportMode>("human");
   const [paidPilotProposalPreviewOpen, setPaidPilotProposalPreviewOpen] = useState(false);
@@ -6266,14 +6417,14 @@ const LocalServicesDispatchDemoPanel = ({
               : !pilotOpsTodayRow.pilotCandidate
                 ? "pilotCandidate"
                 : "founder_batch_review";
-  const currentAccountMiniAuditEvents = pilotOpsTodayRow
+  const currentAccountHistoryEvents = pilotOpsTodayRow
     ? pilotWorkspaceState.activityLog
         .filter(
           (event) =>
             event.serviceId === pilotOpsTodayRow.serviceId && event.prospectId === pilotOpsTodayRow.prospect.id,
         )
-        .slice(0, 3)
     : [];
+  const currentAccountMiniAuditEvents = currentAccountHistoryEvents.slice(0, 3);
   const currentAccountMiniAuditSummary =
     currentAccountMiniAuditEvents.length > 0
       ? currentAccountMiniAuditEvents.map((event) => `${event.createdAt} | ${event.label}: ${event.value}`).join("; ")
@@ -6298,6 +6449,14 @@ const LocalServicesDispatchDemoPanel = ({
   ].join("\n");
   const pilotOpsConfirmationExport = buildLocalServicePilotOpsConfirmationExport(
     pilotOpsTodayRow,
+    pilotOpsTodayAction,
+    pilotOpsTodayProof,
+    founderProofProgress,
+    founderDecisionGate,
+  );
+  const accountHistoryExport = buildLocalServiceAccountHistoryExport(
+    pilotOpsTodayRow,
+    currentAccountHistoryEvents,
     pilotOpsTodayAction,
     pilotOpsTodayProof,
     founderProofProgress,
@@ -8084,9 +8243,21 @@ const LocalServicesDispatchDemoPanel = ({
                       <Clock className="h-3.5 w-3.5" strokeWidth={1.8} />
                       Current account mini-audit
                     </div>
-                    <span className="inline-flex w-fit rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
-                      local_services_current_account_mini_audit
-                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex w-fit rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                        local_services_current_account_mini_audit
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={!pilotOpsTodayRow}
+                        onClick={() => setAccountHistoryOpen(true)}
+                        className="h-7"
+                      >
+                        <FileText className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                        Open account history
+                      </Button>
+                    </div>
                   </div>
                   <div className="mt-2 grid gap-1.5">
                     {currentAccountMiniAuditEvents.length > 0 ? (
@@ -10091,6 +10262,16 @@ const LocalServicesDispatchDemoPanel = ({
         exportView={pilotOpsConfirmationExport}
         mode={pilotOpsConfirmationMode}
         onModeChange={setPilotOpsConfirmationMode}
+        onCopy={onCopyText}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+        onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH)}
+      />
+      <LocalServicePilotWorkspaceExportDrawer
+        open={accountHistoryOpen}
+        onOpenChange={setAccountHistoryOpen}
+        exportView={accountHistoryExport}
+        mode={accountHistoryMode}
+        onModeChange={setAccountHistoryMode}
         onCopy={onCopyText}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH)}

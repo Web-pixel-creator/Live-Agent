@@ -114,7 +114,10 @@ Do not use the pilot to build:
    `Pilot proof update rail` / `local_services_pilot_proof_update_rail` only
    after the real action happens outside the shell. Check `Current account
    mini-audit` / `local_services_current_account_mini_audit` before batch
-   review so the account's latest browser-local events are visible.
+   review so the account's latest browser-local events are visible. Use
+   `Open account history` / `local_services_account_history_drawer` when the
+   operator needs the full current-account proof markers, recent activity, next
+   manual action, and manual-only guardrails before continuing.
 13. After a company is marked `Reply received`, use `Open discovery prep` to
    review `Discovery call prep`, `Questions to ask`, `Pilot success criteria`,
    `Copy discovery call prep`, and `local_services_discovery_call_prep`. Treat
