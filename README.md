@@ -77,6 +77,15 @@ Local-services expansion spec:
 - `/app?demo=local-services-dispatch&service=ac-repair-dispatch` opens the P0
   local-services demo path with `AC repair dispatch`, `Plumbing emergency`,
   `Cleaning quote and booking`, and `Measurement visit booking` cards.
+- that route now switches the sidebar into local-services product mode:
+  `AI Dispatcher`, `Service workspace`, `Dispatcher`, `Requests`,
+  `Schedule / Dispatch`, `Customers`, `Knowledge & Setup`, `Reviews`, and a
+  quieter `Advanced / Runtime` group. Runtime/judge pages stay reachable, but
+  `VIP cases`, `Judge artifacts`, `Presentation Bundle`, and visa case refs do
+  not occupy the first scan for this wedge.
+- the same route switches the top chrome and first heading to `AI Dispatcher`
+  and hides the old runtime alerts, visa demo button, case filters, case search,
+  and `New case` action from the local-services header.
 - that path is phone-first: the AI assistant collects the request and prepares
   estimate, slot, evidence, and handoff payloads, while booking and dispatch
   stay operator-approved.

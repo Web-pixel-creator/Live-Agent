@@ -342,14 +342,21 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
 });
 
 test("shared app shell chrome reads runtime-backed counts, nodes, and diagnostics", () => {
+  const workspace = readAppShellSource("pages/Workspace.tsx");
   const topbar = readAppShellSource("components/workspace/Topbar.tsx");
   const sidebar = readAppShellSource("components/workspace/AppSidebar.tsx");
   const palette = readAppShellSource("components/workspace/CommandPalette.tsx");
   const rail = readAppShellSource("components/workspace/RuntimeRail.tsx");
   const nodeDetailRail = readAppShellSource("components/nodes/NodeDetailRail.tsx");
 
+  assert.match(workspace, /localServicesProductMode/);
+  assert.match(workspace, /section=\{localServicesProductMode \? "AI Dispatcher" : "Live Desk"\}/);
+  assert.match(workspace, /hideRuntimeSignals=\{localServicesProductMode\}/);
+  assert.match(workspace, /Jump to request, customer, service\.\.\./);
   assert.match(topbar, /const \{ runtimeActive, slaBurningCases, degradedInfraCases \} = useWorkspaceRuntime\(\);/);
-  assert.match(topbar, /runtime · \{runtimeActive \? "live" : "mock"\}/);
+  assert.match(topbar, /hideRuntimeSignals = false/);
+  assert.match(topbar, /commandPlaceholder = "Jump to case, action, doc\.\.\."/);
+  assert.match(topbar, /runtime \/ \{runtimeActive \? "live" : "mock"\}/);
 
   assert.match(sidebar, /const \{\s+cases,\s+deviceNodes,\s+pendingApprovals,\s+activeCaseCount,\s+pendingApprovalCount,/);
   assert.match(sidebar, /const runtimeSections: Section\[\] = \[/);
@@ -359,7 +366,17 @@ test("shared app shell chrome reads runtime-backed counts, nodes, and diagnostic
   assert.match(sidebar, /Action queue"[\s\S]*url: "\/app\/console"/);
   assert.match(sidebar, /Safety rules", icon: ShieldCheck, url: "\/app\/simulation"/);
   assert.match(sidebar, /Health check", icon: HeartPulse, url: "\/app\/nodes"/);
-  assert.match(sidebar, /const \{ pathname, hash \} = useLocation\(\);/);
+  assert.match(sidebar, /const \{ pathname, hash, search \} = useLocation\(\);/);
+  assert.match(sidebar, /localServicesProductMode/);
+  assert.match(sidebar, /demo"\) === "local-services-dispatch"/);
+  assert.match(sidebar, /AI Dispatcher/);
+  assert.match(sidebar, /Service workspace/);
+  assert.match(sidebar, /Dispatcher/);
+  assert.match(sidebar, /Requests/);
+  assert.match(sidebar, /Schedule \/ Dispatch/);
+  assert.match(sidebar, /Customers/);
+  assert.match(sidebar, /Knowledge & Setup/);
+  assert.match(sidebar, /Advanced \/ Runtime/);
   assert.match(sidebar, /pathname\.startsWith\("\/app\/console"\)/);
   assert.match(sidebar, /\/app\/console\?ref=\$\{encodeURIComponent\(firstPendingRef\)\}/);
 
@@ -3735,6 +3752,12 @@ test("live desk exposes the seven-minute visa intake product path", () => {
 
   assert.match(localServicesDeveloperMap, /# Local Services Developer Map/);
   assert.match(localServicesDeveloperMap, /AI Dispatcher for local service businesses/);
+  assert.match(localServicesDeveloperMap, /Product-Mode Sidebar/);
+  assert.match(localServicesDeveloperMap, /Service workspace/);
+  assert.match(localServicesDeveloperMap, /Schedule \/ Dispatch/);
+  assert.match(localServicesDeveloperMap, /Advanced \/ Runtime/);
+  assert.match(localServicesDeveloperMap, /VIP cases/);
+  assert.match(localServicesDeveloperMap, /Judge artifacts/);
   assert.match(localServicesDeveloperMap, /liveDesk:localServicesPilotWorkspace:v1/);
   assert.match(localServicesDeveloperMap, /batchReviewHandoffCopiedByProspectKey/);
   assert.match(localServicesDeveloperMap, /local_services_current_account_batch_review_handoff/);

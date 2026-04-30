@@ -9,9 +9,16 @@ import { useWorkspaceRuntime } from "@/hooks/useWorkspaceRuntime";
 interface TopbarProps {
   section: string;
   caseRef?: string;
+  hideRuntimeSignals?: boolean;
+  commandPlaceholder?: string;
 }
 
-export const Topbar = ({ section, caseRef }: TopbarProps) => {
+export const Topbar = ({
+  section,
+  caseRef,
+  hideRuntimeSignals = false,
+  commandPlaceholder = "Jump to case, action, doc...",
+}: TopbarProps) => {
   const navigate = useNavigate();
   const { runtimeActive, slaBurningCases, degradedInfraCases } = useWorkspaceRuntime();
   const burning = slaBurningCases;
@@ -27,7 +34,7 @@ export const Topbar = ({ section, caseRef }: TopbarProps) => {
   const tightestLabel =
     tightestMins !== null
       ? `${Math.floor(tightestMins / 60)}h ${String(tightestMins % 60).padStart(2, "0")}m`
-      : "—";
+      : "--";
 
   return (
     <header className="border-b border-border/60 bg-background">
@@ -38,7 +45,7 @@ export const Topbar = ({ section, caseRef }: TopbarProps) => {
           <span className="font-medium">{section}</span>
           {caseRef && (
             <>
-              <span className="text-muted-foreground/40">·</span>
+              <span className="text-muted-foreground/40">/</span>
               <span className="font-mono text-muted-foreground">{caseRef}</span>
             </>
           )}
@@ -51,7 +58,7 @@ export const Topbar = ({ section, caseRef }: TopbarProps) => {
           className="hidden lg:flex items-center gap-2 h-7 px-2.5 rounded-md border border-border bg-secondary/40 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-smooth"
         >
           <Search className="h-3.5 w-3.5" strokeWidth={1.75} />
-          <span>Jump to case, action, doc…</span>
+          <span>{commandPlaceholder}</span>
           <span className="ml-4 flex items-center gap-0.5 font-mono text-[10px]">
             <Command className="h-2.5 w-2.5" strokeWidth={1.75} />K
           </span>
@@ -59,10 +66,10 @@ export const Topbar = ({ section, caseRef }: TopbarProps) => {
 
         <div className="flex items-center gap-1">
           <UndoHintPill />
-          {degradedCount > 0 && (
+          {!hideRuntimeSignals && degradedCount > 0 && (
             <button
               onClick={() => navigate("/app?infra=degraded")}
-              title={`${degradedCount} active case${degradedCount === 1 ? "" : "s"} captured by non-healthy nodes · open Live Desk filtered`}
+              title={`${degradedCount} active case${degradedCount === 1 ? "" : "s"} captured by non-healthy nodes - open Live Desk filtered`}
               className="hidden md:inline-flex items-center gap-1.5 h-7 px-2 rounded-md ring-1 ring-inset transition-smooth hover:brightness-110"
               style={{
                 backgroundColor: "hsl(var(--tint-amber) / 0.12)",
@@ -77,13 +84,15 @@ export const Topbar = ({ section, caseRef }: TopbarProps) => {
               </span>
             </button>
           )}
-          <div className="hidden lg:flex items-center gap-1.5 h-7 px-2 rounded-md bg-secondary/40 text-[11px] text-muted-foreground">
-            <Radio
-              className={`h-3 w-3 ${runtimeActive ? "text-success" : "text-muted-foreground/60"}`}
-              strokeWidth={1.75}
-            />
-            <span className="font-mono">runtime · {runtimeActive ? "live" : "mock"}</span>
-          </div>
+          {!hideRuntimeSignals && (
+            <div className="hidden lg:flex items-center gap-1.5 h-7 px-2 rounded-md bg-secondary/40 text-[11px] text-muted-foreground">
+              <Radio
+                className={`h-3 w-3 ${runtimeActive ? "text-success" : "text-muted-foreground/60"}`}
+                strokeWidth={1.75}
+              />
+              <span className="font-mono">runtime / {runtimeActive ? "live" : "mock"}</span>
+            </div>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -94,7 +103,7 @@ export const Topbar = ({ section, caseRef }: TopbarProps) => {
         </div>
       </div>
 
-      {burningCount > 0 && (
+      {!hideRuntimeSignals && burningCount > 0 && (
         <button
           onClick={() => navigate("/app?burning=1")}
           className="group/sla w-full flex items-center gap-2.5 h-6 px-8 border-t border-[hsl(var(--tint-rose)/0.18)] hover:brightness-125 transition-smooth text-left"

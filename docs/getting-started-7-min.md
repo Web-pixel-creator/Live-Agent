@@ -38,6 +38,16 @@ This is the P0 market-test path for Tashkent service businesses. It shows
 3. `Cleaning quote and booking`
 4. `Measurement visit booking`
 
+The same route switches the sidebar into product mode: `AI Dispatcher`,
+`Service workspace`, `Dispatcher`, `Requests`, `Schedule / Dispatch`,
+`Customers`, `Knowledge & Setup`, `Reviews`, and one quieter
+`Advanced / Runtime` group. Runtime/judge proof pages stay available there, but
+the first scan no longer starts with visa case refs, `VIP cases`, or
+`Judge artifacts`.
+The top chrome also changes from `Live Desk` to `AI Dispatcher` and removes the
+old runtime/SLA alerts, visa demo button, case filters, case search, and
+`New case` action from the local-services header.
+
 Each card previews `Outcome`, `Approval`, `Evidence`, and `Deliverable`. The
 detail panel shows phone intake, pricing and slot inputs, approval policy,
 evidence output, customer confirmation draft, master/operator handoff, and

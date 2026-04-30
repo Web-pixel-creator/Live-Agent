@@ -52,11 +52,52 @@ Local workspace docs served by the demo frontend:
 8. `/workspace-docs/local-services-founder-execution-log.md`
 9. `/workspace-docs/local-services-developer-map.md`
 
+## Product-Mode Sidebar
+
+When `/app` runs with `demo=local-services-dispatch`, `AppSidebar.tsx` switches
+from the judge/runtime IA into the local-services product mode. The header reads
+`AI Dispatcher`, the primary group label reads `Service workspace`, and the
+visible primary navigation becomes:
+
+1. `Dispatcher`
+2. `Requests`
+3. `Schedule / Dispatch`
+4. `Customers`
+5. `Knowledge & Setup`
+6. `Reviews`
+
+The old runtime surfaces are not deleted. `Operator Console`, `Simulation Lab`,
+`Device Nodes`, and `Visual Evidence` move under `Advanced / Runtime` for this
+mode. `VIP cases`, `Judge artifacts`, `Presentation Bundle`, visa case refs,
+and the console subnav labels (`Live activity`, `Connections`, `Action queue`,
+`Safety rules`, `Health check`) stay out of the first local-services scan so a
+design partner sees the product workflow before internal proof tooling.
+
+Decision note: this is a product simplification layer, not a source-of-truth
+change. The runtime/judge pages remain available for development, evidence,
+release proof, and operator diagnostics.
+
+The same product-mode check is used by `pages/Workspace.tsx` and `Topbar.tsx`.
+For the local-services route, the top bar reads `AI Dispatcher`, hides the
+runtime/live badge, degraded-node alert, SLA-burning strip, visa demo button,
+case filters, case search, and `New case` action from the first scan. Those
+controls remain available in the normal `Live Desk` route.
+
 ## Main Source Files
 
 UI implementation:
 
 `apps/demo-frontend/app-shell/src/components/workspace/LiveDesk.tsx`
+
+Product-mode top chrome:
+
+`apps/demo-frontend/app-shell/src/pages/Workspace.tsx`
+
+`apps/demo-frontend/app-shell/src/components/workspace/Topbar.tsx`
+
+Product-mode sidebar:
+
+`apps/demo-frontend/app-shell/src/components/workspace/AppSidebar.tsx`
 
 Local doc serving:
 

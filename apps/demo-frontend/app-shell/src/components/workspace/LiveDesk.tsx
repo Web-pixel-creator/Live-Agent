@@ -14845,9 +14845,13 @@ export const LiveDesk = () => {
       <div className="flex items-start justify-between gap-4 px-8 pt-6 pb-5">
         <div className="min-w-0">
           <div className="flex items-baseline gap-3 min-w-0 flex-wrap">
-            <h1 className="font-serif text-[26px] tracking-tight leading-none">Live Desk</h1>
+            <h1 className="font-serif text-[26px] tracking-tight leading-none">
+              {localServicesDispatchDemo ? "AI Dispatcher" : "Live Desk"}
+            </h1>
             <span className="font-mono text-[10.5px] text-muted-foreground/70 tabular-nums">
-              {filtered.length} active
+              {localServicesDispatchDemo
+                ? `${LOCAL_SERVICE_DEMO_TEMPLATES.length} service lanes`
+                : `${filtered.length} active`}
             </span>
             {visaIntakeDemo && (
               <Pill tone="violet" size="sm">
@@ -14856,7 +14860,7 @@ export const LiveDesk = () => {
             )}
             {localServicesDispatchDemo && (
               <Pill tone="mint" size="sm">
-                Local services demo
+                Local services
               </Pill>
             )}
             {localServicesRecordingMode && (
@@ -14933,26 +14937,28 @@ export const LiveDesk = () => {
               <span className="sm:hidden">Setup</span>
             </Button>
           )}
-          <Button
-            size="sm"
-            variant={visaIntakeDemo ? "secondary" : "outline"}
-            onClick={visaIntakeDemo ? closeVisaIntakeDemo : openVisaIntakeDemo}
-            className="h-8 text-xs"
-          >
-            {visaIntakeDemo ? (
-              <>
-                <X className="mr-0 sm:mr-1.5 h-3.5 w-3.5" strokeWidth={2} />
-                <span className="hidden sm:inline">Exit demo</span>
-                <span className="sm:hidden">Exit</span>
-              </>
-            ) : (
-              <>
-                <ClipboardCheck className="mr-0 sm:mr-1.5 h-3.5 w-3.5" strokeWidth={2} />
-                <span className="hidden sm:inline">Start 7-minute demo</span>
-                <span className="sm:hidden">Demo</span>
-              </>
-            )}
-          </Button>
+          {!localServicesDispatchDemo && (
+            <>
+              <Button
+                size="sm"
+                variant={visaIntakeDemo ? "secondary" : "outline"}
+                onClick={visaIntakeDemo ? closeVisaIntakeDemo : openVisaIntakeDemo}
+                className="h-8 text-xs"
+              >
+                {visaIntakeDemo ? (
+                  <>
+                    <X className="mr-0 sm:mr-1.5 h-3.5 w-3.5" strokeWidth={2} />
+                    <span className="hidden sm:inline">Exit demo</span>
+                    <span className="sm:hidden">Exit</span>
+                  </>
+                ) : (
+                  <>
+                    <ClipboardCheck className="mr-0 sm:mr-1.5 h-3.5 w-3.5" strokeWidth={2} />
+                    <span className="hidden sm:inline">Start 7-minute demo</span>
+                    <span className="sm:hidden">Demo</span>
+                  </>
+                )}
+              </Button>
           {/* "Mine only" — narrows desk to cases owned by CURRENT_OPERATOR.
               Sits to the LEFT of "My requests" so the pair reads naturally
               as a sentence: "mine only, my requests". Uses the rose tint
@@ -15133,6 +15139,8 @@ export const LiveDesk = () => {
             <Plus className="mr-1.5 h-3.5 w-3.5" strokeWidth={2} />
             New case
           </Button>
+            </>
+          )}
         </div>
       </div>
 

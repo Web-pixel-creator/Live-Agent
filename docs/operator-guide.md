@@ -52,7 +52,13 @@ Local-services demo note: use
 `/app?demo=local-services-dispatch&service=ac-repair-dispatch` when the goal is
 to show the Tashkent local-services wedge. The first screen says `AI Dispatcher
 for Local Services` and exposes `AC repair dispatch`, `Plumbing emergency`,
-`Cleaning quote and booking`, and `Measurement visit booking`. The AI assistant is phone-first, but the demo keeps
+`Cleaning quote and booking`, and `Measurement visit booking`. In this route the
+sidebar also switches to product mode: `AI Dispatcher`, `Service workspace`,
+`Dispatcher`, `Requests`, `Schedule / Dispatch`, `Customers`,
+`Knowledge & Setup`, `Reviews`, and `Advanced / Runtime`. The runtime/judge
+surfaces remain reachable, but they no longer dominate the first scan. The top
+chrome also reads `AI Dispatcher` and removes old runtime/SLA alerts, visa demo,
+case filters, case search, and `New case` from this product header. The AI assistant is phone-first, but the demo keeps
 booking and dispatch operator-approved: it collects the request, prepares
 pricing and slot inputs, drafts customer confirmation, produces a master/operator
 handoff, keeps the `Dispatch payload preview` behind review, and exposes

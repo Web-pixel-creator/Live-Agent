@@ -14,6 +14,10 @@ import {
   Inbox,
   ShieldCheck,
   HeartPulse,
+  CalendarCheck,
+  BookOpen,
+  Settings2,
+  Users,
 } from "lucide-react";
 import {
   Sidebar,
@@ -88,6 +92,22 @@ const judgeArtifacts: { label: string; icon: typeof FileText; count?: number; to
   { label: "Visual Evidence", icon: Camera, count: 8, tone: "mint", url: "/evidence" },
 ];
 
+const LOCAL_SERVICES_BASE_URL = "/app?demo=local-services-dispatch&service=ac-repair-dispatch";
+
+const localServiceProductSections: {
+  title: string;
+  view: string;
+  icon: typeof LayoutList;
+  url: string;
+}[] = [
+  { title: "Dispatcher", view: "dispatcher", icon: LayoutList, url: LOCAL_SERVICES_BASE_URL },
+  { title: "Requests", view: "requests", icon: Inbox, url: `${LOCAL_SERVICES_BASE_URL}&view=requests` },
+  { title: "Schedule / Dispatch", view: "schedule", icon: CalendarCheck, url: `${LOCAL_SERVICES_BASE_URL}&view=schedule` },
+  { title: "Customers", view: "customers", icon: Users, url: `${LOCAL_SERVICES_BASE_URL}&view=customers` },
+  { title: "Knowledge & Setup", view: "setup", icon: BookOpen, url: `${LOCAL_SERVICES_BASE_URL}&setup=7min&view=setup` },
+  { title: "Reviews", view: "reviews", icon: Check, url: `${LOCAL_SERVICES_BASE_URL}&view=reviews` },
+];
+
 // Tone → tinted badge styles. Keeps the colour vocabulary consistent with the
 // rest of the workspace (live desk pills, sla hashes, awaiting signals).
 const TONE_STYLES: Record<BadgeTone, { bg: string; fg: string; ring: string }> = {
@@ -132,7 +152,7 @@ const ROW_ACTIVE =
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const { pathname, hash } = useLocation();
+  const { pathname, hash, search } = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const {
@@ -174,6 +194,35 @@ export function AppSidebar() {
   const firstPendingCase = firstPendingRef
     ? cases.find((c) => c.ref === firstPendingRef)
     : undefined;
+  const sidebarSearchParams = new URLSearchParams(search);
+  const localServicesProductMode =
+    pathname === "/app" && sidebarSearchParams.get("demo") === "local-services-dispatch";
+  const localServicesActiveView =
+    sidebarSearchParams.get("view") ||
+    (sidebarSearchParams.get("setup") === "7min" ? "setup" : "dispatcher");
+  const localServicesAdvancedLinks: {
+    label: string;
+    icon: typeof Settings2;
+    url: string;
+    count?: number;
+    tone?: BadgeTone;
+  }[] = [
+    {
+      label: "Operator Console",
+      icon: Gauge,
+      url: firstPendingRef ? `/app/console?ref=${encodeURIComponent(firstPendingRef)}` : "/app/console",
+      count: pendingApprovalCount,
+      tone: pendingApprovalCount > 0 ? "rose" : undefined,
+    },
+    { label: "Simulation Lab", icon: Beaker, url: "/app/simulation" },
+    {
+      label: "Device Nodes",
+      icon: Server,
+      url: "/app/nodes",
+      ...(runtimeNodesBadge ?? {}),
+    },
+    { label: "Visual Evidence", icon: Camera, url: "/evidence", count: 8, tone: "mint" },
+  ];
 
   // VIP cases — pulled from the persisted localStorage set so the count
   // updates the moment the operator toggles a case in the client tooltip.
@@ -188,6 +237,140 @@ export function AppSidebar() {
       description: `${firstPending.caseRef} · ${firstPending.kind}`,
     });
   };
+
+  if (localServicesProductMode) {
+    return (
+      <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+        <SidebarHeader className="border-b border-sidebar-border">
+          <div className="flex items-center gap-2.5 px-2.5 py-3.5">
+            <div className="relative h-6 w-6 shrink-0">
+              <div className="absolute inset-0 rounded-[5px] bg-gradient-primary opacity-90" />
+              <div className="absolute inset-[3px] rounded-[3px] bg-sidebar flex items-center justify-center">
+                <div className="h-1 w-1 rounded-full bg-primary animate-pulse-glow" />
+              </div>
+            </div>
+            {!collapsed && (
+              <div className="min-w-0 flex-1">
+                <div className="text-[13px] font-semibold tracking-tight truncate">
+                  AI Dispatcher
+                </div>
+                <div className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70 truncate">
+                  Local services
+                </div>
+              </div>
+            )}
+          </div>
+        </SidebarHeader>
+
+        <SidebarContent className="px-2.5 py-5 gap-7">
+          <SidebarGroup className="p-0">
+            {!collapsed && (
+              <SidebarGroupLabel className="px-2.5 mb-1.5 h-6 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70 font-medium">
+                Service workspace
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu className="gap-1">
+                {localServiceProductSections.map((section) => {
+                  const SectionIcon = section.icon;
+                  const active = localServicesActiveView === section.view;
+                  return (
+                    <SidebarMenuItem key={section.view}>
+                      <SidebarMenuButton
+                        asChild
+                        tooltip={collapsed ? section.title : undefined}
+                        className="h-8 p-0 hover:bg-transparent data-[active=true]:bg-transparent"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => navigate(section.url)}
+                          className={`${ROW} w-full text-left ${active ? ROW_ACTIVE : ""}`}
+                          title={section.title}
+                        >
+                          {active && (
+                            <span
+                              aria-hidden
+                              className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-r-full bg-primary"
+                            />
+                          )}
+                          <SectionIcon
+                            className={`h-[15px] w-[15px] shrink-0 transition-smooth group-hover/row:translate-x-0.5 ${
+                              active ? "text-primary opacity-100" : "opacity-70 group-hover/row:opacity-100"
+                            }`}
+                            strokeWidth={1.75}
+                          />
+                          {!collapsed && (
+                            <span className={`text-[13px] truncate flex-1 ${active ? "font-medium" : ""}`}>
+                              {section.title}
+                            </span>
+                          )}
+                        </button>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          {!collapsed && (
+            <SidebarGroup className="p-0">
+              <SidebarGroupLabel className="px-2.5 mb-1.5 h-6 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70 font-medium flex items-center gap-1.5">
+                <Settings2 className="h-2.5 w-2.5" strokeWidth={1.6} />
+                <span>Advanced / Runtime</span>
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu className="gap-1">
+                  {localServicesAdvancedLinks.map((link) => {
+                    const LinkIcon = link.icon;
+                    return (
+                      <SidebarMenuItem key={link.label}>
+                        <SidebarMenuButton asChild className="h-8 p-0 hover:bg-transparent">
+                          <button
+                            type="button"
+                            onClick={() => navigate(link.url)}
+                            className={`${ROW} w-full text-left`}
+                            title={link.label}
+                          >
+                            <LinkIcon
+                              className="h-[15px] w-[15px] shrink-0 opacity-60 transition-smooth group-hover/row:translate-x-0.5 group-hover/row:opacity-90"
+                              strokeWidth={1.75}
+                            />
+                            <span className="text-[13px] truncate flex-1">{link.label}</span>
+                            {typeof link.count === "number" && link.count > 0 && (
+                              <CountBadge count={link.count} tone={link.tone} />
+                            )}
+                          </button>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
+        </SidebarContent>
+
+        <SidebarFooter className="border-t border-sidebar-border">
+          <div className="flex items-center gap-2.5 px-2.5 py-2.5">
+            <div className="h-6 w-6 rounded-full bg-gradient-primary shrink-0 flex items-center justify-center text-[10px] font-semibold text-primary-foreground">
+              LS
+            </div>
+            {!collapsed && (
+              <div className="min-w-0 flex-1">
+                <div className="text-[12px] font-medium truncate leading-tight">
+                  Local Services
+                </div>
+                <div className="text-[10px] text-muted-foreground truncate leading-tight">
+                  Operator mode
+                </div>
+              </div>
+            )}
+          </div>
+        </SidebarFooter>
+      </Sidebar>
+    );
+  }
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">

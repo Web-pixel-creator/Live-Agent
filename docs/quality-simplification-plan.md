@@ -35,7 +35,14 @@ The first implementation path for that expansion is
 `/app?demo=local-services-dispatch&service=ac-repair-dispatch`. It should stay
 phone-first and operator-approved: the AI assistant collects the request,
 prepares estimate and slot inputs, drafts confirmation, and produces a
-master/operator handoff without autonomous dispatch. The detail panel also opens
+master/operator handoff without autonomous dispatch. That route now also uses a
+local-services product-mode sidebar (`AI Dispatcher`, `Service workspace`,
+`Dispatcher`, `Requests`, `Schedule / Dispatch`, `Customers`,
+`Knowledge & Setup`, `Reviews`, `Advanced / Runtime`) so the first scan reads
+as a service-business product instead of a judge/runtime dashboard. The route
+also switches top chrome to `AI Dispatcher` and hides old runtime/SLA alerts,
+visa demo, case filters, case search, and `New case` from the local-services
+header. The detail panel also opens
 `Open dispatch drawer`, `Open customer drawer`, and `Open handoff drawer`, where
 the operator can switch between `Human-readable` and `JSON` exports before
 copying the dispatch, customer-confirmation, or master handoff payload. The same

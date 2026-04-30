@@ -346,8 +346,26 @@ Open:
 Visible first screen:
 
 1. `AI Dispatcher for Local Services`,
-2. three demo cards: `AC repair`, `Plumbing emergency`, `Cleaning quote`,
-3. one CTA: `Start 7-minute demo`.
+2. four demo cards: `AC repair dispatch`, `Plumbing emergency`, `Cleaning quote and booking`, `Measurement visit booking`,
+3. focused local-services controls: `Exit local demo`, `90s recording`, `7-min setup`.
+
+Navigation first scan:
+
+1. `AI Dispatcher`,
+2. `Service workspace`,
+3. `Dispatcher`,
+4. `Requests`,
+5. `Schedule / Dispatch`,
+6. `Customers`,
+7. `Knowledge & Setup`,
+8. `Reviews`,
+9. `Advanced / Runtime` for internal proof tooling.
+
+`VIP cases`, `Judge artifacts`, `Presentation Bundle`, visa case refs, and
+console runtime subnav should not occupy the first local-services scan.
+The top chrome should also read `AI Dispatcher` and keep runtime/SLA/device
+alerts, the visa demo button, case filters, case search, and `New case` out of
+the local-services first scan.
 
 ### Minute 1-3: Intake
 
