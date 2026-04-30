@@ -386,8 +386,10 @@ type PlaybookPayloadPreview = {
 type PlaybookExportMode = "human" | "json";
 type LocalServiceExportKind = "dispatch" | "customer" | "handoff";
 type LocalServiceProductView = "dispatcher" | "requests" | "schedule" | "customers" | "setup" | "reviews";
+type LocalServiceLaunchPathStepId = "request" | "schedule" | "customer" | "setup" | "review";
+type LocalServiceLaunchPathCompletion = Partial<Record<LocalServiceLaunchPathStepId, boolean>>;
 type LocalServiceLaunchPathStep = {
-  id: string;
+  id: LocalServiceLaunchPathStepId;
   view: Exclude<LocalServiceProductView, "dispatcher">;
   minute: string;
   title: string;
@@ -687,6 +689,7 @@ type LocalServicePilotActivityKind =
   | "kickoff_decision"
   | "dispatch_approval"
   | "customer_confirmation"
+  | "launch_path_step"
   | "contact_packet_review"
   | "scorecard_row_review"
   | "batch_handoff_review"
@@ -724,6 +727,7 @@ type LocalServicePilotWorkspaceState = {
   setupReadyByService: Record<string, boolean>;
   testCallChecklistByService: Record<string, LocalServiceTestCallChecklistState>;
   testCallPassedByService: Record<string, boolean>;
+  launchPathStepCompletionByService: Record<string, LocalServiceLaunchPathCompletion>;
   contactProofByProspectKey: Record<string, LocalServiceFounderContactProof>;
   activityLog: LocalServicePilotActivityEvent[];
 };
@@ -1118,10 +1122,21 @@ function isLocalServicePilotActivityKind(value: unknown): value is LocalServiceP
     value === "kickoff_decision" ||
     value === "dispatch_approval" ||
     value === "customer_confirmation" ||
+    value === "launch_path_step" ||
     value === "contact_packet_review" ||
     value === "scorecard_row_review" ||
     value === "prep_review" ||
     value === "weekly_sync_review"
+  );
+}
+
+function isLocalServiceLaunchPathStepId(value: unknown): value is LocalServiceLaunchPathStepId {
+  return (
+    value === "request" ||
+    value === "schedule" ||
+    value === "customer" ||
+    value === "setup" ||
+    value === "review"
   );
 }
 
@@ -1279,6 +1294,25 @@ function readTestCallChecklistByService(value: unknown): Record<string, LocalSer
   );
 }
 
+function readLaunchPathStepCompletionByService(value: unknown): Record<string, LocalServiceLaunchPathCompletion> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter((entry): entry is [string, Record<string, unknown>] =>
+        Boolean(entry[1]) && typeof entry[1] === "object" && !Array.isArray(entry[1]),
+      )
+      .map(([serviceId, completion]) => [
+        serviceId,
+        Object.fromEntries(
+          Object.entries(completion).filter(
+            (entry): entry is [LocalServiceLaunchPathStepId, boolean] =>
+              isLocalServiceLaunchPathStepId(entry[0]) && typeof entry[1] === "boolean",
+          ),
+        ),
+      ]),
+  );
+}
+
 function readFounderContactProofByProspectKey(value: unknown): Record<string, LocalServiceFounderContactProof> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   return Object.fromEntries(
@@ -1364,6 +1398,7 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
     setupReadyByService: {},
     testCallChecklistByService: {},
     testCallPassedByService: {},
+    launchPathStepCompletionByService: {},
     contactProofByProspectKey: {},
     activityLog: [],
   };
@@ -1401,6 +1436,9 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
       setupReadyByService: readBooleanRecord(parsed.setupReadyByService),
       testCallChecklistByService: readTestCallChecklistByService(parsed.testCallChecklistByService),
       testCallPassedByService: readBooleanRecord(parsed.testCallPassedByService),
+      launchPathStepCompletionByService: readLaunchPathStepCompletionByService(
+        parsed.launchPathStepCompletionByService,
+      ),
       contactProofByProspectKey: readFounderContactProofByProspectKey(parsed.contactProofByProspectKey),
       activityLog: readPilotActivityLog(parsed.activityLog),
     };
@@ -7904,14 +7942,28 @@ const LocalServicesDispatchDemoPanel = ({
     launchPathActiveIndex >= 0
       ? `${launchPathActiveIndex + 1}/${LOCAL_SERVICE_SEVEN_MINUTE_LAUNCH_PATH.length}`
       : `0/${LOCAL_SERVICE_SEVEN_MINUTE_LAUNCH_PATH.length}`;
+  const launchPathStepCompletion =
+    pilotWorkspaceState.launchPathStepCompletionByService[selectedTemplate.id] ?? {};
+  const launchPathRecordedCount = LOCAL_SERVICE_SEVEN_MINUTE_LAUNCH_PATH.filter(
+    (step) => launchPathStepCompletion[step.id] === true,
+  ).length;
+  const launchPathRecordedProgress = `${launchPathRecordedCount}/${LOCAL_SERVICE_SEVEN_MINUTE_LAUNCH_PATH.length}`;
+  const currentLaunchPathStep =
+    launchPathActiveIndex >= 0 ? LOCAL_SERVICE_SEVEN_MINUTE_LAUNCH_PATH[launchPathActiveIndex] : null;
+  const currentLaunchPathStepRecorded =
+    currentLaunchPathStep !== null && launchPathStepCompletion[currentLaunchPathStep.id] === true;
   const launchPathSummaryText = [
     "7-minute launch path:",
     `Service: ${selectedTemplate.ref} - ${selectedTemplate.title}`,
-    `Progress: ${launchPathProgress}`,
+    `Position: ${launchPathProgress}`,
+    `Recorded progress: ${launchPathRecordedProgress}`,
     ...LOCAL_SERVICE_SEVEN_MINUTE_LAUNCH_PATH.map(
       (step, index) =>
-        `${index + 1}. ${step.minute} | ${step.title} | ${step.queryHint} | ${step.proof}`,
+        `${index + 1}. ${step.minute} | ${step.title} | ${step.queryHint} | ${step.proof} | ${
+          launchPathStepCompletion[step.id] ? "reviewed" : "pending"
+        }`,
     ),
+    "State key: launchPathStepCompletionByService",
     "Manual-only rule: no autonomous send, booking, dispatch, CRM write, billing change, or pilot decision.",
   ].join("\n");
   const hidePilotPlanning = recordingMode || setupWizardMode;
@@ -8182,6 +8234,51 @@ const LocalServicesDispatchDemoPanel = ({
     );
   };
   const recordReadyForManualOutreach = () => updatePilotWorkspaceStatus("draft_ready");
+
+  const updateLaunchPathStepCompletion = (stepId: LocalServiceLaunchPathStepId, complete: boolean) => {
+    const step = LOCAL_SERVICE_SEVEN_MINUTE_LAUNCH_PATH.find((item) => item.id === stepId);
+    if (!step) return;
+    setPilotWorkspaceState((prev) => {
+      const currentCompletion = prev.launchPathStepCompletionByService[selectedTemplate.id] ?? {};
+      return {
+        ...prev,
+        launchPathStepCompletionByService: {
+          ...prev.launchPathStepCompletionByService,
+          [selectedTemplate.id]: {
+            ...currentCompletion,
+            [stepId]: complete,
+          },
+        },
+        activityLog: appendLocalServicePilotActivity(prev.activityLog, {
+          kind: "launch_path_step",
+          label: "7-minute launch path step recorded",
+          value: complete ? `${step.title} reviewed` : `${step.title} reset`,
+          serviceId: selectedTemplate.id,
+          serviceTitle: selectedTemplate.title,
+        }),
+      };
+    });
+  };
+  const recordCurrentLaunchPathStep = () => {
+    if (!currentLaunchPathStep) return;
+    updateLaunchPathStepCompletion(currentLaunchPathStep.id, true);
+  };
+  const resetLaunchPathProgress = () => {
+    setPilotWorkspaceState((prev) => ({
+      ...prev,
+      launchPathStepCompletionByService: {
+        ...prev.launchPathStepCompletionByService,
+        [selectedTemplate.id]: {},
+      },
+      activityLog: appendLocalServicePilotActivity(prev.activityLog, {
+        kind: "launch_path_step",
+        label: "7-minute launch path progress reset",
+        value: "All guided path steps reset",
+        serviceId: selectedTemplate.id,
+        serviceTitle: selectedTemplate.title,
+      }),
+    }));
+  };
 
   const updateFirstRequestOutcomeForTarget = (
     target: {
@@ -8751,28 +8848,49 @@ const LocalServicesDispatchDemoPanel = ({
                     path=7min
                   </span>
                   <span className="inline-flex rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.24)]">
-                    Progress {launchPathProgress}
+                    Position {launchPathProgress}
+                  </span>
+                  <span className="inline-flex rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.24)]">
+                    Recorded {launchPathRecordedProgress}
+                  </span>
+                  <span className="inline-flex rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.24)]">
+                    launchPathStepCompletionByService
                   </span>
                   <span className="inline-flex rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.24)]">
                     No external side effects
                   </span>
                 </div>
               </div>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => onCopyText(launchPathSummaryText, "7-minute launch path copied")}
-                className="h-8"
-              >
-                <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
-                Copy 7-minute launch path
-              </Button>
+              <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => onCopyText(launchPathSummaryText, "7-minute launch path copied")}
+                  className="h-8"
+                >
+                  <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Copy 7-minute launch path
+                </Button>
+                <Button
+                  size="sm"
+                  variant={currentLaunchPathStepRecorded ? "default" : "outline"}
+                  onClick={recordCurrentLaunchPathStep}
+                  disabled={!currentLaunchPathStep}
+                  className="h-8"
+                >
+                  <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  {currentLaunchPathStepRecorded ? "Current step reviewed" : "Record current step reviewed"}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={resetLaunchPathProgress} className="h-8">
+                  Reset launch path progress
+                </Button>
+              </div>
             </div>
             <div className="mt-3 grid gap-2 lg:grid-cols-5">
               {LOCAL_SERVICE_SEVEN_MINUTE_LAUNCH_PATH.map((step, index) => {
                 const StepIcon = step.Icon;
                 const active = activeView === step.view;
-                const completed = launchPathActiveIndex > index;
+                const recorded = launchPathStepCompletion[step.id] === true;
                 return (
                   <button
                     key={step.id}
@@ -8797,7 +8915,7 @@ const LocalServicesDispatchDemoPanel = ({
                         <StepIcon className="h-3.5 w-3.5" strokeWidth={1.8} />
                       </span>
                       <span className="rounded-[5px] bg-secondary/45 px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
-                        {completed ? "done" : active ? "now" : step.minute}
+                        {recorded ? "reviewed" : active ? "now" : step.minute}
                       </span>
                     </div>
                     <div className="mt-2 font-mono text-[10px] text-muted-foreground">

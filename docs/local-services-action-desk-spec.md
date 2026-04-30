@@ -387,9 +387,11 @@ CRM, activate phone/Telegram/WhatsApp, or mutate Markdown docs.
 operator stepper over `Request intake`, `Approval-ready slot`, `Customer
 confirmation`, `Setup and dry run`, and `Founder review`. It can navigate only
 between the five product views and expose `Copy 7-minute launch path` for a
-manual launch summary. It must not send, book, dispatch, write CRM, change
-billing, activate channels, prepare a live paid pilot, or make a
-Continue/Pause/Stop decision.
+manual launch summary. It must show `Recorded N/5`, `Record current step
+reviewed`, and `Reset launch path progress`, storing only browser-local
+`launchPathStepCompletionByService` state. It must not send, book, dispatch,
+write CRM, change billing, activate channels, prepare a live paid pilot, or
+make a Continue/Pause/Stop decision.
 
 `Requests inbox` is the first actionable product view. Its `Operator action
 rail` can update only `statusByProspectKey` and

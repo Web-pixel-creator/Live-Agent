@@ -92,7 +92,9 @@ Local-services expansion spec:
   `path=7min&view=requests` opens the `7-minute launch path`: a guided
   `Request intake -> Approval-ready slot -> Customer confirmation -> Setup and
   dry run -> Founder review` stepper that jumps between those same views and
-  copies a manual-only launch summary.
+  copies a manual-only launch summary. It also shows `Recorded N/5` progress
+  and uses `Record current step reviewed`, `Reset launch path progress`, and
+  browser-local `launchPathStepCompletionByService` state for operator notes.
   `Requests inbox` also includes an `Operator action rail` that records only
   browser-local `statusByProspectKey` and `firstRequestOutcomeByProspectKey`
   notes for the selected pilot account.

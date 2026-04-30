@@ -96,8 +96,10 @@ Use `path=7min&view=requests` or the `7-minute path` button for the guided
 first demo. The `7-minute launch path` walks through `Request intake`,
 `Approval-ready slot`, `Customer confirmation`, `Setup and dry run`, and
 `Founder review`, then exposes `Copy 7-minute launch path` for a manual launch
-summary. It is a navigation and explanation layer only; it does not create
-external side effects.
+summary. It also shows `Recorded N/5` and lets the operator use `Record current
+step reviewed` or `Reset launch path progress`; those notes stay in
+`launchPathStepCompletionByService`. It is a navigation and explanation layer
+only; it does not create external side effects.
 It now also exposes `Open intake evidence` and `Transcript + evidence`, which
 opens a `Saved intake evidence` drawer with `Intake transcript + evidence link`,
 `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,
