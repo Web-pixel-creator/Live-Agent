@@ -92,8 +92,10 @@ Local-services expansion spec:
   `path=7min&view=requests` opens the `7-minute launch path`: a guided
   `Request intake -> Approval-ready slot -> Customer confirmation -> Setup and
   dry run -> Founder review` stepper that jumps between those same views and
-  copies a manual-only launch summary. It also shows `Recorded N/5` progress
-  and uses `Record current step reviewed`, `Reset launch path progress`, and
+  copies a manual-only launch summary. `path=7min&view=requests&packet=launch`
+  opens the same path with the launch packet drawer already visible for
+  issue-aware handoff links. It also shows `Recorded N/5` progress and uses
+  `Record current step reviewed`, `Reset launch path progress`, and
   browser-local `launchPathStepCompletionByService` state for operator notes.
   The same guide now includes a `Launch packet bridge` that rolls those notes
   into the existing `local_services_pilot_launch_packet` surface with

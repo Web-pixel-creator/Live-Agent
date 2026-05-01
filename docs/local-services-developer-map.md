@@ -36,6 +36,10 @@ Focused setup route:
 
 `/app?demo=local-services-dispatch&service=ac-repair-dispatch&setup=7min`
 
+Launch packet route:
+
+`/app?demo=local-services-dispatch&service=ac-repair-dispatch&path=7min&view=requests&packet=launch`
+
 Recording route:
 
 `/app?demo=local-services-dispatch&service=ac-repair-dispatch&recording=90s`
@@ -105,16 +109,25 @@ or mutate the Markdown docs.
 `path=7min&view=requests` enables the `7-minute launch path` guide. The guide is
 implemented from `LOCAL_SERVICE_SEVEN_MINUTE_LAUNCH_PATH`, renders the five
 operator steps, and calls the same query-backed view opener used by the sidebar.
-`Copy 7-minute launch path` copies a manual summary only; it must not create
-external side effects. `Record current step reviewed`, `Reset launch path
-progress`, and the `Recorded N/5` badge persist only
-`launchPathStepCompletionByService` for the selected service. `Launch packet
+`path=7min&view=requests&packet=launch` additionally opens the `Pilot launch
+packet` drawer through `launchPacketDeepLink`, so issues, docs, and QA links can
+land on the exact handoff surface. `Copy 7-minute launch path` copies a manual
+summary only; it must not create external side effects. `Record current step
+reviewed`, `Reset launch path progress`, and the `Recorded N/5` badge persist
+only `launchPathStepCompletionByService` for the selected service. `Launch packet
 bridge` reads the same state plus request outcome, dispatch approval, customer
 confirmation, setup/dry-run, and founder-review labels, then copies a manual
 `local_services_pilot_launch_packet` summary through `Copy launch packet` or
 opens the existing packet drawer through `Open launch packet`. The drawer uses
 `pilotLaunchPacketWithBridge`, adds `7-minute gate`, and emits the structured
 `operator_approved_manual_contact_packet_with_7_minute_bridge` JSON payload.
+
+Implementation records live in three places: runtime behavior in
+`apps/demo-frontend/app-shell/src/components/workspace/LiveDesk.tsx`, product
+and operator contract in `README.md` plus `docs/local-development.md`,
+`docs/operator-guide.md`, and `docs/local-services-action-desk-spec.md`, and
+source-level guardrails in
+`tests/unit/demo-frontend-app-shell-runtime-alignment.test.ts`.
 
 `view=requests` has the first actionable panel contract. `Operator action rail`
 renders local request status, first-request outcome, and next approved action

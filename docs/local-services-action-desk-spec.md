@@ -387,8 +387,10 @@ CRM, activate phone/Telegram/WhatsApp, or mutate Markdown docs.
 operator stepper over `Request intake`, `Approval-ready slot`, `Customer
 confirmation`, `Setup and dry run`, and `Founder review`. It can navigate only
 between the five product views and expose `Copy 7-minute launch path` for a
-manual launch summary. It must show `Recorded N/5`, `Record current step
-reviewed`, and `Reset launch path progress`, storing only browser-local
+manual launch summary. `path=7min&view=requests&packet=launch` must open the
+same path with `Pilot launch packet` already visible for issue-aware handoff
+links. It must show `Recorded N/5`, `Record current step reviewed`, and
+`Reset launch path progress`, storing only browser-local
 `launchPathStepCompletionByService` state. It must include a `Launch packet
 bridge` to `local_services_pilot_launch_packet`, exposing `Open launch packet`,
 `Copy launch packet`, `Path recorded`, `Schedule approval`,

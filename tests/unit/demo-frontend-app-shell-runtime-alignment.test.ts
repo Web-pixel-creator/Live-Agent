@@ -558,6 +558,11 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Setup \+ dry run/);
   assert.match(liveDesk, /local_services_pilot_launch_packet/);
   assert.match(liveDesk, /path=7min/);
+  assert.match(liveDesk, /next\.set\("packet", "launch"\)/);
+  assert.match(liveDesk, /localServicesLaunchPacketDeepLink/);
+  assert.match(liveDesk, /launchPacketDeepLink/);
+  assert.match(liveDesk, /onSetLaunchPacketDeepLink/);
+  assert.match(liveDesk, /setLocalServicesLaunchPacketDeepLink/);
   assert.match(liveDesk, /onOpenProductView/);
   assert.match(liveDesk, /recordingMode: boolean;/);
   assert.match(liveDesk, /recordingMode=\{localServicesRecordingMode\}/);
@@ -1246,6 +1251,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /weeklyScorecardSyncReviewedByService/);
   assert.match(readme, /Copy review queue\s+summary/);
   assert.match(readme, /path=7min&view=requests/);
+  assert.match(readme, /path=7min&view=requests&packet=launch/);
   assert.match(readme, /7-minute launch path/);
   assert.match(readme, /Request intake -> Approval-ready slot -> Customer confirmation -> Setup and\s+dry run -> Founder review/);
   assert.match(readme, /launchPathStepCompletionByService/);
@@ -1576,6 +1582,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /view=customers/);
   assert.match(localDevelopment, /view=reviews/);
   assert.match(localDevelopment, /path=7min&view=requests/);
+  assert.match(localDevelopment, /path=7min&view=requests&packet=launch/);
   assert.match(localDevelopment, /7-minute launch path/);
   assert.match(localDevelopment, /Copy 7-minute launch path/);
   assert.match(localDevelopment, /launchPathStepCompletionByService/);
@@ -1912,6 +1919,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Review decision actions/);
   assert.match(operatorGuide, /Copy review queue summary/);
   assert.match(operatorGuide, /path=7min&view=requests/);
+  assert.match(operatorGuide, /path=7min&view=requests&packet=launch/);
   assert.match(operatorGuide, /7-minute launch path/);
   assert.match(operatorGuide, /Copy 7-minute launch path/);
   assert.match(operatorGuide, /launchPathStepCompletionByService/);
@@ -3155,6 +3163,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesDeveloperMap, /Review queue\s+decision\s+rail/);
   assert.match(localServicesDeveloperMap, /Copy review queue\s+summary/);
   assert.match(localServicesSpec, /path=7min&view=requests/);
+  assert.match(localServicesSpec, /path=7min&view=requests&packet=launch/);
   assert.match(localServicesSpec, /7-minute launch path/);
   assert.match(localServicesSpec, /Copy 7-minute launch path/);
   assert.match(localServicesSpec, /launchPathStepCompletionByService/);
@@ -3167,6 +3176,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /Setup \+ dry run/);
   assert.match(localServicesDeveloperMap, /LOCAL_SERVICE_SEVEN_MINUTE_LAUNCH_PATH/);
   assert.match(localServicesDeveloperMap, /path=7min&view=requests/);
+  assert.match(localServicesDeveloperMap, /path=7min&view=requests&packet=launch/);
+  assert.match(localServicesDeveloperMap, /launchPacketDeepLink/);
+  assert.match(localServicesDeveloperMap, /Implementation records live in three places/);
   assert.match(localServicesDeveloperMap, /launchPathStepCompletionByService/);
   assert.match(localServicesDeveloperMap, /Record current step\s+reviewed/);
   assert.match(localServicesDeveloperMap, /Reset launch path\s+progress/);

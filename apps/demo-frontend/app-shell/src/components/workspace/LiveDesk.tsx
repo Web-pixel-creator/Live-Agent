@@ -6496,6 +6496,7 @@ const LocalServicesDispatchDemoPanel = ({
   activeServiceId,
   activeView,
   launchPathMode,
+  launchPacketDeepLink,
   recordingMode,
   setupWizardMode,
   onSelectService,
@@ -6506,10 +6507,12 @@ const LocalServicesDispatchDemoPanel = ({
   onOpenPath,
   onOpenProductView,
   onOpenSetupWizard,
+  onSetLaunchPacketDeepLink,
 }: {
   activeServiceId: string | null;
   activeView: LocalServiceProductView;
   launchPathMode: boolean;
+  launchPacketDeepLink: boolean;
   recordingMode: boolean;
   setupWizardMode: boolean;
   onSelectService: (id: string) => void;
@@ -6520,6 +6523,7 @@ const LocalServicesDispatchDemoPanel = ({
   onOpenPath: (path: string) => void;
   onOpenProductView: (view: LocalServiceProductView) => void;
   onOpenSetupWizard: (serviceId: string) => void;
+  onSetLaunchPacketDeepLink: (open: boolean) => void;
 }) => {
   const selectedTemplate =
     LOCAL_SERVICE_DEMO_TEMPLATES.find((template) => template.id === activeServiceId) ??
@@ -8294,6 +8298,25 @@ const LocalServicesDispatchDemoPanel = ({
     }
   }, [pilotWorkspaceState]);
 
+  useEffect(() => {
+    if (!launchPacketDeepLink) return;
+    setPilotLaunchPacketMode("human");
+    setPilotLaunchPacketOpen(true);
+  }, [launchPacketDeepLink, selectedTemplate.id]);
+
+  const setPilotLaunchPacketOpenFromSheet = (open: boolean) => {
+    setPilotLaunchPacketOpen(open);
+    if (!open && launchPacketDeepLink) {
+      onSetLaunchPacketDeepLink(false);
+    }
+  };
+
+  const openPilotLaunchPacketDrawer = () => {
+    setPilotLaunchPacketMode("human");
+    setPilotLaunchPacketOpen(true);
+    onSetLaunchPacketDeepLink(true);
+  };
+
   const updatePilotWorkspaceStatusForTarget = (
     target: {
       key: string;
@@ -9061,10 +9084,7 @@ const LocalServicesDispatchDemoPanel = ({
                   <Button
                     size="sm"
                     variant="secondary"
-                    onClick={() => {
-                      setPilotLaunchPacketMode("human");
-                      setPilotLaunchPacketOpen(true);
-                    }}
+                    onClick={openPilotLaunchPacketDrawer}
                     className="h-8"
                   >
                     Open launch packet
@@ -11870,10 +11890,7 @@ const LocalServicesDispatchDemoPanel = ({
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => {
-                  setPilotLaunchPacketMode("human");
-                  setPilotLaunchPacketOpen(true);
-                }}
+                onClick={openPilotLaunchPacketDrawer}
                 className="h-7"
               >
                 Open launch packet
@@ -13258,7 +13275,7 @@ const LocalServicesDispatchDemoPanel = ({
       />
       <LocalServicePilotWorkspaceExportDrawer
         open={pilotLaunchPacketOpen}
-        onOpenChange={setPilotLaunchPacketOpen}
+        onOpenChange={setPilotLaunchPacketOpenFromSheet}
         exportView={pilotLaunchPacketWithBridge}
         mode={pilotLaunchPacketMode}
         onModeChange={setPilotLaunchPacketMode}
@@ -15505,6 +15522,7 @@ export const LiveDesk = () => {
   const localServicesRecordingMode = localServicesDispatchDemo && searchParams.get("recording") === "90s";
   const localServicesSetupWizardMode = localServicesDispatchDemo && searchParams.get("setup") === "7min";
   const localServicesLaunchPathMode = localServicesDispatchDemo && searchParams.get("path") === "7min";
+  const localServicesLaunchPacketDeepLink = localServicesDispatchDemo && searchParams.get("packet") === "launch";
   const activePlaybookId = searchParams.get("playbook");
   const activeLocalServiceId = searchParams.get("service");
   const activeLocalServiceView = resolveLocalServiceProductView(
@@ -15549,6 +15567,7 @@ export const LiveDesk = () => {
       next.delete("recording");
       next.delete("setup");
       next.delete("view");
+      next.delete("packet");
       return next;
     });
   };
@@ -15579,6 +15598,7 @@ export const LiveDesk = () => {
       next.delete("setup");
       next.delete("path");
       next.delete("view");
+      next.delete("packet");
       return next;
     });
   };
@@ -15602,6 +15622,7 @@ export const LiveDesk = () => {
       next.set("service", activeLocalServiceId ?? "ac-repair-dispatch");
       next.set("path", "7min");
       next.set("view", "requests");
+      next.delete("packet");
       return next;
     });
   };
@@ -15609,6 +15630,7 @@ export const LiveDesk = () => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       next.delete("path");
+      next.delete("packet");
       return next;
     });
   };
@@ -15625,6 +15647,27 @@ export const LiveDesk = () => {
       next.set("service", activeLocalServiceId ?? "ac-repair-dispatch");
       next.set("path", "7min");
       next.set("view", view);
+      return next;
+    });
+  };
+  const setLocalServicesLaunchPacketDeepLink = (open: boolean) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (open) {
+        next.delete("node");
+        next.delete("infra");
+        next.delete("burning");
+        next.delete("playbook");
+        next.delete("recording");
+        next.delete("setup");
+        next.set("demo", "local-services-dispatch");
+        next.set("service", activeLocalServiceId ?? "ac-repair-dispatch");
+        next.set("path", "7min");
+        next.set("view", activeLocalServiceView === "dispatcher" ? "requests" : activeLocalServiceView);
+        next.set("packet", "launch");
+      } else {
+        next.delete("packet");
+      }
       return next;
     });
   };
@@ -15648,6 +15691,7 @@ export const LiveDesk = () => {
       next.delete("setup");
       next.delete("path");
       next.delete("view");
+      next.delete("packet");
       return next;
     });
   };
@@ -15678,6 +15722,7 @@ export const LiveDesk = () => {
       next.set("view", "setup");
       next.delete("path");
       next.delete("recording");
+      next.delete("packet");
       return next;
     });
   };
@@ -15699,6 +15744,7 @@ export const LiveDesk = () => {
       next.delete("setup");
       next.delete("path");
       next.delete("view");
+      next.delete("packet");
       return next;
     });
   };
@@ -16826,6 +16872,7 @@ export const LiveDesk = () => {
           activeServiceId={activeLocalServiceId}
           activeView={activeLocalServiceView}
           launchPathMode={localServicesLaunchPathMode}
+          launchPacketDeepLink={localServicesLaunchPacketDeepLink}
           recordingMode={localServicesRecordingMode}
           setupWizardMode={localServicesSetupWizardMode}
           onSelectService={(id) =>
@@ -16844,6 +16891,7 @@ export const LiveDesk = () => {
           onOpenPath={openLocalServiceDemoPath}
           onOpenProductView={openLocalServicesProductView}
           onOpenSetupWizard={openLocalServicesSetupWizard}
+          onSetLaunchPacketDeepLink={setLocalServicesLaunchPacketDeepLink}
         />
       )}
 

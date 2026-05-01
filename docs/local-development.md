@@ -80,8 +80,10 @@ review notes only; they do not write CRM, change billing, send customer
 messages, activate channels, or make an autonomous pilot decision.
 `path=7min&view=requests` opens the `7-minute launch path`, a guided stepper
 over `Request intake`, `Approval-ready slot`, `Customer confirmation`, `Setup
-and dry run`, and `Founder review`. It only changes query-backed product views
-and can copy a `Copy 7-minute launch path` manual summary. It also exposes
+and dry run`, and `Founder review`. `path=7min&view=requests&packet=launch`
+opens the same path with `Pilot launch packet` already visible for issue-aware
+handoff links. It only changes query-backed product views and can copy a
+`Copy 7-minute launch path` manual summary. It also exposes
 `Recorded N/5`, `Record current step reviewed`, `Reset launch path progress`,
 and browser-local `launchPathStepCompletionByService` state. Its `Launch packet
 bridge` rolls the path into `local_services_pilot_launch_packet` with `Open
