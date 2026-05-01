@@ -101,8 +101,11 @@ step reviewed` or `Reset launch path progress`; those notes stay in
 `launchPathStepCompletionByService`. The `Launch packet bridge` connects that
 path to `local_services_pilot_launch_packet` with `Open launch packet`, `Copy
 launch packet`, `Path recorded`, `Schedule approval`, `Customer confirmation`,
-`Setup + dry run`, and `Founder review` rows. It is a navigation and
-explanation layer only; it does not create external side effects.
+`Setup + dry run`, and `Founder review` rows. The drawer itself carries the
+same `7-minute gate` and
+`operator_approved_manual_contact_packet_with_7_minute_bridge` payload. It is a
+navigation and explanation layer only; it does not create external side
+effects.
 It now also exposes `Open intake evidence` and `Transcript + evidence`, which
 opens a `Saved intake evidence` drawer with `Intake transcript + evidence link`,
 `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,

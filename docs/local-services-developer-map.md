@@ -112,7 +112,9 @@ progress`, and the `Recorded N/5` badge persist only
 bridge` reads the same state plus request outcome, dispatch approval, customer
 confirmation, setup/dry-run, and founder-review labels, then copies a manual
 `local_services_pilot_launch_packet` summary through `Copy launch packet` or
-opens the existing packet drawer through `Open launch packet`.
+opens the existing packet drawer through `Open launch packet`. The drawer uses
+`pilotLaunchPacketWithBridge`, adds `7-minute gate`, and emits the structured
+`operator_approved_manual_contact_packet_with_7_minute_bridge` JSON payload.
 
 `view=requests` has the first actionable panel contract. `Operator action rail`
 renders local request status, first-request outcome, and next approved action

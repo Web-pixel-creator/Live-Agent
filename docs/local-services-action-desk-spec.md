@@ -392,7 +392,9 @@ reviewed`, and `Reset launch path progress`, storing only browser-local
 `launchPathStepCompletionByService` state. It must include a `Launch packet
 bridge` to `local_services_pilot_launch_packet`, exposing `Open launch packet`,
 `Copy launch packet`, `Path recorded`, `Schedule approval`,
-`Customer confirmation`, `Setup + dry run`, and `Founder review` rows. It must
+`Customer confirmation`, `Setup + dry run`, and `Founder review` rows. Opening
+the packet must preserve the same `7-minute gate` and structured
+`operator_approved_manual_contact_packet_with_7_minute_bridge` payload. It must
 not send, book, dispatch, write CRM, change billing, activate channels, prepare
 a live paid pilot, or make a Continue/Pause/Stop decision.
 

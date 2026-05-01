@@ -86,7 +86,9 @@ and can copy a `Copy 7-minute launch path` manual summary. It also exposes
 and browser-local `launchPathStepCompletionByService` state. Its `Launch packet
 bridge` rolls the path into `local_services_pilot_launch_packet` with `Open
 launch packet`, `Copy launch packet`, `Path recorded`, `Schedule approval`,
-`Customer confirmation`, `Setup + dry run`, and `Founder review` rows; it does
+`Customer confirmation`, `Setup + dry run`, and `Founder review` rows. The
+opened drawer includes the same `7-minute gate` and
+`operator_approved_manual_contact_packet_with_7_minute_bridge` payload; it does
 not send, book, dispatch, write CRM, change billing, activate channels, or make
 the pilot decision.
 3.2. The same local-services route now includes view-only pilot list controls:

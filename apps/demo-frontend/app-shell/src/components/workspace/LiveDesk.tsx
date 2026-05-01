@@ -8147,6 +8147,50 @@ const LocalServicesDispatchDemoPanel = ({
     "State keys: launchPathStepCompletionByService, firstRequestOutcomeByProspectKey, dispatchApprovalByService, customerConfirmationByService, setupReadyByService, testCallPassedByService, weekOneOwnerDecisionByProspectKey, weeklyScorecardSyncReviewedByService.",
     "Manual-only rule: this bridge does not send outreach, create bookings, dispatch masters, write CRM, change billing, activate channels, or mutate docs.",
   ].join("\n");
+  const pilotLaunchPacketWithBridge: LocalServicePilotWorkspaceExport = {
+    ...pilotLaunchPacket,
+    description:
+      "Preview the first manual contact packet with the 7-minute path bridge, dry-run status, selected company, draft state, approval checklist, and next operator action.",
+    humanText: launchPathLaunchPacketText,
+    jsonText: JSON.stringify(
+      {
+        export_surface: "local_services_pilot_launch_packet",
+        export_kind: "operator_approved_manual_contact_packet_with_7_minute_bridge",
+        service_id: selectedTemplate.id,
+        service_ref: selectedTemplate.ref,
+        service_title: selectedTemplate.title,
+        seven_minute_gate: launchPathPacketGateLabel,
+        path_recorded: launchPathRecordedProgress,
+        manual_launch_gate: manualLaunchGateLabel,
+        bridge_rows: launchPathPacketBridgeRows.map((row) => ({
+          label: row.label,
+          value: row.value,
+          detail: row.detail,
+        })),
+        base_launch_packet: JSON.parse(pilotLaunchPacket.jsonText) as Record<string, unknown>,
+        guardrails: [
+          "operator_approval_required",
+          "manual_send_only",
+          "no_outbound_message_sent",
+          "no_crm_write",
+          "no_calendar_booking_created",
+          "no_dispatch_created",
+        ],
+      },
+      null,
+      2,
+    ),
+    rows: [
+      { label: "7-minute gate", value: launchPathPacketGateLabel },
+      ...launchPathPacketBridgeRows.map((row) => ({ label: row.label, value: row.value })),
+      ...pilotLaunchPacket.rows,
+    ],
+    checklist: [
+      "7-minute path bridge is reviewed before the first manual contact packet is copied.",
+      "Path recorded, request outcome, schedule approval, customer confirmation, setup/dry-run, and founder review are visible in the same drawer.",
+      ...pilotLaunchPacket.checklist,
+    ],
+  };
   const requestInboxNextAction =
     currentFirstRequestOutcome === "booked_manually"
       ? "Open schedule view after human booking"
@@ -13215,7 +13259,7 @@ const LocalServicesDispatchDemoPanel = ({
       <LocalServicePilotWorkspaceExportDrawer
         open={pilotLaunchPacketOpen}
         onOpenChange={setPilotLaunchPacketOpen}
-        exportView={pilotLaunchPacket}
+        exportView={pilotLaunchPacketWithBridge}
         mode={pilotLaunchPacketMode}
         onModeChange={setPilotLaunchPacketMode}
         onCopy={onCopyText}
