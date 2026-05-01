@@ -549,6 +549,11 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Reset launch path progress/);
   assert.match(liveDesk, /Recorded progress/);
   assert.match(liveDesk, /launchPathStepCompletionByService/);
+  assert.match(liveDesk, /Launch packet bridge/);
+  assert.match(liveDesk, /Launch packet needs operator review/);
+  assert.match(liveDesk, /Path recorded/);
+  assert.match(liveDesk, /Setup \+ dry run/);
+  assert.match(liveDesk, /local_services_pilot_launch_packet/);
   assert.match(liveDesk, /path=7min/);
   assert.match(liveDesk, /onOpenProductView/);
   assert.match(liveDesk, /recordingMode: boolean;/);
@@ -1243,6 +1248,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /launchPathStepCompletionByService/);
   assert.match(readme, /Record current step reviewed/);
   assert.match(readme, /Reset launch path progress/);
+  assert.match(readme, /Launch packet bridge/);
+  assert.match(readme, /Path recorded/);
+  assert.match(readme, /Setup \+\s+dry run/);
   assert.match(readme, /AI Dispatcher for local service businesses/);
   assert.match(readme, /AC repair dispatch/);
   assert.match(readme, /Plumbing emergency/);
@@ -1568,6 +1576,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /launchPathStepCompletionByService/);
   assert.match(localDevelopment, /Record current step reviewed/);
   assert.match(localDevelopment, /Reset launch path progress/);
+  assert.match(localDevelopment, /Launch packet\s+bridge/);
+  assert.match(localDevelopment, /Path recorded/);
+  assert.match(localDevelopment, /Setup \+ dry run/);
   assert.match(localDevelopment, /AI Dispatcher for Local Services/);
   assert.match(localDevelopment, /Measurement visit booking/);
   assert.match(localDevelopment, /measurement lane is construction-adjacent P0/);
@@ -1899,6 +1910,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /launchPathStepCompletionByService/);
   assert.match(operatorGuide, /Record current\s+step reviewed/);
   assert.match(operatorGuide, /Reset launch path progress/);
+  assert.match(operatorGuide, /Launch packet bridge/);
+  assert.match(operatorGuide, /Path recorded/);
+  assert.match(operatorGuide, /Setup \+ dry run/);
   assert.match(operatorGuide, /AI Dispatcher\s+for Local Services/);
   assert.match(operatorGuide, /Start 7-minute\s+demo/);
   assert.match(operatorGuide, /Open dispatch drawer/);
@@ -3137,11 +3151,16 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /launchPathStepCompletionByService/);
   assert.match(localServicesSpec, /Record current step\s+reviewed/);
   assert.match(localServicesSpec, /Reset launch path progress/);
+  assert.match(localServicesSpec, /Launch packet\s+bridge/);
+  assert.match(localServicesSpec, /Path recorded/);
+  assert.match(localServicesSpec, /Setup \+ dry run/);
   assert.match(localServicesDeveloperMap, /LOCAL_SERVICE_SEVEN_MINUTE_LAUNCH_PATH/);
   assert.match(localServicesDeveloperMap, /path=7min&view=requests/);
   assert.match(localServicesDeveloperMap, /launchPathStepCompletionByService/);
   assert.match(localServicesDeveloperMap, /Record current step\s+reviewed/);
   assert.match(localServicesDeveloperMap, /Reset launch path\s+progress/);
+  assert.match(localServicesDeveloperMap, /Launch packet\s+bridge/);
+  assert.match(localServicesDeveloperMap, /local_services_pilot_launch_packet/);
 
   assert.match(pilotOffer, /# Local Services Pilot Offer/);
   assert.match(pilotOffer, /AI Dispatcher for Local Services/);

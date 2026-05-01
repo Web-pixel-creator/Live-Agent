@@ -95,6 +95,11 @@ Local-services expansion spec:
   copies a manual-only launch summary. It also shows `Recorded N/5` progress
   and uses `Record current step reviewed`, `Reset launch path progress`, and
   browser-local `launchPathStepCompletionByService` state for operator notes.
+  The same guide now includes a `Launch packet bridge` that rolls those notes
+  into the existing `local_services_pilot_launch_packet` surface with
+  `Open launch packet`, `Copy launch packet`, `Path recorded`, `Schedule
+  approval`, `Customer confirmation`, `Setup + dry run`, and `Founder review`
+  rows.
   `Requests inbox` also includes an `Operator action rail` that records only
   browser-local `statusByProspectKey` and `firstRequestOutcomeByProspectKey`
   notes for the selected pilot account.

@@ -108,7 +108,11 @@ operator steps, and calls the same query-backed view opener used by the sidebar.
 `Copy 7-minute launch path` copies a manual summary only; it must not create
 external side effects. `Record current step reviewed`, `Reset launch path
 progress`, and the `Recorded N/5` badge persist only
-`launchPathStepCompletionByService` for the selected service.
+`launchPathStepCompletionByService` for the selected service. `Launch packet
+bridge` reads the same state plus request outcome, dispatch approval, customer
+confirmation, setup/dry-run, and founder-review labels, then copies a manual
+`local_services_pilot_launch_packet` summary through `Copy launch packet` or
+opens the existing packet drawer through `Open launch packet`.
 
 `view=requests` has the first actionable panel contract. `Operator action rail`
 renders local request status, first-request outcome, and next approved action

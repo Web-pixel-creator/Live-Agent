@@ -8092,6 +8092,61 @@ const LocalServicesDispatchDemoPanel = ({
       detail: "Operator note only: no customer send, CRM write, payment, booking, or technician dispatch.",
     },
   ];
+  const launchPathPacketGateLabel =
+    launchPathRecordedCount === LOCAL_SERVICE_SEVEN_MINUTE_LAUNCH_PATH.length &&
+    testCallPassed &&
+    selectedDraftReady
+      ? "Launch packet ready for manual review"
+      : "Launch packet needs operator review";
+  const launchPathPacketBridgeRows = [
+    {
+      label: "Path recorded",
+      value: launchPathRecordedProgress,
+      detail: "Saved under launchPathStepCompletionByService for this service.",
+    },
+    {
+      label: "Request outcome",
+      value: currentFirstRequestOutcomeLabel,
+      detail: "Pulled from firstRequestOutcomeByProspectKey.",
+    },
+    {
+      label: "Schedule approval",
+      value: currentDispatchApprovalLabel,
+      detail: "Pulled from dispatchApprovalByService before any booking or dispatch.",
+    },
+    {
+      label: "Customer confirmation",
+      value: currentCustomerConfirmationLabel,
+      detail: "Pulled from customerConfirmationByService before any customer send.",
+    },
+    {
+      label: "Setup + dry run",
+      value: `${setupReadyForPilot ? "Setup ready" : "Setup pending"} / ${
+        testCallPassed ? "Dry run passed" : `Dry run pending (${testCallProgress})`
+      }`,
+      detail: "Pulled from setupReadyByService and testCallPassedByService.",
+    },
+    {
+      label: "Founder review",
+      value: `${currentWeekOneOwnerDecisionLabel} / sync ${currentWeeklyScorecardSyncReviewedLabel}`,
+      detail: "Pulled from weekOneOwnerDecisionByProspectKey and weeklyScorecardSyncReviewedByService.",
+    },
+  ];
+  const launchPathLaunchPacketText = [
+    "7-minute launch packet bridge:",
+    `Service: ${selectedTemplate.ref} - ${selectedTemplate.title}`,
+    `Gate: ${launchPathPacketGateLabel}`,
+    `Path recorded: ${launchPathRecordedProgress}`,
+    `Manual launch gate: ${manualLaunchGateLabel}`,
+    "",
+    "Bridge rows:",
+    ...launchPathPacketBridgeRows.map((row) => `- ${row.label}: ${row.value} (${row.detail})`),
+    "",
+    pilotLaunchPacket.humanText,
+    "",
+    "State keys: launchPathStepCompletionByService, firstRequestOutcomeByProspectKey, dispatchApprovalByService, customerConfirmationByService, setupReadyByService, testCallPassedByService, weekOneOwnerDecisionByProspectKey, weeklyScorecardSyncReviewedByService.",
+    "Manual-only rule: this bridge does not send outreach, create bookings, dispatch masters, write CRM, change billing, activate channels, or mutate docs.",
+  ].join("\n");
   const requestInboxNextAction =
     currentFirstRequestOutcome === "booked_manually"
       ? "Open schedule view after human booking"
@@ -8929,6 +8984,69 @@ const LocalServicesDispatchDemoPanel = ({
                   </button>
                 );
               })}
+            </div>
+            <div className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-3">
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                <div className="min-w-0">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Launch packet bridge
+                  </div>
+                  <p className="mt-1.5 max-w-3xl text-[12px] leading-relaxed text-foreground">
+                    Rolls the guided path into the existing Pilot launch packet so the operator can see what is
+                    ready, what is still pending, and what will be copied for manual review.
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <span
+                      className={`inline-flex rounded-[5px] px-2 py-1 font-mono text-[10px] ring-1 ring-inset ${
+                        launchPathPacketGateLabel === "Launch packet ready for manual review"
+                          ? "bg-[hsl(var(--tint-mint)/0.12)] text-[hsl(var(--tint-mint-fg))] ring-[hsl(var(--tint-mint)/0.22)]"
+                          : "bg-[hsl(var(--tint-amber)/0.12)] text-[hsl(var(--tint-amber-fg))] ring-[hsl(var(--tint-amber)/0.24)]"
+                      }`}
+                    >
+                      {launchPathPacketGateLabel}
+                    </span>
+                    <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                      local_services_pilot_launch_packet
+                    </span>
+                    <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                      Manual review only
+                    </span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      setPilotLaunchPacketMode("human");
+                      setPilotLaunchPacketOpen(true);
+                    }}
+                    className="h-8"
+                  >
+                    Open launch packet
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => onCopyText(launchPathLaunchPacketText, "Launch packet copied")}
+                    className="h-8"
+                  >
+                    <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                    Copy launch packet
+                  </Button>
+                </div>
+              </div>
+              <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                {launchPathPacketBridgeRows.map((row) => (
+                  <div key={row.label} className="rounded-md border border-border/45 bg-card/25 px-2.5 py-2">
+                    <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                      {row.label}
+                    </div>
+                    <div className="mt-1 text-[12px] font-medium text-foreground">{row.value}</div>
+                    <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">{row.detail}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
         )}

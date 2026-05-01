@@ -98,8 +98,11 @@ first demo. The `7-minute launch path` walks through `Request intake`,
 `Founder review`, then exposes `Copy 7-minute launch path` for a manual launch
 summary. It also shows `Recorded N/5` and lets the operator use `Record current
 step reviewed` or `Reset launch path progress`; those notes stay in
-`launchPathStepCompletionByService`. It is a navigation and explanation layer
-only; it does not create external side effects.
+`launchPathStepCompletionByService`. The `Launch packet bridge` connects that
+path to `local_services_pilot_launch_packet` with `Open launch packet`, `Copy
+launch packet`, `Path recorded`, `Schedule approval`, `Customer confirmation`,
+`Setup + dry run`, and `Founder review` rows. It is a navigation and
+explanation layer only; it does not create external side effects.
 It now also exposes `Open intake evidence` and `Transcript + evidence`, which
 opens a `Saved intake evidence` drawer with `Intake transcript + evidence link`,
 `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,

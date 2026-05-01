@@ -83,9 +83,12 @@ over `Request intake`, `Approval-ready slot`, `Customer confirmation`, `Setup
 and dry run`, and `Founder review`. It only changes query-backed product views
 and can copy a `Copy 7-minute launch path` manual summary. It also exposes
 `Recorded N/5`, `Record current step reviewed`, `Reset launch path progress`,
-and browser-local `launchPathStepCompletionByService` state; it does not send,
-book, dispatch, write CRM, change billing, activate channels, or make the pilot
-decision.
+and browser-local `launchPathStepCompletionByService` state. Its `Launch packet
+bridge` rolls the path into `local_services_pilot_launch_packet` with `Open
+launch packet`, `Copy launch packet`, `Path recorded`, `Schedule approval`,
+`Customer confirmation`, `Setup + dry run`, and `Founder review` rows; it does
+not send, book, dispatch, write CRM, change billing, activate channels, or make
+the pilot decision.
 3.2. The same local-services route now includes view-only pilot list controls:
 `Outreach list filters`, `Column settings`, `Service filter`, `Status filter`,
 `Filtered candidates`, `Filtered outreach list`, `All services`,
