@@ -11,6 +11,7 @@ Companion execution backlog:
 - `docs/quality-simplification-plan.md`
 - `docs/local-services-action-desk-spec.md`
 - `docs/local-services-developer-map.md`
+- `docs/local-services-agent-handoff.md`
 
 ## Source of Truth
 
@@ -75,6 +76,30 @@ The developer implementation map for that expansion is
 `docs/local-services-developer-map.md`; it lists the route surfaces,
 browser-local state keys, export contracts, gate chain, served docs, and safe
 extension rules.
+The cross-agent handoff for that expansion is
+`docs/local-services-agent-handoff.md`; it captures the design-workbench review,
+backend adapter plan, UI decisions, and do-not-build boundaries for the current
+local-services product-mode work.
+The first code boundary for that adapter now lives in
+`apps/demo-frontend/app-shell/src/lib/local-services-workspace-adapter.ts`,
+which owns the shared browser-local storage key, static/browser/API/hybrid
+adapter constructors, and `/v1/local-services/*` endpoint names.
+The first repo-owned backend boundary now lives in
+`apps/api-backend/src/local-services-workspace.ts`; it is an in-memory pilot
+workspace API mounted from `apps/api-backend/src/index.ts`, not Lovable Cloud
+and not final durable production storage.
+`LiveDesk.tsx` now uses that adapter for the first action-backed records:
+scenario override save/reset, dispatch/customer operator decisions, and
+setup/test-call events. These are persistence records only; they still do not
+send outreach, dispatch masters, write CRM, activate channels, or bill.
+The fixed four-lane scenario packet now lives in
+`apps/demo-frontend/app-shell/src/lib/local-services-scenarios.ts`; it owns the
+zod schema, `DEFAULT_LOCAL_SERVICES_SCENARIOS`, and bounded
+`scenarioOverrides` merge path used by the adapter.
+The current scenario UI is `Scenario modal` /
+`local_services_scenario_modal` in `LiveDesk.tsx`: a hybrid chat-dialogue,
+structured job-card, and final handoff/approval view with JSON export/import
+for the four fixed lanes only.
 That expansion must stay one dispatcher product, not a collection of unrelated
 vertical products. Restaurants can be a secondary demo path, but should not
 displace the local-services wedge before pilot signal exists.

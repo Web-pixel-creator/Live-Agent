@@ -70,6 +70,21 @@ import {
   buildCaseEvidencePath,
   buildCaseVaultPath,
 } from "@/lib/case-artifact-links";
+import {
+  DEFAULT_LOCAL_SERVICES_SCENARIOS,
+  LOCAL_SERVICES_SCENARIO_IDS,
+  mergeLocalServicesScenarioOverrides,
+  parseLocalServicesScenarioList,
+  type LocalServicesScenario,
+  type LocalServicesScenarioId,
+} from "@/lib/local-services-scenarios";
+import {
+  createHybridLocalServicesWorkspaceAdapter,
+  LOCAL_SERVICES_WORKSPACE_STORAGE_KEY,
+  type LocalServicesOperatorDecision,
+  type LocalServicesPilotExport,
+  type LocalServicesWorkspaceSnapshot,
+} from "@/lib/local-services-workspace-adapter";
 
 type Status = CaseStatus;
 
@@ -707,6 +722,12 @@ type LocalServicePilotActivityEvent = {
   createdAt: string;
 };
 
+type LocalServiceSetupEvent = {
+  stepId: string;
+  payload: unknown;
+  recordedAt: string;
+};
+
 type LocalServicePilotWorkspaceState = {
   selectedProspectByService: Record<string, string>;
   currentOpsAccountKey: string;
@@ -729,6 +750,9 @@ type LocalServicePilotWorkspaceState = {
   testCallPassedByService: Record<string, boolean>;
   launchPathStepCompletionByService: Record<string, LocalServiceLaunchPathCompletion>;
   contactProofByProspectKey: Record<string, LocalServiceFounderContactProof>;
+  operatorDecisionByCaseRef: Record<string, LocalServicesOperatorDecision>;
+  setupEvents: LocalServiceSetupEvent[];
+  scenarioOverrides: LocalServicesScenario[];
   activityLog: LocalServicePilotActivityEvent[];
 };
 
@@ -901,7 +925,7 @@ const LOCAL_SERVICES_PILOT_SCORECARD_PATH = "/workspace-docs/local-services-pilo
 const LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH = "/workspace-docs/local-services-outreach-execution-pack.md";
 const LOCAL_SERVICES_PILOT_RUNBOOK_PATH = "/workspace-docs/local-services-pilot-runbook.md";
 const LOCAL_SERVICES_FOUNDER_EXECUTION_LOG_PATH = "/workspace-docs/local-services-founder-execution-log.md";
-const LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY = "liveDesk:localServicesPilotWorkspace:v1";
+const LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY = LOCAL_SERVICES_WORKSPACE_STORAGE_KEY;
 const LOCAL_SERVICE_PILOT_STATUS_LABELS: Record<LocalServicePilotStatus, string> = {
   not_contacted: "Not contacted",
   draft_ready: "Draft ready",
@@ -1362,6 +1386,87 @@ function readPilotActivityLog(value: unknown): LocalServicePilotActivityEvent[] 
     }));
 }
 
+function isLocalServicesOperatorAction(value: unknown): value is LocalServicesOperatorDecision["action"] {
+  return (
+    value === "approve" ||
+    value === "edit" ||
+    value === "reject" ||
+    value === "move" ||
+    value === "record"
+  );
+}
+
+function readLocalServicesOperatorDecisionRecord(
+  value: unknown,
+): Record<string, LocalServicesOperatorDecision> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter((entry): entry is [string, Record<string, unknown>] =>
+        Boolean(entry[1]) && typeof entry[1] === "object" && !Array.isArray(entry[1]),
+      )
+      .filter(([, decision]) => isLocalServicesOperatorAction(decision.action))
+      .map(([ref, decision]) => [
+        ref,
+        {
+          action: decision.action as LocalServicesOperatorDecision["action"],
+          reason: typeof decision.reason === "string" ? decision.reason : undefined,
+          payload: "payload" in decision ? decision.payload : undefined,
+          decidedAt: typeof decision.decidedAt === "string" ? decision.decidedAt : undefined,
+        },
+      ]),
+  );
+}
+
+function readLocalServiceSetupEvents(value: unknown): LocalServiceSetupEvent[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === "object")
+    .filter(
+      (entry) =>
+        typeof entry.stepId === "string" &&
+        typeof entry.recordedAt === "string" &&
+        "payload" in entry,
+    )
+    .slice(0, 24)
+    .map((entry) => ({
+      stepId: entry.stepId as string,
+      payload: entry.payload,
+      recordedAt: entry.recordedAt as string,
+    }));
+}
+
+function appendLocalServiceSetupEvent(
+  events: LocalServiceSetupEvent[],
+  event: Omit<LocalServiceSetupEvent, "recordedAt">,
+): LocalServiceSetupEvent[] {
+  return [
+    {
+      ...event,
+      recordedAt: new Date().toISOString(),
+    },
+    ...events,
+  ].slice(0, 24);
+}
+
+function mapDispatchApprovalToOperatorAction(
+  decision: LocalServiceDispatchApprovalDecision,
+): LocalServicesOperatorDecision["action"] {
+  if (decision === "owner_approved") return "approve";
+  if (decision === "needs_changes") return "edit";
+  if (decision === "blocked") return "reject";
+  return "record";
+}
+
+function mapCustomerConfirmationToOperatorAction(
+  decision: LocalServiceCustomerConfirmationDecision,
+): LocalServicesOperatorDecision["action"] {
+  if (decision === "consent_confirmed") return "approve";
+  if (decision === "needs_changes") return "edit";
+  if (decision === "blocked") return "reject";
+  return "record";
+}
+
 function appendLocalServicePilotActivity(
   log: LocalServicePilotActivityEvent[],
   event: Omit<LocalServicePilotActivityEvent, "id" | "createdAt">,
@@ -1377,8 +1482,8 @@ function appendLocalServicePilotActivity(
   ].slice(0, 12);
 }
 
-function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState {
-  const emptyState: LocalServicePilotWorkspaceState = {
+function createEmptyLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState {
+  return {
     selectedProspectByService: {},
     currentOpsAccountKey: "",
     statusByProspectKey: {},
@@ -1400,50 +1505,72 @@ function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState 
     testCallPassedByService: {},
     launchPathStepCompletionByService: {},
     contactProofByProspectKey: {},
+    operatorDecisionByCaseRef: {},
+    setupEvents: [],
+    scenarioOverrides: [],
     activityLog: [],
   };
+}
+
+function normalizeLocalServicePilotWorkspaceState(
+  parsed: LocalServicesWorkspaceSnapshot,
+): LocalServicePilotWorkspaceState {
+  let scenarioOverrides: LocalServicesScenario[] = [];
+  try {
+    scenarioOverrides = parseLocalServicesScenarioList(parsed.scenarioOverrides);
+  } catch {
+    scenarioOverrides = [];
+  }
+
+  return {
+    selectedProspectByService: readStringRecord(parsed.selectedProspectByService),
+    currentOpsAccountKey:
+      typeof parsed.currentOpsAccountKey === "string" ? parsed.currentOpsAccountKey : "",
+    statusByProspectKey: readPilotStatusRecord(parsed.statusByProspectKey),
+    firstRequestOutcomeByProspectKey: readFirstRequestOutcomeRecord(
+      parsed.firstRequestOutcomeByProspectKey,
+    ),
+    weekOneOwnerDecisionByProspectKey: readWeekOneOwnerDecisionRecord(
+      parsed.weekOneOwnerDecisionByProspectKey,
+    ),
+    proposalApprovalByService: readProposalApprovalDecisionRecord(parsed.proposalApprovalByService),
+    kickoffDecisionByService: readKickoffDecisionRecord(parsed.kickoffDecisionByService),
+    dispatchApprovalByService: readDispatchApprovalDecisionRecord(parsed.dispatchApprovalByService),
+    customerConfirmationByService: readCustomerConfirmationDecisionRecord(parsed.customerConfirmationByService),
+    weeklyScorecardSyncReviewedByService: readBooleanRecord(parsed.weeklyScorecardSyncReviewedByService),
+    messagePreviewReviewedByProspectKey: readBooleanRecord(parsed.messagePreviewReviewedByProspectKey),
+    contactPacketCopiedByProspectKey: readBooleanRecord(parsed.contactPacketCopiedByProspectKey),
+    scorecardRowCopiedByProspectKey: readBooleanRecord(parsed.scorecardRowCopiedByProspectKey),
+    batchReviewHandoffCopiedByProspectKey: readBooleanRecord(parsed.batchReviewHandoffCopiedByProspectKey),
+    metricStatusByService: readPilotMetricStatusRecord(parsed.metricStatusByService),
+    setupStepCompletionByService: readSetupStepCompletionByService(parsed.setupStepCompletionByService),
+    setupReadyByService: readBooleanRecord(parsed.setupReadyByService),
+    testCallChecklistByService: readTestCallChecklistByService(parsed.testCallChecklistByService),
+    testCallPassedByService: readBooleanRecord(parsed.testCallPassedByService),
+    launchPathStepCompletionByService: readLaunchPathStepCompletionByService(
+      parsed.launchPathStepCompletionByService,
+    ),
+    contactProofByProspectKey: readFounderContactProofByProspectKey(parsed.contactProofByProspectKey),
+    operatorDecisionByCaseRef: readLocalServicesOperatorDecisionRecord(parsed.operatorDecisionByCaseRef),
+    setupEvents: readLocalServiceSetupEvents(parsed.setupEvents),
+    scenarioOverrides,
+    activityLog: readPilotActivityLog(parsed.activityLog),
+  };
+}
+
+function readLocalServicePilotWorkspaceState(): LocalServicePilotWorkspaceState {
   if (typeof window === "undefined") {
-    return emptyState;
+    return createEmptyLocalServicePilotWorkspaceState();
   }
   try {
     const raw = window.localStorage.getItem(LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY);
     if (!raw) {
-      return emptyState;
+      return createEmptyLocalServicePilotWorkspaceState();
     }
     const parsed = JSON.parse(raw) as Record<string, unknown>;
-    return {
-      selectedProspectByService: readStringRecord(parsed.selectedProspectByService),
-      currentOpsAccountKey:
-        typeof parsed.currentOpsAccountKey === "string" ? parsed.currentOpsAccountKey : "",
-      statusByProspectKey: readPilotStatusRecord(parsed.statusByProspectKey),
-      firstRequestOutcomeByProspectKey: readFirstRequestOutcomeRecord(
-        parsed.firstRequestOutcomeByProspectKey,
-      ),
-      weekOneOwnerDecisionByProspectKey: readWeekOneOwnerDecisionRecord(
-        parsed.weekOneOwnerDecisionByProspectKey,
-      ),
-      proposalApprovalByService: readProposalApprovalDecisionRecord(parsed.proposalApprovalByService),
-      kickoffDecisionByService: readKickoffDecisionRecord(parsed.kickoffDecisionByService),
-      dispatchApprovalByService: readDispatchApprovalDecisionRecord(parsed.dispatchApprovalByService),
-      customerConfirmationByService: readCustomerConfirmationDecisionRecord(parsed.customerConfirmationByService),
-      weeklyScorecardSyncReviewedByService: readBooleanRecord(parsed.weeklyScorecardSyncReviewedByService),
-      messagePreviewReviewedByProspectKey: readBooleanRecord(parsed.messagePreviewReviewedByProspectKey),
-      contactPacketCopiedByProspectKey: readBooleanRecord(parsed.contactPacketCopiedByProspectKey),
-      scorecardRowCopiedByProspectKey: readBooleanRecord(parsed.scorecardRowCopiedByProspectKey),
-      batchReviewHandoffCopiedByProspectKey: readBooleanRecord(parsed.batchReviewHandoffCopiedByProspectKey),
-      metricStatusByService: readPilotMetricStatusRecord(parsed.metricStatusByService),
-      setupStepCompletionByService: readSetupStepCompletionByService(parsed.setupStepCompletionByService),
-      setupReadyByService: readBooleanRecord(parsed.setupReadyByService),
-      testCallChecklistByService: readTestCallChecklistByService(parsed.testCallChecklistByService),
-      testCallPassedByService: readBooleanRecord(parsed.testCallPassedByService),
-      launchPathStepCompletionByService: readLaunchPathStepCompletionByService(
-        parsed.launchPathStepCompletionByService,
-      ),
-      contactProofByProspectKey: readFounderContactProofByProspectKey(parsed.contactProofByProspectKey),
-      activityLog: readPilotActivityLog(parsed.activityLog),
-    };
+    return normalizeLocalServicePilotWorkspaceState(parsed);
   } catch {
-    return emptyState;
+    return createEmptyLocalServicePilotWorkspaceState();
   }
 }
 
@@ -1944,6 +2071,69 @@ function buildLocalServicePilotWorkspaceExport(
     jsonText,
     rows: rowsSummary,
     checklist,
+  };
+}
+
+function buildLocalServiceWorkspaceApiExportView(
+  exportPacket: LocalServicesPilotExport | null,
+  snapshot: LocalServicePilotWorkspaceState,
+): LocalServicePilotWorkspaceExport {
+  const fallbackJsonText = JSON.stringify(
+    {
+      export_surface: "local_services_workspace_api_preview",
+      source: "browser_local_preview_until_api_export_loads",
+      storage_key: LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY,
+      snapshot,
+      guardrails: [
+        "operator_approval_required",
+        "no_outreach_send",
+        "no_dispatch_created",
+        "no_crm_write",
+        "no_billing",
+      ],
+    },
+    null,
+    2,
+  );
+  const humanText =
+    exportPacket?.humanText ??
+    [
+      "Local services workspace API export",
+      "Status: waiting for workspace API export; showing browser-local preview.",
+      `Storage key: ${LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}`,
+      "Manual execution rule: no outreach, dispatch, CRM write, billing, or customer send happens without operator approval.",
+      "",
+      fallbackJsonText,
+    ].join("\n");
+  const jsonText = exportPacket?.jsonText ?? fallbackJsonText;
+
+  return {
+    title: "Workspace API export drawer",
+    description:
+      "Inspect the repo-owned workspace export boundary. It mirrors the API export with browser-local fallback and does not send, book, dispatch, or write CRM.",
+    eyebrow: "Workspace API export",
+    modeLabel: "Workspace export mode",
+    copyLabel: "Copy workspace API export",
+    reviewTitle: "Persistence review checklist",
+    reviewDescription:
+      "This is a persistence/export inspection surface only; it is not durable production storage and has no external side effects.",
+    executionActionLabel: "Open pilot runbook",
+    scorecardActionLabel: "Open pilot scorecard",
+    humanText,
+    jsonText,
+    rows: [
+      { label: "Backend", value: "workspace API + local fallback" },
+      { label: "Storage", value: exportPacket?.storageKey ?? LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY },
+      { label: "Generated", value: exportPacket?.generatedAt ?? "pending" },
+      { label: "Export surface", value: exportPacket ? "local_services_workspace_api" : "browser_local_preview" },
+      { label: "Guardrail", value: "No outreach, dispatch, CRM write, billing, or customer send" },
+    ],
+    checklist: [
+      "Confirm the export is only used for operator/developer inspection.",
+      "Confirm workspace API state and browser-local fallback are not presented as durable production storage.",
+      "Confirm no customer-facing send, dispatch, booking, CRM write, analytics sync, or billing action is implied.",
+      "Use this drawer before handing the workspace state to another developer or manual scorecard/CRM process.",
+    ],
   };
 }
 
@@ -6533,8 +6723,20 @@ const LocalServicesDispatchDemoPanel = ({
   const [pilotWorkspaceState, setPilotWorkspaceState] = useState<LocalServicePilotWorkspaceState>(() =>
     readLocalServicePilotWorkspaceState(),
   );
+  const localServicesWorkspaceAdapter = useMemo(
+    () =>
+      createHybridLocalServicesWorkspaceAdapter({
+        cases: [],
+        scenarios: DEFAULT_LOCAL_SERVICES_SCENARIOS,
+      }),
+    [],
+  );
+  const [pilotWorkspaceApiHydrated, setPilotWorkspaceApiHydrated] = useState(false);
   const [pilotWorkspaceExportOpen, setPilotWorkspaceExportOpen] = useState(false);
   const [pilotWorkspaceExportMode, setPilotWorkspaceExportMode] = useState<PlaybookExportMode>("human");
+  const [workspaceApiExportOpen, setWorkspaceApiExportOpen] = useState(false);
+  const [workspaceApiExportMode, setWorkspaceApiExportMode] = useState<PlaybookExportMode>("human");
+  const [workspaceApiExportPacket, setWorkspaceApiExportPacket] = useState<LocalServicesPilotExport | null>(null);
   const [pilotMetricsTrackerOpen, setPilotMetricsTrackerOpen] = useState(false);
   const [pilotMetricsTrackerMode, setPilotMetricsTrackerMode] = useState<PlaybookExportMode>("human");
   const [pilotDailyLogOpen, setPilotDailyLogOpen] = useState(false);
@@ -6581,9 +6783,22 @@ const LocalServicesDispatchDemoPanel = ({
   const [agentSetupMode, setAgentSetupMode] = useState<PlaybookExportMode>("human");
   const [intakeEvidenceOpen, setIntakeEvidenceOpen] = useState(false);
   const [intakeEvidenceMode, setIntakeEvidenceMode] = useState<PlaybookExportMode>("human");
+  const [scenarioModalOpen, setScenarioModalOpen] = useState(false);
+  const [activeScenarioId, setActiveScenarioId] = useState<LocalServicesScenarioId>(
+    DEFAULT_LOCAL_SERVICES_SCENARIOS[0].id,
+  );
+  const [scenarioJsonDraft, setScenarioJsonDraft] = useState("");
+  const [scenarioJsonError, setScenarioJsonError] = useState<string | null>(null);
+  const [scenarioJsonStatus, setScenarioJsonStatus] = useState<string | null>(null);
   const [pilotFunnelStatusFilter, setPilotFunnelStatusFilter] = useState<LocalServicePilotStatusFilter>("all");
   const [pilotFunnelServiceFilter, setPilotFunnelServiceFilter] = useState("all");
   const [pilotFunnelColumns, setPilotFunnelColumns] = useState(DEFAULT_LOCAL_SERVICE_PILOT_COLUMNS);
+  const localServiceScenarios = useMemo(
+    () => mergeLocalServicesScenarioOverrides(DEFAULT_LOCAL_SERVICES_SCENARIOS, pilotWorkspaceState.scenarioOverrides),
+    [pilotWorkspaceState.scenarioOverrides],
+  );
+  const activeScenario =
+    localServiceScenarios.find((scenario) => scenario.id === activeScenarioId) ?? localServiceScenarios[0];
   const outreachProspects = selectedTemplate.detail.pilotKit.outreachWizard.prospects;
   const selectedOutreachProspectId =
     pilotWorkspaceState.selectedProspectByService[selectedTemplate.id] ?? outreachProspects[0]?.id ?? "";
@@ -7611,6 +7826,10 @@ const LocalServicesDispatchDemoPanel = ({
     () => buildLocalServicePilotWorkspaceExport(pilotFunnelRows, pilotFunnelCounts, pilotWorkspaceState.activityLog),
     [pilotFunnelCounts, pilotFunnelRows, pilotWorkspaceState.activityLog],
   );
+  const workspaceApiExportView = useMemo(
+    () => buildLocalServiceWorkspaceApiExportView(workspaceApiExportPacket, pilotWorkspaceState),
+    [pilotWorkspaceState, workspaceApiExportPacket],
+  );
   const pilotMetricsTrackerExport = useMemo(
     () => buildLocalServicePilotMetricsTrackerExport(selectedTemplate, currentMetricStatus),
     [currentMetricStatus, selectedTemplate],
@@ -7991,6 +8210,35 @@ const LocalServicesDispatchDemoPanel = ({
     pilotWorkspaceState.dispatchApprovalByService[selectedTemplate.id] ?? "not_reviewed";
   const currentDispatchApprovalLabel =
     LOCAL_SERVICE_DISPATCH_APPROVAL_LABELS[currentDispatchApprovalDecision];
+  const selectedOperatorDecision = pilotWorkspaceState.operatorDecisionByCaseRef[selectedTemplate.ref];
+  const selectedOperatorDecisionPayload =
+    selectedOperatorDecision?.payload &&
+    typeof selectedOperatorDecision.payload === "object" &&
+    !Array.isArray(selectedOperatorDecision.payload)
+      ? (selectedOperatorDecision.payload as Record<string, unknown>)
+      : null;
+  const selectedOperatorDecisionSurface =
+    typeof selectedOperatorDecisionPayload?.surface === "string"
+      ? selectedOperatorDecisionPayload.surface
+      : "case decision";
+  const selectedOperatorDecisionLabel = selectedOperatorDecision
+    ? `${selectedOperatorDecision.action} · ${selectedOperatorDecision.reason ?? "operator decision"}`
+    : "No case decision recorded yet";
+  const selectedOperatorDecisionTime =
+    selectedOperatorDecision?.decidedAt?.replace("T", " ").slice(0, 16) ?? "not recorded";
+  const latestSetupRecord = pilotWorkspaceState.setupEvents.find((event) => {
+    const payload = event.payload;
+    return (
+      Boolean(payload) &&
+      typeof payload === "object" &&
+      !Array.isArray(payload) &&
+      (payload as Record<string, unknown>).serviceId === selectedTemplate.id
+    );
+  });
+  const latestSetupRecordLabel = latestSetupRecord
+    ? latestSetupRecord.stepId.replace(`${selectedTemplate.id}:`, "")
+    : "No setup event recorded";
+  const latestSetupRecordTime = latestSetupRecord?.recordedAt.replace("T", " ").slice(0, 16) ?? "not recorded";
   const scheduleBoardNextAction =
     currentDispatchApprovalDecision === "owner_approved"
       ? "Copy handoff and confirm manually outside product"
@@ -8029,7 +8277,7 @@ const LocalServicesDispatchDemoPanel = ({
     {
       label: "Approval gate",
       value: currentDispatchApprovalLabel,
-      detail: "Saved under dispatchApprovalByService in this browser.",
+      detail: "Saved under dispatchApprovalByService and mirrored to operatorDecisionByCaseRef.",
     },
     {
       label: "Next approved action",
@@ -8075,7 +8323,7 @@ const LocalServicesDispatchDemoPanel = ({
     {
       label: "Contact status",
       value: currentCustomerConfirmationLabel,
-      detail: "Saved under customerConfirmationByService in this browser.",
+      detail: "Saved under customerConfirmationByService and mirrored to operatorDecisionByCaseRef.",
     },
     {
       label: "Consent posture",
@@ -8274,7 +8522,7 @@ const LocalServicesDispatchDemoPanel = ({
       title: "Knowledge setup state",
       kicker: "knowledge & setup",
       description:
-        "Browser-local setup, dry-run, and launch-readiness checks before any real phone, Telegram, or CRM channel is connected.",
+        "Workspace API setup, dry-run, and launch-readiness checks before any real phone, Telegram, or CRM channel is connected.",
       Icon: UserRoundCog,
       tone: "violet",
     },
@@ -8290,13 +8538,33 @@ const LocalServicesDispatchDemoPanel = ({
   const ActiveProductViewIcon = activeProductViewMeta[activeView].Icon;
 
   useEffect(() => {
+    let cancelled = false;
+    localServicesWorkspaceAdapter
+      .readSnapshot()
+      .then((snapshot) => {
+        if (cancelled || Object.keys(snapshot).length === 0) return;
+        setPilotWorkspaceState(normalizeLocalServicePilotWorkspaceState(snapshot));
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setPilotWorkspaceApiHydrated(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [localServicesWorkspaceAdapter]);
+
+  useEffect(() => {
+    if (!pilotWorkspaceApiHydrated) return;
     if (typeof window === "undefined") return;
     try {
       window.localStorage.setItem(LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY, JSON.stringify(pilotWorkspaceState));
     } catch {
       // Disabled storage should not block the demo flow.
     }
-  }, [pilotWorkspaceState]);
+    void localServicesWorkspaceAdapter.writeSnapshot(pilotWorkspaceState as LocalServicesWorkspaceSnapshot);
+  }, [localServicesWorkspaceAdapter, pilotWorkspaceApiHydrated, pilotWorkspaceState]);
 
   useEffect(() => {
     if (!launchPacketDeepLink) return;
@@ -8315,6 +8583,77 @@ const LocalServicesDispatchDemoPanel = ({
     setPilotLaunchPacketMode("human");
     setPilotLaunchPacketOpen(true);
     onSetLaunchPacketDeepLink(true);
+  };
+
+  const openWorkspaceApiExportDrawer = () => {
+    setWorkspaceApiExportMode("human");
+    setWorkspaceApiExportPacket(null);
+    setWorkspaceApiExportOpen(true);
+    void localServicesWorkspaceAdapter
+      .exportPilotPacket()
+      .then((exportPacket) => setWorkspaceApiExportPacket(exportPacket))
+      .catch(() => setWorkspaceApiExportPacket(null));
+  };
+
+  const openLocalServiceScenarioModal = (scenarioId = selectedTemplate.id) => {
+    const nextScenarioId = LOCAL_SERVICES_SCENARIO_IDS.includes(scenarioId as LocalServicesScenarioId)
+      ? (scenarioId as LocalServicesScenarioId)
+      : DEFAULT_LOCAL_SERVICES_SCENARIOS[0].id;
+    setActiveScenarioId(nextScenarioId);
+    setScenarioJsonDraft(JSON.stringify(localServiceScenarios, null, 2));
+    setScenarioJsonError(null);
+    setScenarioJsonStatus(null);
+    setScenarioModalOpen(true);
+  };
+
+  const copyLocalServiceScenarioJson = () => {
+    const jsonText = JSON.stringify(localServiceScenarios, null, 2);
+    setScenarioJsonDraft(jsonText);
+    onCopyText(jsonText, "Scenario JSON copied");
+    setScenarioJsonError(null);
+    setScenarioJsonStatus("Scenario JSON copied from the four fixed lanes.");
+  };
+
+  const saveLocalServiceScenarioJsonDraft = () => {
+    try {
+      const nextScenarios = parseLocalServicesScenarioList(JSON.parse(scenarioJsonDraft));
+      void localServicesWorkspaceAdapter.saveScenarioOverrides(nextScenarios);
+      setPilotWorkspaceState((prev) => ({
+        ...prev,
+        scenarioOverrides: nextScenarios,
+        activityLog: appendLocalServicePilotActivity(prev.activityLog, {
+          kind: "prep_review",
+          label: "Scenario overrides saved",
+          value: "Four fixed scenario lanes synced to the local-services workspace API",
+          serviceId: activeScenario.id,
+          serviceTitle: activeScenario.title,
+        }),
+      }));
+      setScenarioJsonError(null);
+      setScenarioJsonStatus("Scenario overrides saved to local-services workspace.");
+    } catch (error) {
+      setScenarioJsonStatus(null);
+      setScenarioJsonError(error instanceof Error ? error.message : "Invalid scenario JSON.");
+    }
+  };
+
+  const resetLocalServiceScenarioOverrides = () => {
+    void localServicesWorkspaceAdapter.saveScenarioOverrides([]);
+    setPilotWorkspaceState((prev) => ({
+      ...prev,
+      scenarioOverrides: [],
+      activityLog: appendLocalServicePilotActivity(prev.activityLog, {
+        kind: "prep_review",
+        label: "Scenario overrides reset",
+        value: "Fixed scenario lanes restored to repo-owned defaults",
+        serviceId: activeScenario.id,
+        serviceTitle: activeScenario.title,
+      }),
+    }));
+    const defaultJson = JSON.stringify(DEFAULT_LOCAL_SERVICES_SCENARIOS, null, 2);
+    setScenarioJsonDraft(defaultJson);
+    setScenarioJsonError(null);
+    setScenarioJsonStatus("Scenario overrides reset to repo defaults.");
   };
 
   const updatePilotWorkspaceStatusForTarget = (
@@ -8515,11 +8854,30 @@ const LocalServicesDispatchDemoPanel = ({
 
   const updateDispatchApprovalDecision = (decision: LocalServiceDispatchApprovalDecision) => {
     const nextDecisionLabel = LOCAL_SERVICE_DISPATCH_APPROVAL_LABELS[decision];
+    const operatorDecision: LocalServicesOperatorDecision = {
+      action: mapDispatchApprovalToOperatorAction(decision),
+      reason: nextDecisionLabel,
+      payload: {
+        surface: "dispatch_approval",
+        decision,
+        serviceId: selectedTemplate.id,
+        serviceTitle: selectedTemplate.title,
+        caseRef: selectedTemplate.ref,
+        handoff: selectedTemplate.detail.handoffFields,
+        evidenceLink: selectedTemplate.evidencePath,
+      },
+      decidedAt: new Date().toISOString(),
+    };
+    void localServicesWorkspaceAdapter.updateCaseDecision(selectedTemplate.ref, operatorDecision);
     setPilotWorkspaceState((prev) => ({
       ...prev,
       dispatchApprovalByService: {
         ...prev.dispatchApprovalByService,
         [selectedTemplate.id]: decision,
+      },
+      operatorDecisionByCaseRef: {
+        ...prev.operatorDecisionByCaseRef,
+        [selectedTemplate.ref]: operatorDecision,
       },
       activityLog: appendLocalServicePilotActivity(prev.activityLog, {
         kind: "dispatch_approval",
@@ -8533,11 +8891,30 @@ const LocalServicesDispatchDemoPanel = ({
 
   const updateCustomerConfirmationDecision = (decision: LocalServiceCustomerConfirmationDecision) => {
     const nextDecisionLabel = LOCAL_SERVICE_CUSTOMER_CONFIRMATION_LABELS[decision];
+    const operatorDecision: LocalServicesOperatorDecision = {
+      action: mapCustomerConfirmationToOperatorAction(decision),
+      reason: nextDecisionLabel,
+      payload: {
+        surface: "customer_confirmation",
+        decision,
+        serviceId: selectedTemplate.id,
+        serviceTitle: selectedTemplate.title,
+        caseRef: selectedTemplate.ref,
+        customer: selectedTemplate.payload.customer_name ?? "Unknown",
+        confirmationDraft: selectedTemplate.detail.customerConfirmation,
+      },
+      decidedAt: new Date().toISOString(),
+    };
+    void localServicesWorkspaceAdapter.updateCaseDecision(selectedTemplate.ref, operatorDecision);
     setPilotWorkspaceState((prev) => ({
       ...prev,
       customerConfirmationByService: {
         ...prev.customerConfirmationByService,
         [selectedTemplate.id]: decision,
+      },
+      operatorDecisionByCaseRef: {
+        ...prev.operatorDecisionByCaseRef,
+        [selectedTemplate.ref]: operatorDecision,
       },
       activityLog: appendLocalServicePilotActivity(prev.activityLog, {
         kind: "customer_confirmation",
@@ -8790,7 +9167,25 @@ const LocalServicesDispatchDemoPanel = ({
         },
       ]
     : [];
+  const createSetupEvent = (stepId: string, payload: Record<string, unknown>) => ({
+    stepId,
+    payload: {
+      serviceId: selectedTemplate.id,
+      serviceTitle: selectedTemplate.title,
+      caseRef: selectedTemplate.ref,
+      ...payload,
+    },
+  });
+  const mirrorSetupEvent = (event: Omit<LocalServiceSetupEvent, "recordedAt">) => {
+    void localServicesWorkspaceAdapter.recordSetupStep(event.stepId, event.payload);
+  };
   const updateSetupStepCompletion = (stepId: LocalServiceSetupStepId, complete: boolean) => {
+    const event = createSetupEvent(`setup:${selectedTemplate.id}:${stepId}`, {
+      surface: "setup_step",
+      setupStepId: stepId,
+      complete,
+    });
+    mirrorSetupEvent(event);
     setPilotWorkspaceState((prev) => {
       const currentCompletion = prev.setupStepCompletionByService[selectedTemplate.id] ?? {};
       const nextCompletion = {
@@ -8818,10 +9213,17 @@ const LocalServicesDispatchDemoPanel = ({
         },
         setupReadyByService: nextReadyByService,
         testCallPassedByService: nextTestCallPassedByService,
+        setupEvents: appendLocalServiceSetupEvent(prev.setupEvents, event),
       };
     });
   };
   const markReadyForPilotTest = () => {
+    const event = createSetupEvent(`setup:${selectedTemplate.id}:${LOCAL_SERVICE_SETUP_READY_STEP_ID}`, {
+      surface: "setup_ready",
+      setupStepId: LOCAL_SERVICE_SETUP_READY_STEP_ID,
+      complete: true,
+    });
+    mirrorSetupEvent(event);
     setPilotWorkspaceState((prev) => {
       const currentCompletion = prev.setupStepCompletionByService[selectedTemplate.id] ?? {};
       return {
@@ -8837,10 +9239,16 @@ const LocalServicesDispatchDemoPanel = ({
           ...prev.setupReadyByService,
           [selectedTemplate.id]: true,
         },
+        setupEvents: appendLocalServiceSetupEvent(prev.setupEvents, event),
       };
     });
   };
   const resetSetupProgress = () => {
+    const event = createSetupEvent(`setup:${selectedTemplate.id}:reset`, {
+      surface: "setup_reset",
+      complete: false,
+    });
+    mirrorSetupEvent(event);
     setPilotWorkspaceState((prev) => ({
       ...prev,
       setupStepCompletionByService: {
@@ -8859,9 +9267,16 @@ const LocalServicesDispatchDemoPanel = ({
         ...prev.testCallPassedByService,
         [selectedTemplate.id]: false,
       },
+      setupEvents: appendLocalServiceSetupEvent(prev.setupEvents, event),
     }));
   };
   const updateTestCallCheck = (checkId: LocalServiceTestCallCheckId, complete: boolean) => {
+    const event = createSetupEvent(`test-call:${selectedTemplate.id}:${checkId}`, {
+      surface: "test_call_check",
+      checkId,
+      complete,
+    });
+    mirrorSetupEvent(event);
     setPilotWorkspaceState((prev) => {
       const currentChecklist = prev.testCallChecklistByService[selectedTemplate.id] ?? {};
       return {
@@ -8877,20 +9292,32 @@ const LocalServicesDispatchDemoPanel = ({
           ...prev.testCallPassedByService,
           [selectedTemplate.id]: complete ? prev.testCallPassedByService[selectedTemplate.id] === true : false,
         },
+        setupEvents: appendLocalServiceSetupEvent(prev.setupEvents, event),
       };
     });
   };
   const recordTestCallPassed = () => {
     if (!canRecordTestCallPassed) return;
+    const event = createSetupEvent(`test-call:${selectedTemplate.id}:passed`, {
+      surface: "test_call_passed",
+      complete: true,
+    });
+    mirrorSetupEvent(event);
     setPilotWorkspaceState((prev) => ({
       ...prev,
       testCallPassedByService: {
         ...prev.testCallPassedByService,
         [selectedTemplate.id]: true,
       },
+      setupEvents: appendLocalServiceSetupEvent(prev.setupEvents, event),
     }));
   };
   const resetTestCall = () => {
+    const event = createSetupEvent(`test-call:${selectedTemplate.id}:reset`, {
+      surface: "test_call_reset",
+      complete: false,
+    });
+    mirrorSetupEvent(event);
     setPilotWorkspaceState((prev) => ({
       ...prev,
       testCallChecklistByService: {
@@ -8901,6 +9328,7 @@ const LocalServicesDispatchDemoPanel = ({
         ...prev.testCallPassedByService,
         [selectedTemplate.id]: false,
       },
+      setupEvents: appendLocalServiceSetupEvent(prev.setupEvents, event),
     }));
   };
 
@@ -9364,6 +9792,35 @@ const LocalServicesDispatchDemoPanel = ({
                         </div>
                       ))}
                     </div>
+                    <div className="mt-3 rounded-md border border-border/45 bg-card/25 px-3 py-2.5">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                            Workspace record
+                          </div>
+                          <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                            Latest case decision mirrored through the workspace API with browser-local fallback.
+                          </p>
+                        </div>
+                        <span className="shrink-0 rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                          API + local fallback
+                        </span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-foreground">
+                          operatorDecisionByCaseRef
+                        </span>
+                        <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                          {selectedOperatorDecisionSurface}
+                        </span>
+                        <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                          {selectedOperatorDecisionTime}
+                        </span>
+                      </div>
+                      <div className="mt-2 text-[11.5px] font-medium text-foreground">
+                        {selectedOperatorDecisionLabel}
+                      </div>
+                    </div>
                     <div className="mt-3">
                       <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
                         Dispatch approval actions
@@ -9515,6 +9972,35 @@ const LocalServicesDispatchDemoPanel = ({
                         </div>
                       ))}
                     </div>
+                    <div className="mt-3 rounded-md border border-border/45 bg-card/25 px-3 py-2.5">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                            Workspace record
+                          </div>
+                          <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                            Latest customer or dispatch decision is recorded as the case-level operator decision.
+                          </p>
+                        </div>
+                        <span className="shrink-0 rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                          API + local fallback
+                        </span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-foreground">
+                          operatorDecisionByCaseRef
+                        </span>
+                        <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                          {selectedOperatorDecisionSurface}
+                        </span>
+                        <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                          {selectedOperatorDecisionTime}
+                        </span>
+                      </div>
+                      <div className="mt-2 text-[11.5px] font-medium text-foreground">
+                        {selectedOperatorDecisionLabel}
+                      </div>
+                    </div>
                     <div className="mt-3">
                       <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
                         Customer confirmation actions
@@ -9612,6 +10098,8 @@ const LocalServicesDispatchDemoPanel = ({
                       ["Test call progress", testCallProgress],
                       ["Pilot test", setupReadyForPilot ? "Ready" : "Not ready"],
                       ["Dry run", testCallPassed ? "Passed" : "Pending"],
+                      ["Latest setup record", latestSetupRecordLabel],
+                      ["Record backend", "workspace API + local fallback"],
                     ].map(([label, value]) => (
                       <div key={label} className="rounded-md bg-background/35 px-3 py-2">
                         <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
@@ -9923,7 +10411,10 @@ const LocalServicesDispatchDemoPanel = ({
                     {setupReadyForPilot ? "Ready for pilot test" : "Setup in progress"}
                   </span>
                   <span className="inline-flex rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-violet-fg))] ring-1 ring-inset ring-[hsl(var(--tint-violet)/0.24)]">
-                    Saved in this browser
+                    workspace API + local fallback
+                  </span>
+                  <span className="inline-flex rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-violet-fg))] ring-1 ring-inset ring-[hsl(var(--tint-violet)/0.24)]">
+                    Latest setup record {latestSetupRecordTime}
                   </span>
                 </div>
               </div>
@@ -10054,7 +10545,7 @@ const LocalServicesDispatchDemoPanel = ({
                     {testCallPassed ? "Test call passed" : "Test call pending"}
                   </span>
                   <span className="inline-flex rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.24)]">
-                    browser-local
+                    workspace API
                   </span>
                   <span className="inline-flex rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.24)]">
                     No live channel activation
@@ -10237,6 +10728,14 @@ const LocalServicesDispatchDemoPanel = ({
                   <Button size="sm" variant="ghost" onClick={() => onSelectService(template.id)} className="h-8">
                     Inspect service
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => openLocalServiceScenarioModal(template.id)}
+                    className="h-8"
+                  >
+                    Scenario modal
+                  </Button>
                   <Button size="sm" onClick={() => onOpenPath(template.evidencePath)} className="h-8">
                     Evidence
                   </Button>
@@ -10276,6 +10775,14 @@ const LocalServicesDispatchDemoPanel = ({
                 className="h-7"
               >
                 Open pilot export
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={openWorkspaceApiExportDrawer}
+                className="h-7"
+              >
+                Open workspace API export
               </Button>
               <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
                 {allPilotProspects.length} candidates
@@ -13093,6 +13600,16 @@ const LocalServicesDispatchDemoPanel = ({
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
       />
       <LocalServicePilotWorkspaceExportDrawer
+        open={workspaceApiExportOpen}
+        onOpenChange={setWorkspaceApiExportOpen}
+        exportView={workspaceApiExportView}
+        mode={workspaceApiExportMode}
+        onModeChange={setWorkspaceApiExportMode}
+        onCopy={onCopyText}
+        onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
+        onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_PILOT_RUNBOOK_PATH)}
+      />
+      <LocalServicePilotWorkspaceExportDrawer
         open={pilotMetricsTrackerOpen}
         onOpenChange={setPilotMetricsTrackerOpen}
         exportView={pilotMetricsTrackerExport}
@@ -13346,7 +13863,300 @@ const LocalServicesDispatchDemoPanel = ({
         onOpenEvidence={() => onOpenPath(selectedTemplate.evidencePath)}
         onOpenBundle={() => onOpenPath(selectedTemplate.bundlePath)}
       />
+      <LocalServiceScenarioModal
+        open={scenarioModalOpen}
+        onOpenChange={setScenarioModalOpen}
+        scenario={activeScenario}
+        scenarios={localServiceScenarios}
+        activeScenarioId={activeScenario.id}
+        onSelectScenario={setActiveScenarioId}
+        scenarioJsonDraft={scenarioJsonDraft}
+        onScenarioJsonDraftChange={setScenarioJsonDraft}
+        scenarioJsonError={scenarioJsonError}
+        scenarioJsonStatus={scenarioJsonStatus}
+        onCopyJson={copyLocalServiceScenarioJson}
+        onSaveJson={saveLocalServiceScenarioJsonDraft}
+        onResetOverrides={resetLocalServiceScenarioOverrides}
+      />
     </section>
+  );
+};
+
+const LocalServiceScenarioModal = ({
+  open,
+  onOpenChange,
+  scenario,
+  scenarios,
+  activeScenarioId,
+  onSelectScenario,
+  scenarioJsonDraft,
+  onScenarioJsonDraftChange,
+  scenarioJsonError,
+  scenarioJsonStatus,
+  onCopyJson,
+  onSaveJson,
+  onResetOverrides,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  scenario: LocalServicesScenario;
+  scenarios: LocalServicesScenario[];
+  activeScenarioId: LocalServicesScenarioId;
+  onSelectScenario: (id: LocalServicesScenarioId) => void;
+  scenarioJsonDraft: string;
+  onScenarioJsonDraftChange: (value: string) => void;
+  scenarioJsonError: string | null;
+  scenarioJsonStatus: string | null;
+  onCopyJson: () => void;
+  onSaveJson: () => void;
+  onResetOverrides: () => void;
+}) => {
+  const requiredFields = scenario.intakeFields.filter((field) => field.required);
+  const optionalFields = scenario.intakeFields.filter((field) => !field.required);
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-6xl flex flex-col gap-0 p-0">
+        <SheetHeader className="px-7 py-5 border-b border-border/70 space-y-2.5 text-left">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                <MessageSquareText className="h-3.5 w-3.5" strokeWidth={1.8} />
+                local_services_scenario_modal
+              </div>
+              <SheetTitle className="mt-2 font-serif text-[24px] tracking-tight leading-[1.15]">
+                Scenario modal: {scenario.title}
+              </SheetTitle>
+              <SheetDescription className="text-[12.5px] text-muted-foreground/85 leading-relaxed">
+                Fixed scenario lanes only: chat dialogue, live job card, and operator-approved handoff. No
+                create/delete, no outbound send, no dispatch, no CRM write.
+              </SheetDescription>
+            </div>
+            <div className="flex flex-wrap gap-2 lg:justify-end">
+              {scenarios.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => onSelectScenario(item.id)}
+                  className={`inline-flex h-8 items-center rounded-[5px] px-2.5 font-mono text-[10px] uppercase tracking-[0.1em] ring-1 ring-inset transition-smooth ${
+                    item.id === activeScenarioId
+                      ? "bg-[hsl(var(--tint-violet)/0.14)] text-[hsl(var(--tint-violet-fg))] ring-[hsl(var(--tint-violet)/0.28)]"
+                      : "bg-secondary/45 text-muted-foreground ring-border/60 hover:text-foreground"
+                  }`}
+                >
+                  {item.lane}
+                </button>
+              ))}
+            </div>
+          </div>
+        </SheetHeader>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-7 py-5">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+            <section className="rounded-md border border-border/60 bg-card/35 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Chat dialogue
+                  </div>
+                  <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+                    Buyer sees the assistant collect the minimum facts before a job card exists.
+                  </p>
+                </div>
+                <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                  {scenario.channel}
+                </span>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                <div className="max-w-[86%] rounded-md border border-border/50 bg-background/45 px-3 py-2.5">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Customer
+                  </div>
+                  <p className="mt-1 text-[12.5px] leading-relaxed text-foreground">{scenario.sampleInput}</p>
+                </div>
+                <div className="ml-auto max-w-[88%] rounded-md border border-[hsl(var(--tint-violet)/0.24)] bg-[hsl(var(--tint-violet)/0.08)] px-3 py-2.5">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--tint-violet-fg))]">
+                    AI dispatcher
+                  </div>
+                  <p className="mt-1 text-[12.5px] leading-relaxed text-foreground">
+                    I will capture {requiredFields.map((field) => field.label.toLowerCase()).join(", ")} before
+                    preparing the operator card.
+                  </p>
+                </div>
+                <div className="ml-auto max-w-[88%] rounded-md border border-[hsl(var(--tint-mint)/0.22)] bg-[hsl(var(--tint-mint)/0.07)] px-3 py-2.5">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--tint-mint-fg))]">
+                    AI dispatcher
+                  </div>
+                  <p className="mt-1 text-[12.5px] leading-relaxed text-foreground">
+                    Job card is ready for operator review. Nothing is sent, booked, dispatched, billed, or written to
+                    CRM until approval.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-md border border-border/60 bg-card/35 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Structured job card
+                  </div>
+                  <h3 className="mt-1 text-[18px] font-semibold tracking-tight text-foreground">{scenario.title}</h3>
+                </div>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Pill tone={scenario.priority === "P0" ? "rose" : "amber"} size="sm">
+                    {scenario.priority}
+                  </Pill>
+                  <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                    fixed lane
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                {scenario.intakeFields.map((field) => (
+                  <div key={field.key} className="rounded-md border border-border/45 bg-background/35 px-3 py-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                        {field.key}
+                      </div>
+                      <span
+                        className={`rounded-[5px] px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.1em] ${
+                          field.required
+                            ? "bg-[hsl(var(--tint-amber)/0.12)] text-[hsl(var(--tint-amber-fg))]"
+                            : "bg-secondary/45 text-muted-foreground"
+                        }`}
+                      >
+                        {field.required ? "required" : "optional"}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-[12px] font-medium text-foreground">{field.label}</div>
+                    <div className="mt-1 font-mono text-[10px] text-muted-foreground">{field.type}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 rounded-md border border-border/45 bg-background/35 px-3 py-3">
+                <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                  Validation rules
+                </div>
+                <ul className="mt-2 space-y-1.5 text-[12px] leading-relaxed text-foreground">
+                  {scenario.validationRules.map((rule) => (
+                    <li key={rule} className="flex gap-2">
+                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[hsl(var(--tint-mint-fg))]" strokeWidth={1.8} />
+                      <span>{rule}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          </div>
+
+          <section className="mt-4 rounded-md border border-[hsl(var(--tint-amber)/0.24)] bg-[hsl(var(--tint-amber)/0.06)] p-4">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--tint-amber-fg))]">
+                  Final handoff and approval state
+                </div>
+                <p className="mt-1.5 text-[12.5px] leading-relaxed text-foreground max-w-4xl">
+                  Operator approval is mandatory before these blocked actions:
+                  {" "}
+                  {scenario.operatorGate.blocks.join(", ")}.
+                </p>
+              </div>
+              <span className="inline-flex rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-amber-fg))] ring-1 ring-inset ring-[hsl(var(--tint-amber)/0.24)]">
+                approval required
+              </span>
+            </div>
+            <div className="mt-3 grid gap-3 lg:grid-cols-3">
+              <div className="rounded-md border border-border/45 bg-card/30 px-3 py-3">
+                <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                  Customer confirmation draft
+                </div>
+                <p className="mt-2 text-[12px] leading-relaxed text-foreground">
+                  {scenario.handoff.customerConfirmation}
+                </p>
+              </div>
+              <div className="rounded-md border border-border/45 bg-card/30 px-3 py-3">
+                <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                  Master / manager handoff
+                </div>
+                <p className="mt-2 text-[12px] leading-relaxed text-foreground">
+                  {scenario.handoff.masterOrManagerHandoff}
+                </p>
+              </div>
+              <div className="rounded-md border border-border/45 bg-card/30 px-3 py-3">
+                <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                  Evidence and scope guard
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {[...scenario.handoff.evidence, ...scenario.outOfScope.slice(0, 3)].map((item) => (
+                    <span
+                      key={item}
+                      className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {optionalFields.length > 0 && (
+              <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+                Optional capture: {optionalFields.map((field) => field.label).join(", ")}.
+              </p>
+            )}
+          </section>
+
+          <section className="mt-4 rounded-md border border-border/60 bg-card/35 p-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                  Scenario JSON export/import
+                </div>
+                <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+                  Edit only the four fixed scenarios. The parser rejects missing lanes and unsupported IDs.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="secondary" onClick={onCopyJson} className="h-8">
+                  <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Export scenarios JSON
+                </Button>
+                <Button size="sm" onClick={onSaveJson} className="h-8">
+                  <Download className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  Import scenario JSON
+                </Button>
+                <Button size="sm" variant="ghost" onClick={onResetOverrides} className="h-8">
+                  Reset overrides
+                </Button>
+              </div>
+            </div>
+            <textarea
+              value={scenarioJsonDraft}
+              onChange={(event) => onScenarioJsonDraftChange(event.target.value)}
+              spellCheck={false}
+              aria-label="Scenario JSON import editor"
+              className="mt-3 min-h-[240px] w-full rounded-md border border-border/60 bg-background/45 p-3 font-mono text-[11px] leading-relaxed text-foreground outline-none transition-smooth placeholder:text-muted-foreground/60 focus:border-[hsl(var(--tint-violet)/0.44)]"
+            />
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+              <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                scenarioOverrides
+              </span>
+              <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                {LOCAL_SERVICE_PILOT_WORKSPACE_STORAGE_KEY}
+              </span>
+              <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                No scenario create/delete
+              </span>
+              {scenarioJsonStatus && <span className="text-[hsl(var(--tint-mint-fg))]">{scenarioJsonStatus}</span>}
+              {scenarioJsonError && <span className="text-destructive">{scenarioJsonError}</span>}
+            </div>
+          </section>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 };
 

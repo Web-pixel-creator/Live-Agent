@@ -66,6 +66,12 @@ handoff, keeps the `Dispatch payload preview` behind review, and exposes
 operator-approved `Human-readable` / `JSON` exports. The same detail panel now
 shows `Telegram intake prototype`, so a message-based customer request is
 normalized into the same job-card payload instead of creating a second workflow.
+Each lane card also exposes `Scenario modal` /
+`local_services_scenario_modal`: `Chat dialogue`, `Structured job card`, and
+`Final handoff and approval state` with JSON export/import for the four fixed
+lanes only. It writes browser-local `scenarioOverrides` and does not send,
+book, dispatch, write CRM, activate channels, create/delete scenarios, or
+mutate docs.
 Product view states are available from the same sidebar: `Requests inbox`,
 `Schedule / Dispatch board`, `Customer directory`, `Knowledge setup state`, and
 `Review queue`. They are query-backed (`view=requests`, `view=schedule`,
@@ -79,13 +85,18 @@ channel activation.
 `Schedule / Dispatch board` includes a `Schedule approval rail` with
 `dispatchApprovalByService`, `Dispatch approval actions`, and a `Booking
 handoff preview`. Use it to decide whether a human owner can manually confirm a
-slot; the shell still does not create the appointment, dispatch a technician,
-send a message, write CRM, collect payment, or activate channels.
+slot; the latest decision is mirrored to `operatorDecisionByCaseRef` through the
+workspace API, but the shell still does not create the appointment, dispatch a
+technician, send a message, write CRM, collect payment, or activate channels.
 `Customer directory` includes a `Customer confirmation rail` with
 `customerConfirmationByService`, `Customer confirmation actions`, and a
 `Consent-safe confirmation preview`. Use it to review customer copy and consent
-posture before a human manually sends anything; the shell still does not send
-SMS, Telegram, WhatsApp, email, CRM updates, payments, bookings, or dispatches.
+posture before a human manually sends anything; the latest review is mirrored to
+the same operator-decision boundary, but the shell still does not send SMS,
+Telegram, WhatsApp, email, CRM updates, payments, bookings, or dispatches.
+Both rails show `Workspace record`, `operatorDecisionByCaseRef`, and
+`API + local fallback` so the operator can confirm the decision was recorded
+without treating it as a real send, booking, dispatch, or CRM write.
 `Review queue` includes a `Review queue decision rail` with
 `weekOneOwnerDecisionByProspectKey`, `weeklyScorecardSyncReviewedByService`,
 `Review decision actions`, and `Copy review queue summary`. Use it to record
@@ -130,10 +141,11 @@ the setup story first. The shell shows `7-minute setup wizard`, `Setup path`,
 `Open setup checklist`, `Open day-one setup`, and `Copy setup brief`, while
 outreach tables and scorecard controls stay hidden until the operator exits
 setup mode.
-The setup wizard is now stateful in the browser-local pilot workspace:
+The setup wizard is now stateful in the local-services workspace adapter:
 `setupStepCompletionByService` tracks completed setup steps, `setupReadyByService`
-tracks the final `Ready for pilot test` gate, and the UI shows `Setup progress`,
-`Saved setup state`, `Mark complete`, `Mark ready for pilot test`, and
+tracks the final `Ready for pilot test` gate, bounded `setupEvents` record the
+setup/test-call actions, and the UI shows `Setup progress`, `Saved setup state`,
+`Latest setup record`, `Mark complete`, `Mark ready for pilot test`, and
 `Reset setup progress`. This does not activate phone, Telegram, WhatsApp, CRM,
 analytics, billing, calendar, or customer sends.
 After the ready gate, use `Test call/message panel` to replay the first sample
@@ -142,7 +154,7 @@ call or message before pilot activation. The panel shows `Sample inbound`,
 `Mark check passed`, the operator records the result with `Record test passed`,
 and the shell shows `Test call passed` until `Reset test call`. The state is
 stored as `testCallChecklistByService` and `testCallPassedByService` in the same
-browser-local workspace only.
+workspace API state with browser fallback.
 It also carries a 4-step `Pilot outreach wizard` with `Offer preview`,
 `Audience from outreach list`, `Message/test preview`, and
 `Operator confirmation` so the pilot can be prepared without implying an
@@ -210,10 +222,12 @@ operator-supervised request. The value is stored only in
 mutate the Markdown scorecard. `Outcome chain summary` shows the same local
 outcome moving through `Scorecard draft`, `Daily log`, `Week-one review`, and
 `Evidence pack` before paid-pilot proof is reviewed.
-The selected company and pilot status are persisted in browser `localStorage`
-under `liveDesk:localServicesPilotWorkspace:v1`. Use the status buttons only as
-operator notes: `Draft ready`, `Contacted manually`, `Reply received`, and
-`Rejected for now` do not send messages or update external CRM.
+The selected company and pilot status hydrate through the local-services
+workspace adapter, sync to `/v1/local-services/workspace`, and keep browser
+`localStorage` fallback under `liveDesk:localServicesPilotWorkspace:v1`. Use the
+status buttons only as operator notes: `Draft ready`, `Contacted manually`,
+`Reply received`, and `Rejected for now` do not send messages or update external
+CRM.
 The `Pilot funnel summary` shows `All candidates`, per-status counts, and
 `Next manual batch` so the operator can plan who to contact next without opening
 the Markdown scorecard first.
@@ -223,6 +237,11 @@ mini-funnel. The `Pilot workspace export drawer` switches between
 the latest `Manual activity log` / `Last manual action`, and remains
 manual-only: no outbound message, no CRM write, and no Markdown scorecard
 mutation.
+Use `Open workspace API export` when a developer/operator needs to inspect the
+repo-owned workspace boundary itself. The `Workspace API export drawer` exposes
+`workspace API + local fallback`, `Copy workspace API export`,
+`local_services_workspace_api`, and `browser_local_preview`; it is not durable
+production storage and has no external effects.
 Use `Open metrics tracker` when the operator needs one reviewed snapshot of the
 selected lane's pilot measurements. The `Pilot metrics tracker` switches between
 `Human-readable` and `JSON`, exposes `Copy pilot metrics tracker`, and remains

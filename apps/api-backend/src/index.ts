@@ -93,6 +93,15 @@ import {
   normalizeRuntimeCaseWikiNoteRequest,
 } from "./runtime-case-wiki-notes.js";
 import {
+  buildLocalServicesPilotExport,
+  listLocalServicesScenarioOverrides,
+  readLocalServicesWorkspace,
+  recordLocalServicesCaseDecision,
+  recordLocalServicesSetupEvent,
+  saveLocalServicesScenarioOverrides,
+  writeLocalServicesWorkspace,
+} from "./local-services-workspace.js";
+import {
   buildRuntimeFaultProfileExecutionPlan,
   extractRuntimeFaultProfileExecutionFollowUpContext,
   normalizeRuntimeFaultProfileExecutionPhase,
@@ -1613,6 +1622,27 @@ function parseJsonBody(raw: string): Record<string, unknown> {
 function normalizeOperationPath(pathname: string): string {
   if (pathname.startsWith("/v1/sessions/")) {
     return "/v1/sessions/:id";
+  }
+  if (pathname === "/v1/local-services/workspace") {
+    return "/v1/local-services/workspace";
+  }
+  if (pathname === "/v1/local-services/scenarios") {
+    return "/v1/local-services/scenarios";
+  }
+  if (pathname === "/v1/local-services/pilot/export") {
+    return "/v1/local-services/pilot/export";
+  }
+  if (pathname === "/v1/local-services/setup/events") {
+    return "/v1/local-services/setup/events";
+  }
+  if (pathname === "/v1/local-services/cases") {
+    return "/v1/local-services/cases";
+  }
+  if (pathname.startsWith("/v1/local-services/cases/")) {
+    if (pathname.toLowerCase().endsWith("/decision")) {
+      return "/v1/local-services/cases/:ref/decision";
+    }
+    return "/v1/local-services/cases/:ref";
   }
   if (pathname === "/v1/runtime/diagnostics") {
     return "/v1/runtime/diagnostics";
@@ -3939,6 +3969,135 @@ export const server = createServer(async (req, res) => {
         message: "api-backend is draining and does not accept new requests",
         runtime: runtimeState(),
       });
+      return;
+    }
+
+    if (url.pathname === "/v1/local-services/workspace" && req.method === "GET") {
+      writeJson(res, 200, {
+        data: readLocalServicesWorkspace(requestTenant.tenantId),
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/local-services/workspace" && req.method === "PUT") {
+      const parsed = parseJsonBody(await readBody(req));
+      const snapshot = isRecord(parsed.snapshot) ? parsed.snapshot : parsed;
+      try {
+        writeJson(res, 200, {
+          data: writeLocalServicesWorkspace(requestTenant.tenantId, snapshot),
+        });
+      } catch (error) {
+        throw new ApiRequestError({
+          statusCode: 400,
+          code: "API_LOCAL_SERVICES_WORKSPACE_INVALID",
+          message: error instanceof Error ? error.message : "invalid local-services workspace snapshot",
+        });
+      }
+      return;
+    }
+
+    if (url.pathname === "/v1/local-services/scenarios" && req.method === "GET") {
+      try {
+        writeJson(res, 200, {
+          data: {
+            tenantId: requestTenant.tenantId,
+            mode: "fixed_lanes_with_overrides",
+            scenarioOverrides: listLocalServicesScenarioOverrides(requestTenant.tenantId),
+          },
+        });
+      } catch (error) {
+        throw new ApiRequestError({
+          statusCode: 400,
+          code: "API_LOCAL_SERVICES_SCENARIOS_INVALID",
+          message: error instanceof Error ? error.message : "invalid local-services scenario overrides",
+        });
+      }
+      return;
+    }
+
+    if (url.pathname === "/v1/local-services/scenarios" && req.method === "PUT") {
+      const parsed = parseJsonBody(await readBody(req));
+      try {
+        writeJson(res, 200, {
+          data: saveLocalServicesScenarioOverrides(requestTenant.tenantId, parsed.scenarios),
+        });
+      } catch (error) {
+        throw new ApiRequestError({
+          statusCode: 400,
+          code: "API_LOCAL_SERVICES_SCENARIOS_INVALID",
+          message: error instanceof Error ? error.message : "invalid local-services scenario overrides",
+        });
+      }
+      return;
+    }
+
+    if (url.pathname === "/v1/local-services/setup/events" && req.method === "POST") {
+      const parsed = parseJsonBody(await readBody(req));
+      try {
+        writeJson(res, 200, {
+          data: recordLocalServicesSetupEvent(requestTenant.tenantId, parsed.stepId, parsed.payload),
+        });
+      } catch (error) {
+        throw new ApiRequestError({
+          statusCode: 400,
+          code: "API_LOCAL_SERVICES_SETUP_EVENT_INVALID",
+          message: error instanceof Error ? error.message : "invalid local-services setup event",
+        });
+      }
+      return;
+    }
+
+    if (url.pathname === "/v1/local-services/pilot/export" && req.method === "GET") {
+      writeJson(res, 200, {
+        data: buildLocalServicesPilotExport(requestTenant.tenantId),
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/local-services/cases" && req.method === "GET") {
+      writeJson(res, 200, {
+        data: [],
+        total: 0,
+        source: "local_services_workspace_snapshot_pending",
+        tenantId: requestTenant.tenantId,
+      });
+      return;
+    }
+
+    const localServicesCaseMatch = url.pathname.match(/^\/v1\/local-services\/cases\/([^/]+)(?:\/decision)?$/);
+    if (localServicesCaseMatch && req.method === "GET") {
+      writeApiError(res, 404, {
+        code: "API_LOCAL_SERVICES_CASE_NOT_FOUND",
+        message: "local-services case lookup is not backed by persistent case storage yet",
+        details: {
+          ref: decodeURIComponent(localServicesCaseMatch[1] ?? ""),
+          source: "local_services_workspace_snapshot_pending",
+        },
+      });
+      return;
+    }
+
+    if (
+      localServicesCaseMatch &&
+      req.method === "POST" &&
+      url.pathname.toLowerCase().endsWith("/decision")
+    ) {
+      const parsed = parseJsonBody(await readBody(req));
+      try {
+        writeJson(res, 200, {
+          data: recordLocalServicesCaseDecision(
+            requestTenant.tenantId,
+            decodeURIComponent(localServicesCaseMatch[1] ?? ""),
+            parsed.decision ?? parsed,
+          ),
+        });
+      } catch (error) {
+        throw new ApiRequestError({
+          statusCode: 400,
+          code: "API_LOCAL_SERVICES_DECISION_INVALID",
+          message: error instanceof Error ? error.message : "invalid local-services case decision",
+        });
+      }
       return;
     }
 

@@ -107,12 +107,18 @@ Local-services expansion spec:
   `Requests inbox` also includes an `Operator action rail` that records only
   browser-local `statusByProspectKey` and `firstRequestOutcomeByProspectKey`
   notes for the selected pilot account.
-  `Schedule / Dispatch board` includes a `Schedule approval rail`, local
+  `Schedule / Dispatch board` includes a `Schedule approval rail`,
   `dispatchApprovalByService` decisions, and a `Booking handoff preview`; these
-  are manual approval notes, not live appointment or dispatch actions.
-  `Customer directory` includes a `Customer confirmation rail`, local
-  `customerConfirmationByService` decisions, and a `Consent-safe confirmation
-  preview`; these are manual review notes, not customer sends or CRM writes.
+  are mirrored to `operatorDecisionByCaseRef` through the local-services
+  workspace API, but remain manual approval notes, not live appointment or
+  dispatch actions. `Customer directory` includes a
+  `Customer confirmation rail`, `customerConfirmationByService` decisions, and a
+  `Consent-safe confirmation preview`; these are mirrored to the same
+  operator-decision boundary, but remain manual review notes, not customer
+  sends or CRM writes. Both rails now show a compact `Workspace record` signal
+  with `operatorDecisionByCaseRef`, `API + local fallback`, and the latest
+  recorded case-decision timestamp so operators can see what was persisted
+  without opening developer tools.
   `Review queue` includes a `Review queue decision rail`, local
   `weekOneOwnerDecisionByProspectKey` and
   `weeklyScorecardSyncReviewedByService` gates, and a `Copy review queue
@@ -147,17 +153,18 @@ Local-services expansion spec:
   shell shows `7-minute setup wizard`, `Setup path`, `Open setup checklist`,
   `Open day-one setup`, and `Copy setup brief`, while outreach tables and
   scorecard controls are hidden so the first demo stays focused on setup.
-  The wizard now stores `setupStepCompletionByService` and `setupReadyByService`
-  inside `liveDesk:localServicesPilotWorkspace:v1`, shows `Setup progress`,
-  `Saved setup state`, `Mark complete`, `Mark ready for pilot test`, and
-  `Ready for pilot test`, and keeps this browser-local only.
+  The wizard now stores `setupStepCompletionByService`, `setupReadyByService`,
+  and bounded `setupEvents` inside the local-services workspace API with
+  browser `localStorage` fallback, shows `Setup progress`, `Saved setup state`,
+  `Latest setup record`, `Mark complete`, `Mark ready for pilot test`, and
+  `Ready for pilot test`.
 - after `Ready for pilot test`, the same setup route shows a
   `Test call/message panel` with `Sample inbound`, `Expected extracted fields`,
   `Pass/fail checklist`, `Mark check passed`, `Record test passed`,
   `Test call passed`, and `Reset test call`. It stores
-  `testCallChecklistByService` and `testCallPassedByService` in the same
-  browser-local workspace state and still activates no live phone, Telegram,
-  WhatsApp, CRM, calendar, analytics, billing, or customer send.
+  `testCallChecklistByService`, `testCallPassedByService`, and setup/test-call
+  events in the same workspace state and still activates no live phone,
+  Telegram, WhatsApp, CRM, calendar, analytics, billing, or customer send.
 - `Pilot readiness` now also includes a `Pilot outreach wizard`:
   `Offer preview` -> `Audience from outreach list` -> `Message/test preview` ->
   `Operator confirmation`. It is now rendered as a 4-step outreach wizard and
@@ -189,10 +196,40 @@ Local-services expansion spec:
   scorecard. The same block now shows `Outcome chain summary` so the operator
   can see that one local outcome flowing into `Scorecard draft`, `Daily log`,
   `Week-one review`, and `Evidence pack`.
-- the same pilot workspace state now persists in browser `localStorage` under
-  `liveDesk:localServicesPilotWorkspace:v1`, so the operator can return to the
-  demo and still see `Draft ready`, `Contacted manually`, `Reply received`, or
+- the same pilot workspace state now hydrates through the local-services
+  workspace adapter and syncs to the repo-owned `/v1/local-services/workspace`
+  pilot API, with browser `localStorage` fallback under
+  `liveDesk:localServicesPilotWorkspace:v1`. The operator can return to the demo
+  and still see `Draft ready`, `Contacted manually`, `Reply received`, or
   `Rejected for now` for each selected outreach candidate.
+- the shared local-services workspace boundary now lives in
+  `apps/demo-frontend/app-shell/src/lib/local-services-workspace-adapter.ts`.
+  It owns the storage key, static/browser-local/API/hybrid adapter
+  constructors, and the `/v1/local-services/*` endpoint names so the dashboard
+  can move from demo state to API-backed persistence without burying more
+  storage logic inside `LiveDesk.tsx`.
+- the first backend boundary lives in
+  `apps/api-backend/src/local-services-workspace.ts` and is mounted from
+  `apps/api-backend/src/index.ts`. It stores an in-memory pilot workspace per
+  tenant for setup events, operator decisions, scenario overrides, and pilot
+  export. It is not CRM, analytics, billing, or durable production storage yet.
+- dispatcher approval, customer confirmation, setup/dry-run recording, and
+  scenario override actions now call that adapter directly through
+  `updateCaseDecision`, `recordSetupStep`, and `saveScenarioOverrides`; the
+  full snapshot sync remains the recovery layer and browser fallback.
+- the four fixed local-services scenarios now live in
+  `apps/demo-frontend/app-shell/src/lib/local-services-scenarios.ts`.
+  `DEFAULT_LOCAL_SERVICES_SCENARIOS` is zod-validated, keeps AC repair,
+  plumbing, cleaning, and measurement visits as the only P0 lanes for now, and
+  supports bounded `scenarioOverrides` through the workspace adapter without
+  opening full scenario CRUD.
+- each local-services lane now exposes a `Scenario modal` /
+  `local_services_scenario_modal` from the service card. It shows the scenario
+  as `Chat dialogue`, `Structured job card`, and `Final handoff and approval
+  state`, then allows `Export scenarios JSON`, `Import scenario JSON`, and
+  `Reset overrides` for the four fixed lanes only. These edits sync through the
+  local-services workspace boundary; they do not create/delete scenarios, send
+  outreach, dispatch masters, book slots, write CRM, or mutate docs.
 - the demo also shows a `Pilot funnel summary` across all outreach candidates:
   `All candidates`, per-status counts, and a `Next manual batch` list that jumps
   the operator back to the relevant service/company pair.
@@ -234,6 +271,12 @@ Local-services expansion spec:
   `Human-readable` and `JSON` modes plus `Copy pilot workspace export`; it is a
   browser-local planning artifact that includes the latest `Manual activity log`
   / `Last manual action`; it does not send outreach or write CRM.
+- the same funnel now opens `Workspace API export drawer` through
+  `Open workspace API export`. It calls the local-services workspace export
+  boundary, exposes `workspace API + local fallback`, `Copy workspace API
+  export`, `local_services_workspace_api`, and `browser_local_preview`, and
+  stays an inspection/export surface only: no outreach, dispatch, booking, CRM
+  write, analytics sync, billing, or customer send.
 - the same browser-local pilot state now includes a `Pilot metrics tracker`:
   `Open metrics tracker` exposes `Human-readable` / `JSON` modes and
   `Copy pilot metrics tracker` for manual weekly scorecard sync, with no
@@ -481,6 +524,7 @@ Priority decision filter:
 - Product Master Plan: `docs/product-master-plan.md`
 - Local Services Action Desk Spec: `docs/local-services-action-desk-spec.md`
 - Local Services Developer Map: `docs/local-services-developer-map.md`
+- Local Services Agent Handoff: `docs/local-services-agent-handoff.md`
 - Local Services Pilot Runbook: `docs/local-services-pilot-runbook.md`
 - Local Services Outreach Execution Pack: `docs/local-services-outreach-execution-pack.md`
 - Product Backlog: `docs/product-backlog.md`

@@ -55,6 +55,11 @@ Local workspace docs served by the demo frontend:
 7. `/workspace-docs/local-services-outreach-execution-pack.md`
 8. `/workspace-docs/local-services-founder-execution-log.md`
 9. `/workspace-docs/local-services-developer-map.md`
+10. `/workspace-docs/local-services-agent-handoff.md`
+
+Use `docs/local-services-agent-handoff.md` when onboarding a new agent or
+developer. It captures the product direction, the design-workbench review, the
+backend adapter plan, and the current do-not-build boundaries in one file.
 
 ## Product-Mode Sidebar
 
@@ -160,6 +165,18 @@ UI implementation:
 
 `apps/demo-frontend/app-shell/src/components/workspace/LiveDesk.tsx`
 
+Local-services workspace adapter boundary:
+
+`apps/demo-frontend/app-shell/src/lib/local-services-workspace-adapter.ts`
+
+Local-services backend workspace boundary:
+
+`apps/api-backend/src/local-services-workspace.ts`
+
+Local-services scenario store:
+
+`apps/demo-frontend/app-shell/src/lib/local-services-scenarios.ts`
+
 Product-mode top chrome:
 
 `apps/demo-frontend/app-shell/src/pages/Workspace.tsx`
@@ -186,14 +203,56 @@ Generated app-shell CSS:
 
 `apps/demo-frontend/public/app-shell/style.css`
 
-## Browser-Local State
+## Workspace Persistence
 
 Storage key:
 
 `liveDesk:localServicesPilotWorkspace:v1`
 
-State is intentionally browser-local. It is not CRM, not analytics, not billing,
-not public customer storage, and not proof that an external action happened.
+The shared key and future adapter contract live in
+`apps/demo-frontend/app-shell/src/lib/local-services-workspace-adapter.ts`.
+The adapter now has static, browser-local, API, and hybrid constructors. The
+hybrid path reads/writes `/v1/local-services/workspace` through
+`fetchRuntimeApi` and keeps browser-local fallback so the demo still works when
+the backend is down.
+
+The first backend implementation lives in
+`apps/api-backend/src/local-services-workspace.ts` and is mounted by
+`apps/api-backend/src/index.ts`. It is in-memory per tenant for the pilot slice:
+workspace snapshot, scenario overrides, setup events, operator decisions, and
+pilot export. It is not final database persistence.
+
+The fixed four-lane scenario packet and zod validation live in
+`apps/demo-frontend/app-shell/src/lib/local-services-scenarios.ts`.
+`Scenario modal` / `local_services_scenario_modal` in `LiveDesk.tsx` is the
+current UI for inspecting and workspace-backed editing those fixed scenarios:
+`Chat dialogue`, `Structured job card`, `Final handoff and approval state`,
+`Export scenarios JSON`, `Import scenario JSON`, and `Reset overrides`.
+It is not full CRUD and must remain bounded to the four scenario IDs until real
+pilot evidence says otherwise.
+`LiveDesk.tsx` still owns the current UI state and drawers, but backend or
+scenario persistence work must connect through that adapter boundary instead of
+adding more direct storage/API calls to the component.
+
+Current `LiveDesk.tsx` actions that must go through the adapter:
+
+1. `saveLocalServiceScenarioJsonDraft` / `resetLocalServiceScenarioOverrides`
+   call `saveScenarioOverrides`.
+2. `updateDispatchApprovalDecision` and
+   `updateCustomerConfirmationDecision` call `updateCaseDecision` and mirror
+   the latest operator action into `operatorDecisionByCaseRef`.
+3. setup wizard and test-call buttons call `recordSetupStep` and mirror bounded
+   `setupEvents` into the same workspace snapshot so full snapshot sync cannot
+   wipe endpoint-recorded events.
+4. the Schedule and Customer rails render a compact `Workspace record` signal
+   with `operatorDecisionByCaseRef`, `API + local fallback`, the latest surface,
+   and timestamp. The Setup view renders `Latest setup record` from
+   `setupEvents`. Keep these as status signals only; do not add live sends or
+   production-storage claims here.
+
+State is intentionally pilot workspace state. It is not CRM, not analytics, not
+billing, not public customer storage, and not proof that an external action
+happened.
 
 Important state fields:
 
@@ -209,12 +268,15 @@ Important state fields:
 | `batchReviewHandoffCopiedByProspectKey` | Confirms the current account batch-review handoff was copied. | None |
 | `contactProofByProspectKey` | Browser-local proof markers for channel check, manual send, discovery call, demo, pilot candidate. | None |
 | `weeklyScorecardSyncReviewedByService` | Confirms manual private weekly scorecard sync review. | None |
-| `setupStepCompletionByService` | Browser-local setup checklist progress. | None |
-| `setupReadyByService` | Browser-local ready-for-test state. | None |
-| `testCallChecklistByService` | Browser-local dry-run checklist. | None |
-| `testCallPassedByService` | Browser-local dry-run pass marker. | None |
+| `setupStepCompletionByService` | Workspace-backed setup checklist progress. | No channel activation |
+| `setupReadyByService` | Workspace-backed ready-for-test state. | No channel activation |
+| `testCallChecklistByService` | Workspace-backed dry-run checklist. | No channel activation |
+| `testCallPassedByService` | Workspace-backed dry-run pass marker. | No channel activation |
+| `setupEvents` | Bounded setup/test-call event trail mirrored through `recordSetupStep`. | No channel activation |
+| `operatorDecisionByCaseRef` | Latest dispatch/customer operator decision mirrored through `updateCaseDecision`. | No send / dispatch / CRM write |
 | `metricStatusByService` | Browser-local pilot metric readiness. | None |
 | `activityLog` | Recent browser-local operator events. | None |
+| `scenarioOverrides` | Workspace-backed validated overrides for the four fixed scenario lanes. | None |
 
 ## Operator Surfaces
 
@@ -225,6 +287,7 @@ Core dispatcher detail surfaces:
 3. `Open handoff drawer`
 4. `Telegram intake prototype`
 5. `Open intake evidence`
+6. `Scenario modal` / `local_services_scenario_modal`
 
 Pilot setup surfaces:
 
@@ -321,6 +384,7 @@ Important export surfaces:
 | `local_services_current_account_contact_packet` | Manual-only current account contact packet. |
 | `local_services_current_account_scorecard_sync_preview` | Private scorecard row preview. |
 | `local_services_current_account_batch_review_handoff` | Current account batch-review handoff. |
+| `local_services_workspace_api` | Repo-owned workspace API export boundary with browser-local preview fallback. |
 | `local_services_daily_pilot_briefing` | Manual-only scheduled-task preview for founder/operator daily review. |
 | `local_services_first_contact_batch_review` | First 10 contacts review export. |
 | `local_services_account_history_drawer` | Current account browser-local history export. |

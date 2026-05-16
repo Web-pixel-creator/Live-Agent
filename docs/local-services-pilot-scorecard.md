@@ -162,6 +162,11 @@ into CRM or a spreadsheet. It includes the latest `Manual activity log` /
 `Last manual action`. `Copy pilot workspace export` copies the reviewed
 snapshot only; it does not send a message, update CRM, or mutate this Markdown
 file automatically.
+`Open workspace API export` opens `Workspace API export drawer` for the
+repo-owned workspace boundary. It exposes `Copy workspace API export`,
+`local_services_workspace_api`, `browser_local_preview`, and
+`workspace API + local fallback`; use it for inspection only, not as durable
+production storage or an automated CRM sync.
 
 The first-10-contact workspace also shows `Category pilot score`,
 `Leading category`, and `No category expansion without proof`. Use that ranking

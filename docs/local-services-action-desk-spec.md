@@ -408,17 +408,22 @@ send a customer message, write CRM, dispatch a technician, or activate a live
 channel.
 
 `Schedule / Dispatch board` is the second actionable product view. Its
-`Schedule approval rail` can update only `dispatchApprovalByService` in the
-browser-local pilot workspace and can show a `Booking handoff preview` for a
-human owner or dispatcher. It must not create a booking, dispatch a technician,
-send a customer message, write CRM, collect payment, or activate a channel.
+`Schedule approval rail` updates `dispatchApprovalByService`, mirrors the
+latest operator choice to `operatorDecisionByCaseRef` through
+`/v1/local-services/cases/:ref/decision`, and can show a
+`Booking handoff preview` for a human owner or dispatcher. It must not create a
+booking, dispatch a technician, send a customer message, write CRM, collect
+payment, or activate a channel. The rail should show a compact
+`Workspace record` status with `API + local fallback`, latest surface, and
+timestamp so the persistence boundary is visible without exposing raw JSON.
 
 `Customer directory` is the third actionable product view. Its `Customer
-confirmation rail` can update only `customerConfirmationByService` in the
-browser-local pilot workspace and can show a `Consent-safe confirmation
-preview` for manual human use. It must not send SMS, Telegram, WhatsApp, email,
-write CRM, collect payment, create a booking, dispatch a technician, or activate
-a channel.
+confirmation rail` updates `customerConfirmationByService`, mirrors the latest
+review to the same operator-decision boundary, and can show a
+`Consent-safe confirmation preview` for manual human use. It must not send SMS, Telegram,
+WhatsApp, email, write CRM, collect payment, create a booking, dispatch a
+technician, or activate a channel. It uses the same `Workspace record` signal
+for the latest case-level operator decision.
 
 `Review queue` is the fourth actionable product view. Its `Review queue
 decision rail` can update only `weekOneOwnerDecisionByProspectKey` and
@@ -684,17 +689,18 @@ scorecard controls are hidden so the first operator demo stays focused on setup
 readiness.
 The setup wizard is stateful: `setupStepCompletionByService` stores completed
 setup steps, `setupReadyByService` stores the final `Ready for pilot test` gate,
-and both live under `liveDesk:localServicesPilotWorkspace:v1`. The UI exposes
-`Setup progress`, `Saved setup state`, `Mark complete`,
-`Mark ready for pilot test`, and `Reset setup progress`. This remains
-browser-local and does not activate phone, Telegram, WhatsApp, CRM, analytics,
-billing, calendar, or customer messages.
+and bounded `setupEvents` are mirrored through
+`/v1/local-services/setup/events`. The UI exposes `Setup progress`,
+`Saved setup state`, `Latest setup record`, `Mark complete`,
+`Mark ready for pilot test`, and `Reset setup progress`. This does not activate
+phone, Telegram, WhatsApp, CRM, analytics, billing, calendar, or customer
+messages.
 After the ready gate, `Test call/message panel` appears in the same setup
 posture. It shows `Sample inbound`, `Expected extracted fields`, and a
 `Pass/fail checklist`; the operator marks checks with `Mark check passed`, then
 uses `Record test passed` to show `Test call passed`. `Reset test call` clears
 only `testCallChecklistByService` and `testCallPassedByService` in the same
-browser-local workspace.
+workspace state and records a bounded setup/test-call event.
 The same block now includes a `Pilot outreach wizard` that mirrors the useful
 campaign-builder pattern from the reviewed AI receptionist references:
 `Offer preview` -> `Audience from outreach list` -> `Message/test preview` ->
@@ -733,11 +739,12 @@ the first manual request without creating a booking, writing CRM, or mutating
 the Markdown scorecard. `Outcome chain summary` shows the same outcome across
 `Scorecard draft`, `Daily log`, `Week-one review`, and `Evidence pack`, so the
 operator can trace paid-pilot proof without opening every drawer first.
-The shell now persists that pilot workspace state in browser `localStorage`
-under `liveDesk:localServicesPilotWorkspace:v1`. It stores the selected
-candidate per local-services lane and the operator-only status per
-service/company pair: `Not contacted`, `Draft ready`, `Contacted manually`,
-`Reply received`, or `Rejected for now`.
+The shell now hydrates that pilot workspace state through the local-services
+workspace adapter, syncs it to `/v1/local-services/workspace`, and keeps browser
+`localStorage` fallback under `liveDesk:localServicesPilotWorkspace:v1`. It
+stores the selected candidate per local-services lane and the operator-only
+status per service/company pair: `Not contacted`, `Draft ready`, `Contacted
+manually`, `Reply received`, or `Rejected for now`.
 The shell now also exposes a `Pilot funnel summary` across every outreach
 candidate. It shows `All candidates`, per-status counts, and `Next manual batch`
 so the operator can move through the first pilot list without treating the demo
@@ -779,6 +786,12 @@ The same funnel now opens a `Pilot workspace export drawer` through
 `Copy pilot workspace export`, includes the latest `Manual activity log` /
 `Last manual action`, and carries explicit guardrails: no outbound message, no
 CRM write, and manual scorecard sync only.
+The adjacent `Open workspace API export` opens a `Workspace API export drawer`
+for the repo-owned workspace boundary. It calls the local-services workspace
+adapter/export path, exposes `workspace API + local fallback`,
+`Copy workspace API export`, `local_services_workspace_api`, and
+`browser_local_preview`, and remains inspection-only rather than durable
+production storage.
 The selected lane's `Pilot metrics` block now opens a `Pilot metrics tracker`
 through `Open metrics tracker`. The tracker has `Human-readable` and `JSON`
 modes, exposes `Copy pilot metrics tracker`, stores its status in the same
@@ -994,8 +1007,9 @@ pilot export surfaces.
    message, and operator confirmation. Done in shell demo.
 6. Add a shell-level scorecard draft action for selected outreach candidates.
    Done in shell demo; no external send or CRM write happens.
-7. Persist browser-local pilot workspace state so reloads keep selected company
-   and outreach status. Done in shell demo through `localStorage`.
+7. Persist pilot workspace state so reloads keep selected company and outreach
+   status. Done through the local-services workspace adapter with
+   `/v1/local-services/workspace` sync and browser `localStorage` fallback.
 8. Add a shell-level pilot funnel summary with per-status counts and a next
    manual batch. Done in shell demo.
 9. Add a shell-level pilot workspace export drawer with human-readable and JSON
@@ -1105,19 +1119,23 @@ Current shell readiness for P3:
    setup handoff surface.
 22. `Open pilot export`, `Pilot workspace export drawer`, `Human-readable`,
    `JSON`, and `Copy pilot workspace export` are visible in the shell.
-23. `Open metrics tracker`, `Pilot metrics tracker`, `Human-readable`, `JSON`,
+23. `Open workspace API export`, `Workspace API export drawer`,
+   `Copy workspace API export`, `local_services_workspace_api`,
+   `browser_local_preview`, and `workspace API + local fallback` are visible in
+   the shell as the workspace export boundary.
+24. `Open metrics tracker`, `Pilot metrics tracker`, `Human-readable`, `JSON`,
    and `Copy pilot metrics tracker` are visible in the shell.
-24. `Open daily log`, `Pilot daily log`, `Daily capture fields`,
+25. `Open daily log`, `Pilot daily log`, `Daily capture fields`,
    `Daily operating loop`, `Copy pilot daily log`,
    `local_services_pilot_daily_log`, `First request outcome`, and
    `firstRequestOutcomeByProspectKey` are visible in the shell.
-25. `Open week-one review`, `Pilot week-one review`,
+26. `Open week-one review`, `Pilot week-one review`,
    `Continue / stop decision`, `Copy week-one review`,
    `local_services_pilot_week_one_review`, `First request outcome`, and
    `firstRequestOutcomeByProspectKey` are visible in the shell.
-26. `Owner-ready summary`, `Decision readiness`, `Latest manual signal`, and
+27. `Owner-ready summary`, `Decision readiness`, `Latest manual signal`, and
    `day_one_recap_to_week_one_review` are visible in the same week-one packet.
-27. `Week-one owner decision state`, `Record continue`, `Record pause`,
+28. `Week-one owner decision state`, `Record continue`, `Record pause`,
    `Record stop`, `weekOneOwnerDecisionByProspectKey`, and
    `week_one_owner_decision_to_evidence_pack` are visible as the browser-local
    owner decision contract.
@@ -1255,16 +1273,44 @@ Current shell readiness for P3:
 54. `/workspace-docs/local-services-demo-recording-checklist.md` resolves to
    the repo-owned 90-second recording checklist from the same local frontend
    server.
+54a. `/workspace-docs/local-services-agent-handoff.md` resolves to the
+   repo-owned cross-agent implementation handoff with the design-workbench
+   review and backend adapter plan.
+54b. `apps/demo-frontend/app-shell/src/lib/local-services-workspace-adapter.ts`
+   is the first local-services persistence boundary. It owns
+   `LOCAL_SERVICES_WORKSPACE_STORAGE_KEY`, static/browser-local/API/hybrid
+   adapter constructors, and `/v1/local-services/*` endpoint names; `LiveDesk.tsx`
+   should not accumulate new direct persistence contracts beyond this boundary.
+54b.1. `apps/api-backend/src/local-services-workspace.ts` is the first
+   repo-owned backend boundary for workspace snapshots, scenario overrides,
+   setup events, operator decisions, and pilot export. It is in-memory pilot
+   persistence, not final database storage.
+54b.2. `LiveDesk.tsx` action handlers use the adapter endpoint methods directly:
+   scenario save/reset calls `saveScenarioOverrides`, dispatch/customer rails
+   call `updateCaseDecision`, and setup/test-call controls call
+   `recordSetupStep`. The full workspace snapshot remains the recovery sync.
+54c. `apps/demo-frontend/app-shell/src/lib/local-services-scenarios.ts` is the
+   bounded scenario store. It owns the zod schema,
+   `DEFAULT_LOCAL_SERVICES_SCENARIOS`, and bounded `scenarioOverrides`
+   merge path for the four P0 lanes: AC repair, plumbing, cleaning, and
+   measurement visits.
+54d. `LiveDesk.tsx` exposes `Scenario modal` /
+   `local_services_scenario_modal` from every local-services lane card. The
+   modal shows `Chat dialogue`, `Structured job card`, and `Final handoff and
+   approval state`, plus `Export scenarios JSON`, `Import scenario JSON`, and
+   `Reset overrides`. This is a fixed-lane scenario editor only: it must not
+   create/delete scenarios, send messages, book slots, dispatch masters, write
+   CRM, activate channels, or mutate Markdown docs.
 55. `?recording=90s`, `90-second recording mode`, `Recording path`, and
    `90s recording` are visible as the demo-recording posture, and outreach
    tables plus scorecard controls are hidden during recording.
 56. `?setup=7min`, `7-minute setup wizard`, `Setup path`, and `7-min setup`
    are visible as the setup-first posture, and outreach tables plus scorecard
    controls are hidden while setup mode is active.
-57. `setupStepCompletionByService`, `setupReadyByService`, `Setup progress`,
-   `Saved setup state`, `Mark complete`, `Mark ready for pilot test`,
-   `Ready for pilot test`, and `Reset setup progress` are visible as the
-   stateful setup checklist contract.
+57. `setupStepCompletionByService`, `setupReadyByService`, `setupEvents`,
+   `Setup progress`, `Saved setup state`, `Mark complete`,
+   `Mark ready for pilot test`, `Ready for pilot test`, and
+   `Reset setup progress` are visible as the stateful setup checklist contract.
 58. Actual external execution still remains outside the shell: recorded video,
    live outreach, replies, demos, and the first real pilot.
 

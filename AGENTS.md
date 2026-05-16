@@ -20,25 +20,34 @@ The system covers three challenge categories in one architecture:
 
 ## Commercial Wedge
 
-The current product is not a general multimodal platform. The current product is:
+The current product is not a general multimodal platform. The active
+product-mode work approved for the current local-services slice is:
 
-`AI Action Desk for immigration teams`
+`AI Dispatcher for local service businesses in Tashkent`
 
 Primary critical-path workflows:
 
-1. lead qualification
-2. consultation booking
-3. missing-document follow-up
-4. CRM prep and human handoff
+1. inbound phone/Telegram intake
+2. job-card qualification
+3. price, slot, and master/operator handoff preparation
+4. human approval before customer send, dispatch, CRM write, or billing
+5. manual pilot outreach, scorecard, and export
 
-If a change does not improve one of those workflows, help the primary ICP right
-now, or reduce operator manual work, it should not be on the current critical
-path.
+The older immigration Action Desk remains a trust-heavy proof surface for
+approval, evidence, replay, and operator-safe handoff. It should not override
+the local-services product-mode plan when working on the dispatcher dashboard.
+
+If a change does not improve local-services intake, dispatch preparation,
+operator approval, pilot execution, or reduce manual operator work, it should
+not be on the current critical path.
 
 ## Agent Operating Discipline
 
 Use this file plus `README.md` and `docs/product-master-plan.md` as the
 repo-owned source of truth.
+For the current local-services product-mode work, also read
+`docs/local-services-agent-handoff.md` before changing dashboard IA, backend
+persistence, setup, outreach, or scenario behavior.
 
 External references:
 
@@ -122,3 +131,4 @@ npm run verify:release
 4. `docs/local-development.md`
 5. `docs/judge-runbook.md`
 6. `docs/ws-protocol.md`
+7. `docs/local-services-agent-handoff.md`

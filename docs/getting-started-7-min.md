@@ -54,6 +54,10 @@ evidence output, customer confirmation draft, master/operator handoff, and
 `Dispatch payload preview`. Use `Open dispatch drawer`, `Open customer drawer`,
 or `Open handoff drawer` to review the job-card, customer confirmation, or
 master handoff export in `Human-readable` or `JSON` mode before copying it.
+Use `Scenario modal` to inspect `local_services_scenario_modal`: the lane
+dialogue, structured job card, final handoff and approval state, plus
+browser-local JSON export/import for the four fixed scenarios. It is not
+scenario CRUD and does not perform external actions.
 The same panel includes a `Telegram intake prototype`: a customer message,
 normalized fields, and a reply draft that reuse the same approval-gated job-card
 payload.
@@ -134,9 +138,11 @@ state is stored as `firstRequestOutcomeByProspectKey` and remains a local
 operator note only. Check `Outcome chain summary` to confirm the same outcome is
 carried through `Scorecard draft`, `Daily log`, `Week-one review`, and
 `Evidence pack`.
-The pilot workspace state is persisted in browser `localStorage` as
-`liveDesk:localServicesPilotWorkspace:v1`, so reloads keep `Draft ready`,
-`Contacted manually`, `Reply received`, or `Rejected for now` statuses.
+The pilot workspace state hydrates through the local-services workspace adapter
+and syncs to `/v1/local-services/workspace`, with browser `localStorage`
+fallback as `liveDesk:localServicesPilotWorkspace:v1`, so reloads keep
+`Draft ready`, `Contacted manually`, `Reply received`, or `Rejected for now`
+statuses.
 The same demo now includes a `Pilot funnel summary` with `All candidates`,
 per-status counts, and a `Next manual batch` list for jumping back to the right
 service/company pair.
@@ -145,6 +151,11 @@ Use `Open pilot export` to open the `Pilot workspace export drawer`. It provides
 scorecard or CRM sync. It includes the latest `Manual activity log` /
 `Last manual action` so reviewed scorecard and metric events travel with the
 funnel snapshot. It does not send messages or write CRM.
+Use `Open workspace API export` to inspect the repo-owned workspace boundary.
+The `Workspace API export drawer` exposes `workspace API + local fallback`,
+`Copy workspace API export`, `local_services_workspace_api`, and
+`browser_local_preview`; it is not durable production storage and has no
+external effects.
 Use `Open metrics tracker` to open the `Pilot metrics tracker`. It provides
 `Human-readable` and `JSON` modes plus `Copy pilot metrics tracker` for manual
 weekly scorecard sync. It does not sync analytics or write CRM.
@@ -303,14 +314,17 @@ outreach tables and scorecard controls stay hidden until setup mode is exited.
 Use the setup toggles to mark `Business profile`, `Knowledge sources`,
 `Agent behavior`, and `Test call/message` complete. After those four are done,
 click `Mark ready for pilot test`; the shell then shows `Ready for pilot test`.
-The state is saved under `setupStepCompletionByService` and `setupReadyByService`
-inside `liveDesk:localServicesPilotWorkspace:v1`, so refreshes keep the setup
-progress.
+The state is saved under `setupStepCompletionByService`, `setupReadyByService`,
+and bounded `setupEvents` through the local-services workspace adapter, so
+refreshes keep the setup progress even when the API falls back to browser
+storage. The setup view also shows `Latest setup record` and
+`API + local fallback` so this remains clear during a demo.
 Then review `Test call/message panel`: compare `Sample inbound` with
 `Expected extracted fields`, mark every `Pass/fail checklist` item with
 `Mark check passed`, and click `Record test passed`. The shell should show
-`Test call passed`; `Reset test call` clears only the browser-local
-`testCallChecklistByService` and `testCallPassedByService` fields.
+`Test call passed`; `Reset test call` clears only the workspace-backed
+`testCallChecklistByService` and `testCallPassedByService` fields and records a
+setup/test-call event.
 Use `Open outreach list`, `Open outreach execution pack`, and
 `Open pilot scorecard` when you move from demo story to actual pilot execution.
 Use `docs/local-services-pilot-runbook.md` for the manual 14-day pilot sequence
