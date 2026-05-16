@@ -47,6 +47,10 @@ the first scan no longer starts with visa case refs, `VIP cases`, or
 The top chrome also changes from `Live Desk` to `AI Dispatcher` and removes the
 old runtime/SLA alerts, visa demo button, case filters, case search, and
 `New case` action from the local-services header.
+Dispatcher queue selection is intentionally calm: click a row to update the
+right preview, then use `Enter`, double-click, the context menu, or the row open
+icon when you really want the full console/task detail. Scrolling the queue must
+not change the selected case.
 
 Each card previews `Outcome`, `Approval`, `Evidence`, and `Deliverable`. The
 detail panel shows phone intake, pricing and slot inputs, approval policy,

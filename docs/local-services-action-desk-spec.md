@@ -669,6 +669,10 @@ link`, `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,
 `local_services_intake_evidence`, and `transcript_evidence_link` so P2 can show
 where the job card came from without claiming live Telegram, CRM, phone storage,
 or scorecard persistence.
+The dispatcher queue selection contract is part of P0 UX: row click selects the
+right preview only; `Enter`, double-click, the context menu, or the row open icon
+opens full console/task detail. Scroll position must never act as selection or
+swap the right rail.
 The selected card now also exposes `Pilot readiness`, `One-page offer`,
 `90-second demo script`, `Outreach focus`, a `Launch checklist`, and tracked
 `Pilot metrics` so the team can explain the pilot contract in the shell before

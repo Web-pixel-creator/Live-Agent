@@ -83,6 +83,10 @@ Local-services expansion spec:
   quieter `Advanced / Runtime` group. Runtime/judge pages stay reachable, but
   `VIP cases`, `Judge artifacts`, `Presentation Bundle`, and visa case refs do
   not occupy the first scan for this wedge.
+- Dispatcher queue interaction is explicit: a row click selects the right
+  preview only. `Enter`, double-click, the context menu, or the row open icon
+  opens the full console/task detail. Scrolling the queue does not auto-swap the
+  selected case.
 - Product view states: `view=requests` opens `Requests inbox`,
   `view=schedule` opens `Schedule / Dispatch board`, `view=customers` opens
   `Customer directory`, `setup=7min&view=setup` opens `Knowledge setup state`,

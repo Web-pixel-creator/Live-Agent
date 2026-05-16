@@ -17119,6 +17119,9 @@ export const LiveDesk = () => {
     e?.stopPropagation();
     navigate(`/app/console?ref=${encodeURIComponent(ref)}`);
   };
+  const handleSelectPreview = (ref: string) => {
+    setFocusedRef(ref);
+  };
   const handleOpenBundle = (
     e: React.MouseEvent | null,
     value: WorkspaceCase,
@@ -18070,18 +18073,32 @@ export const LiveDesk = () => {
                       else rowRefs.current.delete(c.ref);
                     }}
                     role="button"
-                    tabIndex={-1}
+                    tabIndex={0}
+                    aria-label={`Select preview for ${c.ref}`}
+                    title="Select preview; use Enter, double-click, or Open in Console to open"
                     onClick={(e) => {
-                      setFocusedRef(c.ref);
-                      // When a selection is active, row click toggles selection instead of navigating.
-                      // Shift+click extends the range from the last selected row.
+                      // Row click intentionally selects the preview rail only.
+                      // Opening the full console stays behind explicit actions:
+                      // Enter, double-click, context menu, or the open icon.
+                      handleSelectPreview(c.ref);
                       if (hasSelection || e.shiftKey) {
                         if (e.shiftKey) selectRange(c.ref);
                         else toggleSelected(c.ref);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleOpen(null, c.ref);
                         return;
                       }
-                      navigate(`/app/console?ref=${encodeURIComponent(c.ref)}`);
+                      if (e.key === " ") {
+                        e.preventDefault();
+                        handleSelectPreview(c.ref);
+                        if (hasSelection) toggleSelected(c.ref);
+                      }
                     }}
+                    onDoubleClick={(e) => handleOpen(e, c.ref)}
                     className={`${COLS} relative px-8 py-4 border-b border-border/30 transition-smooth cursor-pointer group focus:outline-none ${
                       isSelected
                         ? "bg-primary/10 ring-1 ring-inset ring-primary/30"

@@ -517,6 +517,13 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /const LocalServicesDispatchDemoPanel = \(\{/);
   assert.match(liveDesk, /activeView: LocalServiceProductView;/);
   assert.match(liveDesk, /activeView=\{activeLocalServiceView\}/);
+  assert.match(liveDesk, /const handleSelectPreview = \(ref: string\) => \{/);
+  assert.match(liveDesk, /Row click intentionally selects the preview rail only/);
+  assert.match(liveDesk, /tabIndex=\{0\}/);
+  assert.match(liveDesk, /aria-label=\{`Select preview for \$\{c\.ref\}`\}/);
+  assert.match(liveDesk, /if \(e\.key === "Enter"\) \{/);
+  assert.match(liveDesk, /handleOpen\(null, c\.ref\);/);
+  assert.match(liveDesk, /onDoubleClick=\{\(e\) => handleOpen\(e, c\.ref\)\}/);
   assert.match(liveDesk, /Requests inbox/);
   assert.match(liveDesk, /Schedule \/ Dispatch board/);
   assert.match(liveDesk, /Customer directory/);
@@ -1342,6 +1349,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Path recorded/);
   assert.match(readme, /Setup \+\s+dry run/);
   assert.match(readme, /AI Dispatcher for local service businesses/);
+  assert.match(readme, /row click selects the right\s+preview only/i);
+  assert.match(readme, /Scrolling the queue does not auto-swap the\s+selected case/i);
   assert.match(readme, /AC repair dispatch/);
   assert.match(readme, /Plumbing emergency/);
   assert.match(readme, /Cleaning quote and booking/);
@@ -2163,6 +2172,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Workspace API export drawer/);
   assert.match(operatorGuide, /Copy workspace API export/);
   assert.match(operatorGuide, /local_services_workspace_api/);
+  assert.match(operatorGuide, /row click selects the right preview/i);
+  assert.match(operatorGuide, /Queue scroll is not allowed to auto-change the selected\s+case/i);
   assert.match(operatorGuide, /Pilot metrics tracker/);
   assert.match(operatorGuide, /Copy pilot metrics tracker/);
   assert.match(operatorGuide, /Pilot daily log/);
@@ -2742,6 +2753,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /Workspace API export drawer/);
   assert.match(gettingStarted, /Copy workspace API export/);
   assert.match(gettingStarted, /browser_local_preview/);
+  assert.match(gettingStarted, /click a row to update the\s+right preview/i);
   assert.match(gettingStarted, /Open metrics tracker/);
   assert.match(gettingStarted, /Copy pilot metrics tracker/);
   assert.match(gettingStarted, /Pilot daily log/);
@@ -2909,6 +2921,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(evidenceTrust, /first-10-contact worksheet/);
   assert.match(localServicesSpec, /AI Dispatcher for local service businesses/);
   assert.match(localServicesSpec, /\/app\?demo=local-services-dispatch&service=ac-repair-dispatch/);
+  assert.match(localServicesSpec, /row click selects the\s+right preview only/i);
+  assert.match(localServicesSpec, /Scroll position must never act as selection/i);
   assert.match(localServicesSpec, /Measurement visit booking/);
   assert.match(localServicesSpec, /measurement visits for windows, doors, ceilings, blinds, and fit-out work/);
   assert.match(localServicesSpec, /Dispatch payload drawer/);
@@ -4092,6 +4106,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesDeveloperMap, /Do not add:/);
   assert.match(localServicesAgentHandoff, /# Local Services Agent Handoff/);
   assert.match(localServicesAgentHandoff, /AI Dispatcher for local service businesses in Tashkent/);
+  assert.match(localServicesAgentHandoff, /Clicking a row selects it and updates the right preview/);
+  assert.match(localServicesAgentHandoff, /Avoid scroll-spy that swaps the right panel/);
   assert.match(localServicesAgentHandoff, /Design Workbench Review/);
   assert.match(localServicesAgentHandoff, /design-workbench-main/);
   assert.match(localServicesAgentHandoff, /not currently backend-integrated/);

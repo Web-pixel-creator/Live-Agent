@@ -66,6 +66,11 @@ handoff, keeps the `Dispatch payload preview` behind review, and exposes
 operator-approved `Human-readable` / `JSON` exports. The same detail panel now
 shows `Telegram intake prototype`, so a message-based customer request is
 normalized into the same job-card payload instead of creating a second workflow.
+The dispatcher queue follows the selection/open contract from
+`docs/local-services-agent-handoff.md`: row click selects the right preview,
+while `Enter`, double-click, context menu, or the row open icon opens the full
+console/task detail. Queue scroll is not allowed to auto-change the selected
+case.
 Each lane card also exposes `Scenario modal` /
 `local_services_scenario_modal`: `Chat dialogue`, `Structured job card`, and
 `Final handoff and approval state` with JSON export/import for the four fixed
