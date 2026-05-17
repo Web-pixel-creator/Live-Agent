@@ -123,6 +123,11 @@ Local-services expansion spec:
   with `operatorDecisionByCaseRef`, `API + local fallback`, and the latest
   recorded case-decision timestamp so operators can see what was persisted
   without opening developer tools.
+  The default `Dispatcher` view is now the primary workbench: `Main dispatcher
+  compact queue` sits next to `Main dispatcher full-height decision rail`; row
+  click updates the preview, `Explicit full task open` stays on the row action,
+  and the footer uses the operator-facing guardrail
+  `Контроль · оператор · автоотправка выкл.`.
   `Review queue` includes a `Review queue decision rail`, local
   `weekOneOwnerDecisionByProspectKey` and
   `weeklyScorecardSyncReviewedByService` gates, and a `Copy review queue

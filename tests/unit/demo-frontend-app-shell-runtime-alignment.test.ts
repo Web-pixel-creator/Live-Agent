@@ -529,6 +529,12 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Customer directory/);
   assert.match(liveDesk, /Knowledge setup state/);
   assert.match(liveDesk, /Review queue/);
+  assert.match(liveDesk, /Main dispatcher workbench/);
+  assert.match(liveDesk, /Main dispatcher compact queue/);
+  assert.match(liveDesk, /Main dispatcher full-height decision rail/);
+  assert.match(liveDesk, /Click selects dispatcher preview/);
+  assert.match(liveDesk, /Explicit full task open/);
+  assert.match(liveDesk, /No row action overlap/);
   assert.match(liveDesk, /Dispatcher compact request queue/);
   assert.match(liveDesk, /Selected request decision rail/);
   assert.match(liveDesk, /No scroll-spy selection/);
@@ -3274,6 +3280,12 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /LOCAL_SERVICES_WORKSPACE_STORAGE_KEY/);
   assert.match(localServicesSpec, /\/v1\/local-services\/\*/);
   assert.match(localServicesSpec, /local-services-scenarios\.ts/);
+  assert.match(localServicesSpec, /Main dispatcher workbench/);
+  assert.match(localServicesSpec, /Main dispatcher compact queue/);
+  assert.match(localServicesSpec, /Main dispatcher full-height decision rail/);
+  assert.match(localServicesSpec, /Click selects dispatcher\s+preview/);
+  assert.match(localServicesSpec, /Explicit full task open/);
+  assert.match(localServicesSpec, /No row action overlap/);
   assert.match(localServicesSpec, /Dispatcher compact request queue/);
   assert.match(localServicesSpec, /Selected request decision rail/);
   assert.match(localServicesSpec, /Sticky operator action footer/);
@@ -4098,6 +4110,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesDeveloperMap, /`view=customers`/);
   assert.match(localServicesDeveloperMap, /`view=setup`/);
   assert.match(localServicesDeveloperMap, /`view=reviews`/);
+  assert.match(localServicesDeveloperMap, /Main dispatcher compact queue/);
+  assert.match(localServicesDeveloperMap, /Main dispatcher full-height decision rail/);
+  assert.match(localServicesDeveloperMap, /No row action overlap/);
   assert.match(localServicesDeveloperMap, /Dispatcher compact request queue/);
   assert.match(localServicesDeveloperMap, /Selected request decision rail/);
   assert.match(localServicesDeveloperMap, /Sticky operator action footer/);
@@ -4126,6 +4141,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesAgentHandoff, /Clicking a row selects it and updates the right preview/);
   assert.match(localServicesAgentHandoff, /Avoid scroll-spy that swaps the right panel/);
   assert.match(localServicesAgentHandoff, /Current implementation slice:/);
+  assert.match(localServicesAgentHandoff, /Main dispatcher workbench/);
+  assert.match(localServicesAgentHandoff, /Main dispatcher compact queue/);
+  assert.match(localServicesAgentHandoff, /Main dispatcher full-height decision rail/);
+  assert.match(localServicesAgentHandoff, /Explicit full task open/);
   assert.match(localServicesAgentHandoff, /Dispatcher compact request queue/);
   assert.match(localServicesAgentHandoff, /Selected request decision rail/);
   assert.match(localServicesAgentHandoff, /Design Workbench Review/);

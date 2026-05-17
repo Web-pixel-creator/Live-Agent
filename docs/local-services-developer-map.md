@@ -134,7 +134,18 @@ and operator contract in `README.md` plus `docs/local-development.md`,
 source-level guardrails in
 `tests/unit/demo-frontend-app-shell-runtime-alignment.test.ts`.
 
-`view=requests` has the first actionable panel contract. It now renders a
+`view=dispatcher` is the primary operator workbench. It now renders a
+`Main dispatcher compact queue` beside a
+`Main dispatcher full-height decision rail`. The queue is click-to-preview
+only, has no scroll-spy selection, uses the fixed `56px minmax(0, 1fr) 220px`
+row grid, and keeps `No row action overlap` as a source-level regression
+marker. The selected-case rail separates the AI recommendation from the
+customer request and ends in the RU-first sticky footer:
+`Контроль · оператор · автоотправка выкл.` This is still a manual approval
+surface: it must not send, book, dispatch, write CRM, bill, or activate a
+channel.
+
+`view=requests` has the first secondary actionable panel contract. It renders a
 `Dispatcher compact request queue` beside a `Selected request decision rail`.
 The queue is click-to-preview only, with no scroll-spy selection; explicit open
 actions stay in the rail. The rail separates `AI recommendation packet` from the

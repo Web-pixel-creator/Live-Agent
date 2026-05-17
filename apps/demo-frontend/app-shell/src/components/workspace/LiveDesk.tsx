@@ -9543,6 +9543,383 @@ const LocalServicesDispatchDemoPanel = ({
           </section>
         )}
 
+        {activeView === "dispatcher" && (
+          <section
+            aria-label="Main dispatcher workbench"
+            className="rounded-md border border-border/65 bg-card/65 p-4"
+          >
+            <div className="grid gap-3 xl:grid-cols-[minmax(560px,1fr)_minmax(500px,0.58fr)]">
+              <section
+                aria-label="Main dispatcher compact queue"
+                className="min-w-0 rounded-md border border-border/55 bg-background/35"
+              >
+                <div className="border-b border-border/55 px-4 py-3">
+                  <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--tint-mint-fg))]" />
+                        Main dispatcher compact queue
+                      </div>
+                      <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                        Click selects dispatcher preview. Explicit full task open is kept on the right-side button.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-[5px] bg-[hsl(var(--tint-amber)/0.14)] px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-amber-fg))] ring-1 ring-inset ring-[hsl(var(--tint-amber)/0.28)]">
+                        P0 2
+                      </span>
+                      <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                        No scroll-spy selection
+                      </span>
+                      <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                        No row action overlap
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="max-h-[640px] overflow-y-auto">
+                  {LOCAL_SERVICE_DEMO_TEMPLATES.map((template, index) => {
+                    const selected = template.id === selectedTemplate.id;
+                    const TemplateIcon = template.Icon;
+                    const priority = index < 2 ? "P0" : index === 2 ? "P1" : "P2";
+                    const stateLabel =
+                      index < 2 ? "Нужно решение" : index === 2 ? "В работе" : index === 3 ? "Ждём клиента" : "Закрыта";
+                    const slaLabel = ["SLA 42m", "SLA 2h 14m", "SLA 28h", "SLA 4h"][index] ?? "SLA 42m";
+                    const windowLabel =
+                      [
+                        template.payload.preferred_date,
+                        template.payload.preferred_time,
+                        template.payload.preferred_slot,
+                        template.payload.preferred_window,
+                      ]
+                        .filter(Boolean)
+                        .map((value) => formatPayloadValue(value))
+                        .join(" · ") || "operator review";
+                    const priceOrApproval = localServiceHighlightValue(template, "Approval");
+                    const rowTone = index < 2 ? "amber" : template.tone;
+
+                    return (
+                      <article
+                        key={template.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => onSelectService(template.id)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            onSelectService(template.id);
+                            onOpenDispatchDrawer("dispatch");
+                          }
+                          if (event.key === " ") {
+                            event.preventDefault();
+                            onSelectService(template.id);
+                          }
+                        }}
+                        aria-label={`Click selects dispatcher preview for ${template.ref}`}
+                        aria-current={selected ? "true" : undefined}
+                        className={`grid min-h-[104px] grid-cols-1 gap-3 border-b border-border/45 px-4 py-3 outline-none transition-smooth md:grid-cols-[56px_minmax(0,1fr)_220px] ${
+                          selected
+                            ? "bg-[hsl(var(--tint-amber)/0.09)] ring-1 ring-inset ring-[hsl(var(--tint-amber)/0.30)]"
+                            : "bg-card/20 hover:bg-card/35"
+                        }`}
+                        style={
+                          selected
+                            ? {
+                                borderLeft: `3px solid hsl(var(--tint-${rowTone}-fg))`,
+                              }
+                            : {
+                                borderLeft: `3px solid hsl(var(--tint-${rowTone}) / 0.34)`,
+                              }
+                        }
+                      >
+                        <div className="flex items-start gap-2 md:block">
+                          <span
+                            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md ring-1 ring-inset"
+                            style={{
+                              backgroundColor: `hsl(var(--tint-${rowTone}) / 0.13)`,
+                              color: `hsl(var(--tint-${rowTone}-fg))`,
+                              ["--tw-ring-color" as const]: `hsl(var(--tint-${rowTone}) / 0.30)`,
+                            }}
+                          >
+                            <TemplateIcon className="h-4 w-4" strokeWidth={1.9} />
+                          </span>
+                          <span
+                            className="mt-0.5 hidden h-2 w-2 rounded-full md:block"
+                            style={{ backgroundColor: `hsl(var(--tint-${rowTone}-fg))` }}
+                          />
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="font-mono text-[10px] text-muted-foreground">{template.ref}</span>
+                            <Pill tone={rowTone as LocalServiceDemoTemplate["tone"]} size="sm">
+                              {priority}
+                            </Pill>
+                            <span className="truncate text-[13px] font-semibold tracking-tight text-foreground">
+                              {formatPayloadValue(template.payload.customer_name ?? "Customer")}
+                            </span>
+                            <span className="truncate text-[11.5px] text-muted-foreground">{template.title}</span>
+                            <span className="truncate text-[11.5px] text-muted-foreground">
+                              {formatPayloadValue(template.payload.district ?? "district")}
+                            </span>
+                          </div>
+                          <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5 font-mono text-[10.5px]">
+                            <span className="rounded-[5px] bg-background/55 px-2 py-1 text-foreground">
+                              {windowLabel}
+                            </span>
+                            <span className="rounded-[5px] bg-background/55 px-2 py-1 text-muted-foreground">
+                              {priceOrApproval}
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded-[5px] bg-background/55 px-2 py-1 text-foreground">
+                              {slaLabel}
+                              <span
+                                className="inline-block h-1 w-11 rounded-full"
+                                style={{ backgroundColor: `hsl(var(--tint-${rowTone}-fg))` }}
+                              />
+                            </span>
+                          </div>
+                          <div className="mt-2 truncate text-[11.5px] font-medium text-foreground">
+                            {localServiceHighlightValue(template, "Outcome")}
+                          </div>
+                        </div>
+
+                        <div className="flex min-w-0 items-center justify-between gap-2 md:flex-col md:items-end md:justify-center">
+                          <div
+                            className="inline-flex items-center gap-1.5 rounded-[5px] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] ring-1 ring-inset"
+                            style={{
+                              backgroundColor: `hsl(var(--tint-${rowTone}) / ${index < 2 ? "0.17" : "0.10"})`,
+                              color: `hsl(var(--tint-${rowTone}-fg))`,
+                              ["--tw-ring-color" as const]: `hsl(var(--tint-${rowTone}) / ${index < 2 ? "0.36" : "0.22"})`,
+                            }}
+                          >
+                            <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                            {stateLabel}
+                          </div>
+                          <div className="inline-flex items-center gap-1 rounded-md border border-border/45 bg-background/55 p-1">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    onSelectService(template.id);
+                                    onOpenDispatchDrawer("dispatch");
+                                  }}
+                                  className="inline-flex h-7 items-center gap-1.5 rounded-[5px] px-2 text-[11px] font-medium text-[hsl(var(--tint-mint-fg))] transition-smooth hover:bg-[hsl(var(--tint-mint)/0.14)]"
+                                  aria-label={`Approve ${template.ref}`}
+                                >
+                                  <Check className="h-3.5 w-3.5" strokeWidth={1.85} />
+                                  <span className="hidden 2xl:inline">Подтвердить</span>
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>Подтвердить</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    onSelectService(template.id);
+                                    onOpenDispatchDrawer("handoff");
+                                  }}
+                                  className="inline-flex h-7 w-7 items-center justify-center rounded-[5px] text-[hsl(var(--tint-violet-fg))] transition-smooth hover:bg-[hsl(var(--tint-violet)/0.14)]"
+                                  aria-label={`Reschedule ${template.ref}`}
+                                >
+                                  <Clock className="h-3.5 w-3.5" strokeWidth={1.85} />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>Перенести / handoff</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    onSelectService(template.id);
+                                    onOpenDispatchDrawer("dispatch");
+                                  }}
+                                  className="inline-flex h-7 w-7 items-center justify-center rounded-[5px] text-muted-foreground transition-smooth hover:bg-[hsl(var(--tint-rose)/0.14)] hover:text-[hsl(var(--tint-rose-fg))]"
+                                  aria-label={`Reject ${template.ref}`}
+                                >
+                                  <X className="h-3.5 w-3.5" strokeWidth={1.85} />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>Отклонить</TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              onSelectService(template.id);
+                              onOpenDispatchDrawer("dispatch");
+                            }}
+                            className="inline-flex h-7 items-center gap-1 rounded-[5px] px-2 font-mono text-[10px] uppercase tracking-[0.12em] text-foreground ring-1 ring-inset ring-border/55 transition-smooth hover:bg-secondary/60"
+                            aria-label={`Explicit full task open for ${template.ref}`}
+                          >
+                            Открыть
+                            <ArrowUpRight className="h-3 w-3" strokeWidth={1.8} />
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <aside
+                aria-label="Main dispatcher full-height decision rail"
+                className="flex min-h-[640px] min-w-0 flex-col overflow-hidden rounded-md border border-border/60 bg-background/40 xl:max-h-[calc(100vh-9rem)]"
+              >
+                <header className="shrink-0 border-b border-border/55 px-4 py-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-[5px] bg-card/55 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                        {selectedTemplate.ref}
+                      </span>
+                      <span className="rounded-[5px] bg-[hsl(var(--tint-amber)/0.16)] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--tint-amber-fg))] ring-1 ring-inset ring-[hsl(var(--tint-amber)/0.30)]">
+                        Нужно решение
+                      </span>
+                      <Pill tone={selectedTemplate.tone} size="sm">
+                        P0
+                      </Pill>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onOpenDispatchDrawer("handoff")}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-full bg-card/55 px-3 font-mono text-[10px] text-muted-foreground ring-1 ring-inset ring-border/55 transition-smooth hover:text-foreground"
+                      aria-label="Today events popover entry"
+                    >
+                      <CalendarCheck className="h-3.5 w-3.5" strokeWidth={1.8} />
+                      Сегодня 2
+                      <span className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--tint-mint-fg))]" />
+                    </button>
+                  </div>
+                  <div className="mt-4 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                    {selectedTemplate.title} · {formatPayloadValue(selectedTemplate.payload.district ?? "district")}
+                  </div>
+                  <h3 className="mt-2 text-[22px] font-semibold tracking-tight text-foreground">
+                    {formatPayloadValue(selectedTemplate.payload.customer_name ?? "Customer")}
+                  </h3>
+                </header>
+
+                <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 pb-6">
+                  <section className="rounded-md border border-[hsl(var(--tint-violet)/0.28)] bg-[hsl(var(--tint-violet)/0.09)] px-4 py-4">
+                    <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[hsl(var(--tint-violet-fg))]">
+                      <Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />
+                      AI рекомендует
+                    </div>
+                    <div className="mt-3 text-[14px] font-semibold leading-relaxed text-foreground">
+                      Отправить мастера только после подтверждения клиента и оператора.
+                    </div>
+                    <div className="mt-3 border-t border-[hsl(var(--tint-violet)/0.20)] pt-3">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                        Почему так · топ-3
+                      </div>
+                      <ul className="mt-2 space-y-2 text-[12px] leading-relaxed text-foreground">
+                        {selectedTemplate.detail.approvalPolicy.slice(0, 3).map((item) => (
+                          <li key={item} className="flex gap-2">
+                            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[hsl(var(--tint-violet-fg))]" />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </section>
+
+                  <section className="rounded-md border border-border/55 bg-card/45 px-4 py-4">
+                    <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                      Customer request card
+                    </div>
+                    <p className="mt-3 text-[13px] font-medium leading-relaxed text-foreground">
+                      {selectedTemplate.detail.sampleInput}
+                    </p>
+                    <div className="mt-3 border-t border-border/45 pt-3 font-mono text-[10.5px] text-muted-foreground">
+                      Contact · {formatPayloadValue(selectedTemplate.payload.phone ?? "Collected by assistant")}
+                    </div>
+                  </section>
+
+                  <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
+                    {[
+                      ["Слот", selectedScheduleWindow],
+                      ["Цена / gate", selectedApproval],
+                      ["Район", formatPayloadValue(selectedTemplate.payload.district ?? "Needs confirmation")],
+                    ].map(([label, value]) => (
+                      <div key={label} className="rounded-md border border-border/50 bg-card/35 px-3 py-2.5">
+                        <div className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-muted-foreground">
+                          {label}
+                        </div>
+                        <div className="mt-1 text-[12px] font-semibold text-foreground">{value}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <section className="rounded-md border border-border/55 bg-card/35 px-4 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                        Подробности кейса
+                      </div>
+                      <span className="font-mono text-[10px] text-muted-foreground">3 checks · events · evidence</span>
+                    </div>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      {[
+                        ["Outcome", selectedOutcome],
+                        ["Evidence", selectedEvidence],
+                        ["Deliverable", selectedDeliverable],
+                        ["Workspace record", selectedOperatorDecisionLabel],
+                      ].map(([label, value]) => (
+                        <div key={label} className="rounded-[5px] bg-background/40 px-2.5 py-2">
+                          <div className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-muted-foreground">
+                            {label}
+                          </div>
+                          <div className="mt-1 text-[11.5px] text-foreground">{value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                </div>
+
+                <footer className="shrink-0 border-t border-border/60 bg-card/95 px-4 py-3">
+                  <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+                    <Button
+                      size="sm"
+                      onClick={() => onOpenDispatchDrawer("dispatch")}
+                      className="h-10 justify-center"
+                      aria-label="Sticky operator action footer primary dispatch approval"
+                    >
+                      <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                      Отправить мастера
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => onOpenDispatchDrawer("handoff")}
+                      className="h-10 justify-center"
+                    >
+                      <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                      Править
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => updateDispatchApprovalDecision("blocked")}
+                      className="h-10 justify-center text-[hsl(var(--tint-rose-fg))] hover:bg-[hsl(var(--tint-rose)/0.12)]"
+                    >
+                      <X className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                      Отклонить
+                    </Button>
+                  </div>
+                  <div className="mt-2 text-center font-mono text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground">
+                    Контроль · оператор · автоотправка выкл.
+                  </div>
+                </footer>
+              </aside>
+            </div>
+          </section>
+        )}
+
         {activeView !== "dispatcher" && (
           <section
             aria-label={`Local services ${activeView} product view`}

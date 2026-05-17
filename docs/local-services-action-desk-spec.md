@@ -1305,7 +1305,15 @@ Current shell readiness for P3:
    `Reset overrides`. This is a fixed-lane scenario editor only: it must not
    create/delete scenarios, send messages, book slots, dispatch masters, write
    CRM, activate channels, or mutate Markdown docs.
-54e. `view=requests` exposes the current dispatcher UX contract:
+54e. `view=dispatcher` exposes the primary dashboard UX contract:
+   `Main dispatcher workbench`, `Main dispatcher compact queue`,
+   `Main dispatcher full-height decision rail`, `Click selects dispatcher
+   preview`, `Explicit full task open`, and `No row action overlap`. The main
+   queue uses the compact 56px / flexible content / 220px action grid, keeps
+   selection separate from navigation, and anchors the selected case in a
+   full-height right rail with a dominant RU-first sticky footer:
+   `Контроль · оператор · автоотправка выкл.`.
+54f. `view=requests` exposes the current secondary request UX contract:
    `Dispatcher compact request queue`, `Selected request decision rail`,
    `AI recommendation packet`, `Customer request card`, and
    `Sticky operator action footer`. The queue is click-to-preview only; the

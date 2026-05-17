@@ -939,16 +939,28 @@ Implement:
 
 Current implementation slice:
 
-1. `view=requests` now starts with a `Dispatcher compact request queue`
+1. `view=dispatcher` now starts with a `Main dispatcher workbench`: a
+   `Main dispatcher compact queue` beside a
+   `Main dispatcher full-height decision rail`.
+2. The main queue uses the approved row contract:
+   `grid-template-columns: 56px minmax(0, 1fr) 220px`, click selects the
+   dispatcher preview, and `Explicit full task open` stays on the row action
+   button/drawer path. It also carries the `No row action overlap` marker for
+   regression checks.
+3. The main right rail keeps AI recommendation, customer request, slot/price,
+   details, and a dominant sticky operator footer separated. Its operator text
+   is `Контроль · оператор · автоотправка выкл.` instead of developer-facing
+   mixed English status.
+4. `view=requests` now starts with a `Dispatcher compact request queue`
    contract in `LiveDesk.tsx`: row click selects the preview only, and the
    explicit open action stays in the right rail.
-2. The right rail is labelled `Selected request decision rail`; it separates
+5. The right rail is labelled `Selected request decision rail`; it separates
    `AI recommendation packet` from the `Customer request card`.
-3. The footer is a `Sticky operator action footer` and repeats the guardrail:
+6. The footer is a `Sticky operator action footer` and repeats the guardrail:
    no autonomous dispatch, no send, and no booking.
-4. Remaining Step 2 work: carry the same compact/right-rail pattern into the
-   rest of the dispatcher layout and keep polishing full-height behavior across
-   breakpoints.
+7. Remaining Step 2 work: keep polishing full-height behavior across
+   breakpoints and move developer-only payload/evidence detail behind collapsed
+   support surfaces.
 
 ### Step 3: Fix `/dev`
 

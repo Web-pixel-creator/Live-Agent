@@ -71,6 +71,12 @@ The dispatcher queue follows the selection/open contract from
 while `Enter`, double-click, context menu, or the row open icon opens the full
 console/task detail. Queue scroll is not allowed to auto-change the selected
 case.
+The default `Dispatcher` screen now uses the product workbench layout:
+`Main dispatcher compact queue` plus `Main dispatcher full-height decision
+rail`. The queue rows keep actions in the right 220px lane, so inline metadata
+does not collide with approve/wait/reject buttons. The right rail separates
+the AI recommendation from the customer request and keeps the sticky footer
+operator-facing: `Контроль · оператор · автоотправка выкл.`.
 Each lane card also exposes `Scenario modal` /
 `local_services_scenario_modal`: `Chat dialogue`, `Structured job card`, and
 `Final handoff and approval state` with JSON export/import for the four fixed
