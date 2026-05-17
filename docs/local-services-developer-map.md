@@ -155,11 +155,17 @@ first-request outcome, and next approved action for the selected pilot account.
 Its buttons may update only `statusByProspectKey` and
 `firstRequestOutcomeByProspectKey`; they must not add external side effects.
 
-`view=schedule` has the second actionable panel contract. `Schedule approval
-rail` renders slot window, dispatch owner, approval gate, and next approved
-action. Its buttons may update only `dispatchApprovalByService`; `Booking
-handoff preview` is a manual note, not a live appointment, customer send,
-technician dispatch, CRM write, payment, or channel activation.
+`view=schedule` has the second actionable panel contract. It renders
+`Approval-ready slot planner` and `Schedule compact slot planner`: KPI cards for
+confirmed slots, ready-for-approval slots, same-day/ASAP routes, and conflicts,
+plus slot rows where click selects the preview only. `Open schedule drawer` and
+`Open in Dispatcher` are the explicit full actions. `Schedule approval rail`
+renders slot window, dispatch owner, approval gate, next approved action,
+`Customer confirmation draft`, `Master handoff draft`, `Booking handoff
+preview`, and `Workspace record`. Its buttons may update only
+`dispatchApprovalByService`; the handoff preview is a manual note, not a live
+appointment, customer send, technician dispatch, CRM write, payment, or channel
+activation.
 
 `view=customers` has the third actionable panel contract. `Customer confirmation
 rail` renders contact status, consent posture, dispatch dependency, and next

@@ -225,6 +225,14 @@ Current repo-owned porting state:
    rail, click-for-preview, and explicit full open.
 2. Requests and Schedule have their own actionable rails that write only
    browser-local/workspace-API review state.
+2a. Schedule is now an `Approval-ready slot planner`: KPI cards show confirmed
+    slots, approval-ready slot cards, same-day/ASAP routes, and conflicts;
+    `Schedule compact slot planner` rows select only the slot preview; `Open
+    schedule drawer` and `Open in Dispatcher` are the explicit full actions.
+    The `Schedule approval rail` shows `Customer confirmation draft`, `Master
+    handoff draft`, `Booking handoff preview`, and `Workspace record` while
+    preserving the no booking / no send / no dispatch / no CRM / no payment
+    guardrail.
 3. Customers now has a `Customer compact directory` with contactable customers,
    active 30-day demo cases, honest `Сумма заявок` midpoint estimates, district
    coverage, and `LAST = service + ref`. Row click selects only the preview

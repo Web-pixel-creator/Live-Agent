@@ -44,6 +44,13 @@ The same route switches the sidebar into product mode: `AI Dispatcher`,
 `Advanced / Runtime` group. Runtime/judge proof pages stay available there, but
 the first scan no longer starts with visa case refs, `VIP cases`, or
 `Judge artifacts`.
+`Schedule / Dispatch` is the approval-ready slot planner in the seven-minute
+path: KPI cards summarize confirmed slots, approval-ready cards, same-day/ASAP
+routes, and conflicts; compact slot rows select the preview only; the explicit
+actions are `Open schedule drawer` and `Open in Dispatcher`. The right rail
+shows the customer confirmation draft, master handoff draft, and booking
+handoff preview, but it still cannot book, dispatch, message, write CRM, or
+collect payment.
 The top chrome also changes from `Live Desk` to `AI Dispatcher` and removes the
 old runtime/SLA alerts, visa demo button, case filters, case search, and
 `New case` action from the local-services header.

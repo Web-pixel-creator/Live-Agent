@@ -67,9 +67,13 @@ operator-approved dispatch payloads, setup state, evidence drawers, and review
 drawers; they do not send, book, dispatch, or write CRM. `Requests inbox`
 contains an `Operator action rail` for browser-local request status and first
 request outcome notes only.
-`Schedule / Dispatch board` contains a `Schedule approval rail`,
-`dispatchApprovalByService` state, `Dispatch approval actions`, and a
-`Booking handoff preview`. These controls also mirror the latest choice to
+`Schedule / Dispatch board` contains an `Approval-ready slot planner` with KPI
+cards for confirmed slots, approval-ready slot cards, same-day/ASAP routes, and
+conflicts. `Schedule compact slot planner` rows select only the preview; `Open
+schedule drawer` and `Open in Dispatcher` are the explicit full actions.
+`Schedule approval rail` owns `dispatchApprovalByService`, the customer
+confirmation draft, master handoff draft, `Booking handoff preview`, and
+`Workspace record`. These controls also mirror the latest choice to
 `operatorDecisionByCaseRef` through `/v1/local-services/cases/:ref/decision`;
 they do not create appointments, dispatch technicians, message customers, write
 CRM, collect payment, or activate a live channel.

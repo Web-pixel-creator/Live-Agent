@@ -407,15 +407,20 @@ keep the next action as an operator note and must not create an appointment,
 send a customer message, write CRM, dispatch a technician, or activate a live
 channel.
 
-`Schedule / Dispatch board` is the second actionable product view. Its
+`Schedule / Dispatch board` is the second actionable product view. It is an
+`Approval-ready slot planner`, not just a calendar: KPI cards summarize
+confirmed slots, approval-ready slot cards, same-day/ASAP routes, and conflicts;
+`Schedule compact slot planner` rows select only the slot preview; `Open
+schedule drawer` and `Open in Dispatcher` are the explicit full actions. Its
 `Schedule approval rail` updates `dispatchApprovalByService`, mirrors the
 latest operator choice to `operatorDecisionByCaseRef` through
-`/v1/local-services/cases/:ref/decision`, and can show a
-`Booking handoff preview` for a human owner or dispatcher. It must not create a
-booking, dispatch a technician, send a customer message, write CRM, collect
-payment, or activate a channel. The rail should show a compact
-`Workspace record` status with `API + local fallback`, latest surface, and
-timestamp so the persistence boundary is visible without exposing raw JSON.
+`/v1/local-services/cases/:ref/decision`, and shows `Customer confirmation
+draft`, `Master handoff draft`, and `Booking handoff preview` for a human owner
+or dispatcher. It must not create a booking, dispatch a technician, send a
+customer message, write CRM, collect payment, or activate a channel. The rail
+should show a compact `Workspace record` status with `API + local fallback`,
+latest surface, and timestamp so the persistence boundary is visible without
+exposing raw JSON.
 
 `Customer directory` is the third actionable product view. It now has a
 `Customer compact directory` with contactable customers, active 30-day demo

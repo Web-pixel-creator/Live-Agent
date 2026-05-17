@@ -8315,6 +8315,105 @@ const LocalServicesDispatchDemoPanel = ({
       detail: "Operator note only: no booking, customer send, CRM write, payment, or technician dispatch.",
     },
   ];
+  const schedulePlannerRows = LOCAL_SERVICE_DEMO_TEMPLATES.map((template, index) => {
+    const dispatchWindow =
+      [
+        template.payload.preferred_date,
+        template.payload.preferred_time,
+        template.payload.preferred_slot,
+        template.payload.preferred_window,
+      ]
+        .filter(Boolean)
+        .map((value) => formatPayloadValue(value))
+        .join(" / ") || "operator review";
+    const dispatchDecision = pilotWorkspaceState.dispatchApprovalByService[template.id] ?? "not_reviewed";
+    const dispatchLabel = LOCAL_SERVICE_DISPATCH_APPROVAL_LABELS[dispatchDecision];
+    const district = formatPayloadValue(template.payload.district ?? "Needs confirmation");
+    const owner = formatPayloadValue(template.payload.operator_owner ?? "dispatch_queue");
+    const customer = formatPayloadValue(template.payload.customer_name ?? "Customer");
+    const status = formatPayloadValue(template.payload.handoff_status ?? "approval_required");
+    const readyChecks = [
+      dispatchWindow !== "operator review",
+      district !== "Needs confirmation",
+      owner !== "dispatch_queue",
+      dispatchDecision !== "blocked",
+    ].filter(Boolean).length;
+    const readyLabel =
+      dispatchDecision === "owner_approved"
+        ? "owner approved"
+        : dispatchDecision === "blocked"
+          ? "blocked"
+          : dispatchDecision === "needs_changes"
+            ? "needs change"
+            : readyChecks >= 3
+              ? "ready for approval"
+              : "needs operator review";
+    return {
+      template,
+      customer,
+      district,
+      owner,
+      status,
+      dispatchWindow,
+      dispatchDecision,
+      dispatchLabel,
+      priceBand: formatLocalServiceValueBand(template.id),
+      readyChecks,
+      readyLabel,
+      selected: template.id === selectedTemplate.id,
+      priority: index === 0 ? "P0" : index < 2 ? "P1" : "P2",
+      nextAction: localServiceHighlightValue(template, "Outcome"),
+    };
+  });
+  const selectedSchedulePlannerRow =
+    schedulePlannerRows.find((row) => row.template.id === selectedTemplate.id) ?? schedulePlannerRows[0];
+  const scheduleConfirmedSlotCount = schedulePlannerRows.filter(
+    (row) => row.dispatchDecision === "owner_approved",
+  ).length;
+  const scheduleReadyForApprovalCount = schedulePlannerRows.filter(
+    (row) =>
+      row.dispatchDecision !== "owner_approved" &&
+      row.dispatchDecision !== "blocked" &&
+      row.readyChecks >= 3,
+  ).length;
+  const scheduleConflictCount = schedulePlannerRows.filter(
+    (row) => row.dispatchDecision === "blocked" || row.dispatchDecision === "needs_changes",
+  ).length;
+  const scheduleTodayRouteCount = schedulePlannerRows.filter((row) =>
+    /same_day|as_soon|today|18:00|20:00/i.test(row.dispatchWindow),
+  ).length;
+  const schedulePlannerKpis = [
+    {
+      label: "Confirmed slots",
+      value: String(scheduleConfirmedSlotCount),
+      hint: "owner-approved only",
+      tone: "mint" as const,
+    },
+    {
+      label: "Ready for approval",
+      value: String(scheduleReadyForApprovalCount),
+      hint: "reviewable slot cards",
+      tone: "amber" as const,
+    },
+    {
+      label: "Routes today",
+      value: String(scheduleTodayRouteCount),
+      hint: "same-day / ASAP",
+      tone: "violet" as const,
+    },
+    {
+      label: "Conflicts",
+      value: String(scheduleConflictCount),
+      hint: "blocked or needs change",
+      tone: "rose" as const,
+    },
+  ];
+  const scheduleCustomerConfirmationDraft =
+    selectedTemplate.detail.customerConfirmation ??
+    "Operator confirms the slot manually before any customer-facing message is sent.";
+  const scheduleMasterHandoffDraft =
+    selectedTemplate.detail.operatorHandoff ??
+    "Operator reviews district, slot, price range, and owner before dispatch handoff.";
   const selectedCustomerRows = [
     ["Customer", formatPayloadValue(selectedTemplate.payload.customer_name ?? "Unknown")],
     ["Phone", formatPayloadValue(selectedTemplate.payload.phone ?? "Collected by assistant")],
@@ -10307,181 +10406,344 @@ const LocalServicesDispatchDemoPanel = ({
             )}
 
             {activeView === "schedule" && (
-              <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)]">
-                <section className="rounded-md border border-border/50 bg-card/25 px-3 py-3">
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                    Selected dispatch slot
-                  </div>
-                  <div className="mt-2 grid gap-2">
-                    {[
-                      ["Window", selectedScheduleWindow],
-                      ["District", formatPayloadValue(selectedTemplate.payload.district ?? "Needs confirmation")],
-                      ["Owner", formatPayloadValue(selectedTemplate.payload.operator_owner ?? "dispatch_queue")],
-                      ["Status", formatPayloadValue(selectedTemplate.payload.handoff_status ?? "approval_required")],
-                    ].map(([label, value]) => (
-                      <div key={label} className="rounded-md bg-background/35 px-3 py-2">
-                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                          {label}
-                        </div>
-                        <div className="mt-1 text-[12px] text-foreground">{value}</div>
+              <section aria-label="Approval-ready slot planner" className="mt-4 space-y-4">
+                <div className="grid gap-2 md:grid-cols-4">
+                  {schedulePlannerKpis.map((item) => (
+                    <div
+                      key={item.label}
+                      className="rounded-md border border-border/55 bg-background/45 px-3 py-3"
+                    >
+                      <div
+                        className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em]"
+                        style={{ color: `hsl(var(--tint-${item.tone}-fg))` }}
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                        {item.label}
                       </div>
-                    ))}
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button size="sm" onClick={() => onOpenDispatchDrawer("handoff")} className="h-8">
-                      Open handoff drawer
-                    </Button>
-                    <Button size="sm" variant="secondary" onClick={() => onOpenPath(selectedTemplate.bundlePath)} className="h-8">
-                      Open bundle
-                    </Button>
-                  </div>
-                  <div className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-2.5">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                          Schedule approval rail
+                      <div className="mt-2 text-[22px] font-semibold tracking-tight text-foreground">{item.value}</div>
+                      <div className="mt-2 border-t border-border/45 pt-2 text-right text-[11px] text-muted-foreground">
+                        {item.hint}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid gap-3 xl:grid-cols-[minmax(620px,1fr)_minmax(420px,0.62fr)]">
+                  <section
+                    aria-label="Schedule compact slot planner"
+                    className="min-w-0 overflow-hidden rounded-md border border-border/60 bg-card/60"
+                  >
+                    <div className="flex flex-col gap-3 border-b border-border/55 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                          <CalendarCheck className="h-3.5 w-3.5" strokeWidth={1.8} />
+                          Manual-only slot planner
                         </div>
                         <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
-                          Operator-only slot and dispatch decision for the selected service lane. This rail records
-                          local approval posture without creating a booking or dispatch.
+                          Click selects slot preview. Open schedule drawer or Open in Dispatcher are the explicit
+                          full actions. No external booking is created.
                         </p>
                       </div>
-                      <span className="shrink-0 rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
-                        dispatchApprovalByService
-                      </span>
-                    </div>
-                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                      {scheduleApprovalRows.map((row) => (
-                        <div key={row.label} className="rounded-md border border-border/45 bg-card/25 px-2.5 py-2">
-                          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                            {row.label}
-                          </div>
-                          <div className="mt-1 text-[12px] font-medium text-foreground">{row.value}</div>
-                          <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">{row.detail}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-3 rounded-md border border-border/45 bg-card/25 px-3 py-2.5">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div>
-                          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                            Workspace record
-                          </div>
-                          <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
-                            Latest case decision mirrored through the workspace API with browser-local fallback.
-                          </p>
-                        </div>
-                        <span className="shrink-0 rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
-                          API + local fallback
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                          Click selects slot preview
                         </span>
-                      </div>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-foreground">
-                          operatorDecisionByCaseRef
+                        <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                          No external booking
                         </span>
-                        <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
-                          {selectedOperatorDecisionSurface}
-                        </span>
-                        <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
-                          {selectedOperatorDecisionTime}
-                        </span>
-                      </div>
-                      <div className="mt-2 text-[11.5px] font-medium text-foreground">
-                        {selectedOperatorDecisionLabel}
                       </div>
                     </div>
-                    <div className="mt-3">
-                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                        Dispatch approval actions
-                      </div>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {LOCAL_SERVICE_DISPATCH_APPROVAL_ACTIONS.map((action) => (
-                          <Button
-                            key={action.decision}
-                            size="sm"
-                            variant={currentDispatchApprovalDecision === action.decision ? "default" : "secondary"}
-                            onClick={() => updateDispatchApprovalDecision(action.decision)}
-                            className="h-7"
+
+                    <div className="max-h-[620px] overflow-y-auto">
+                      {schedulePlannerRows.map((row) => {
+                        const TemplateIcon = row.template.Icon;
+                        const rowTone = row.template.tone;
+                        return (
+                          <article
+                            key={row.template.id}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => onSelectService(row.template.id)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                onSelectService(row.template.id);
+                              }
+                            }}
+                            aria-label={`Select schedule preview for ${row.template.ref}`}
+                            aria-current={row.selected ? "true" : undefined}
+                            className={`grid min-h-[104px] gap-3 border-b border-border/45 px-4 py-3 outline-none transition-smooth md:grid-cols-[44px_minmax(0,1fr)_minmax(160px,190px)] ${
+                              row.selected
+                                ? "bg-[hsl(var(--tint-violet)/0.09)] ring-1 ring-inset ring-[hsl(var(--tint-violet)/0.28)]"
+                                : "bg-background/25 hover:bg-card/35"
+                            }`}
+                            style={{
+                              borderLeft: row.selected
+                                ? `3px solid hsl(var(--tint-${rowTone}-fg))`
+                                : "3px solid transparent",
+                            }}
                           >
-                            {action.label}
+                            <div className="flex items-start gap-2 md:block">
+                              <span
+                                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md ring-1 ring-inset"
+                                style={{
+                                  backgroundColor: `hsl(var(--tint-${rowTone}) / 0.13)`,
+                                  color: `hsl(var(--tint-${rowTone}-fg))`,
+                                  ["--tw-ring-color" as const]: `hsl(var(--tint-${rowTone}) / 0.30)`,
+                                }}
+                              >
+                                <TemplateIcon className="h-4 w-4" strokeWidth={1.9} />
+                              </span>
+                              <span
+                                className="mt-1 hidden h-2 w-2 rounded-full md:block"
+                                style={{ backgroundColor: `hsl(var(--tint-${rowTone}-fg))` }}
+                              />
+                            </div>
+
+                            <div className="min-w-0">
+                              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                                <span className="font-mono text-[10px] text-muted-foreground">
+                                  {row.template.ref}
+                                </span>
+                                <Pill tone={rowTone} size="sm">
+                                  {row.priority}
+                                </Pill>
+                                <span className="truncate text-[13px] font-semibold text-foreground">
+                                  {row.customer}
+                                </span>
+                                <span className="truncate text-[11.5px] text-muted-foreground">
+                                  {row.template.title}
+                                </span>
+                                <span className="truncate text-[11.5px] text-muted-foreground">{row.district}</span>
+                              </div>
+                              <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5 font-mono text-[10.5px]">
+                                <span className="rounded-[5px] bg-background/55 px-2 py-1 text-foreground">
+                                  {row.dispatchWindow}
+                                </span>
+                                <span className="rounded-[5px] bg-background/55 px-2 py-1 text-muted-foreground">
+                                  {row.priceBand}
+                                </span>
+                                <span className="rounded-[5px] bg-background/55 px-2 py-1 text-muted-foreground">
+                                  owner: {row.owner}
+                                </span>
+                                <span
+                                  className="rounded-[5px] px-2 py-1 ring-1 ring-inset"
+                                  style={{
+                                    backgroundColor: `hsl(var(--tint-${rowTone}) / 0.10)`,
+                                    color: `hsl(var(--tint-${rowTone}-fg))`,
+                                    ["--tw-ring-color" as const]: `hsl(var(--tint-${rowTone}) / 0.24)`,
+                                  }}
+                                >
+                                  ready {row.readyChecks}/4
+                                </span>
+                              </div>
+                              <div className="mt-2 truncate text-[11.5px] font-medium text-foreground">
+                                {row.nextAction}
+                              </div>
+                            </div>
+
+                            <div className="flex min-w-0 flex-row items-center justify-between gap-2 md:flex-col md:items-end md:justify-center">
+                              <div
+                                className="inline-flex items-center gap-1.5 rounded-[5px] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] ring-1 ring-inset"
+                                style={{
+                                  backgroundColor: `hsl(var(--tint-${rowTone}) / 0.12)`,
+                                  color: `hsl(var(--tint-${rowTone}-fg))`,
+                                  ["--tw-ring-color" as const]: `hsl(var(--tint-${rowTone}) / 0.28)`,
+                                }}
+                              >
+                                <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                                {row.readyLabel}
+                              </div>
+                              <div className="flex flex-wrap justify-end gap-1.5">
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    onSelectService(row.template.id);
+                                    onOpenDispatchDrawer("handoff");
+                                  }}
+                                  className="h-7 px-2 text-[11px]"
+                                  aria-label={`Open schedule drawer for ${row.template.ref}`}
+                                >
+                                  Open schedule drawer
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    onSelectService(row.template.id);
+                                    onOpenProductView("dispatcher");
+                                  }}
+                                  className="h-7 px-2 text-[11px]"
+                                  aria-label={`Open in Dispatcher for ${row.template.ref}`}
+                                >
+                                  Open in Dispatcher
+                                </Button>
+                              </div>
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </section>
+
+                  <aside
+                    aria-label="Schedule approval rail"
+                    className="flex min-h-[620px] min-w-0 flex-col overflow-hidden rounded-md border border-border/60 bg-background/45"
+                  >
+                    <header className="shrink-0 border-b border-border/55 px-4 py-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-[5px] bg-card/55 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                          {selectedTemplate.ref}
+                        </span>
+                        <span className="rounded-[5px] bg-[hsl(var(--tint-amber)/0.14)] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--tint-amber-fg))] ring-1 ring-inset ring-[hsl(var(--tint-amber)/0.28)]">
+                          {selectedSchedulePlannerRow.readyLabel}
+                        </span>
+                        <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                          dispatchApprovalByService
+                        </span>
+                      </div>
+                      <div className="mt-4 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                        {selectedTemplate.title} - {selectedSchedulePlannerRow.district}
+                      </div>
+                      <h3 className="mt-2 text-[24px] font-semibold tracking-tight text-foreground">
+                        {selectedSchedulePlannerRow.customer}
+                      </h3>
+                    </header>
+
+                    <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4 pb-6">
+                      <section className="rounded-md border border-[hsl(var(--tint-violet)/0.28)] bg-[hsl(var(--tint-violet)/0.08)] px-4 py-4">
+                        <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[hsl(var(--tint-violet-fg))]">
+                          Approval-ready slot card
+                        </div>
+                        <p className="mt-2 text-[14px] font-semibold leading-relaxed text-foreground">
+                          {scheduleBoardNextAction}
+                        </p>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          {scheduleApprovalRows.map((row) => (
+                            <div key={row.label} className="rounded-md border border-border/45 bg-background/40 px-3 py-2.5">
+                              <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                                {row.label}
+                              </div>
+                              <div className="mt-1 text-[12px] font-medium text-foreground">{row.value}</div>
+                              <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">{row.detail}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+
+                      <section className="rounded-md border border-border/55 bg-card/45 px-4 py-3">
+                        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                          Customer confirmation draft
+                        </div>
+                        <p className="mt-2 text-[12.5px] leading-relaxed text-foreground">
+                          {scheduleCustomerConfirmationDraft}
+                        </p>
+                      </section>
+
+                      <section className="rounded-md border border-border/55 bg-card/45 px-4 py-3">
+                        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                          Master handoff draft
+                        </div>
+                        <p className="mt-2 text-[12.5px] leading-relaxed text-foreground">
+                          {scheduleMasterHandoffDraft}
+                        </p>
+                      </section>
+
+                      <section className="rounded-md border border-border/55 bg-card/35 px-4 py-3">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                              Workspace record
+                            </div>
+                            <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                              Latest schedule choice mirrored through the workspace API with browser-local fallback.
+                            </p>
+                          </div>
+                          <span className="shrink-0 rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                            API + local fallback
+                          </span>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-foreground">
+                            operatorDecisionByCaseRef
+                          </span>
+                          <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                            {selectedOperatorDecisionSurface}
+                          </span>
+                          <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                            {selectedOperatorDecisionTime}
+                          </span>
+                        </div>
+                        <div className="mt-2 text-[11.5px] font-medium text-foreground">
+                          {selectedOperatorDecisionLabel}
+                        </div>
+                      </section>
+
+                      <section className="rounded-md border border-border/55 bg-card/35 px-4 py-3">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                              Booking handoff preview
+                            </div>
+                            <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                              Human-readable note for a dispatcher or owner. Copying it is still manual-only and does
+                              not confirm the appointment.
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => onCopyText(scheduleHandoffPreviewText, "Schedule handoff copied")}
+                            className="h-8"
+                          >
+                            Copy schedule handoff
                           </Button>
-                        ))}
+                        </div>
+                        <pre className="mt-3 max-h-40 overflow-auto rounded-md bg-background/45 p-3 font-mono text-[10.5px] leading-relaxed text-muted-foreground">
+                          {scheduleHandoffPreviewText}
+                        </pre>
+                      </section>
+                    </div>
+
+                    <footer className="shrink-0 border-t border-border/60 bg-card/95 px-4 py-3">
+                      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
                         <Button
                           size="sm"
-                          variant="ghost"
-                          onClick={() => updateDispatchApprovalDecision("not_reviewed")}
-                          className="h-7"
+                          onClick={() => updateDispatchApprovalDecision("owner_approved")}
+                          className="h-10 justify-center"
                         >
-                          Reset dispatch approval
+                          <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                          Approve manual handoff
                         </Button>
-                      </div>
-                    </div>
-                    <div className="mt-3 rounded-md border border-border/45 bg-card/25 px-3 py-2.5">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div>
-                          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                            Booking handoff preview
-                          </div>
-                          <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
-                            Human-readable note for a dispatcher or owner. Copying it is still manual-only and does
-                            not confirm the appointment.
-                          </p>
-                        </div>
                         <Button
                           size="sm"
                           variant="secondary"
-                          onClick={() => onCopyText(scheduleHandoffPreviewText, "Schedule handoff copied")}
-                          className="h-8"
+                          onClick={() => updateDispatchApprovalDecision("needs_changes")}
+                          className="h-10 justify-center"
                         >
-                          Copy schedule handoff
+                          <Clock className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                          Needs slot change
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => updateDispatchApprovalDecision("blocked")}
+                          className="h-10 justify-center text-[hsl(var(--tint-rose-fg))] hover:bg-[hsl(var(--tint-rose)/0.12)]"
+                        >
+                          <X className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                          Block
                         </Button>
                       </div>
-                      <pre className="mt-3 max-h-44 overflow-auto rounded-md bg-background/45 p-3 font-mono text-[10.5px] leading-relaxed text-muted-foreground">
-                        {scheduleHandoffPreviewText}
-                      </pre>
-                    </div>
-                  </div>
-                </section>
-                <section className="rounded-md border border-border/50 bg-card/25 px-3 py-3">
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                    Dispatch board lanes
-                  </div>
-                  <div className="mt-3 grid gap-2 md:grid-cols-2">
-                    {LOCAL_SERVICE_DEMO_TEMPLATES.map((template) => {
-                      const dispatchWindow =
-                        [
-                          template.payload.preferred_date,
-                          template.payload.preferred_time,
-                          template.payload.preferred_slot,
-                          template.payload.preferred_window,
-                        ]
-                          .filter(Boolean)
-                          .map((value) => formatPayloadValue(value))
-                          .join(" / ") || "operator review";
-                      return (
-                        <button
-                          key={template.id}
-                          type="button"
-                          onClick={() => onSelectService(template.id)}
-                          className="rounded-md border border-border/45 bg-background/35 px-3 py-2.5 text-left transition-smooth hover:bg-card/40"
-                        >
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-[12px] font-semibold text-foreground">{template.title}</span>
-                            <Pill tone={template.tone} size="sm">
-                              {template.ref}
-                            </Pill>
-                          </div>
-                          <div className="mt-2 grid gap-1.5 text-[11px] text-muted-foreground">
-                            <div>Window: <span className="text-foreground">{dispatchWindow}</span></div>
-                            <div>Owner: <span className="text-foreground">{formatPayloadValue(template.payload.operator_owner ?? "dispatch_queue")}</span></div>
-                            <div>Gate: <span className="text-foreground">{localServiceHighlightValue(template, "Approval")}</span></div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
-              </div>
+                      <div className="mt-2 text-center font-mono text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground">
+                        Schedule approval rail - no booking - no customer send - no technician dispatch
+                      </div>
+                    </footer>
+                  </aside>
+                </div>
+              </section>
             )}
 
             {activeView === "customers" && (

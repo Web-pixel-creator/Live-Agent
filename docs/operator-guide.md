@@ -97,10 +97,14 @@ dispatch drawer, and do not expect scroll position to change the selected case.
 The rail separates AI recommendation, customer request, and the sticky operator
 footer. It updates browser-local pilot workspace state only and is not an
 external send, booking, dispatch, payment, CRM write, or channel activation.
-`Schedule / Dispatch board` includes a `Schedule approval rail` with
-`dispatchApprovalByService`, `Dispatch approval actions`, and a `Booking
-handoff preview`. Use it to decide whether a human owner can manually confirm a
-slot; the latest decision is mirrored to `operatorDecisionByCaseRef` through the
+`Schedule / Dispatch board` is the `Approval-ready slot planner`. The KPI cards
+show confirmed slots, approval-ready slot cards, same-day/ASAP routes, and
+conflicts. In the `Schedule compact slot planner`, click a row to inspect the
+slot preview; use `Open schedule drawer` or `Open in Dispatcher` for the full
+action. The `Schedule approval rail` includes `dispatchApprovalByService`,
+`Customer confirmation draft`, `Master handoff draft`, and a `Booking handoff
+preview`. Use it to decide whether a human owner can manually confirm a slot;
+the latest decision is mirrored to `operatorDecisionByCaseRef` through the
 workspace API, but the shell still does not create the appointment, dispatch a
 technician, send a message, write CRM, collect payment, or activate channels.
 `Customer directory` includes contactable customers, active 30-day demo cases,

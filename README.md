@@ -111,11 +111,17 @@ Local-services expansion spec:
   `Requests inbox` also includes an `Operator action rail` that records only
   browser-local `statusByProspectKey` and `firstRequestOutcomeByProspectKey`
   notes for the selected pilot account.
-  `Schedule / Dispatch board` includes a `Schedule approval rail`,
-  `dispatchApprovalByService` decisions, and a `Booking handoff preview`; these
-  are mirrored to `operatorDecisionByCaseRef` through the local-services
-  workspace API, but remain manual approval notes, not live appointment or
-  dispatch actions. `Customer directory` is now a compact customer workspace:
+  `Schedule / Dispatch board` is now an `Approval-ready slot planner`: KPI cards
+  show confirmed slots, approval-ready slots, same-day/ASAP routes, and
+  conflicts; `Schedule compact slot planner` rows select only the slot preview;
+  `Open schedule drawer` and `Open in Dispatcher` are the explicit full
+  actions. The `Schedule approval rail` still owns
+  `dispatchApprovalByService`, `Customer confirmation draft`,
+  `Master handoff draft`, `Booking handoff preview`, and the compact
+  `Workspace record` mirrored to `operatorDecisionByCaseRef` through the
+  local-services workspace API. It remains a manual approval surface, not a live
+  appointment, customer send, technician dispatch, CRM write, payment, or
+  channel activation. `Customer directory` is now a compact customer workspace:
   KPI cards show contactable customers, active 30-day demo cases, honest
   `Сумма заявок` midpoint estimates, and district coverage; the
   `Customer compact directory` uses `LAST = service + ref`, row click selects
