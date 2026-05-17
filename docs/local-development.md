@@ -75,9 +75,13 @@ they do not create appointments, dispatch technicians, message customers, write
 CRM, collect payment, or activate a live channel.
 `Customer directory` contains a `Customer confirmation rail`,
 `customerConfirmationByService` state, `Customer confirmation actions`, and a
-`Consent-safe confirmation preview`. These controls mirror the latest review to
-the same operator-decision boundary; they do not send SMS, Telegram, WhatsApp,
-email, CRM updates, payments, bookings, or dispatches.
+`Consent-safe confirmation preview`. It also has a `Customer compact directory`
+with contactable customers, active 30-day demo cases, honest `Сумма заявок`
+midpoint estimates, district coverage, and `LAST = service + ref`; row click
+selects preview only, while `Open customer drawer` is the explicit full action.
+These controls mirror the latest review to the same operator-decision boundary;
+they do not send SMS, Telegram, WhatsApp, email, CRM updates, payments,
+bookings, or dispatches.
 Both rails show `Workspace record`, `operatorDecisionByCaseRef`, and
 `API + local fallback` as a compact status signal for the latest recorded
 case decision.

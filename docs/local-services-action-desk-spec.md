@@ -417,13 +417,17 @@ payment, or activate a channel. The rail should show a compact
 `Workspace record` status with `API + local fallback`, latest surface, and
 timestamp so the persistence boundary is visible without exposing raw JSON.
 
-`Customer directory` is the third actionable product view. Its `Customer
-confirmation rail` updates `customerConfirmationByService`, mirrors the latest
-review to the same operator-decision boundary, and can show a
-`Consent-safe confirmation preview` for manual human use. It must not send SMS, Telegram,
-WhatsApp, email, write CRM, collect payment, create a booking, dispatch a
-technician, or activate a channel. It uses the same `Workspace record` signal
-for the latest case-level operator decision.
+`Customer directory` is the third actionable product view. It now has a
+`Customer compact directory` with contactable customers, active 30-day demo
+cases, honest `Сумма заявок` midpoint estimates, district coverage, and
+`LAST = service + ref`. Clicking a row selects the preview only; opening the
+full customer drawer is a separate explicit action. Its `Customer confirmation
+rail` updates `customerConfirmationByService`, mirrors the latest review to the
+same operator-decision boundary, and can show a `Consent-safe confirmation
+preview` for manual human use. It must not send SMS, Telegram, WhatsApp, email,
+write CRM, collect payment, create a booking, dispatch a technician, or activate
+a channel. It uses the same `Workspace record` signal for the latest case-level
+operator decision.
 
 `Review queue` is the fourth actionable product view. Its `Review queue
 decision rail` can update only `weekOneOwnerDecisionByProspectKey` and

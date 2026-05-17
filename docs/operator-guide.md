@@ -103,7 +103,11 @@ handoff preview`. Use it to decide whether a human owner can manually confirm a
 slot; the latest decision is mirrored to `operatorDecisionByCaseRef` through the
 workspace API, but the shell still does not create the appointment, dispatch a
 technician, send a message, write CRM, collect payment, or activate channels.
-`Customer directory` includes a `Customer confirmation rail` with
+`Customer directory` includes contactable customers, active 30-day demo cases,
+honest `Сумма заявок` midpoint estimates, and district coverage. The
+`Customer compact directory` uses `LAST = service + ref`; clicking a row selects
+the right preview only, while `Open customer drawer` is the explicit full
+action. The `Customer confirmation rail` contains
 `customerConfirmationByService`, `Customer confirmation actions`, and a
 `Consent-safe confirmation preview`. Use it to review customer copy and consent
 posture before a human manually sends anything; the latest review is mirrored to

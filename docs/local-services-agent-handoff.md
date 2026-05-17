@@ -219,6 +219,22 @@ What to take from the design workbench now:
 6. Admin scenario editor idea, but only for four fixed scenarios at first.
 7. Visual regression fixture mindset from the workbench e2e tests.
 
+Current repo-owned porting state:
+
+1. Dispatcher now follows the workbench contract: compact queue, right decision
+   rail, click-for-preview, and explicit full open.
+2. Requests and Schedule have their own actionable rails that write only
+   browser-local/workspace-API review state.
+3. Customers now has a `Customer compact directory` with contactable customers,
+   active 30-day demo cases, honest `Сумма заявок` midpoint estimates, district
+   coverage, and `LAST = service + ref`. Row click selects only the preview
+   rail; `Open customer drawer` is the explicit full action.
+4. The customer right rail is `Customer confirmation rail` plus
+   `Consent-safe confirmation preview`; it can update
+   `customerConfirmationByService` and mirror to `operatorDecisionByCaseRef`,
+   but it does not send SMS, Telegram, WhatsApp, email, CRM updates, payments,
+   bookings, or dispatches.
+
 What not to take now:
 
 1. Lovable Cloud as the long-term backend.

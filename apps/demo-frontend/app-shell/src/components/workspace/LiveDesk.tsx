@@ -1705,6 +1705,36 @@ function formatPayloadValue(value: boolean | number | string | string[]): string
   return String(value);
 }
 
+const LOCAL_SERVICE_REQUEST_VALUE_BANDS: Record<string, { min: number; max: number }> = {
+  "ac-repair-dispatch": { min: 250_000, max: 600_000 },
+  "plumbing-emergency": { min: 180_000, max: 900_000 },
+  "cleaning-quote-booking": { min: 320_000, max: 850_000 },
+  "measurement-visit-booking": { min: 500_000, max: 2_000_000 },
+};
+
+function formatLocalServiceUzs(value: number): string {
+  return `${new Intl.NumberFormat("ru-RU").format(value)} UZS`;
+}
+
+function formatLocalServiceUzsCompact(value: number): string {
+  if (value >= 1_000_000) {
+    const millions = value / 1_000_000;
+    return `${Number.isInteger(millions) ? millions.toFixed(0) : millions.toFixed(1)}M UZS`;
+  }
+  return `${Math.round(value / 1_000)}k UZS`;
+}
+
+function formatLocalServiceValueBand(templateId: string): string {
+  const band = LOCAL_SERVICE_REQUEST_VALUE_BANDS[templateId];
+  if (!band) return "operator review";
+  return `${formatLocalServiceUzsCompact(band.min)} -> ${formatLocalServiceUzsCompact(band.max)}`;
+}
+
+function getLocalServiceValueBandMidpoint(templateId: string): number {
+  const band = LOCAL_SERVICE_REQUEST_VALUE_BANDS[templateId];
+  return band ? Math.round((band.min + band.max) / 2) : 0;
+}
+
 function buildLocalServicePayloadPreview(template: LocalServiceDemoTemplate): LocalServicePayloadPreview {
   return {
     surfaceLabel: "Dispatch handoff bundle",
@@ -8293,6 +8323,43 @@ const LocalServicesDispatchDemoPanel = ({
     ["Channel", selectedTemplate.channel],
     ["Approval", selectedApproval],
   ];
+  const customerDirectoryRows = LOCAL_SERVICE_DEMO_TEMPLATES.map((template, index) => {
+    const confirmationDecision =
+      pilotWorkspaceState.customerConfirmationByService[template.id] ?? "not_reviewed";
+    const dispatchDecision = pilotWorkspaceState.dispatchApprovalByService[template.id] ?? "not_reviewed";
+    const lastLabel =
+      [
+        template.title,
+        template.payload.preferred_date,
+        template.payload.preferred_time,
+        template.payload.preferred_window,
+      ]
+        .filter(Boolean)
+        .map((value) => formatPayloadValue(value))
+        .join(" / ") || template.title;
+
+    return {
+      template,
+      contact: formatPayloadValue(template.payload.phone ?? template.channel),
+      district: formatPayloadValue(template.payload.district ?? "Needs confirmation"),
+      confirmationDecision,
+      confirmationLabel: LOCAL_SERVICE_CUSTOMER_CONFIRMATION_LABELS[confirmationDecision],
+      dispatchLabel: LOCAL_SERVICE_DISPATCH_APPROVAL_LABELS[dispatchDecision],
+      lastLabel,
+      requestValue: formatLocalServiceValueBand(template.id),
+      selected: template.id === selectedTemplate.id,
+      priority: index < 2 ? "P0" : index === 2 ? "P1" : "P2",
+    };
+  });
+  const customerDirectoryContactableCount = customerDirectoryRows.filter(
+    (row) => row.template.payload.phone || row.template.channel,
+  ).length;
+  const customerDirectoryActiveCount = customerDirectoryRows.length;
+  const customerDirectoryDistrictCount = new Set(customerDirectoryRows.map((row) => row.district)).size;
+  const customerDirectoryRequestValue = customerDirectoryRows.reduce(
+    (sum, row) => sum + getLocalServiceValueBandMidpoint(row.template.id),
+    0,
+  );
   const currentCustomerConfirmationDecision =
     pilotWorkspaceState.customerConfirmationByService[selectedTemplate.id] ?? "not_reviewed";
   const currentCustomerConfirmationLabel =
@@ -10418,174 +10485,344 @@ const LocalServicesDispatchDemoPanel = ({
             )}
 
             {activeView === "customers" && (
-              <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)]">
-                <section className="rounded-md border border-border/50 bg-card/25 px-3 py-3">
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                    Selected customer
-                  </div>
-                  <div className="mt-2 grid gap-2">
-                    {selectedCustomerRows.map(([label, value]) => (
-                      <div key={label} className="rounded-md bg-background/35 px-3 py-2">
-                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                          {label}
-                        </div>
-                        <div className="mt-1 text-[12px] text-foreground">{value}</div>
+              <section
+                aria-label="Customer directory workbench"
+                className="mt-4 rounded-md border border-border/65 bg-card/60 p-4"
+              >
+                <div className="grid gap-2 md:grid-cols-4">
+                  {[
+                    ["С контактами", String(customerDirectoryContactableCount), "phone / Telegram ready"],
+                    ["Активные 30д", String(customerDirectoryActiveCount), "demo request base"],
+                    ["Сумма заявок", formatLocalServiceUzs(customerDirectoryRequestValue), "midpoint estimate"],
+                    ["Районы", String(customerDirectoryDistrictCount), "Tashkent coverage"],
+                  ].map(([label, value, hint]) => (
+                    <div key={label} className="rounded-md border border-border/55 bg-background/45 px-3 py-3">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                        {label}
                       </div>
-                    ))}
-                  </div>
-                  <p className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-2 text-[12px] leading-relaxed text-foreground">
-                    {selectedTemplate.detail.customerConfirmation}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => onCopyText(selectedTemplate.detail.customerConfirmation, "Customer confirmation copied")}
-                      className="h-8"
-                    >
-                      Copy confirmation
-                    </Button>
-                    <Button size="sm" variant="secondary" onClick={() => onOpenDispatchDrawer("customer")} className="h-8">
-                      Customer drawer
-                    </Button>
-                  </div>
-                  <div className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-2.5">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                          Customer confirmation rail
+                      <div className="mt-2 text-[22px] font-semibold tracking-tight text-foreground">{value}</div>
+                      <div className="mt-1 border-t border-border/45 pt-2 text-right text-[11px] text-muted-foreground">
+                        {hint}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(560px,1fr)_minmax(440px,0.62fr)]">
+                  <section
+                    aria-label="Customer compact directory"
+                    className="min-w-0 overflow-hidden rounded-md border border-border/55 bg-background/35"
+                  >
+                    <div className="flex flex-col gap-3 border-b border-border/55 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                          <User className="h-3.5 w-3.5" strokeWidth={1.8} />
+                          Customer compact directory
                         </div>
                         <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
-                          Consent-safe customer confirmation state for the selected service lane. This rail records
-                          local review posture without sending a message.
+                          Click selects customer preview only. Open customer drawer is the explicit full action.
                         </p>
                       </div>
-                      <span className="shrink-0 rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
-                        customerConfirmationByService
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                          LAST = service + ref
+                        </span>
+                        <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                          no CRM write
+                        </span>
+                      </div>
                     </div>
-                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                      {customerConfirmationRows.map((row) => (
-                        <div key={row.label} className="rounded-md border border-border/45 bg-card/25 px-2.5 py-2">
-                          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                            {row.label}
-                          </div>
-                          <div className="mt-1 text-[12px] font-medium text-foreground">{row.value}</div>
-                          <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">{row.detail}</p>
+
+                    <div className="grid grid-cols-[minmax(160px,1.2fr)_minmax(150px,1fr)_minmax(120px,0.8fr)_minmax(150px,0.9fr)_minmax(150px,1fr)] gap-3 border-b border-border/55 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground/80">
+                      <div>Клиент</div>
+                      <div>Контакт</div>
+                      <div>Район</div>
+                      <div>Сумма заявок</div>
+                      <div>Last</div>
+                    </div>
+
+                    <div className="max-h-[520px] overflow-y-auto">
+                      {customerDirectoryRows.map((row) => {
+                        const TemplateIcon = row.template.Icon;
+                        return (
+                          <article
+                            key={row.template.id}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => onSelectService(row.template.id)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                onSelectService(row.template.id);
+                              }
+                            }}
+                            aria-label={`Select customer preview for ${row.template.ref}`}
+                            aria-current={row.selected ? "true" : undefined}
+                            className={`grid min-h-[76px] grid-cols-[minmax(160px,1.2fr)_minmax(150px,1fr)_minmax(120px,0.8fr)_minmax(150px,0.9fr)_minmax(150px,1fr)] gap-3 border-b border-border/45 px-4 py-3 outline-none transition-smooth ${
+                              row.selected
+                                ? "bg-[hsl(var(--tint-violet)/0.09)] ring-1 ring-inset ring-[hsl(var(--tint-violet)/0.28)]"
+                                : "bg-card/20 hover:bg-card/35"
+                            }`}
+                            style={{
+                              borderLeft: row.selected
+                                ? `3px solid hsl(var(--tint-${row.template.tone}-fg))`
+                                : "3px solid transparent",
+                            }}
+                          >
+                            <div className="flex min-w-0 items-center gap-3">
+                              <span
+                                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md ring-1 ring-inset"
+                                style={{
+                                  backgroundColor: `hsl(var(--tint-${row.template.tone}) / 0.13)`,
+                                  color: `hsl(var(--tint-${row.template.tone}-fg))`,
+                                  ["--tw-ring-color" as const]: `hsl(var(--tint-${row.template.tone}) / 0.30)`,
+                                }}
+                              >
+                                <TemplateIcon className="h-4 w-4" strokeWidth={1.9} />
+                              </span>
+                              <div className="min-w-0">
+                                <div className="truncate text-[13px] font-semibold text-foreground">
+                                  {formatPayloadValue(row.template.payload.customer_name ?? "Customer")}
+                                </div>
+                                <div className="mt-1 flex flex-wrap gap-1.5">
+                                  <Pill tone={row.template.tone} size="sm">
+                                    {row.priority}
+                                  </Pill>
+                                  <span className="rounded-[5px] bg-secondary/45 px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
+                                    {row.template.ref}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="min-w-0 self-center">
+                              <div className="truncate text-[12px] text-foreground">{row.contact}</div>
+                              <div className="mt-1 truncate text-[11px] text-muted-foreground">{row.template.channel}</div>
+                            </div>
+
+                            <div className="min-w-0 self-center">
+                              <div className="truncate text-[12px] text-foreground">{row.district}</div>
+                              <div className="mt-1 truncate text-[11px] text-muted-foreground">
+                                {formatPayloadValue(row.template.payload.address_status ?? "address pending")}
+                              </div>
+                            </div>
+
+                            <div className="min-w-0 self-center font-mono text-[11px] text-foreground">
+                              {row.requestValue}
+                            </div>
+
+                            <div className="min-w-0 self-center">
+                              <div className="truncate text-[12px] font-medium text-foreground">{row.lastLabel}</div>
+                              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                                <span className="truncate rounded-[5px] bg-background/55 px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
+                                  {row.confirmationLabel}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    onSelectService(row.template.id);
+                                    onOpenDispatchDrawer("customer");
+                                  }}
+                                  className="inline-flex h-6 items-center gap-1 rounded-[5px] px-2 font-mono text-[10px] uppercase tracking-[0.12em] text-foreground ring-1 ring-inset ring-border/55 transition-smooth hover:bg-secondary/60"
+                                  aria-label={`Open customer drawer for ${row.template.ref}`}
+                                >
+                                  Open
+                                  <ArrowUpRight className="h-3 w-3" strokeWidth={1.8} />
+                                </button>
+                              </div>
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </section>
+
+                  <aside
+                    aria-label="Customer confirmation decision rail"
+                    className="flex min-h-[520px] min-w-0 flex-col overflow-hidden rounded-md border border-border/60 bg-background/45"
+                  >
+                    <header className="shrink-0 border-b border-border/55 px-4 py-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-[5px] bg-card/55 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                          {selectedTemplate.ref}
+                        </span>
+                        <span className="rounded-[5px] bg-[hsl(var(--tint-violet)/0.12)] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--tint-violet-fg))] ring-1 ring-inset ring-[hsl(var(--tint-violet)/0.26)]">
+                          Customer confirmation rail
+                        </span>
+                        <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                          customerConfirmationByService
+                        </span>
+                      </div>
+                      <div className="mt-4 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                        {selectedTemplate.title} · {formatPayloadValue(selectedTemplate.payload.district ?? "district")}
+                      </div>
+                      <h3 className="mt-2 text-[24px] font-semibold tracking-tight text-foreground">
+                        {formatPayloadValue(selectedTemplate.payload.customer_name ?? "Customer")}
+                      </h3>
+                    </header>
+
+                    <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+                      <section className="rounded-md border border-[hsl(var(--tint-violet)/0.28)] bg-[hsl(var(--tint-violet)/0.08)] px-4 py-4">
+                        <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[hsl(var(--tint-violet-fg))]">
+                          Consent-safe next action
                         </div>
-                      ))}
-                    </div>
-                    <div className="mt-3 rounded-md border border-border/45 bg-card/25 px-3 py-2.5">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div>
-                          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                        <p className="mt-2 text-[14px] font-semibold leading-relaxed text-foreground">
+                          {customerConfirmationNextAction}
+                        </p>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          {customerConfirmationRows.map((row) => (
+                            <div key={row.label} className="rounded-md border border-border/45 bg-background/40 px-3 py-2.5">
+                              <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                                {row.label}
+                              </div>
+                              <div className="mt-1 text-[12px] font-medium text-foreground">{row.value}</div>
+                              <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">{row.detail}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+
+                      <section className="mt-3 rounded-md border border-border/55 bg-card/35 px-4 py-4">
+                        <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                          Customer request card
+                        </div>
+                        <p className="mt-2 text-[13px] font-semibold leading-relaxed text-foreground">
+                          {selectedTemplate.detail.sampleInput}
+                        </p>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          {selectedCustomerRows.map(([label, value]) => (
+                            <div key={label} className="rounded-md bg-background/45 px-3 py-2">
+                              <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                                {label}
+                              </div>
+                              <div className="mt-1 truncate text-[12px] text-foreground">{value}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+
+                      <section className="mt-3 rounded-md border border-border/55 bg-card/35 px-4 py-4">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0">
+                            <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                              Consent-safe confirmation preview
+                            </div>
+                            <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                              Manual customer copy after consent, owner approval, and contact verification.
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() =>
+                              onCopyText(customerSafeConfirmationPreviewText, "Customer-safe confirmation copied")
+                            }
+                            className="h-8 shrink-0"
+                          >
+                            <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                            Copy customer-safe preview
+                          </Button>
+                        </div>
+                        <div className="mt-3 rounded-md border border-border/45 bg-background/45 px-3 py-3 text-[12px] leading-relaxed text-foreground">
+                          {selectedTemplate.detail.customerConfirmation}
+                        </div>
+                        <pre className="mt-3 max-h-40 overflow-auto rounded-md bg-background/45 p-3 font-mono text-[10.5px] leading-relaxed text-muted-foreground">
+                          {customerSafeConfirmationPreviewText}
+                        </pre>
+                      </section>
+
+                      <details className="mt-3 rounded-md border border-border/55 bg-card/35">
+                        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
+                          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                             Workspace record
+                          </span>
+                          <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                            API + local fallback
+                          </span>
+                        </summary>
+                        <div className="border-t border-border/45 px-4 py-3">
+                          <div className="flex flex-wrap gap-1.5">
+                            <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-foreground">
+                              operatorDecisionByCaseRef
+                            </span>
+                            <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                              {selectedOperatorDecisionSurface}
+                            </span>
+                            <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                              {selectedOperatorDecisionTime}
+                            </span>
                           </div>
-                          <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
-                            Latest customer or dispatch decision is recorded as the case-level operator decision.
-                          </p>
+                          <div className="mt-2 text-[11.5px] font-medium text-foreground">
+                            {selectedOperatorDecisionLabel}
+                          </div>
                         </div>
-                        <span className="shrink-0 rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
-                          API + local fallback
-                        </span>
-                      </div>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-foreground">
-                          operatorDecisionByCaseRef
-                        </span>
-                        <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
-                          {selectedOperatorDecisionSurface}
-                        </span>
-                        <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
-                          {selectedOperatorDecisionTime}
-                        </span>
-                      </div>
-                      <div className="mt-2 text-[11.5px] font-medium text-foreground">
-                        {selectedOperatorDecisionLabel}
-                      </div>
+                      </details>
                     </div>
-                    <div className="mt-3">
-                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+
+                    <footer className="shrink-0 border-t border-border/55 bg-card/70 px-4 py-3">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                         Customer confirmation actions
                       </div>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {LOCAL_SERVICE_CUSTOMER_CONFIRMATION_ACTIONS.map((action) => (
-                          <Button
-                            key={action.decision}
-                            size="sm"
-                            variant={currentCustomerConfirmationDecision === action.decision ? "default" : "secondary"}
-                            onClick={() => updateCustomerConfirmationDecision(action.decision)}
-                            className="h-7"
-                          >
-                            {action.label}
-                          </Button>
-                        ))}
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => updateCustomerConfirmationDecision("consent_confirmed")}
+                          className="h-9 bg-[hsl(var(--tint-mint-fg))] px-4 text-background hover:bg-[hsl(var(--tint-mint-fg)/0.9)]"
+                        >
+                          <Check className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.85} />
+                          Confirm manual consent
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => onOpenDispatchDrawer("customer")}
+                          className="h-9"
+                        >
+                          <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.85} />
+                          Open customer drawer
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => updateCustomerConfirmationDecision("blocked")}
+                          className="h-9 text-[hsl(var(--tint-rose-fg))]"
+                        >
+                          <X className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.85} />
+                          Block customer send
+                        </Button>
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => updateCustomerConfirmationDecision("not_reviewed")}
-                          className="h-7"
+                          className="h-9"
                         >
                           Reset customer confirmation
                         </Button>
                       </div>
-                    </div>
-                    <div className="mt-3 rounded-md border border-border/45 bg-card/25 px-3 py-2.5">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div>
-                          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                            Consent-safe confirmation preview
-                          </div>
-                          <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
-                            Human-readable confirmation note for manual use after consent and owner approval.
-                          </p>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() =>
-                            onCopyText(customerSafeConfirmationPreviewText, "Customer-safe confirmation copied")
-                          }
-                          className="h-8"
-                        >
-                          Copy customer-safe preview
-                        </Button>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {LOCAL_SERVICE_CUSTOMER_CONFIRMATION_ACTIONS.map((action) => (
+                          <button
+                            key={action.decision}
+                            type="button"
+                            onClick={() => updateCustomerConfirmationDecision(action.decision)}
+                            className={`rounded-[5px] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] ring-1 ring-inset transition-smooth ${
+                              currentCustomerConfirmationDecision === action.decision
+                                ? "bg-[hsl(var(--tint-violet)/0.14)] text-[hsl(var(--tint-violet-fg))] ring-[hsl(var(--tint-violet)/0.28)]"
+                                : "bg-background/40 text-muted-foreground ring-border/50 hover:text-foreground"
+                            }`}
+                          >
+                            {action.label}
+                          </button>
+                        ))}
                       </div>
-                      <pre className="mt-3 max-h-44 overflow-auto rounded-md bg-background/45 p-3 font-mono text-[10.5px] leading-relaxed text-muted-foreground">
-                        {customerSafeConfirmationPreviewText}
-                      </pre>
-                    </div>
-                  </div>
-                </section>
-                <section className="rounded-md border border-border/50 bg-card/25 px-3 py-3">
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                    Customer request list
-                  </div>
-                  <div className="mt-3 grid gap-2 md:grid-cols-2">
-                    {LOCAL_SERVICE_DEMO_TEMPLATES.map((template) => (
-                      <button
-                        key={template.id}
-                        type="button"
-                        onClick={() => onSelectService(template.id)}
-                        className="rounded-md border border-border/45 bg-background/35 px-3 py-2.5 text-left transition-smooth hover:bg-card/40"
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[12px] font-semibold text-foreground">
-                            {formatPayloadValue(template.payload.customer_name ?? "Customer")}
-                          </span>
-                          <Pill tone={template.tone} size="sm">
-                            {template.ref}
-                          </Pill>
-                        </div>
-                        <div className="mt-2 grid gap-1.5 text-[11px] text-muted-foreground">
-                          <div>Service: <span className="text-foreground">{template.title}</span></div>
-                          <div>District: <span className="text-foreground">{formatPayloadValue(template.payload.district ?? "Needs confirmation")}</span></div>
-                          <div>Phone: <span className="text-foreground">{formatPayloadValue(template.payload.phone ?? "Collected")}</span></div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </section>
-              </div>
+                      <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                        Manual only · no SMS / Telegram / CRM / payment / booking side effect.
+                      </p>
+                    </footer>
+                  </aside>
+                </div>
+              </section>
             )}
 
             {activeView === "setup" && (

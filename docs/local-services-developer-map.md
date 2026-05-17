@@ -163,7 +163,11 @@ technician dispatch, CRM write, payment, or channel activation.
 
 `view=customers` has the third actionable panel contract. `Customer confirmation
 rail` renders contact status, consent posture, dispatch dependency, and next
-approved action. Its buttons may update only `customerConfirmationByService`;
+approved action. The surrounding `Customer compact directory` shows contactable
+customers, active 30-day demo cases, honest request-value estimates under
+`Сумма заявок`, district coverage, and `LAST = service + ref`. Row click must
+select the preview only; `Open customer drawer` is the explicit full action.
+Its buttons may update only `customerConfirmationByService`;
 `Consent-safe confirmation preview` is a manual note, not SMS, Telegram,
 WhatsApp, email, CRM, payment, booking, dispatch, or channel activation.
 

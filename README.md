@@ -115,9 +115,13 @@ Local-services expansion spec:
   `dispatchApprovalByService` decisions, and a `Booking handoff preview`; these
   are mirrored to `operatorDecisionByCaseRef` through the local-services
   workspace API, but remain manual approval notes, not live appointment or
-  dispatch actions. `Customer directory` includes a
-  `Customer confirmation rail`, `customerConfirmationByService` decisions, and a
-  `Consent-safe confirmation preview`; these are mirrored to the same
+  dispatch actions. `Customer directory` is now a compact customer workspace:
+  KPI cards show contactable customers, active 30-day demo cases, honest
+  `Сумма заявок` midpoint estimates, and district coverage; the
+  `Customer compact directory` uses `LAST = service + ref`, row click selects
+  preview only, and `Open customer drawer` is the explicit full action.
+  `Customer confirmation rail`, `customerConfirmationByService` decisions, and
+  a `Consent-safe confirmation preview` are mirrored to the same
   operator-decision boundary, but remain manual review notes, not customer
   sends or CRM writes. Both rails now show a compact `Workspace record` signal
   with `operatorDecisionByCaseRef`, `API + local fallback`, and the latest

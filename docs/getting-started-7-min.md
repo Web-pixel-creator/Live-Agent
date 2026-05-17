@@ -62,6 +62,11 @@ Use `Scenario modal` to inspect `local_services_scenario_modal`: the lane
 dialogue, structured job card, final handoff and approval state, plus
 browser-local JSON export/import for the four fixed scenarios. It is not
 scenario CRUD and does not perform external actions.
+`Customers` is the third product step: the compact directory shows contactable
+customers, active 30-day demo cases, honest `Сумма заявок` estimates, district
+coverage, and `LAST = service + ref`; clicking a customer changes only the
+preview rail. `Open customer drawer` is the explicit full action, and the
+confirmation rail remains manual-only.
 The same panel includes a `Telegram intake prototype`: a customer message,
 normalized fields, and a reply draft that reuse the same approval-gated job-card
 payload.
