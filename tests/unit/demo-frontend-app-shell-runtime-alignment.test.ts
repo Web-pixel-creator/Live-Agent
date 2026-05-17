@@ -529,6 +529,14 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Customer directory/);
   assert.match(liveDesk, /Knowledge setup state/);
   assert.match(liveDesk, /Review queue/);
+  assert.match(liveDesk, /Dispatcher compact request queue/);
+  assert.match(liveDesk, /Selected request decision rail/);
+  assert.match(liveDesk, /No scroll-spy selection/);
+  assert.match(liveDesk, /AI recommendation packet/);
+  assert.match(liveDesk, /Customer request card/);
+  assert.match(liveDesk, /Sticky operator action footer/);
+  assert.match(liveDesk, /Explicit open action: Open dispatch drawer/);
+  assert.match(liveDesk, /no autonomous dispatch/);
   assert.match(liveDesk, /const requestInboxNextAction =/);
   assert.match(liveDesk, /const requestInboxActionRows =/);
   assert.match(liveDesk, /Operator action rail/);
@@ -2017,6 +2025,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Knowledge setup state/);
   assert.match(operatorGuide, /Review queue/);
   assert.match(operatorGuide, /Operator action rail/);
+  assert.match(operatorGuide, /compact\s+request queue/);
+  assert.match(operatorGuide, /selected request decision rail/);
+  assert.match(operatorGuide, /sticky operator\s+footer/);
   assert.match(operatorGuide, /first-request outcome notes/);
   assert.match(operatorGuide, /Schedule approval rail/);
   assert.match(operatorGuide, /Dispatch approval actions/);
@@ -3263,6 +3274,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /LOCAL_SERVICES_WORKSPACE_STORAGE_KEY/);
   assert.match(localServicesSpec, /\/v1\/local-services\/\*/);
   assert.match(localServicesSpec, /local-services-scenarios\.ts/);
+  assert.match(localServicesSpec, /Dispatcher compact request queue/);
+  assert.match(localServicesSpec, /Selected request decision rail/);
+  assert.match(localServicesSpec, /Sticky operator action footer/);
   assert.match(localServicesSpec, /local_services_scenario_modal/);
   assert.match(localServicesSpec, /Import scenario JSON/);
   assert.match(localServicesSpec, /Open outreach execution pack/);
@@ -4084,6 +4098,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesDeveloperMap, /`view=customers`/);
   assert.match(localServicesDeveloperMap, /`view=setup`/);
   assert.match(localServicesDeveloperMap, /`view=reviews`/);
+  assert.match(localServicesDeveloperMap, /Dispatcher compact request queue/);
+  assert.match(localServicesDeveloperMap, /Selected request decision rail/);
+  assert.match(localServicesDeveloperMap, /Sticky operator action footer/);
   assert.match(localServicesDeveloperMap, /Service workspace/);
   assert.match(localServicesDeveloperMap, /Schedule \/ Dispatch/);
   assert.match(localServicesDeveloperMap, /Advanced \/ Runtime/);
@@ -4108,6 +4125,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesAgentHandoff, /AI Dispatcher for local service businesses in Tashkent/);
   assert.match(localServicesAgentHandoff, /Clicking a row selects it and updates the right preview/);
   assert.match(localServicesAgentHandoff, /Avoid scroll-spy that swaps the right panel/);
+  assert.match(localServicesAgentHandoff, /Current implementation slice:/);
+  assert.match(localServicesAgentHandoff, /Dispatcher compact request queue/);
+  assert.match(localServicesAgentHandoff, /Selected request decision rail/);
   assert.match(localServicesAgentHandoff, /Design Workbench Review/);
   assert.match(localServicesAgentHandoff, /design-workbench-main/);
   assert.match(localServicesAgentHandoff, /not currently backend-integrated/);

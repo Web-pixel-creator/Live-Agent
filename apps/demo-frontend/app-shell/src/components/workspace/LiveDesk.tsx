@@ -9586,66 +9586,205 @@ const LocalServicesDispatchDemoPanel = ({
             </div>
 
             {activeView === "requests" && (
-              <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-                <section className="rounded-md border border-border/50 bg-card/25 px-3 py-3">
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                    Current request preview
-                  </div>
-                  <p className="mt-2 rounded-md border border-border/50 bg-background/35 px-3 py-2 text-[12px] leading-relaxed text-foreground">
-                    {selectedTemplate.detail.sampleInput}
-                  </p>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    {[
-                      ["Outcome", selectedOutcome],
-                      ["Approval", selectedApproval],
-                      ["Evidence", selectedEvidence],
-                      ["Deliverable", selectedDeliverable],
-                    ].map(([label, value]) => (
-                      <div key={label} className="rounded-md bg-background/35 px-2.5 py-2">
-                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                          {label}
-                        </div>
-                        <div className="mt-1 text-[11.5px] text-foreground">{value}</div>
+              <div
+                className="mt-4 grid gap-3 xl:grid-cols-[minmax(440px,1fr)_minmax(380px,0.62fr)]"
+                aria-label="Local services dispatcher workbench contract"
+              >
+                <section className="rounded-md border border-border/60 bg-card/55 px-3 py-3">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="min-w-0">
+                      <div
+                        className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground"
+                        aria-label="Dispatcher compact request queue"
+                      >
+                        <Inbox className="h-3.5 w-3.5" strokeWidth={1.8} />
+                        Очередь заявок
                       </div>
-                    ))}
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button size="sm" onClick={() => onOpenDispatchDrawer("dispatch")} className="h-8">
-                      Open dispatch drawer
-                    </Button>
-                    <Button size="sm" variant="secondary" onClick={() => setIntakeEvidenceOpen(true)} className="h-8">
-                      Open intake evidence
-                    </Button>
-                  </div>
-                  <div className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-2.5">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                          Operator action rail
-                        </div>
-                        <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
-                          Browser-local request state for the selected pilot account. These controls do not send
-                          messages, write CRM, create bookings, or dispatch a technician.
-                        </p>
-                      </div>
-                      <span className="shrink-0 rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
-                        local only
+                      <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                        Клик по строке только меняет превью. Явное открытие живёт в правой панели, поэтому оператор
+                        не проваливается в карточку случайно.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="rounded-[5px] bg-[hsl(var(--tint-amber)/0.14)] px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-amber-fg))] ring-1 ring-inset ring-[hsl(var(--tint-amber)/0.26)]">
+                        P0 focus
+                      </span>
+                      <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                        No scroll-spy selection
+                      </span>
+                      <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                        {LOCAL_SERVICE_DEMO_TEMPLATES.length} active lanes
                       </span>
                     </div>
-                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                      {requestInboxActionRows.map((row) => (
-                        <div key={row.label} className="rounded-md border border-border/45 bg-card/25 px-2.5 py-2">
-                          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                            {row.label}
-                          </div>
-                          <div className="mt-1 text-[12px] font-medium text-foreground">{row.value}</div>
-                          <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">{row.detail}</p>
-                        </div>
-                      ))}
+                  </div>
+
+                  <div className="mt-3 grid gap-2">
+                    {LOCAL_SERVICE_DEMO_TEMPLATES.map((template) => {
+                      const selected = template.id === selectedTemplate.id;
+                      const windowLabel =
+                        [
+                          template.payload.preferred_date,
+                          template.payload.preferred_time,
+                          template.payload.preferred_slot,
+                          template.payload.preferred_window,
+                        ]
+                          .filter(Boolean)
+                          .map((value) => formatPayloadValue(value))
+                          .join(" / ") || "operator review";
+                      const queueStatus =
+                        formatPayloadValue(template.payload.handoff_status ?? "approval_required") === "approval required"
+                          ? "needs action"
+                          : formatPayloadValue(template.payload.handoff_status ?? "approval_required");
+                      return (
+                        <button
+                          key={template.id}
+                          type="button"
+                          onClick={() => onSelectService(template.id)}
+                          className={`grid min-h-[92px] grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-md border px-3 py-2.5 text-left transition-smooth hover:bg-card/65 ${
+                            selected
+                              ? "border-[hsl(var(--tint-amber)/0.42)] bg-[hsl(var(--tint-amber)/0.09)] shadow-[0_14px_32px_-28px_hsl(var(--tint-amber))]"
+                              : "border-border/45 bg-background/35"
+                          }`}
+                          aria-pressed={selected}
+                        >
+                          <span className="min-w-0">
+                            <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                              <span className="font-mono text-[10px] text-muted-foreground">{template.ref}</span>
+                              <Pill tone={template.tone} size="sm">
+                                P0
+                              </Pill>
+                              <span className="truncate text-[12.5px] font-semibold text-foreground">
+                                {formatPayloadValue(template.payload.customer_name ?? "Customer")}
+                              </span>
+                              <span className="text-[11px] text-muted-foreground">{template.title}</span>
+                              <span className="text-[11px] text-muted-foreground">
+                                {formatPayloadValue(template.payload.district ?? "district")}
+                              </span>
+                            </span>
+                            <span className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10.5px] text-muted-foreground">
+                              <span className="rounded-[5px] bg-card/45 px-2 py-1 text-foreground">{windowLabel}</span>
+                              <span className="rounded-[5px] bg-card/45 px-2 py-1">
+                                {localServiceHighlightValue(template, "Approval")}
+                              </span>
+                              <span className="rounded-[5px] bg-card/45 px-2 py-1">
+                                {localServiceHighlightValue(template, "Deliverable")}
+                              </span>
+                            </span>
+                            <span className="mt-2 block truncate text-[11.5px] leading-relaxed text-muted-foreground">
+                              {localServiceHighlightValue(template, "Outcome")}
+                            </span>
+                          </span>
+                          <span className="flex min-w-[118px] flex-col items-end justify-between gap-2">
+                            <span
+                              className={`rounded-[5px] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] ring-1 ring-inset ${
+                                selected
+                                  ? "bg-[hsl(var(--tint-amber)/0.16)] text-[hsl(var(--tint-amber-fg))] ring-[hsl(var(--tint-amber)/0.32)]"
+                                  : "bg-secondary/45 text-muted-foreground ring-border/50"
+                              }`}
+                            >
+                              {queueStatus}
+                            </span>
+                            <span className="inline-flex items-center gap-1.5 rounded-[5px] bg-secondary/40 px-2 py-1 text-[10.5px] text-muted-foreground">
+                              Preview
+                              <ArrowUpRight className="h-3 w-3" strokeWidth={1.8} />
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                <aside
+                  className="self-start overflow-hidden rounded-md border border-border/60 bg-card/70 xl:sticky xl:top-4"
+                  aria-label="Selected request decision rail"
+                >
+                  <div className="border-b border-border/60 px-4 py-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                        {selectedTemplate.ref}
+                      </span>
+                      <span className="rounded-[5px] bg-[hsl(var(--tint-amber)/0.14)] px-2 py-1 text-[10px] text-[hsl(var(--tint-amber-fg))] ring-1 ring-inset ring-[hsl(var(--tint-amber)/0.24)]">
+                        needs action
+                      </span>
+                      <Pill tone={selectedTemplate.tone} size="sm">
+                        P0
+                      </Pill>
                     </div>
-                    <div className="mt-3">
-                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                        Status actions
+                    <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                      {selectedTemplate.title} · {formatPayloadValue(selectedTemplate.payload.district ?? "district")}
+                    </div>
+                    <h4 className="mt-1.5 text-[20px] font-semibold tracking-tight text-foreground">
+                      {formatPayloadValue(selectedTemplate.payload.customer_name ?? "Customer")}
+                    </h4>
+                  </div>
+
+                  <div className="space-y-3 px-4 py-4">
+                    <section className="rounded-md border border-[hsl(var(--tint-violet)/0.28)] bg-[hsl(var(--tint-violet)/0.08)] px-3 py-3">
+                      <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--tint-violet-fg))]">
+                        <Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />
+                        AI recommendation packet
+                      </div>
+                      <div className="mt-2 text-[13px] font-semibold leading-relaxed text-foreground">
+                        Prepare an operator-approved job card before any customer promise.
+                      </div>
+                      <div className="mt-2 border-t border-[hsl(var(--tint-violet)/0.20)] pt-2">
+                        <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                          Top reasons
+                        </div>
+                        <ul className="mt-1.5 space-y-1.5 text-[11.5px] leading-relaxed text-foreground">
+                          {selectedTemplate.detail.approvalPolicy.slice(0, 3).map((item) => (
+                            <li key={item} className="flex gap-2">
+                              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[hsl(var(--tint-violet-fg))]" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </section>
+
+                    <section className="rounded-md border border-border/50 bg-background/40 px-3 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                        Customer request card
+                      </div>
+                      <p className="mt-2 text-[12px] leading-relaxed text-foreground">
+                        {selectedTemplate.detail.sampleInput}
+                      </p>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
+                        {[
+                          ["Slot", selectedScheduleWindow],
+                          ["District", formatPayloadValue(selectedTemplate.payload.district ?? "Needs confirmation")],
+                          ["Owner", formatPayloadValue(selectedTemplate.payload.operator_owner ?? "dispatch_queue")],
+                        ].map(([label, value]) => (
+                          <div key={label} className="rounded-[5px] border border-border/45 bg-card/35 px-2.5 py-2">
+                            <div className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-muted-foreground">
+                              {label}
+                            </div>
+                            <div className="mt-1 text-[11.5px] font-medium text-foreground">{value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className="rounded-md border border-border/50 bg-background/40 px-3 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                        Operator action rail
+                      </div>
+                      <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+                        {requestInboxActionRows.map((row) => (
+                          <div key={row.label} className="rounded-[5px] bg-card/35 px-2.5 py-2">
+                            <div className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-muted-foreground">
+                              {row.label}
+                            </div>
+                            <div className="mt-1 text-[11.5px] font-medium text-foreground">{row.value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className="rounded-md border border-border/50 bg-background/40 px-3 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                        Local status actions
                       </div>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {LOCAL_SERVICE_PILOT_STATUS_ACTIONS.map((action) => (
@@ -9668,9 +9807,7 @@ const LocalServicesDispatchDemoPanel = ({
                           Reset request status
                         </Button>
                       </div>
-                    </div>
-                    <div className="mt-3">
-                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                      <div className="mt-3 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
                         First request outcome
                       </div>
                       <div className="mt-2 flex flex-wrap gap-2">
@@ -9694,46 +9831,34 @@ const LocalServicesDispatchDemoPanel = ({
                           Reset outcome
                         </Button>
                       </div>
-                    </div>
+                    </section>
                   </div>
-                </section>
-                <section className="rounded-md border border-border/50 bg-card/25 px-3 py-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                      Request lanes
-                    </div>
-                    <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
-                      {LOCAL_SERVICE_DEMO_TEMPLATES.length} active
-                    </span>
-                  </div>
-                  <div className="mt-3 grid gap-2">
-                    {LOCAL_SERVICE_DEMO_TEMPLATES.map((template) => (
-                      <button
-                        key={template.id}
-                        type="button"
-                        onClick={() => onSelectService(template.id)}
-                        className={`rounded-md border px-3 py-2.5 text-left transition-smooth hover:bg-card/40 ${
-                          template.id === selectedTemplate.id
-                            ? "border-[hsl(var(--tint-violet)/0.28)] bg-[hsl(var(--tint-violet)/0.08)]"
-                            : "border-border/45 bg-background/35"
-                        }`}
+
+                  <div className="sticky bottom-0 border-t border-border/60 bg-card/95 px-4 py-3 backdrop-blur">
+                    <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                      <Button
+                        size="sm"
+                        onClick={() => onOpenDispatchDrawer("dispatch")}
+                        className="h-9 justify-center"
+                        aria-label="Explicit open action: Open dispatch drawer"
                       >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[12px] font-semibold text-foreground">{template.title}</span>
-                          <Pill tone={template.tone} size="sm">
-                            {template.ref}
-                          </Pill>
-                          <span className="rounded-[5px] bg-secondary/45 px-2 py-0.5 text-[10px] text-muted-foreground">
-                            {template.channel}
-                          </span>
-                        </div>
-                        <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">
-                          {localServiceHighlightValue(template, "Outcome")}
-                        </p>
-                      </button>
-                    ))}
+                        <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                        Open dispatch drawer
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => setIntakeEvidenceOpen(true)}
+                        className="h-9 justify-center"
+                      >
+                        Intake evidence
+                      </Button>
+                    </div>
+                    <div className="mt-2 text-center font-mono text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground">
+                      Sticky operator action footer · no autonomous dispatch · no send · no booking
+                    </div>
                   </div>
-                </section>
+                </aside>
               </div>
             )}
 

@@ -1305,6 +1305,12 @@ Current shell readiness for P3:
    `Reset overrides`. This is a fixed-lane scenario editor only: it must not
    create/delete scenarios, send messages, book slots, dispatch masters, write
    CRM, activate channels, or mutate Markdown docs.
+54e. `view=requests` exposes the current dispatcher UX contract:
+   `Dispatcher compact request queue`, `Selected request decision rail`,
+   `AI recommendation packet`, `Customer request card`, and
+   `Sticky operator action footer`. The queue is click-to-preview only; the
+   explicit open action is the only path into the full dispatch drawer, and the
+   footer repeats the no-autonomous-dispatch guardrail.
 55. `?recording=90s`, `90-second recording mode`, `Recording path`, and
    `90s recording` are visible as the demo-recording posture, and outreach
    tables plus scorecard controls are hidden during recording.

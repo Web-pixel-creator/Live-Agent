@@ -937,6 +937,19 @@ Implement:
 8. RU-first labels.
 9. Hide developer-only internals.
 
+Current implementation slice:
+
+1. `view=requests` now starts with a `Dispatcher compact request queue`
+   contract in `LiveDesk.tsx`: row click selects the preview only, and the
+   explicit open action stays in the right rail.
+2. The right rail is labelled `Selected request decision rail`; it separates
+   `AI recommendation packet` from the `Customer request card`.
+3. The footer is a `Sticky operator action footer` and repeats the guardrail:
+   no autonomous dispatch, no send, and no booking.
+4. Remaining Step 2 work: carry the same compact/right-rail pattern into the
+   rest of the dispatcher layout and keep polishing full-height behavior across
+   breakpoints.
+
 ### Step 3: Fix `/dev`
 
 Keep `/dev` as internal lab, but:

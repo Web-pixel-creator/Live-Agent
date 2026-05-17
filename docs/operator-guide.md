@@ -84,9 +84,13 @@ Product view states are available from the same sidebar: `Requests inbox`,
 navigation because they only change the visible panel; they do not trigger a
 send, booking, dispatch, payment, CRM write, or channel activation.
 `Requests inbox` includes an `Operator action rail` for local request status
-and first-request outcome notes. It updates browser-local pilot workspace state
-only and is not an external send, booking, dispatch, payment, CRM write, or
-channel activation.
+and first-request outcome notes. The inbox is intentionally split into a compact
+request queue and a selected request decision rail: click a row to inspect the
+right preview, use the explicit open action when you really want the full
+dispatch drawer, and do not expect scroll position to change the selected case.
+The rail separates AI recommendation, customer request, and the sticky operator
+footer. It updates browser-local pilot workspace state only and is not an
+external send, booking, dispatch, payment, CRM write, or channel activation.
 `Schedule / Dispatch board` includes a `Schedule approval rail` with
 `dispatchApprovalByService`, `Dispatch approval actions`, and a `Booking
 handoff preview`. Use it to decide whether a human owner can manually confirm a

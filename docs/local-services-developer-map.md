@@ -134,11 +134,15 @@ and operator contract in `README.md` plus `docs/local-development.md`,
 source-level guardrails in
 `tests/unit/demo-frontend-app-shell-runtime-alignment.test.ts`.
 
-`view=requests` has the first actionable panel contract. `Operator action rail`
-renders local request status, first-request outcome, and next approved action
-for the selected pilot account. Its buttons may update only
-`statusByProspectKey` and `firstRequestOutcomeByProspectKey`; they must not add
-external side effects.
+`view=requests` has the first actionable panel contract. It now renders a
+`Dispatcher compact request queue` beside a `Selected request decision rail`.
+The queue is click-to-preview only, with no scroll-spy selection; explicit open
+actions stay in the rail. The rail separates `AI recommendation packet` from the
+`Customer request card` and keeps the `Sticky operator action footer` under the
+decision content. `Operator action rail` renders local request status,
+first-request outcome, and next approved action for the selected pilot account.
+Its buttons may update only `statusByProspectKey` and
+`firstRequestOutcomeByProspectKey`; they must not add external side effects.
 
 `view=schedule` has the second actionable panel contract. `Schedule approval
 rail` renders slot window, dispatch owner, approval gate, and next approved
