@@ -71,6 +71,10 @@ It should also behave like a real onboarding checklist: store
 `liveDesk:localServicesPilotWorkspace:v1`, expose `Setup progress`,
 `Saved setup state`, `Mark complete`, `Mark ready for pilot test`, and
 `Ready for pilot test`, and keep the whole flow browser-local.
+The same view now exposes `Next setup action` and
+`Setup validation checklist` with the current step, `Required inputs`,
+`Validation rule`, `Side-effect boundary`, and `Complete current step` so the
+setup path reads like an onboarding wizard rather than a passive checklist.
 After that ready gate, the setup route now has a `Test call/message panel` with
 `Sample inbound`, `Expected extracted fields`, `Pass/fail checklist`,
 `Mark check passed`, `Record test passed`, `Test call passed`, and

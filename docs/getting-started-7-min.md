@@ -335,6 +335,11 @@ and bounded `setupEvents` through the local-services workspace adapter, so
 refreshes keep the setup progress even when the API falls back to browser
 storage. The setup view also shows `Latest setup record` and
 `API + local fallback` so this remains clear during a demo.
+The setup view also exposes `Next setup action` and
+`Setup validation checklist`: the current step, minute window, owner,
+`Required inputs`, `Validation rule`, `Side-effect boundary`, and
+`Complete current step` are visible inline so a new operator does not need to
+read the full setup drawer to understand the next move.
 Then review `Test call/message panel`: compare `Sample inbound` with
 `Expected extracted fields`, mark every `Pass/fail checklist` item with
 `Mark check passed`, and click `Record test passed`. The shell should show

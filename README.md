@@ -176,7 +176,10 @@ Local-services expansion spec:
   and bounded `setupEvents` inside the local-services workspace API with
   browser `localStorage` fallback, shows `Setup progress`, `Saved setup state`,
   `Latest setup record`, `Mark complete`, `Mark ready for pilot test`, and
-  `Ready for pilot test`.
+  `Ready for pilot test`. It now also exposes `Next setup action` and
+  `Setup validation checklist` so the operator sees the current step,
+  `Required inputs`, `Validation rule`, `Side-effect boundary`, and a
+  `Complete current step` action without hunting through the full drawer.
 - after `Ready for pilot test`, the same setup route shows a
   `Test call/message panel` with `Sample inbound`, `Expected extracted fields`,
   `Pass/fail checklist`, `Mark check passed`, `Record test passed`,

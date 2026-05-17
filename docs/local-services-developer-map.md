@@ -321,6 +321,13 @@ Pilot setup surfaces:
 3. `Open day-one setup`
 4. `Test call/message panel`
 5. `Record test passed`
+6. `Next setup action`
+7. `Setup validation checklist`
+
+The setup wizard step model includes `requiredInputs`, `validationRule`,
+`operatorAction`, `owner`, and `minute`. Those fields feed both `?setup=7min`
+and the normal `view=setup` page so the operator sees the next step and the
+manual validation contract before any ready/test gate is recorded.
 
 Pilot outreach surfaces:
 

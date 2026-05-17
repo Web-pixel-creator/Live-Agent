@@ -708,6 +708,11 @@ and bounded `setupEvents` are mirrored through
 `Mark ready for pilot test`, and `Reset setup progress`. This does not activate
 phone, Telegram, WhatsApp, CRM, analytics, billing, calendar, or customer
 messages.
+The setup route now also has an inline `Next setup action` plus
+`Setup validation checklist`. Each setup step carries `requiredInputs`,
+`validationRule`, `operatorAction`, `owner`, and `minute`; the UI shows the
+current step, `Required inputs`, `Validation rule`, `Side-effect boundary`, and
+`Complete current step` before recording the next gate.
 After the ready gate, `Test call/message panel` appears in the same setup
 posture. It shows `Sample inbound`, `Expected extracted fields`, and a
 `Pass/fail checklist`; the operator marks checks with `Mark check passed`, then

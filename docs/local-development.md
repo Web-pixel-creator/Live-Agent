@@ -315,7 +315,10 @@ The wizard stores `setupStepCompletionByService`, `setupReadyByService`, and
 bounded `setupEvents` through the local-services workspace adapter, shows
 `Setup progress`, `Saved setup state`, `Latest setup record`, `Mark complete`,
 `Mark ready for pilot test`, and `Ready for pilot test`, and never activates
-live channels.
+live channels. The setup view also shows `Next setup action` and
+`Setup validation checklist` with the current step, `Required inputs`,
+`Validation rule`, `Side-effect boundary`, and `Complete current step` so a
+new operator can finish the setup path without opening a separate document.
 After the ready gate, the same route shows `Test call/message panel` with
 `Sample inbound`, `Expected extracted fields`, `Pass/fail checklist`,
 `Mark check passed`, `Record test passed`, `Test call passed`, and

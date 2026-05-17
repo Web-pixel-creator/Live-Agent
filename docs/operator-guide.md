@@ -171,6 +171,10 @@ setup/test-call actions, and the UI shows `Setup progress`, `Saved setup state`,
 `Latest setup record`, `Mark complete`, `Mark ready for pilot test`, and
 `Reset setup progress`. This does not activate phone, Telegram, WhatsApp, CRM,
 analytics, billing, calendar, or customer sends.
+The same setup view now includes `Next setup action` and
+`Setup validation checklist`: the operator sees the current step, owner,
+minute window, `Required inputs`, `Validation rule`, `Side-effect boundary`,
+and `Complete current step` before moving to the next gate.
 After the ready gate, use `Test call/message panel` to replay the first sample
 call or message before pilot activation. The panel shows `Sample inbound`,
 `Expected extracted fields`, and a `Pass/fail checklist`; each check uses

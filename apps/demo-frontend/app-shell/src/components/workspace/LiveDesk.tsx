@@ -627,7 +627,17 @@ type LocalServiceAgentSetupBrief = {
   humanText: string;
   jsonText: string;
   rows: { label: string; value: string }[];
-  setupSteps: { id: LocalServiceSetupStepId; label: string; value: string; status: string }[];
+  setupSteps: {
+    id: LocalServiceSetupStepId;
+    label: string;
+    value: string;
+    status: string;
+    owner: string;
+    minute: string;
+    requiredInputs: string[];
+    validationRule: string;
+    operatorAction: string;
+  }[];
   trainingCards: { label: string; value: string }[];
   guardrails: string[];
 };
@@ -6044,30 +6054,55 @@ function buildLocalServiceAgentSetupBrief(template: LocalServiceDemoTemplate): L
       label: "Business profile",
       value: `${template.title}, ${template.channel}, service ref ${template.ref}`,
       status: "Ready",
+      owner: "Founder",
+      minute: "0:00-1:30",
+      requiredInputs: ["service lane", "district coverage", "contact channel"],
+      validationRule: "The operator can explain who the assistant answers for and what requests are in scope.",
+      operatorAction: "Confirm business profile before adding knowledge sources.",
     },
     {
       id: "knowledge_sources" as const,
       label: "Knowledge sources",
       value: `${template.detail.phoneIntake.length} intake prompts, ${template.detail.estimateInputs.length} estimate inputs, ${template.detail.approvalPolicy.length} approval rules`,
       status: "Loaded",
+      owner: "Operator",
+      minute: "1:30-3:00",
+      requiredInputs: ["phone prompts", "estimate inputs", "approval rules"],
+      validationRule: "Sample call and Telegram fallback map to the same normalized job-card fields.",
+      operatorAction: "Review knowledge sources and mark the source packet loaded.",
     },
     {
       id: "agent_behavior" as const,
       label: "Agent behavior",
       value: "Collect facts first, prepare the job card, and keep price, slot, and dispatch behind operator approval.",
       status: "Gated",
+      owner: "Operator",
+      minute: "3:00-4:30",
+      requiredInputs: ["qualification order", "approval policy", "handoff rule"],
+      validationRule: "The assistant never promises final price, books a slot, or dispatches without explicit approval.",
+      operatorAction: "Confirm behavior rails before any test call is marked ready.",
     },
     {
       id: "test_call_message" as const,
       label: "Test call/message",
       value: `Use sample call plus Telegram replay: ${template.detail.telegramIntake.normalizedFields.join(", ")}`,
       status: "Ready to test",
+      owner: "Operator",
+      minute: "4:30-6:30",
+      requiredInputs: ["sample inbound", "expected fields", "approval-gate check"],
+      validationRule: "The dry run captures service, district, slot, urgency, price band, and handoff preview.",
+      operatorAction: "Run the test call/message panel and mark every dry-run check passed.",
     },
     {
       id: LOCAL_SERVICE_SETUP_READY_STEP_ID,
       label: "Ready for pilot test",
       value: "Pilot can start only after owner/operator confirms setup and sends the first test manually.",
       status: "Operator review",
+      owner: "Owner",
+      minute: "6:30-7:00",
+      requiredInputs: ["all setup steps", "dry-run checklist", "manual launch guardrail"],
+      validationRule: "Ready means pilot test only; no live phone, Telegram, CRM, billing, or dispatch activation.",
+      operatorAction: "Mark ready for pilot test only after all prerequisites are complete.",
     },
   ];
   const trainingCards = [
@@ -6104,7 +6139,10 @@ function buildLocalServiceAgentSetupBrief(template: LocalServiceDemoTemplate): L
     `Channel: ${template.channel}`,
     "",
     "7-minute setup:",
-    ...setupSteps.map((step, index) => `${index + 1}. ${step.label} [${step.status}] - ${step.value}`),
+    ...setupSteps.map(
+      (step, index) =>
+        `${index + 1}. ${step.label} [${step.minute}, ${step.owner}, ${step.status}] - ${step.value} | Required: ${step.requiredInputs.join(", ")} | Validation: ${step.validationRule}`,
+    ),
     "",
     "Training cards:",
     ...trainingCards.flatMap((card) => [`${card.label}:`, card.value, ""]),
@@ -8018,6 +8056,47 @@ const LocalServicesDispatchDemoPanel = ({
   const testCallChecksComplete = LOCAL_SERVICE_TEST_CALL_CHECK_IDS.every((id) => testCallChecklist[id] === true);
   const testCallPassed = pilotWorkspaceState.testCallPassedByService[selectedTemplate.id] === true;
   const canRecordTestCallPassed = setupReadyForPilot && testCallChecksComplete;
+  const nextSetupStep =
+    agentSetupBrief.setupSteps.find((step) => setupStepCompletion[step.id] !== true) ??
+    agentSetupBrief.setupSteps[agentSetupBrief.setupSteps.length - 1];
+  const nextSetupActionLabel = testCallPassed
+    ? "Setup dry run complete"
+    : setupReadyForPilot
+      ? "Run test call/message"
+      : nextSetupStep.id === LOCAL_SERVICE_SETUP_READY_STEP_ID
+        ? "Mark ready for pilot test"
+        : `Complete ${nextSetupStep.label}`;
+  const nextSetupActionDetail = testCallPassed
+    ? "The setup package and dry-run proof are recorded; move to manual outreach only after operator review."
+    : setupReadyForPilot
+      ? "Replay the sample call/message, match expected fields, verify approval, and record the dry-run pass."
+      : nextSetupStep.operatorAction;
+  const nextSetupBlockedReason =
+    nextSetupStep.id === LOCAL_SERVICE_SETUP_READY_STEP_ID && !canMarkReadyForPilot && !setupReadyForPilot
+      ? "Complete every setup prerequisite before marking the pilot ready."
+      : null;
+  const setupValidationRows = [
+    {
+      label: "Current step",
+      value: nextSetupStep.label,
+      detail: `${nextSetupStep.minute} - ${nextSetupStep.owner}`,
+    },
+    {
+      label: "Required inputs",
+      value: nextSetupStep.requiredInputs.join(" + "),
+      detail: setupStepCompletion[nextSetupStep.id] ? "Recorded" : "Needs operator confirmation",
+    },
+    {
+      label: "Validation rule",
+      value: nextSetupStep.validationRule,
+      detail: "Manual check before the next gate",
+    },
+    {
+      label: "Side-effect boundary",
+      value: "No channel activation, no CRM write, no dispatch, no billing.",
+      detail: "Setup state only",
+    },
+  ];
   const setupStateLines = [
     "Saved setup state:",
     `Service: ${selectedTemplate.ref} - ${selectedTemplate.title}`,
@@ -11110,12 +11189,68 @@ const LocalServicesDispatchDemoPanel = ({
                       </div>
                     ))}
                   </div>
+                  <div className="mt-3 rounded-md border border-[hsl(var(--tint-violet)/0.24)] bg-[hsl(var(--tint-violet)/0.07)] px-3 py-3">
+                    <div className="text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--tint-violet-fg))]">
+                      Next setup action
+                    </div>
+                    <div className="mt-1 text-[13px] font-semibold text-foreground">{nextSetupActionLabel}</div>
+                    <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">
+                      {nextSetupActionDetail}
+                    </p>
+                    {nextSetupBlockedReason && (
+                      <p className="mt-1.5 text-[11px] leading-relaxed text-[hsl(var(--tint-amber-fg))]">
+                        {nextSetupBlockedReason}
+                      </p>
+                    )}
+                  </div>
+                  <div className="mt-3 rounded-md border border-border/45 bg-background/35 px-3 py-3">
+                    <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                      Setup validation checklist
+                    </div>
+                    <div className="mt-2 grid gap-2">
+                      {setupValidationRows.map((row) => (
+                        <div key={row.label} className="rounded-md bg-card/25 px-3 py-2">
+                          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                            {row.label}
+                          </div>
+                          <div className="mt-1 text-[11.5px] font-medium leading-relaxed text-foreground">
+                            {row.value}
+                          </div>
+                          <div className="mt-1 font-mono text-[10px] text-muted-foreground/70">{row.detail}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Button size="sm" onClick={() => onOpenSetupWizard(selectedTemplate.id)} className="h-8">
                       Open setup wizard
                     </Button>
                     <Button size="sm" variant="secondary" onClick={() => onCopyText(setupBriefWithState, agentSetupBrief.copyLabel)} className="h-8">
                       Copy setup brief
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={
+                        testCallPassed ||
+                        (nextSetupStep.id === LOCAL_SERVICE_SETUP_READY_STEP_ID &&
+                          !canMarkReadyForPilot &&
+                          !setupReadyForPilot)
+                      }
+                      onClick={() => {
+                        if (setupReadyForPilot) {
+                          onCopyText(setupBriefWithState, "Copy test call brief");
+                          return;
+                        }
+                        if (nextSetupStep.id === LOCAL_SERVICE_SETUP_READY_STEP_ID) {
+                          markReadyForPilotTest();
+                          return;
+                        }
+                        updateSetupStepCompletion(nextSetupStep.id, true);
+                      }}
+                      className="h-8"
+                    >
+                      {setupReadyForPilot ? "Copy test call brief" : "Complete current step"}
                     </Button>
                   </div>
                 </section>
@@ -11142,6 +11277,31 @@ const LocalServicesDispatchDemoPanel = ({
                             </span>
                           </div>
                           <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">{step.value}</p>
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                              {step.minute}
+                            </span>
+                            <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                              {step.owner}
+                            </span>
+                            <button
+                              type="button"
+                              aria-pressed={complete}
+                              disabled={
+                                step.id === LOCAL_SERVICE_SETUP_READY_STEP_ID &&
+                                !canMarkReadyForPilot &&
+                                !setupReadyForPilot
+                              }
+                              onClick={() =>
+                                step.id === LOCAL_SERVICE_SETUP_READY_STEP_ID
+                                  ? markReadyForPilotTest()
+                                  : updateSetupStepCompletion(step.id, !complete)
+                              }
+                              className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground ring-1 ring-inset ring-border/50 transition-smooth hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {complete ? "Done" : "Mark complete"}
+                            </button>
+                          </div>
                         </div>
                       );
                     })}
@@ -11464,6 +11624,80 @@ const LocalServicesDispatchDemoPanel = ({
                   No channel activation
                 </span>
               </div>
+            </div>
+            <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+              <section
+                aria-label="Next setup action"
+                className="rounded-md border border-[hsl(var(--tint-violet)/0.24)] bg-background/40 px-3 py-3"
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--tint-violet-fg))]">
+                      Next setup action
+                    </div>
+                    <div className="mt-1 text-[13px] font-semibold text-foreground">{nextSetupActionLabel}</div>
+                    <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">
+                      {nextSetupActionDetail}
+                    </p>
+                    {nextSetupBlockedReason && (
+                      <p className="mt-1.5 text-[11px] leading-relaxed text-[hsl(var(--tint-amber-fg))]">
+                        {nextSetupBlockedReason}
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant={setupReadyForPilot ? "secondary" : "default"}
+                    disabled={
+                      testCallPassed ||
+                      (nextSetupStep.id === LOCAL_SERVICE_SETUP_READY_STEP_ID &&
+                        !canMarkReadyForPilot &&
+                        !setupReadyForPilot)
+                    }
+                    onClick={() => {
+                      if (setupReadyForPilot) {
+                        onCopyText(setupBriefWithState, "Copy test call brief");
+                        return;
+                      }
+                      if (nextSetupStep.id === LOCAL_SERVICE_SETUP_READY_STEP_ID) {
+                        markReadyForPilotTest();
+                        return;
+                      }
+                      updateSetupStepCompletion(nextSetupStep.id, true);
+                    }}
+                    className="h-8 shrink-0"
+                  >
+                    {testCallPassed
+                      ? "Dry run complete"
+                      : setupReadyForPilot
+                        ? "Copy test call brief"
+                        : nextSetupStep.id === LOCAL_SERVICE_SETUP_READY_STEP_ID
+                          ? "Mark ready gate"
+                          : "Complete current step"}
+                  </Button>
+                </div>
+              </section>
+              <section
+                aria-label="Setup validation checklist"
+                className="rounded-md border border-border/45 bg-background/35 px-3 py-3"
+              >
+                <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                  Setup validation checklist
+                </div>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  {setupValidationRows.map((row) => (
+                    <div key={row.label} className="rounded-md border border-border/40 bg-card/25 px-3 py-2">
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                        {row.label}
+                      </div>
+                      <div className="mt-1 text-[11.5px] font-medium leading-relaxed text-foreground">
+                        {row.value}
+                      </div>
+                      <div className="mt-1 font-mono text-[10px] text-muted-foreground/70">{row.detail}</div>
+                    </div>
+                  ))}
+                </div>
+              </section>
             </div>
             <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
               {agentSetupBrief.setupSteps.map((step, index) => {

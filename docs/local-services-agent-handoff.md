@@ -665,6 +665,19 @@ Scenario setup should start with four fixed scenarios, not full CRUD:
 Allow editing text, fields, handoff, and labels. Add create/delete only after
 real users ask for it.
 
+Current setup wizard contract:
+
+1. `?setup=7min` and `view=setup` must both show `Next setup action`.
+2. The setup step model carries `requiredInputs`, `validationRule`,
+   `operatorAction`, `owner`, and `minute`.
+3. `Setup validation checklist` must show the current step, required inputs,
+   validation rule, and side-effect boundary before a ready/test gate is
+   recorded.
+4. `Complete current step` records only setup state through the workspace
+   adapter and browser fallback.
+5. Setup remains manual-only: no phone activation, Telegram send, CRM write,
+   dispatch, booking, billing, or analytics sync.
+
 ## Scenario Modal Direction
 
 For lane scenario cards, use a hybrid modal:
