@@ -242,6 +242,12 @@ Current repo-owned porting state:
    `customerConfirmationByService` and mirror to `operatorDecisionByCaseRef`,
    but it does not send SMS, Telegram, WhatsApp, email, CRM updates, payments,
    bookings, or dispatches.
+5. The pilot outreach wizard now has an `Outreach readiness rail` with
+   step-count `Wizard progress`, `Next outreach action`, `Mark preview
+   reviewed`, and `Manual outreach boundary`. It records
+   `messagePreviewReviewedByProspectKey` for the selected company only and does
+   not send outreach, write CRM, mutate the scorecard, or create calendar
+   events.
 
 What not to take now:
 

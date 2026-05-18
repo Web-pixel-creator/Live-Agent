@@ -196,6 +196,11 @@ checklist, and `Copy confirmation summary`.
 The wizard now shows `Wizard progress`; `Record ready for manual outreach`
 sets only the browser-local scorecard state to `Draft ready` and changes the
 wizard status to `Ready for manual outreach recorded`.
+It also shows an `Outreach readiness rail` with a step-count `Wizard progress`,
+`Next outreach action`, `Mark preview reviewed`, and `Manual outreach boundary`.
+That rail records only `messagePreviewReviewedByProspectKey` and local prep
+state: no outbound send, no CRM write, no scorecard mutation, and no calendar
+event.
 The same wizard now exposes `AI analyst` / `Ask AI about pilot`, which opens a
 deterministic analyst sheet with `Suggested questions`, `Best candidate`,
 `Bottleneck`, `Next message`, `Copy analyst brief`, and

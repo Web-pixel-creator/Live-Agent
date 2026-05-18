@@ -332,13 +332,25 @@ manual validation contract before any ready/test gate is recorded.
 Pilot outreach surfaces:
 
 1. `Pilot outreach wizard`
-2. `Preview / Test message modal`
-3. `Operator confirmation summary`
-4. `AI analyst` / `Ask AI about pilot`
-5. `Pilot scorecard action`
-6. `Pilot funnel summary`
-7. `Outreach list filters`
-8. `Column settings`
+2. `Outreach readiness rail`
+3. `Next outreach action`
+4. `Mark preview reviewed`
+5. `Preview / Test message modal`
+6. `Operator confirmation summary`
+7. `AI analyst` / `Ask AI about pilot`
+8. `Pilot scorecard action`
+9. `Pilot funnel summary`
+10. `Outreach list filters`
+11. `Column settings`
+
+The readiness rail reads the selected company, `messagePreviewReviewedByProspectKey`,
+and the current pilot status to show the next blocker. It is a manual-only prep
+surface: no outbound send, no CRM write, no scorecard mutation, and no calendar
+event.
+
+`Manual outreach boundary` is the visible operator contract for that rail: the
+shell may prepare the message, preview, and confirmation summary, but the human
+operator performs any real outreach outside the app.
 
 Pilot execution surfaces:
 

@@ -213,14 +213,19 @@ Allowed reply statuses:
    `Expected extracted fields`, `Pass/fail checklist`, `Mark check passed`,
    `Record test passed`, and `Test call passed`. Explain that it is a dry run
    only and still does not connect live channels.
-10. Open `Operator confirmation summary`, show `Ready for manual outreach`, and
+10. Show `Outreach readiness rail`, `Next outreach action`, and `Manual outreach
+   boundary`; use `Mark preview reviewed` so
+   `messagePreviewReviewedByProspectKey` proves the message was reviewed before
+   confirmation. Explain that this rail never sends outreach, writes CRM,
+   mutates the scorecard, or creates calendar events.
+11. Open `Operator confirmation summary`, show `Ready for manual outreach`, and
    explain that it is a final human approval state, not an autonomous send.
-11. Click `Record ready for manual outreach` only to mark `Draft ready` locally;
+12. Click `Record ready for manual outreach` only to mark `Draft ready` locally;
    explain that it does not send outreach or write CRM.
-12. Open `Ask AI about pilot` to show `Suggested questions`, `Best candidate`,
+13. Open `Ask AI about pilot` to show `Suggested questions`, `Best candidate`,
    `Bottleneck`, `Next message`, and `Copy analyst brief`; explain that this is
    deterministic internal planning and makes `No external LLM call`.
-13. Show `Outreach list filters`, `Column settings`, `Service filter`,
+14. Show `Outreach list filters`, `Column settings`, `Service filter`,
    `Status filter`, `Filtered candidates`, `Filtered outreach list`,
    `All services`, `All statuses`, `Clear filters`, and `View only, no send`;
    explain that this is a browser-local list view, not outreach automation.

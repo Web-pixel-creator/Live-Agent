@@ -101,6 +101,10 @@ approval checklist, and `Copy confirmation summary`.
 The wizard now includes `Wizard progress` and `Record ready for manual outreach`;
 that action sets the selected company to `Draft ready` in browser-local state
 and shows `Ready for manual outreach recorded`, still with no outbound send.
+The wizard now also includes an `Outreach readiness rail` with `Next outreach
+action`, a step-count `Wizard progress`, and `Mark preview reviewed`. Its
+`Manual outreach boundary` explicitly blocks outbound send, CRM write,
+scorecard mutation, and calendar event side effects.
 The wizard now also includes `AI analyst` / `Ask AI about pilot`: a
 deterministic operator-assist sheet with `Suggested questions`, `Best candidate`,
 `Bottleneck`, `Next message`, `Copy analyst brief`, and

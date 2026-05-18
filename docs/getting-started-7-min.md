@@ -99,6 +99,11 @@ checklist, and `Copy confirmation summary`.
 The wizard also shows `Wizard progress`; `Record ready for manual outreach`
 sets the selected company to `Draft ready` in browser-local state and displays
 `Ready for manual outreach recorded` without sending anything.
+`Outreach readiness rail` now makes the manual sequence explicit: `Next outreach
+action` points to the current blocker, `Mark preview reviewed` stores
+`messagePreviewReviewedByProspectKey`, and `Manual outreach boundary` keeps the
+rail to local prep only: no outbound send, no CRM write, no scorecard mutation,
+and no calendar event.
 The same wizard includes `AI analyst` / `Ask AI about pilot`, a deterministic
 operator-assist sheet with `Suggested questions`, `Best candidate`,
 `Bottleneck`, `Next message`, `Copy analyst brief`, and

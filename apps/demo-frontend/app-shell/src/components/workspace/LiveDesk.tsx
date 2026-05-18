@@ -6875,6 +6875,9 @@ const LocalServicesDispatchDemoPanel = ({
   const scorecardDraftKey = `${selectedTemplate.id}:${selectedOutreachProspect?.id ?? "none"}`;
   const currentPilotStatus = pilotWorkspaceState.statusByProspectKey[scorecardDraftKey] ?? "not_contacted";
   const currentPilotStatusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[currentPilotStatus];
+  const currentOutreachMessagePreviewReviewed =
+    pilotWorkspaceState.messagePreviewReviewedByProspectKey[scorecardDraftKey] === true ||
+    currentPilotStatus !== "not_contacted";
   const currentFirstRequestOutcome =
     pilotWorkspaceState.firstRequestOutcomeByProspectKey[scorecardDraftKey] ?? "not_recorded";
   const currentFirstRequestOutcomeLabel =
@@ -6902,7 +6905,7 @@ const LocalServicesDispatchDemoPanel = ({
     {
       label: "Message/test preview",
       value: selectedTemplate.detail.pilotKit.outreachWizard.testMessage,
-      status: currentPilotStatus === "draft_ready" ? "Preview complete" : "Review",
+      status: currentOutreachMessagePreviewReviewed ? "Preview reviewed" : "Review",
     },
     {
       label: "Operator confirmation",
@@ -6910,6 +6913,55 @@ const LocalServicesDispatchDemoPanel = ({
       status: currentPilotStatus === "draft_ready" ? "Draft ready" : "Manual approval",
     },
   ];
+  const outreachWizardReadinessRows = [
+    {
+      label: "Offer preview",
+      value: selectedTemplate.detail.pilotKit.offerSummary,
+      state: "Ready",
+      done: true,
+      action: "Review the lane offer and keep the promise narrow.",
+    },
+    {
+      label: "Audience",
+      value: selectedOutreachProspect
+        ? `${selectedOutreachProspect.company} - ${selectedOutreachProspect.segment}`
+        : "Select a company from the outreach list.",
+      state: selectedOutreachProspect ? "Selected" : "Needs selection",
+      done: Boolean(selectedOutreachProspect),
+      action: "Pick one company from the repo-owned outreach list.",
+    },
+    {
+      label: "Message/test preview",
+      value: selectedTemplate.detail.pilotKit.outreachWizard.testMessage,
+      state: currentOutreachMessagePreviewReviewed ? "Reviewed" : "Needs preview",
+      done: currentOutreachMessagePreviewReviewed,
+      action: "Open the preview modal and confirm the exact message before any manual contact.",
+    },
+    {
+      label: "Operator confirmation",
+      value: selectedTemplate.detail.pilotKit.outreachWizard.confirmationGate,
+      state: currentPilotStatus === "draft_ready" ? "Ready recorded" : "Manual confirmation",
+      done: currentPilotStatus === "draft_ready",
+      action: "Record ready only after the operator checks company, channel, message, and next step.",
+    },
+  ];
+  const nextOutreachWizardStep =
+    outreachWizardReadinessRows.find((row) => !row.done) ??
+    outreachWizardReadinessRows[outreachWizardReadinessRows.length - 1];
+  const outreachWizardCompletedSteps = outreachWizardReadinessRows.filter((row) => row.done).length;
+  const outreachWizardProgress = `${outreachWizardCompletedSteps}/${outreachWizardReadinessRows.length}`;
+  const nextOutreachActionLabel =
+    currentPilotStatus === "draft_ready"
+      ? "Manual send outside shell"
+      : nextOutreachWizardStep.label === "Message/test preview"
+        ? "Review message/test preview"
+        : nextOutreachWizardStep.label === "Operator confirmation"
+          ? "Open confirmation summary"
+          : `Complete ${nextOutreachWizardStep.label}`;
+  const nextOutreachActionDetail =
+    currentPilotStatus === "draft_ready"
+      ? "The product has only prepared the draft. A human still contacts the company and logs the result manually."
+      : nextOutreachWizardStep.action;
   const allPilotProspects = useMemo(
     () =>
       LOCAL_SERVICE_DEMO_TEMPLATES.flatMap((template) =>
@@ -8940,6 +8992,25 @@ const LocalServicesDispatchDemoPanel = ({
     );
   };
   const recordReadyForManualOutreach = () => updatePilotWorkspaceStatus("draft_ready");
+  const updateSelectedOutreachMessagePreviewReviewed = (reviewed: boolean) => {
+    if (!selectedOutreachProspect) return;
+    setPilotWorkspaceState((prev) => ({
+      ...prev,
+      messagePreviewReviewedByProspectKey: {
+        ...prev.messagePreviewReviewedByProspectKey,
+        [scorecardDraftKey]: reviewed,
+      },
+      activityLog: appendLocalServicePilotActivity(prev.activityLog, {
+        kind: "prep_review",
+        label: "Pilot outreach preview reviewed",
+        value: reviewed ? "Message/test preview reviewed" : "Message/test preview review reset",
+        serviceId: selectedTemplate.id,
+        serviceTitle: selectedTemplate.title,
+        prospectId: selectedOutreachProspect.id,
+        company: selectedOutreachProspect.company,
+      }),
+    }));
+  };
 
   const updateLaunchPathStepCompletion = (stepId: LocalServiceLaunchPathStepId, complete: boolean) => {
     const step = LOCAL_SERVICE_SEVEN_MINUTE_LAUNCH_PATH.find((item) => item.id === stepId);
@@ -14305,13 +14376,85 @@ const LocalServicesDispatchDemoPanel = ({
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
-                        Wizard progress
+                        Wizard progress {outreachWizardProgress}
                       </span>
                       <span className="inline-flex rounded-[5px] bg-[hsl(var(--tint-mint)/0.12)] px-2 py-1 font-mono text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.22)]">
                         {currentPilotStatus === "draft_ready"
                           ? "Ready for manual outreach recorded"
                           : "Awaiting operator confirmation"}
                       </span>
+                    </div>
+                    <div className="mt-3 rounded-md border border-border/50 bg-card/25 px-3 py-3">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0">
+                          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                            Outreach readiness rail
+                          </div>
+                          <div className="mt-1 text-[12px] font-semibold text-foreground">
+                            Next outreach action: {nextOutreachActionLabel}
+                          </div>
+                          <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                            {nextOutreachActionDetail}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => {
+                            if (currentPilotStatus === "draft_ready") {
+                              onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH);
+                            } else if (!selectedOutreachProspect) {
+                              onOpenPath(LOCAL_SERVICES_OUTREACH_LIST_PATH);
+                            } else if (!currentOutreachMessagePreviewReviewed) {
+                              setPilotMessagePreviewOpen(true);
+                            } else {
+                              setPilotOperatorConfirmationOpen(true);
+                            }
+                          }}
+                          className="h-8 shrink-0"
+                        >
+                          {nextOutreachActionLabel}
+                        </Button>
+                      </div>
+                      <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                        {outreachWizardReadinessRows.map((row) => (
+                          <div
+                            key={row.label}
+                            className={`rounded-md border px-3 py-2.5 ${
+                              row.done
+                                ? "border-[hsl(var(--tint-mint)/0.22)] bg-[hsl(var(--tint-mint)/0.08)]"
+                                : "border-border/50 bg-background/35"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="min-w-0 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                                {row.label}
+                              </div>
+                              <span
+                                className={`shrink-0 rounded-[5px] px-2 py-0.5 font-mono text-[10px] ${
+                                  row.done
+                                    ? "bg-[hsl(var(--tint-mint)/0.12)] text-[hsl(var(--tint-mint-fg))]"
+                                    : "bg-secondary/45 text-muted-foreground"
+                                }`}
+                              >
+                                {row.state}
+                              </span>
+                            </div>
+                            <p className="mt-2 line-clamp-2 text-[11.5px] leading-relaxed text-muted-foreground">
+                              {row.value}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-2.5">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                          Manual outreach boundary
+                        </div>
+                        <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                          No outbound send, no CRM write, no scorecard mutation, no calendar event. This rail only
+                          prepares the human-approved outreach packet.
+                        </p>
+                      </div>
                     </div>
                     <ol className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
                       {pilotWizardSteps.map((step, index) => (
@@ -14445,15 +14588,27 @@ const LocalServicesDispatchDemoPanel = ({
                                 Open the preview modal before any manual first contact.
                               </p>
                             </div>
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => setPilotMessagePreviewOpen(true)}
-                              className="h-8"
-                            >
-                              <MessageSquareText className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
-                              Open preview modal
-                            </Button>
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => setPilotMessagePreviewOpen(true)}
+                                className="h-8"
+                              >
+                                <MessageSquareText className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                                Open preview modal
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant={currentOutreachMessagePreviewReviewed ? "secondary" : "default"}
+                                disabled={currentOutreachMessagePreviewReviewed}
+                                onClick={() => updateSelectedOutreachMessagePreviewReviewed(true)}
+                                className="h-8"
+                              >
+                                <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                                {currentOutreachMessagePreviewReviewed ? "Preview reviewed" : "Mark preview reviewed"}
+                              </Button>
+                            </div>
                           </div>
                           <p className="mt-2 text-[12px] leading-relaxed text-foreground">
                             {selectedTemplate.detail.pilotKit.outreachWizard.testMessage}

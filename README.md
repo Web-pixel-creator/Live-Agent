@@ -201,6 +201,11 @@ Local-services expansion spec:
 - the wizard now shows `Wizard progress`; `Record ready for manual outreach`
   changes the browser-local scorecard state to `Draft ready` and shows
   `Ready for manual outreach recorded` without sending outreach or writing CRM.
+- the same wizard now includes an `Outreach readiness rail`: `Wizard progress`
+  is shown as a step count, `Next outreach action` points to the first blocking
+  step, `Mark preview reviewed` records `messagePreviewReviewedByProspectKey`,
+  and `Manual outreach boundary` states the hard rule: no outbound send, no CRM
+  write, no scorecard mutation, and no calendar event from this rail.
 - the same wizard now includes `AI analyst` / `Ask AI about pilot`: a
   deterministic operator-assist sheet with `Suggested questions`,
   `Best candidate`, `Bottleneck`, `Next message`, `Copy analyst brief`, and

@@ -739,6 +739,12 @@ The wizard now exposes `Wizard progress`; `Record ready for manual outreach`
 sets the selected company to `Draft ready` in browser-local state and shows
 `Ready for manual outreach recorded`. This is still a local state transition
 only: no external outreach, no CRM write, and no Markdown scorecard mutation.
+The wizard now also exposes an `Outreach readiness rail`. It turns that
+sequence into a visible step-count `Wizard progress`, `Next outreach action`,
+and `Manual outreach boundary`; `Mark preview reviewed` records
+`messagePreviewReviewedByProspectKey` for the selected company. The boundary is
+stricter than the scorecard action: no outbound send, no CRM write, no
+scorecard mutation, and no calendar event.
 The wizard now also exposes `AI analyst` / `Ask AI about pilot`. It opens a
 deterministic operator-assist sheet with `Suggested questions`, `Best candidate`,
 `Bottleneck`, `Next message`, `Copy analyst brief`, and
@@ -1087,11 +1093,14 @@ Current shell readiness for P3:
 10. `Wizard progress`, `Record ready for manual outreach`,
    `Ready for manual outreach recorded`, and `Draft ready` are wired as a
    browser-local state transition for the selected company.
-11. `AI analyst`, `Ask AI about pilot`, `Suggested questions`, `Best candidate`,
+11. `Outreach readiness rail`, `Next outreach action`, `Mark preview reviewed`,
+   `Manual outreach boundary`, and `messagePreviewReviewedByProspectKey` are
+   visible as the manual-only prep gate before operator confirmation.
+12. `AI analyst`, `Ask AI about pilot`, `Suggested questions`, `Best candidate`,
    `Bottleneck`, `Next message`, `Copy analyst brief`,
    `local_services_pilot_ai_analyst`, and `No external LLM call` are visible as
    a deterministic operator-assist layer over the selected pilot lane.
-12. `Pilot scorecard action`, `Selected company`, `Record scorecard draft`,
+13. `Pilot scorecard action`, `Selected company`, `Record scorecard draft`,
    `Pilot workspace state`, `Saved in this browser`, `Contacted manually`,
    `Reply received`, `Rejected for now`, and `No outbound message sent` are
    visible in the shell-level wizard.

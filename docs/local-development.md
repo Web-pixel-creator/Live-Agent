@@ -294,6 +294,11 @@ is reviewed. `Open day-one recap`,
 `Copy day-one recap`, `local_services_day_one_recap`, and
 `day_one_recap_to_week_one_review` then turn the first real run into a reviewed
 handoff for week-one review.
+The outreach wizard itself now shows `Outreach readiness rail`, `Next outreach
+action`, `Mark preview reviewed`, and `Manual outreach boundary` before
+operator confirmation; it records `messagePreviewReviewedByProspectKey` only
+and explicitly blocks outbound send, CRM write, scorecard mutation, and calendar
+event side effects.
 These controls update only
 `liveDesk:localServicesPilotWorkspace:v1` in browser-local state and the manual
 activity log; they do not send outreach, create bookings, write CRM, sync
