@@ -727,9 +727,15 @@ outreach is sent autonomously.
 The `Message/test preview` step now opens a `Preview / Test message modal` with
 `Human-readable` / `JSON` modes, the exact `Copy test message` action, and
 `Copy test message preview`. The payload includes
-`local_services_test_message_preview` and
-`manual_confirmation_required_before_outreach` so the contract is explicit:
-inspect and copy only, no external send or CRM write.
+`local_services_test_message_preview`,
+`manual_confirmation_required_before_outreach`, and
+`manual_channel_variant_preview_only` so the contract is explicit: inspect and
+copy only, no external send or CRM write. The same modal now includes
+`Channel variants` for `Telegram variant`, `WhatsApp variant`, and
+`Phone script variant`, each with its own copy action (`Copy Telegram variant`,
+`Copy WhatsApp variant`, `Copy phone script`). These variants must not start a
+Telegram send, WhatsApp send, phone call, CRM write, scorecard mutation, or
+calendar event.
 The `Operator confirmation` step now opens an `Operator confirmation summary`
 with `Ready for manual outreach`, selected company, channel, exact message,
 approval checklist, and `Copy confirmation summary`. The payload includes

@@ -55,7 +55,9 @@ open `Agent setup / training state`, confirm `Business profile`,
 `Ready for test call/message`, open `Test call/message panel`, confirm
 `Sample inbound`, `Expected extracted fields`, `Pass/fail checklist`,
 `Mark check passed`, `Record test passed`, and `Test call passed`, open the
-`Preview / Test message modal`, review
+`Preview / Test message modal`, review `Channel variants`, `Telegram variant`,
+`WhatsApp variant`, `Phone script variant`, `Copy Telegram variant`,
+`Copy WhatsApp variant`, and `Copy phone script`, review
 `Operator confirmation summary`, click `Record ready for manual outreach`, open
 `Ask AI about pilot` for
 `Suggested questions`, `Best candidate`, `Bottleneck`, and `Next message`, and

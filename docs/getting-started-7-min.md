@@ -93,6 +93,11 @@ happens.
 `Message/test preview` now opens a `Preview / Test message modal` with
 `Human-readable` / `JSON` modes, the exact `Copy test message` action, and
 `Copy test message preview`; the preview does not send outreach.
+The modal also includes `Channel variants` for `Telegram variant`,
+`WhatsApp variant`, and `Phone script variant`, plus `Copy Telegram variant`,
+`Copy WhatsApp variant`, and `Copy phone script`. These are manual-only drafts:
+no Telegram, WhatsApp, phone, CRM, scorecard, calendar, or outbound-send side
+effect is fired.
 `Operator confirmation` now opens an `Operator confirmation summary` with
 `Ready for manual outreach`, selected company, channel, exact message, approval
 checklist, and `Copy confirmation summary`.

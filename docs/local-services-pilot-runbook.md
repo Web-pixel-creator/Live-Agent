@@ -173,10 +173,13 @@ Do not use the pilot to build:
     does not activate phone, Telegram, WhatsApp, billing, CRM, calendar,
     analytics, or customer sends.
 15. Use the shell `Pilot outreach wizard` and `Preview / Test message modal` to
-   inspect the exact message. Open `Operator confirmation summary` and confirm
-   `Ready for manual outreach`. Click `Record ready for manual outreach` to set
-   the browser-local status to `Draft ready`, then keep real outreach outside
-   the shell until a human sends the message manually.
+   inspect the exact message. Review `Channel variants`, `Telegram variant`,
+   `WhatsApp variant`, `Phone script variant`, `Copy Telegram variant`,
+   `Copy WhatsApp variant`, and `Copy phone script`; these are copy-only drafts
+   and must not trigger channel sends or calls. Open `Operator confirmation summary`
+   and confirm `Ready for manual outreach`. Click `Record ready for manual outreach`
+   to set the browser-local status to `Draft ready`, then keep
+   real outreach outside the shell until a human sends the message manually.
    Use `Ask AI about pilot` only as an internal deterministic analyst brief for
    `Suggested questions`, `Best candidate`, `Bottleneck`, and `Next message`;
    it does not call an external LLM, send outreach, or write CRM.

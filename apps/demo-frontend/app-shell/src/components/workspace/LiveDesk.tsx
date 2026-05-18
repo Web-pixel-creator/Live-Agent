@@ -558,6 +558,14 @@ type LocalServicePilotMessagePreview = {
   copyPreviewLabel: string;
   copyMessageLabel: string;
   messageText: string;
+  channelVariants: {
+    id: string;
+    label: string;
+    channel: string;
+    copyLabel: string;
+    useCase: string;
+    text: string;
+  }[];
   humanText: string;
   jsonText: string;
   rows: { label: string; value: string }[];
@@ -5425,6 +5433,33 @@ function buildLocalServicePilotMessagePreview(
   const company = prospect?.company ?? "No prospect selected";
   const segment = prospect?.segment ?? "unknown";
   const messageText = wizard.testMessage;
+  const companyIntro = prospect ? `${prospect.company} team` : "team";
+  const channelVariants = [
+    {
+      id: "telegram",
+      label: "Telegram variant",
+      channel: "Telegram",
+      copyLabel: "Copy Telegram variant",
+      useCase: "Short chat opener for manual Telegram contact after operator approval.",
+      text: `Hi ${companyIntro}. We help ${segment} teams capture missed phone and Telegram requests, collect the right details, and prepare an operator-approved job card. Can I send a 7-minute demo using the ${template.title} flow?`,
+    },
+    {
+      id: "whatsapp",
+      label: "WhatsApp variant",
+      channel: "WhatsApp",
+      copyLabel: "Copy WhatsApp variant",
+      useCase: "Compact WhatsApp opener; operator still sends it manually outside the shell.",
+      text: `Hi ${companyIntro}. Quick question: would a 7-minute demo be useful if it shows how missed requests become a clean job card with district, slot, price band, and approval owner? No auto-send or CRM write from our side.`,
+    },
+    {
+      id: "phone-script",
+      label: "Phone script variant",
+      channel: "Phone",
+      copyLabel: "Copy phone script",
+      useCase: "Call script for a manual discovery opener, not a dialer action.",
+      text: `Hi, I am calling about a 7-minute AI Dispatcher demo for ${segment}. The idea is simple: when a customer calls or writes in Telegram, the system collects district, issue, slot, and price inputs, then gives your operator a job card to approve. Who should I show this to?`,
+    },
+  ];
   const humanLines = [
     `Preview / Test message modal: ${template.title}`,
     `Selected company: ${company}`,
@@ -5437,10 +5472,16 @@ function buildLocalServicePilotMessagePreview(
     "Test message:",
     messageText,
     "",
+    "Channel variants:",
+    ...channelVariants.flatMap((variant) => [
+      `- ${variant.label} (${variant.channel}):`,
+      `  ${variant.text}`,
+    ]),
+    "",
     "Operator confirmation:",
     wizard.confirmationGate,
     "",
-    "Execution rule: this preview does not send outreach, write CRM, or update the pilot scorecard.",
+    "Execution rule: this preview does not send outreach, trigger Telegram/WhatsApp/phone, write CRM, or update the pilot scorecard.",
     "Operator action: copy only after manual review, send manually in the approved channel, then log the outcome.",
   ];
   const jsonText = JSON.stringify(
@@ -5465,10 +5506,22 @@ function buildLocalServicePilotMessagePreview(
       current_status_label: statusLabel,
       audience: wizard.audience,
       test_message: messageText,
+      channel_variants: channelVariants.map((variant) => ({
+        id: variant.id,
+        label: variant.label,
+        channel: variant.channel,
+        copy_label: variant.copyLabel,
+        use_case: variant.useCase,
+        text: variant.text,
+      })),
       confirmation_gate: wizard.confirmationGate,
       guardrails: [
         "manual_confirmation_required_before_outreach",
+        "manual_channel_variant_preview_only",
         "no_outbound_message_sent",
+        "no_telegram_send",
+        "no_whatsapp_send",
+        "no_phone_call_started",
         "no_crm_write",
         "manual_scorecard_sync_required",
       ],
@@ -5485,6 +5538,7 @@ function buildLocalServicePilotMessagePreview(
     copyPreviewLabel: "Copy test message preview",
     copyMessageLabel: "Copy test message",
     messageText,
+    channelVariants,
     humanText: humanLines.join("\n"),
     jsonText,
     rows: [
@@ -5492,12 +5546,14 @@ function buildLocalServicePilotMessagePreview(
       { label: "Selected company", value: company },
       { label: "Segment", value: segment },
       { label: "Current status", value: statusLabel },
-      { label: "Guardrail", value: "No outbound message sent; manual confirmation required" },
+      { label: "Channel variants", value: "Telegram, WhatsApp, phone script" },
+      { label: "Guardrail", value: "No Telegram, WhatsApp, phone, CRM, or scorecard side effect" },
     ],
     checklist: [
       "Confirm the company matches the selected local-services lane.",
       "Review the message wording and remove anything that sounds like an automated blast.",
-      "Send manually only after the operator approves the exact message and channel.",
+      "Choose the Telegram, WhatsApp, or phone-script variant only after the operator approves the exact channel.",
+      "Send or call manually outside the shell; this modal is copy-only.",
       "Log the result in the pilot scorecard after the manual contact.",
     ],
   };
@@ -16192,6 +16248,57 @@ const LocalServicePilotMessagePreviewSheet = ({
             </div>
             <div className="rounded-md border border-border/60 bg-card/30 px-3 py-3 text-[12.5px] leading-relaxed text-foreground">
               {preview.messageText}
+            </div>
+          </section>
+
+          <section className="px-7 py-5 border-b border-border/50 space-y-3">
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                Channel variants
+              </div>
+              <p className="mt-1 text-[12.5px] text-muted-foreground">
+                Telegram, WhatsApp, and phone-script variants are copy-only drafts for manual outreach.
+              </p>
+            </div>
+            <div className="grid gap-3">
+              {preview.channelVariants.map((variant) => (
+                <div
+                  key={variant.id}
+                  className="rounded-md border border-border/60 bg-card/30 px-3 py-3"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground/75">
+                          {variant.label}
+                        </span>
+                        <span className="rounded-[5px] border border-border/60 bg-muted/30 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                          {variant.channel}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                        {variant.useCase}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => onCopy(variant.text, variant.copyLabel)}
+                      className="h-8 shrink-0"
+                    >
+                      <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                      {variant.copyLabel}
+                    </Button>
+                  </div>
+                  <div className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-2.5 text-[12.5px] leading-relaxed text-foreground">
+                    {variant.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="rounded-md border border-border/50 bg-muted/20 px-3 py-2 text-[11.5px] leading-relaxed text-muted-foreground">
+              Manual channel variant preview only: no Telegram send, no WhatsApp send, no phone call starts,
+              no CRM write, and no scorecard mutation.
             </div>
           </section>
 

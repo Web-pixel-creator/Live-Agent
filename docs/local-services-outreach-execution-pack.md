@@ -203,7 +203,12 @@ Allowed reply statuses:
 6. Show `Human-readable` first, then `JSON` only if the prospect asks about CRM
    or spreadsheet export.
 7. Show `Pilot readiness`, open the `Preview / Test message modal`, and explain
-   that `Copy test message` is still manual-only and sends nothing.
+   that `Copy test message` is still manual-only and sends nothing. Then show
+   `Channel variants`: `Telegram variant`, `WhatsApp variant`, and
+   `Phone script variant`, plus `Copy Telegram variant`,
+   `Copy WhatsApp variant`, and `Copy phone script`; these are copy-only drafts
+   and do not trigger Telegram, WhatsApp, phone, CRM, scorecard, calendar, or
+   outbound-send side effects.
 8. Open `Agent setup / training state` and `Open setup checklist`, then show
    `Business profile`, `Knowledge sources`, `Agent behavior`,
    `Test call/message`, `Ready for test call/message`, `Training cards`, and
@@ -312,6 +317,7 @@ Allowed reply statuses:
    `Open account history`, and `local_services_account_history_drawer`; explain that
    the shell now chooses one current account, one next manual action, a
    browser-local account override, phone/Telegram/WhatsApp preview,
+   `Channel variants`,
    channel/message/proof/guardrail prep checklist, the account -> preview ->
    manual contact -> proof -> continue gate path, the latest account-local
    proof events, proof markers, and one proof marker to update after the real

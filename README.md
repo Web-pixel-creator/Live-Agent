@@ -195,6 +195,11 @@ Local-services expansion spec:
   `Human-readable` / `JSON` modes, the exact `Copy test message` action, and
   `Copy test message preview`; it is still a review artifact and does not send
   outreach.
+- the same modal now includes `Channel variants`: `Telegram variant`,
+  `WhatsApp variant`, and `Phone script variant`, with `Copy Telegram variant`,
+  `Copy WhatsApp variant`, and `Copy phone script`. These are copy-only
+  operator drafts; they do not trigger Telegram, WhatsApp, phone, CRM,
+  scorecard, or calendar side effects.
 - `Operator confirmation` now opens an `Operator confirmation summary` with
   `Ready for manual outreach`, selected company, channel, exact message,
   approval checklist, and `Copy confirmation summary`; it is still manual-only.

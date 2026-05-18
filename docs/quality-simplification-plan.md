@@ -95,6 +95,11 @@ The `Message/test preview` step now opens a `Preview / Test message modal` with
 `Human-readable` / `JSON` modes, `Copy test message`, and
 `Copy test message preview`, so the operator can inspect the exact text without
 creating an external send.
+It now also shows `Channel variants` with `Telegram variant`, `WhatsApp
+variant`, and `Phone script variant`, plus `Copy Telegram variant`, `Copy
+WhatsApp variant`, and `Copy phone script`. This keeps the outreach flow useful
+for real manual work while preserving the hard no-send/no-CRM/no-scorecard
+boundary.
 The `Operator confirmation` step now opens an `Operator confirmation summary`
 with `Ready for manual outreach`, selected company, channel, exact message,
 approval checklist, and `Copy confirmation summary`.

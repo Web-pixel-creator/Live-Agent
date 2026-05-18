@@ -336,17 +336,27 @@ Pilot outreach surfaces:
 3. `Next outreach action`
 4. `Mark preview reviewed`
 5. `Preview / Test message modal`
-6. `Operator confirmation summary`
-7. `AI analyst` / `Ask AI about pilot`
-8. `Pilot scorecard action`
-9. `Pilot funnel summary`
-10. `Outreach list filters`
-11. `Column settings`
+6. `Channel variants`
+7. `Telegram variant`
+8. `WhatsApp variant`
+9. `Phone script variant`
+10. `Copy Telegram variant`
+11. `Copy WhatsApp variant`
+12. `Copy phone script`
+13. `Operator confirmation summary`
+14. `AI analyst` / `Ask AI about pilot`
+15. `Pilot scorecard action`
+16. `Pilot funnel summary`
+17. `Outreach list filters`
+18. `Column settings`
 
 The readiness rail reads the selected company, `messagePreviewReviewedByProspectKey`,
 and the current pilot status to show the next blocker. It is a manual-only prep
 surface: no outbound send, no CRM write, no scorecard mutation, and no calendar
 event.
+The `Channel variants` section lives inside `Preview / Test message modal` and
+adds `manual_channel_variant_preview_only` proof for Telegram/WhatsApp/phone
+copy drafts without activating channels.
 
 `Manual outreach boundary` is the visible operator contract for that rail: the
 shell may prepare the message, preview, and confirmation summary, but the human

@@ -205,10 +205,12 @@ plumbing, cleaning, and measurement must compete on manual proof markers.
 `Current account mini-audit`, `local_services_current_account_mini_audit`,
 `Open account history`, and `local_services_account_history_drawer` show the
 current account, next manual action, browser-local account override,
-phone/Telegram/WhatsApp preview, channel/message/proof/guardrail prep
-checklist, account -> preview -> manual contact -> proof -> continue gate path,
-latest account-local proof events, and browser-local proof marker to update
-after the real action.
+phone/Telegram/WhatsApp preview, `Channel variants`, `Telegram variant`,
+`WhatsApp variant`, `Phone script variant`, `Copy Telegram variant`,
+`Copy WhatsApp variant`, `Copy phone script`, channel/message/proof/guardrail
+prep checklist, account -> preview -> manual contact -> proof -> continue gate
+path, latest account-local proof events, and browser-local proof marker to
+update after the real action.
 `Leading category action layer` then provides the `Next manual batch`,
 `Discovery questions`, `Pilot setup checklist`, `Integration hold`, and
 `Focus leading category` action that should guide the next scorecard update.
