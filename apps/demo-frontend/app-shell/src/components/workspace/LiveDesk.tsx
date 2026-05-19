@@ -10338,9 +10338,10 @@ const LocalServicesDispatchDemoPanel = ({
 
               <aside
                 aria-label="Main dispatcher full-height decision rail"
-                className="flex min-h-[640px] min-w-0 flex-col overflow-hidden rounded-md border border-border/60 bg-background/40 xl:max-h-[calc(100vh-9rem)]"
+                className="flex min-h-[640px] min-w-0 flex-col overflow-hidden rounded-md border border-border/60 bg-card/80 xl:max-h-[calc(100vh-9rem)]"
               >
-                <header className="shrink-0 border-b border-border/55 px-4 py-4">
+                <header className="shrink-0 border-b border-border/55 px-4 py-3">
+                  <span className="sr-only">Decision rail compact stack</span>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-[5px] bg-card/55 px-2 py-1 font-mono text-[10px] text-muted-foreground">
@@ -10364,28 +10365,28 @@ const LocalServicesDispatchDemoPanel = ({
                       <span className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--tint-mint-fg))]" />
                     </button>
                   </div>
-                  <div className="mt-4 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                     {selectedTemplate.title} · {formatPayloadValue(selectedTemplate.payload.district ?? "district")}
                   </div>
-                  <h3 className="mt-2 text-[22px] font-semibold tracking-tight text-foreground">
+                  <h3 className="mt-1.5 text-[21px] font-semibold tracking-tight text-foreground">
                     {formatPayloadValue(selectedTemplate.payload.customer_name ?? "Customer")}
                   </h3>
                 </header>
 
-                <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 pb-6">
-                  <section className="rounded-md border border-[hsl(var(--tint-violet)/0.28)] bg-[hsl(var(--tint-violet)/0.09)] px-4 py-4">
+                <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3.5 pb-4">
+                  <section className="rounded-md border border-[hsl(var(--tint-violet)/0.34)] bg-[hsl(var(--tint-violet)/0.12)] px-3.5 py-3 shadow-[0_0_24px_hsl(var(--tint-violet)/0.08)]">
                     <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[hsl(var(--tint-violet-fg))]">
                       <Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />
                       AI рекомендует
                     </div>
-                    <div className="mt-3 text-[14px] font-semibold leading-relaxed text-foreground">
+                    <div className="mt-2.5 text-[13.5px] font-semibold leading-snug text-foreground">
                       Отправить мастера только после подтверждения клиента и оператора.
                     </div>
-                    <div className="mt-3 border-t border-[hsl(var(--tint-violet)/0.20)] pt-3">
+                    <div className="mt-2.5 border-t border-[hsl(var(--tint-violet)/0.22)] pt-2.5">
                       <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                         Почему так · топ-3
                       </div>
-                      <ul className="mt-2 space-y-2 text-[12px] leading-relaxed text-foreground">
+                      <ul className="mt-2 space-y-1.5 text-[11.5px] leading-relaxed text-foreground">
                         {selectedTemplate.detail.approvalPolicy.slice(0, 3).map((item) => (
                           <li key={item} className="flex gap-2">
                             <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[hsl(var(--tint-violet-fg))]" />
@@ -10396,25 +10397,25 @@ const LocalServicesDispatchDemoPanel = ({
                     </div>
                   </section>
 
-                  <section className="rounded-md border border-border/55 bg-card/45 px-4 py-4">
+                  <section className="rounded-md border border-border/55 bg-card/75 px-3.5 py-3">
                     <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                       Customer request card
                     </div>
-                    <p className="mt-3 text-[13px] font-medium leading-relaxed text-foreground">
+                    <p className="mt-2.5 text-[12.5px] font-medium leading-relaxed text-foreground">
                       {selectedTemplate.detail.sampleInput}
                     </p>
-                    <div className="mt-3 border-t border-border/45 pt-3 font-mono text-[10.5px] text-muted-foreground">
+                    <div className="mt-2.5 border-t border-border/45 pt-2.5 font-mono text-[10.5px] text-muted-foreground">
                       Contact · {formatPayloadValue(selectedTemplate.payload.phone ?? "Collected by assistant")}
                     </div>
                   </section>
 
-                  <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
+                  <div className="grid gap-1.5 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
                     {[
                       ["Слот", selectedScheduleWindow],
                       ["Цена / gate", selectedApproval],
                       ["Район", formatPayloadValue(selectedTemplate.payload.district ?? "Needs confirmation")],
                     ].map(([label, value]) => (
-                      <div key={label} className="rounded-md border border-border/50 bg-card/35 px-3 py-2.5">
+                      <div key={label} className="rounded-md border border-border/50 bg-card/45 px-2.5 py-2">
                         <div className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-muted-foreground">
                           {label}
                         </div>
@@ -10423,13 +10424,16 @@ const LocalServicesDispatchDemoPanel = ({
                     ))}
                   </div>
 
-                  <section className="rounded-md border border-border/55 bg-card/35 px-4 py-3">
-                    <div className="flex items-center justify-between gap-3">
+                  <details className="group rounded-md border border-border/55 bg-card/40 px-3.5 py-2.5">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
                       <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                         Подробности кейса
                       </div>
-                      <span className="font-mono text-[10px] text-muted-foreground">3 checks · events · evidence</span>
-                    </div>
+                      <span className="inline-flex items-center gap-2 font-mono text-[10px] text-muted-foreground">
+                        3 checks · events · evidence
+                        <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" strokeWidth={1.8} />
+                      </span>
+                    </summary>
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
                       {[
                         ["Outcome", selectedOutcome],
@@ -10445,15 +10449,15 @@ const LocalServicesDispatchDemoPanel = ({
                         </div>
                       ))}
                     </div>
-                  </section>
+                  </details>
                 </div>
 
-                <footer className="shrink-0 border-t border-border/60 bg-card/95 px-4 py-3">
-                  <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+                <footer className="shrink-0 border-t border-border/60 bg-card/95 px-3.5 py-2.5">
+                  <div className="grid gap-1.5 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
                     <Button
                       size="sm"
                       onClick={() => onOpenDispatchDrawer("dispatch")}
-                      className="h-10 justify-center"
+                      className="h-10 justify-center px-4 text-[13px] font-semibold"
                       aria-label="Sticky operator action footer primary dispatch approval"
                     >
                       <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
@@ -10463,7 +10467,7 @@ const LocalServicesDispatchDemoPanel = ({
                       size="sm"
                       variant="secondary"
                       onClick={() => onOpenDispatchDrawer("handoff")}
-                      className="h-10 justify-center"
+                      className="h-9 justify-center px-3 text-[12px]"
                     >
                       <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
                       Править
@@ -10472,7 +10476,7 @@ const LocalServicesDispatchDemoPanel = ({
                       size="sm"
                       variant="ghost"
                       onClick={() => updateDispatchApprovalDecision("blocked")}
-                      className="h-10 justify-center text-[hsl(var(--tint-rose-fg))] hover:bg-[hsl(var(--tint-rose)/0.12)]"
+                      className="h-9 justify-center px-3 text-[12px] text-[hsl(var(--tint-rose-fg))] hover:bg-[hsl(var(--tint-rose)/0.12)]"
                     >
                       <X className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
                       Отклонить

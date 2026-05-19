@@ -528,6 +528,12 @@ weight.
 The footer must not cover content. Add bottom padding in the scroll body equal
 to footer height plus comfortable spacing.
 
+Current implementation marker: `Decision rail compact stack`. The main
+dispatcher rail uses a dense L1 `bg-card` shell, keeps the AI recommendation as
+the only accent/glass block, renders customer request as a separate `bg-card`
+block, collapses case details by default, and keeps edit/reject visually quieter
+than the primary dispatch action.
+
 Operator-facing footer text:
 
 `Контроль · оператор · автоотправка выкл.`
@@ -1012,7 +1018,10 @@ Current implementation slice:
    button/drawer path. It also carries the `No row action overlap` and
    `Two-line compact row` markers for regression checks.
 3. The main right rail keeps AI recommendation, customer request, slot/price,
-   details, and a dominant sticky operator footer separated. Its operator text
+   details, and a dominant sticky operator footer separated. It carries
+   `Decision rail compact stack`: dense L1 `bg-card` shell, accent-only AI
+   recommendation, separate customer request, collapsed details, and quieter
+   edit/reject actions. Its operator text
    is `Контроль · оператор · автоотправка выкл.` instead of developer-facing
    mixed English status.
 4. `view=requests` now starts with a `Dispatcher compact request queue`

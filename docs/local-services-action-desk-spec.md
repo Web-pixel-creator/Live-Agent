@@ -1355,6 +1355,10 @@ Current shell readiness for P3:
    selection separate from navigation, and anchors the selected case in a
    full-height right rail with a dominant RU-first sticky footer:
    `Контроль · оператор · автоотправка выкл.`.
+   The right rail also carries `Decision rail compact stack`: dense L1
+   `bg-card` shell, accent AI recommendation, separate customer request card,
+   collapsed case details by default, and quieter secondary/destructive footer
+   actions.
 54f. `view=requests` exposes the current secondary request UX contract:
    `Dispatcher compact request queue`, `Selected request decision rail`,
    `AI recommendation packet`, `Customer request card`, and

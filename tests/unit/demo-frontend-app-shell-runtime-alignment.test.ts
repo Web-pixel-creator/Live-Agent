@@ -549,6 +549,11 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Main dispatcher workbench/);
   assert.match(liveDesk, /Main dispatcher compact queue/);
   assert.match(liveDesk, /Main dispatcher full-height decision rail/);
+  assert.match(liveDesk, /Decision rail compact stack/);
+  assert.match(liveDesk, /bg-card\/80 xl:max-h-\[calc\(100vh-9rem\)\]/);
+  assert.match(liveDesk, /bg-card\/75 px-3\.5 py-3/);
+  assert.match(liveDesk, /group-open:rotate-180/);
+  assert.match(liveDesk, /h-10 justify-center px-4 text-\[13px\] font-semibold/);
   assert.match(liveDesk, /Click selects dispatcher preview/);
   assert.match(liveDesk, /Explicit full task open/);
   assert.match(liveDesk, /No row action overlap/);
@@ -568,11 +573,16 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Explicit open action: Open dispatch drawer/);
   assert.match(liveDesk, /no autonomous dispatch/);
   assert.match(readme, /Selected request\s+decision rail` now has a bounded viewport/);
+  assert.match(readme, /Decision rail compact stack/);
   assert.match(operatorGuide, /fixed-height shell, independent scroll body/);
+  assert.match(operatorGuide, /Decision rail compact stack/);
   assert.match(localServicesAgentHandoff, /bounded flex column with its own\s+scroll body/);
+  assert.match(localServicesAgentHandoff, /Decision rail compact stack/);
   assert.match(localServicesAgentHandoff, /Two-line compact row/);
   assert.match(localServicesSpec, /Two-line compact row/);
+  assert.match(localServicesSpec, /Decision rail compact stack/);
   assert.match(localServicesDeveloperMap, /Two-line compact row/);
+  assert.match(localServicesDeveloperMap, /Decision rail compact stack/);
   assert.match(liveDesk, /const requestInboxNextAction =/);
   assert.match(liveDesk, /const requestInboxActionRows =/);
   assert.match(liveDesk, /Operator action rail/);
@@ -3435,6 +3445,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /Main dispatcher workbench/);
   assert.match(localServicesSpec, /Main dispatcher compact queue/);
   assert.match(localServicesSpec, /Main dispatcher full-height decision rail/);
+  assert.match(localServicesSpec, /Decision rail compact stack/);
   assert.match(localServicesSpec, /Click selects dispatcher\s+preview/);
   assert.match(localServicesSpec, /Explicit full task open/);
   assert.match(localServicesSpec, /No row action overlap/);

@@ -139,6 +139,10 @@ Local-services expansion spec:
   the queue rows use a two-line compact row contract with a fixed right action
   lane, and the footer uses the operator-facing guardrail
   `Контроль · оператор · автоотправка выкл.`.
+  The main rail now carries `Decision rail compact stack`: a dense `bg-card`
+  L1 shell, accent AI recommendation, separate customer request card, collapsed
+  case details by default, and a footer where the primary dispatch action
+  remains visually dominant over edit/reject.
   The `Requests` view mirrors that rail contract too: `Selected request
   decision rail` now has a bounded viewport, its own scroll body, and a
   non-overlapping sticky action footer.

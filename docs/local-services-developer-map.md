@@ -145,6 +145,9 @@ customer request and ends in the RU-first sticky footer:
 `Контроль · оператор · автоотправка выкл.` This is still a manual approval
 surface: it must not send, book, dispatch, write CRM, bill, or activate a
 channel.
+The same rail carries `Decision rail compact stack`: dense L1 `bg-card` shell,
+accent-only AI recommendation, separate customer request, collapsed details by
+default, and quieter edit/reject footer actions.
 
 `view=requests` has the first secondary actionable panel contract. It renders a
 `Dispatcher compact request queue` beside a `Selected request decision rail`.

@@ -78,6 +78,10 @@ in the fixed right lane, so inline metadata does not collide with
 approve/wait/reject buttons. The right rail separates
 the AI recommendation from the customer request and keeps the sticky footer
 operator-facing: `Контроль · оператор · автоотправка выкл.`.
+It also carries `Decision rail compact stack`: the rail is a dense L1 `bg-card`
+surface, AI stays in an accent panel, customer request stays in a separate
+card, case details are collapsed by default, and edit/reject are quieter than
+the primary dispatch action.
 The `Requests` view uses the same bounded rail behavior: `Selected request
 decision rail` keeps a fixed-height shell, independent scroll body, and
 footer actions outside the scroll area so preview content is not hidden under
