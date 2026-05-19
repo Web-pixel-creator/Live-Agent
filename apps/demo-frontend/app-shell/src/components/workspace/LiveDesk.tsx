@@ -14487,8 +14487,8 @@ const LocalServicesDispatchDemoPanel = ({
                   </div>
                 </div>
                 <div className="mt-3">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex shrink-0 flex-wrap items-center gap-2">
                       <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
                         Pilot metrics
                       </div>
@@ -14496,50 +14496,55 @@ const LocalServicesDispatchDemoPanel = ({
                         {currentMetricStatusLabel}
                       </span>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setPilotMetricsTrackerMode("human");
-                        setPilotMetricsTrackerOpen(true);
-                      }}
-                      className="h-7"
+                    <div
+                      className="relative z-10 flex min-w-0 flex-wrap items-center gap-2 sm:justify-end"
+                      aria-label="Pilot metric and evidence export actions"
                     >
-                      Open metrics tracker
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setPilotDailyLogMode("human");
-                        setPilotDailyLogOpen(true);
-                      }}
-                      className="h-7"
-                    >
-                      Open daily log
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setPilotWeekOneReviewMode("human");
-                        setPilotWeekOneReviewOpen(true);
-                      }}
-                      className="h-7"
-                    >
-                      Open week-one review
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setPilotEvidencePackMode("human");
-                        setPilotEvidencePackOpen(true);
-                      }}
-                      className="h-7"
-                    >
-                      Open evidence pack
-                    </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setPilotMetricsTrackerMode("human");
+                          setPilotMetricsTrackerOpen(true);
+                        }}
+                        className="h-7"
+                      >
+                        Open metrics tracker
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setPilotDailyLogMode("human");
+                          setPilotDailyLogOpen(true);
+                        }}
+                        className="h-7"
+                      >
+                        Open daily log
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setPilotWeekOneReviewMode("human");
+                          setPilotWeekOneReviewOpen(true);
+                        }}
+                        className="h-7"
+                      >
+                        Open week-one review
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setPilotEvidencePackMode("human");
+                          setPilotEvidencePackOpen(true);
+                        }}
+                        className="h-7"
+                      >
+                        Open evidence pack
+                      </Button>
+                    </div>
                   </div>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                     {selectedTemplate.detail.pilotKit.metrics.map((metric) => (

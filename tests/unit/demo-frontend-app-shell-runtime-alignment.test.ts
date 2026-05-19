@@ -967,6 +967,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Review the manual activity log before copying the export/);
   assert.match(liveDesk, /no_crm_write/);
   assert.match(liveDesk, /Pilot metrics tracker/);
+  assert.match(liveDesk, /Pilot metric and evidence export actions/);
   assert.match(liveDesk, /Open metrics tracker/);
   assert.match(liveDesk, /Copy pilot metrics tracker/);
   assert.match(liveDesk, /local_services_pilot_metrics_tracker/);

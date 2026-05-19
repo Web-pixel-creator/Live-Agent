@@ -349,6 +349,10 @@ Local-services expansion spec:
   `First request outcome` / `firstRequestOutcomeByProspectKey` plus
   `Week-one owner decision` / `week_one_owner_decision_to_evidence_pack` into
   the paid-pilot readiness proof pack.
+- the pilot metrics/export controls now sit in one bounded
+  `Pilot metric and evidence export actions` rail, so `Open metrics tracker`,
+  `Open daily log`, `Open week-one review`, and `Open evidence pack` remain
+  clickable without overlapping the adjacent handoff/export column.
 - `Pilot readiness` now links to repo-owned pilot artifacts at
   `/workspace-docs/local-services-pilot-offer.md` and
   `/workspace-docs/local-services-demo-script.md`. It now also exposes

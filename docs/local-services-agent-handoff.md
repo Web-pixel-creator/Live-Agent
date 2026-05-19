@@ -253,6 +253,11 @@ Current repo-owned porting state:
    `Manual activity log`, pilot workspace export, and `Pilot evidence pack` via
    `selected_channel_id`, `selected_channel`, and
    `selected_channel_state_key`.
+7. The pilot metric/export buttons live in one bounded action rail:
+   `Pilot metric and evidence export actions`. Keep `Open metrics tracker`,
+   `Open daily log`, `Open week-one review`, and `Open evidence pack` inside
+   that rail so they wrap within the pilot column and cannot overlap the
+   adjacent handoff/export surface.
 
 What not to take now:
 

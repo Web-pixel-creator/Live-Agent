@@ -324,6 +324,10 @@ customer-message, or public-doc storage automation. It now also carries
 `First request outcome` and `firstRequestOutcomeByProspectKey` into the
 redacted paid-pilot readiness proof pack, plus `Week-one owner decision` through
 `week_one_owner_decision_to_evidence_pack`.
+The pilot metrics/export controls are intentionally grouped as
+`Pilot metric and evidence export actions`, so `Open metrics tracker`,
+`Open daily log`, `Open week-one review`, and `Open evidence pack` stay in the
+same bounded rail and remain clickable beside the handoff/export preview.
 Use `Open offer doc`, `Open demo script`, and `Open recording checklist` when
 the operator needs the pilot artifact layer instead of the inline summary. The
 recording checklist is for a 90-second walkthrough and keeps claims limited to
