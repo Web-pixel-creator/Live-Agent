@@ -552,6 +552,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Click selects dispatcher preview/);
   assert.match(liveDesk, /Explicit full task open/);
   assert.match(liveDesk, /No row action overlap/);
+  assert.match(liveDesk, /Two-line compact row/);
+  assert.match(liveDesk, /min-h-\[86px\]/);
+  assert.match(liveDesk, /md:grid-cols-\[48px_minmax\(0,1fr\)_192px\]/);
+  assert.match(liveDesk, /xl:grid-cols-\[48px_minmax\(0,1fr\)_204px\]/);
   assert.match(liveDesk, /Dispatcher compact request queue/);
   assert.match(liveDesk, /Selected request decision rail/);
   assert.match(liveDesk, /flex min-h-\[560px\] min-w-0 flex-col overflow-hidden rounded-md border border-border\/60 bg-card\/70 xl:max-h-\[calc\(100vh-10rem\)\]/);
@@ -566,6 +570,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Selected request\s+decision rail` now has a bounded viewport/);
   assert.match(operatorGuide, /fixed-height shell, independent scroll body/);
   assert.match(localServicesAgentHandoff, /bounded flex column with its own\s+scroll body/);
+  assert.match(localServicesAgentHandoff, /Two-line compact row/);
+  assert.match(localServicesSpec, /Two-line compact row/);
+  assert.match(localServicesDeveloperMap, /Two-line compact row/);
   assert.match(liveDesk, /const requestInboxNextAction =/);
   assert.match(liveDesk, /const requestInboxActionRows =/);
   assert.match(liveDesk, /Operator action rail/);

@@ -10135,6 +10135,9 @@ const LocalServicesDispatchDemoPanel = ({
                       <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
                         No row action overlap
                       </span>
+                      <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                        Two-line compact row
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -10178,7 +10181,7 @@ const LocalServicesDispatchDemoPanel = ({
                         }}
                         aria-label={`Click selects dispatcher preview for ${template.ref}`}
                         aria-current={selected ? "true" : undefined}
-                        className={`grid min-h-[104px] grid-cols-1 gap-3 border-b border-border/45 px-4 py-3 outline-none transition-smooth md:grid-cols-[56px_minmax(0,1fr)_220px] ${
+                        className={`grid min-h-[86px] grid-cols-1 items-center gap-2 border-b border-border/45 px-3 py-2.5 outline-none transition-smooth md:grid-cols-[48px_minmax(0,1fr)_192px] xl:grid-cols-[48px_minmax(0,1fr)_204px] ${
                           selected
                             ? "bg-[hsl(var(--tint-amber)/0.09)] ring-1 ring-inset ring-[hsl(var(--tint-amber)/0.30)]"
                             : "bg-card/20 hover:bg-card/35"
@@ -10193,9 +10196,9 @@ const LocalServicesDispatchDemoPanel = ({
                               }
                         }
                       >
-                        <div className="flex items-start gap-2 md:block">
+                        <div className="flex items-center gap-2 md:block">
                           <span
-                            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md ring-1 ring-inset"
+                            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md ring-1 ring-inset"
                             style={{
                               backgroundColor: `hsl(var(--tint-${rowTone}) / 0.13)`,
                               color: `hsl(var(--tint-${rowTone}-fg))`,
@@ -10205,13 +10208,13 @@ const LocalServicesDispatchDemoPanel = ({
                             <TemplateIcon className="h-4 w-4" strokeWidth={1.9} />
                           </span>
                           <span
-                            className="mt-0.5 hidden h-2 w-2 rounded-full md:block"
+                            className="mt-0.5 hidden h-1.5 w-1.5 rounded-full md:ml-7 md:block"
                             style={{ backgroundColor: `hsl(var(--tint-${rowTone}-fg))` }}
                           />
                         </div>
 
-                        <div className="min-w-0">
-                          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                        <div className="min-w-0 space-y-1.5">
+                          <div className="flex min-w-0 items-center gap-x-2 overflow-hidden whitespace-nowrap">
                             <span className="font-mono text-[10px] text-muted-foreground">{template.ref}</span>
                             <Pill tone={rowTone as LocalServiceDemoTemplate["tone"]} size="sm">
                               {priority}
@@ -10219,44 +10222,60 @@ const LocalServicesDispatchDemoPanel = ({
                             <span className="truncate text-[13px] font-semibold tracking-tight text-foreground">
                               {formatPayloadValue(template.payload.customer_name ?? "Customer")}
                             </span>
-                            <span className="truncate text-[11.5px] text-muted-foreground">{template.title}</span>
+                            <span className="hidden h-3 w-px shrink-0 bg-border/55 sm:inline-flex" />
+                            <span className="min-w-[120px] truncate text-[11.5px] text-muted-foreground">{template.title}</span>
+                            <span className="hidden shrink-0 text-muted-foreground/55 md:inline">/</span>
                             <span className="truncate text-[11.5px] text-muted-foreground">
                               {formatPayloadValue(template.payload.district ?? "district")}
                             </span>
                           </div>
-                          <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5 font-mono text-[10.5px]">
-                            <span className="rounded-[5px] bg-background/55 px-2 py-1 text-foreground">
+                          <div className="flex min-w-0 items-center gap-1.5 overflow-hidden font-mono text-[10.5px]">
+                            <span className="max-w-[220px] truncate rounded-[5px] bg-background/55 px-2 py-1 text-foreground">
                               {windowLabel}
                             </span>
-                            <span className="rounded-[5px] bg-background/55 px-2 py-1 text-muted-foreground">
+                            <span className="max-w-[170px] truncate rounded-[5px] bg-background/55 px-2 py-1 text-muted-foreground">
                               {priceOrApproval}
                             </span>
-                            <span className="inline-flex items-center gap-1 rounded-[5px] bg-background/55 px-2 py-1 text-foreground">
+                            <span className="inline-flex shrink-0 items-center gap-1 rounded-[5px] bg-background/55 px-2 py-1 text-foreground">
                               {slaLabel}
                               <span
-                                className="inline-block h-1 w-11 rounded-full"
+                                className="inline-block h-1 w-10 rounded-full"
                                 style={{ backgroundColor: `hsl(var(--tint-${rowTone}-fg))` }}
                               />
                             </span>
-                          </div>
-                          <div className="mt-2 truncate text-[11.5px] font-medium text-foreground">
-                            {localServiceHighlightValue(template, "Outcome")}
+                            <span className="hidden h-3 w-px shrink-0 bg-border/45 lg:inline-flex" />
+                            <span className="min-w-0 truncate font-sans text-[11.5px] font-medium text-foreground">
+                              {localServiceHighlightValue(template, "Outcome")}
+                            </span>
                           </div>
                         </div>
 
-                        <div className="flex min-w-0 items-center justify-between gap-2 md:flex-col md:items-end md:justify-center">
-                          <div
-                            className="inline-flex items-center gap-1.5 rounded-[5px] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] ring-1 ring-inset"
-                            style={{
-                              backgroundColor: `hsl(var(--tint-${rowTone}) / ${index < 2 ? "0.17" : "0.10"})`,
-                              color: `hsl(var(--tint-${rowTone}-fg))`,
-                              ["--tw-ring-color" as const]: `hsl(var(--tint-${rowTone}) / ${index < 2 ? "0.36" : "0.22"})`,
-                            }}
-                          >
-                            <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                            {stateLabel}
+                        <div className="flex min-w-0 items-center justify-between gap-2 md:flex-col md:items-end md:justify-center md:gap-1.5">
+                          <div className="flex max-w-full items-center gap-1.5">
+                            <div
+                              className="max-w-[128px] truncate rounded-[5px] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] ring-1 ring-inset"
+                              style={{
+                                backgroundColor: `hsl(var(--tint-${rowTone}) / ${index < 2 ? "0.17" : "0.10"})`,
+                                color: `hsl(var(--tint-${rowTone}-fg))`,
+                                ["--tw-ring-color" as const]: `hsl(var(--tint-${rowTone}) / ${index < 2 ? "0.36" : "0.22"})`,
+                              }}
+                            >
+                              {stateLabel}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                onSelectService(template.id);
+                                onOpenDispatchDrawer("dispatch");
+                              }}
+                              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[5px] text-muted-foreground ring-1 ring-inset ring-border/50 transition-smooth hover:bg-secondary/60 hover:text-foreground"
+                              aria-label={`Explicit full task open for ${template.ref}`}
+                            >
+                              <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.8} />
+                            </button>
                           </div>
-                          <div className="inline-flex items-center gap-1 rounded-md border border-border/45 bg-background/55 p-1">
+                          <div className="inline-flex items-center gap-0.5 rounded-md border border-border/45 bg-background/70 p-1">
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <button
@@ -10310,19 +10329,6 @@ const LocalServicesDispatchDemoPanel = ({
                               <TooltipContent>Отклонить</TooltipContent>
                             </Tooltip>
                           </div>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              onSelectService(template.id);
-                              onOpenDispatchDrawer("dispatch");
-                            }}
-                            className="inline-flex h-7 items-center gap-1 rounded-[5px] px-2 font-mono text-[10px] uppercase tracking-[0.12em] text-foreground ring-1 ring-inset ring-border/55 transition-smooth hover:bg-secondary/60"
-                            aria-label={`Explicit full task open for ${template.ref}`}
-                          >
-                            Открыть
-                            <ArrowUpRight className="h-3 w-3" strokeWidth={1.8} />
-                          </button>
                         </div>
                       </article>
                     );

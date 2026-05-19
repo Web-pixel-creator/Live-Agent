@@ -136,7 +136,8 @@ Local-services expansion spec:
   The default `Dispatcher` view is now the primary workbench: `Main dispatcher
   compact queue` sits next to `Main dispatcher full-height decision rail`; row
   click updates the preview, `Explicit full task open` stays on the row action,
-  and the footer uses the operator-facing guardrail
+  the queue rows use a two-line compact row contract with a fixed right action
+  lane, and the footer uses the operator-facing guardrail
   `Контроль · оператор · автоотправка выкл.`.
   The `Requests` view mirrors that rail contract too: `Selected request
   decision rail` now has a bounded viewport, its own scroll body, and a

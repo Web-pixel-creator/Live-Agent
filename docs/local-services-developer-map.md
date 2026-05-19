@@ -137,9 +137,10 @@ source-level guardrails in
 `view=dispatcher` is the primary operator workbench. It now renders a
 `Main dispatcher compact queue` beside a
 `Main dispatcher full-height decision rail`. The queue is click-to-preview
-only, has no scroll-spy selection, uses the fixed `56px minmax(0, 1fr) 220px`
-row grid, and keeps `No row action overlap` as a source-level regression
-marker. The selected-case rail separates the AI recommendation from the
+only, has no scroll-spy selection, uses the fixed
+`48px minmax(0, 1fr) 192-204px` two-line row grid, and keeps
+`No row action overlap` plus `Two-line compact row` as source-level regression
+markers. The selected-case rail separates the AI recommendation from the
 customer request and ends in the RU-first sticky footer:
 `Контроль · оператор · автоотправка выкл.` This is still a manual approval
 surface: it must not send, book, dispatch, write CRM, bill, or activate a

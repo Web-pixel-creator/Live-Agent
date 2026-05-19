@@ -454,7 +454,7 @@ Use a 2-3 line row:
 
 Recommended row grid:
 
-`grid-template-columns: 56px minmax(0, 1fr) 220px`
+`grid-template-columns: 48px minmax(0, 1fr) 192-204px`
 
 Rules:
 
@@ -464,8 +464,8 @@ Rules:
 4. No absolute positioning for row actions.
 5. No negative margins.
 6. No overlap between inline metadata and right-side buttons.
-7. Normal row height: about 96-108px.
-8. Selected urgent row can reach about 112px, but not much more.
+7. Normal row height: about 86-96px.
+8. Selected urgent row can reach about 104px, but not much more.
 
 Right row actions:
 
@@ -1007,10 +1007,10 @@ Current implementation slice:
    `Main dispatcher compact queue` beside a
    `Main dispatcher full-height decision rail`.
 2. The main queue uses the approved row contract:
-   `grid-template-columns: 56px minmax(0, 1fr) 220px`, click selects the
+   `grid-template-columns: 48px minmax(0, 1fr) 192-204px`, click selects the
    dispatcher preview, and `Explicit full task open` stays on the row action
-   button/drawer path. It also carries the `No row action overlap` marker for
-   regression checks.
+   button/drawer path. It also carries the `No row action overlap` and
+   `Two-line compact row` markers for regression checks.
 3. The main right rail keeps AI recommendation, customer request, slot/price,
    details, and a dominant sticky operator footer separated. Its operator text
    is `Контроль · оператор · автоотправка выкл.` instead of developer-facing

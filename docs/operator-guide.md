@@ -73,8 +73,9 @@ console/task detail. Queue scroll is not allowed to auto-change the selected
 case.
 The default `Dispatcher` screen now uses the product workbench layout:
 `Main dispatcher compact queue` plus `Main dispatcher full-height decision
-rail`. The queue rows keep actions in the right 220px lane, so inline metadata
-does not collide with approve/wait/reject buttons. The right rail separates
+rail`. The queue rows now use a two-line compact row contract and keep actions
+in the fixed right lane, so inline metadata does not collide with
+approve/wait/reject buttons. The right rail separates
 the AI recommendation from the customer request and keeps the sticky footer
 operator-facing: `Контроль · оператор · автоотправка выкл.`.
 The `Requests` view uses the same bounded rail behavior: `Selected request

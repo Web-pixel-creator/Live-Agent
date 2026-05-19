@@ -1349,8 +1349,9 @@ Current shell readiness for P3:
 54e. `view=dispatcher` exposes the primary dashboard UX contract:
    `Main dispatcher workbench`, `Main dispatcher compact queue`,
    `Main dispatcher full-height decision rail`, `Click selects dispatcher
-   preview`, `Explicit full task open`, and `No row action overlap`. The main
-   queue uses the compact 56px / flexible content / 220px action grid, keeps
+   preview`, `Explicit full task open`, `No row action overlap`, and
+   `Two-line compact row`. The main queue uses the compact 48px / flexible
+   content / 192-204px action grid, keeps
    selection separate from navigation, and anchors the selected case in a
    full-height right rail with a dominant RU-first sticky footer:
    `Контроль · оператор · автоотправка выкл.`.
