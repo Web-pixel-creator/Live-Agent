@@ -138,7 +138,8 @@ mirrors browser-local state only and does not send
 outreach, write CRM, sync analytics, or mutate Markdown docs.
 It also shows `Manual activity log`, `Last manual action`, `Copy activity log`,
 and `local_services_manual_activity_log` for browser-local scorecard and metric
-events. The activity log says `No external side effects` and does not send
+events. The activity log includes `Selected outreach channel` /
+`selectedChannelByProspectKey`, says `No external side effects`, and does not send
 outreach, create calendar events, write CRM, sync analytics, bill, or mutate
 Markdown docs.
 3.5. The same checklist now includes `Open discovery prep`, which opens
@@ -291,7 +292,8 @@ analytics, billing, bookings, or messages. `Record weekly sync reviewed`,
 only that a human completed the private tracker copy. `Pilot week-one review`
 and `Pilot evidence pack` read the same state as `Weekly sync reviewed`, and
 their `Evidence readiness` stays blocked until that manual private scorecard sync
-is reviewed. `Open day-one recap`,
+is reviewed. The evidence pack also carries `selected_channel_id`,
+`selected_channel`, and `selected_channel_state_key`. `Open day-one recap`,
 `Day-one recap`,
 `Copy day-one recap`, `local_services_day_one_recap`, and
 `day_one_recap_to_week_one_review` then turn the first real run into a reviewed

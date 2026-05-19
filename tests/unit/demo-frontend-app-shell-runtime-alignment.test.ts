@@ -785,6 +785,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Last manual action/);
   assert.match(liveDesk, /Copy activity log/);
   assert.match(liveDesk, /local_services_manual_activity_log/);
+  assert.match(liveDesk, /Selected channel state key: selectedChannelByProspectKey/);
+  assert.match(liveDesk, /Confirm the selected outreach channel before copying the export/);
+  assert.match(liveDesk, /Channel state/);
   assert.match(liveDesk, /No external side\s+effects/);
   assert.match(liveDesk, /Pilot status recorded/);
   assert.match(liveDesk, /Metric capture recorded/);
@@ -951,7 +954,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Open pilot export/);
   assert.match(liveDesk, /Pilot workspace export drawer/);
   assert.match(liveDesk, /Copy pilot workspace export/);
-  assert.match(liveDesk, /buildLocalServicePilotWorkspaceExport\(pilotFunnelRows, pilotFunnelCounts, pilotWorkspaceState\.activityLog\)/);
+  assert.match(liveDesk, /buildLocalServicePilotWorkspaceExport\(/);
+  assert.match(liveDesk, /pilotWorkspaceState\.selectedChannelByProspectKey/);
   assert.match(liveDesk, /Open workspace API export/);
   assert.match(liveDesk, /Workspace API export drawer/);
   assert.match(liveDesk, /Copy workspace API export/);
@@ -1021,6 +1025,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Week-two evidence pack/);
   assert.match(liveDesk, /Copy evidence pack/);
   assert.match(liveDesk, /local_services_pilot_evidence_pack/);
+  assert.match(liveDesk, /selected_channel_evidence_pack/);
+  assert.match(liveDesk, /selected_channel_draft/);
+  assert.match(liveDesk, /Include the selected outreach channel before sharing the evidence pack internally/);
   assert.match(liveDesk, /manual_first_request_outcome_evidence/);
   assert.match(liveDesk, /Week-one owner decision/);
   assert.match(liveDesk, /Include the first request outcome before paid-pilot readiness is reviewed/);

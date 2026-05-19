@@ -144,7 +144,9 @@ packet` / `Launch packet preview` with `First manual contact checklist`,
 shows the 14-day pilot operating loop without sending anything automatically.
 The same loop now shows `Manual activity log`, `Last manual action`,
 `Copy activity log`, and `local_services_manual_activity_log` for browser-local
-scorecard and metric events. It records `No external side effects`: no outreach
+scorecard, selected-channel, and metric events. It includes
+`Selected outreach channel` / `selectedChannelByProspectKey` and records
+`No external side effects`: no outreach
 send, CRM write, calendar event, analytics sync, billing action, or Markdown
 mutation.
 Use `Open discovery prep` after a company is marked `Reply received`. The
@@ -181,6 +183,8 @@ Use `Open pilot export` to open the `Pilot workspace export drawer`. It provides
 scorecard or CRM sync. It includes the latest `Manual activity log` /
 `Last manual action` so reviewed scorecard and metric events travel with the
 funnel snapshot. It does not send messages or write CRM.
+The same export carries the selected channel for each candidate so the reviewed
+snapshot is enough for manual CRM/scorecard copy.
 Use `Open workspace API export` to inspect the repo-owned workspace boundary.
 The `Workspace API export drawer` exposes `workspace API + local fallback`,
 `Copy workspace API export`, `local_services_workspace_api`, and
@@ -320,7 +324,9 @@ only after the private tracker is updated; `weeklyScorecardSyncReviewedByService
 is browser-local proof, and `Reset weekly sync review` clears it if the data
 changes. `Pilot week-one review` and `Pilot evidence pack` read the same proof
 as `Weekly sync reviewed`, so `Evidence readiness` stays blocked until that
-manual private scorecard sync is reviewed. Use
+manual private scorecard sync is reviewed. The evidence pack also includes
+`selected_channel_id`, `selected_channel`, and `selected_channel_state_key`.
+Use
 `Open day-one recap` after the first real run; `Day-one recap` and
 `Copy day-one recap` export `local_services_day_one_recap` /
 `manual_day_one_recap` and hand the result into

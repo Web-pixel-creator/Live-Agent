@@ -277,8 +277,9 @@ Allowed reply statuses:
    and `local_services_pilot_launch_packet`; explain that this is the final
    operator-reviewed packet before a human sends the first contact manually.
 17. Show `Manual activity log`, `Last manual action`, `Copy activity log`,
-   `local_services_manual_activity_log`, and `No external side effects`;
-   explain that this records browser-local scorecard and metric events only,
+   `local_services_manual_activity_log`, `Selected outreach channel`,
+   `selectedChannelByProspectKey`, and `No external side effects`; explain that
+   this records browser-local scorecard, selected channel, and metric events only,
    not outreach sends, CRM writes, calendar events, analytics sync, billing, or
    Markdown mutation.
 18. Show `Pilot ops today`, `Copy pilot ops handoff`, `Open ops confirmation`,
@@ -365,6 +366,8 @@ Allowed reply statuses:
 24. Show `Open evidence pack`, `Pilot evidence pack`,
    `Week-two evidence pack`, `Copy evidence pack`, and
    `local_services_pilot_evidence_pack`; confirm it carries
+   `Selected outreach channel`, `selected_channel_id`, `selected_channel`,
+   `selected_channel_state_key`,
    `First request outcome` / `firstRequestOutcomeByProspectKey`, plus
    `Week-one owner decision` through
    `week_one_owner_decision_to_evidence_pack`, and explain that this is a

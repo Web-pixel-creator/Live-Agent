@@ -1,6 +1,6 @@
 # Local Services Agent Handoff
 
-Last assembled: 2026-05-14.
+Last assembled: 2026-05-19.
 
 Use this file when another agent, developer, or product reviewer needs to
 understand the current direction without reading the whole conversation history.
@@ -248,6 +248,11 @@ Current repo-owned porting state:
    `messagePreviewReviewedByProspectKey` for the selected company only and does
    not send outreach, write CRM, mutate the scorecard, or create calendar
    events.
+6. The selected outreach channel is now treated as export proof, not only UI
+   state. `selectedChannelByProspectKey` feeds confirmation, launch packet,
+   `Manual activity log`, pilot workspace export, and `Pilot evidence pack` via
+   `selected_channel_id`, `selected_channel`, and
+   `selected_channel_state_key`.
 
 What not to take now:
 
@@ -757,7 +762,10 @@ Useful states:
 8. Selected channel proof: `Selected outreach channel`, `Select Telegram`,
    `Select WhatsApp`, `Select phone script`, `Channel selected`,
    `selectedChannelByProspectKey`.
-9. Guardrail marker: `manual_channel_variant_preview_only`; no Telegram send,
+9. Export proof: `Manual activity log`, pilot workspace export, and
+   `Pilot evidence pack` must show the selected channel before any operator
+   copy action.
+10. Guardrail marker: `manual_channel_variant_preview_only`; no Telegram send,
    WhatsApp send, phone call, CRM write, scorecard mutation, or calendar event.
 
 Add `Ask AI about pilot` later:

@@ -288,7 +288,7 @@ Important state fields:
 | `statusByProspectKey` | Local funnel status such as draft ready, contacted manually, reply received, rejected. | None |
 | `firstRequestOutcomeByProspectKey` | Operator-entered first request outcome. | None |
 | `messagePreviewReviewedByProspectKey` | Confirms the operator opened/reviewed the message preview. | None |
-| `selectedChannelByProspectKey` | Stores the `Selected outreach channel` after `Select Telegram`, `Select WhatsApp`, or `Select phone script` shows `Channel selected`. | None |
+| `selectedChannelByProspectKey` | Stores the `Selected outreach channel` after `Select Telegram`, `Select WhatsApp`, or `Select phone script` shows `Channel selected`; copied into manual activity, workspace export, and evidence pack surfaces. | None |
 | `contactPacketCopiedByProspectKey` | Confirms the manual-only contact packet was copied. | None |
 | `scorecardRowCopiedByProspectKey` | Confirms the private scorecard row was reviewed/copied. | None |
 | `batchReviewHandoffCopiedByProspectKey` | Confirms the current account batch-review handoff was copied. | None |
@@ -362,7 +362,10 @@ The same modal owns the `Selected outreach channel` contract:
 `Select Telegram`, `Select WhatsApp`, or `Select phone script` writes
 `Channel selected` to `selectedChannelByProspectKey`. Confirmation and launch
 packet builders read that key so the exported exact message follows the
-operator-approved channel.
+operator-approved channel. The manual activity log, pilot workspace export, and
+pilot evidence pack also include `selected_channel_id`, `selected_channel`, and
+`selected_channel_state_key` so later review sees the approved manual channel
+without inspecting the modal again.
 
 `Manual outreach boundary` is the visible operator contract for that rail: the
 shell may prepare the message, preview, and confirmation summary, but the human

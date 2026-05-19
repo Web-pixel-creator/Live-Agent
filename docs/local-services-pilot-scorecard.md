@@ -88,10 +88,11 @@ Use it to:
    `Selected company`, `Draft status`, `Next action`, `Copy launch packet`,
    and `local_services_pilot_launch_packet`
 10. review `Manual activity log`, `Last manual action`, `Copy activity log`,
-   `local_services_manual_activity_log`, and `No external side effects` after
-   scorecard or metric status changes; it is browser-local proof only and does
-   not send outreach, write CRM, create calendar events, sync analytics, bill,
-   or mutate Markdown docs
+   `local_services_manual_activity_log`, `Selected outreach channel`,
+   `selectedChannelByProspectKey`, and `No external side effects` after
+   scorecard, selected-channel, or metric status changes; it is browser-local
+   proof only and does not send outreach, write CRM, create calendar events,
+   sync analytics, bill, or mutate Markdown docs
 11. use `Open discovery prep` after `Reply received` to review
    `Discovery call prep`, `Questions to ask`, `Pilot success criteria`,
    `Copy discovery call prep`, and `local_services_discovery_call_prep`
@@ -159,7 +160,7 @@ outreach list. Use it to see:
 `Open pilot export` opens the `Pilot workspace export drawer`. Use
 `Human-readable` when manually updating this scorecard and `JSON` when pasting
 into CRM or a spreadsheet. It includes the latest `Manual activity log` /
-`Last manual action`. `Copy pilot workspace export` copies the reviewed
+`Last manual action` and selected channel per candidate. `Copy pilot workspace export` copies the reviewed
 snapshot only; it does not send a message, update CRM, or mutate this Markdown
 file automatically.
 `Open workspace API export` opens `Workspace API export drawer` for the
@@ -252,7 +253,8 @@ the browser-local `weeklyScorecardSyncReviewedByService` proof. Use
 `Reset weekly sync review` if the outcome or metrics changed before the next
 manual copy. `Pilot week-one review` and `Pilot evidence pack` read this as
 `Weekly sync reviewed`; `Evidence readiness` remains blocked until the manual
-private scorecard sync has been reviewed.
+private scorecard sync has been reviewed. `Pilot evidence pack` also includes
+`selected_channel_id`, `selected_channel`, and `selected_channel_state_key`.
 
 `Open week-one review` opens the `Pilot week-one review` drawer for the selected
 service lane and company. Use it after real week-one activity exists to review

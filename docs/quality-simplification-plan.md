@@ -159,8 +159,9 @@ This turns the 14-day pilot runbook into a visible operating loop without
 adding autonomous outreach or CRM scope.
 That operating loop now also includes `Manual activity log`,
 `Last manual action`, `Copy activity log`, and
-`local_services_manual_activity_log`. It records browser-local scorecard and
-metric events only, with `No external side effects`: no outreach send, CRM
+`local_services_manual_activity_log`. It records browser-local scorecard,
+selected-channel, and metric events only, includes `Selected outreach channel`
+and `selectedChannelByProspectKey`, with `No external side effects`: no outreach send, CRM
 write, calendar event, analytics sync, billing action, or Markdown mutation.
 The next small operating layer is now `Open discovery prep`: it opens
 `Discovery call prep` with `Questions to ask`, `Pilot success criteria`,
@@ -177,7 +178,8 @@ analytics, calendar, or customer-message scope.
 That funnel now has `Open pilot export`, which opens a `Pilot workspace export
 drawer` with `Human-readable` / `JSON` modes and `Copy pilot workspace export`.
 The export now includes the latest `Manual activity log` / `Last manual action`
-so reviewed scorecard and metric events travel with the funnel snapshot. It is
+and selected channel per candidate so reviewed scorecard and metric events
+travel with the funnel snapshot. It is
 intentionally manual-only: no outbound message, no CRM write, and no Markdown
 scorecard mutation.
 The same browser-local state now has `Open metrics tracker`, which opens a
@@ -356,7 +358,8 @@ message. `Record weekly sync reviewed`, `Reset weekly sync review`, and
 the private scorecard was manually updated. `Pilot week-one review` and
 `Pilot evidence pack` now read the same proof as `Weekly sync reviewed`, and
 `Evidence readiness` remains blocked until that manual private scorecard sync
-has been reviewed.
+has been reviewed. The evidence pack carries the selected outreach channel as
+`selected_channel_id`, `selected_channel`, and `selected_channel_state_key`.
 This is the current
 simplification target: prove demand through 10 manual contacts before adding
 more integrations. The target product remains a NEWO-style AI employee platform

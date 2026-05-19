@@ -203,7 +203,9 @@ Local-services expansion spec:
 - the modal now also persists a `Selected outreach channel`: `Select Telegram`,
   `Select WhatsApp`, or `Select phone script` records `Channel selected` under
   `selectedChannelByProspectKey` and resets only the preview review for that
-  company. Confirmation/export use the selected draft, still with no send.
+  company. Confirmation/export use the selected draft, and the selected channel
+  is also carried into `Manual activity log`, workspace export, and
+  `Pilot evidence pack`, still with no send.
 - `Operator confirmation` now opens an `Operator confirmation summary` with
   `Ready for manual outreach`, selected company, channel, exact message,
   approval checklist, and `Copy confirmation summary`; it is still manual-only.
@@ -291,7 +293,9 @@ Local-services expansion spec:
   browser-local statuses only. The same checklist now also shows
   `Manual activity log`, `Last manual action`, `Copy activity log`, and
   `local_services_manual_activity_log` for browser-local scorecard and metric
-  events; it records `No external side effects` and does not send outreach,
+  events; it includes `Selected outreach channel` and
+  `selectedChannelByProspectKey`, records `No external side effects`, and does
+  not send outreach,
   create calendar events, write CRM, sync analytics, bill, or mutate docs. The same
   checklist now opens `Discovery call prep` through `Open discovery prep`; that
   call brief exposes `Questions to ask`, `Pilot success criteria`,
@@ -306,7 +310,8 @@ Local-services expansion spec:
 - the funnel summary now opens a `Pilot workspace export drawer` with
   `Human-readable` and `JSON` modes plus `Copy pilot workspace export`; it is a
   browser-local planning artifact that includes the latest `Manual activity log`
-  / `Last manual action`; it does not send outreach or write CRM.
+  / `Last manual action` plus the selected channel for each candidate; it does
+  not send outreach or write CRM.
 - the same funnel now opens `Workspace API export drawer` through
   `Open workspace API export`. It calls the local-services workspace export
   boundary, exposes `workspace API + local fallback`, `Copy workspace API
@@ -470,7 +475,9 @@ Local-services expansion spec:
   a human copied the reviewed packet into the private scorecard. `Pilot
   week-one review` and `Pilot evidence pack` now read the same proof as
   `Weekly sync reviewed`; `Evidence readiness` stays blocked until that manual
-  private scorecard sync is reviewed.
+  private scorecard sync is reviewed. The evidence pack also carries
+  `Selected outreach channel`, `selected_channel_id`, `selected_channel`, and
+  `selected_channel_state_key` for the operator-approved manual channel.
   `Open day-one recap`, `Day-one recap`,
   `Copy day-one recap`, and `local_services_day_one_recap` then summarize the
   first real run and hand it into `day_one_recap_to_week_one_review`. It still

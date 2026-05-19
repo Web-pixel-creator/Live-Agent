@@ -2016,6 +2016,7 @@ function buildLocalServiceIntakeEvidence(
 function buildLocalServicePilotWorkspaceExport(
   rows: LocalServicePilotFunnelRow[],
   counts: Record<LocalServicePilotStatus, number>,
+  selectedChannelByProspectKey: Record<string, LocalServiceOutreachChannelId>,
   activityLog: LocalServicePilotActivityEvent[] = [],
 ): LocalServicePilotWorkspaceExport {
   const nextManualBatch = rows
@@ -2026,11 +2027,22 @@ function buildLocalServicePilotWorkspaceExport(
   ).join("; ");
   const candidateLines = rows.map(
     (row) =>
-      `- ${row.prospect.company} (${row.serviceTitle}, ${row.prospect.segment}) -> ${row.statusLabel}; next: ${row.prospect.nextStep}`,
+      `- ${row.prospect.company} (${row.serviceTitle}, ${row.prospect.segment}) -> ${row.statusLabel}; channel: ${
+        LOCAL_SERVICE_OUTREACH_CHANNEL_LABELS[
+          selectedChannelByProspectKey[row.key] ?? DEFAULT_LOCAL_SERVICE_OUTREACH_CHANNEL_ID
+        ]
+      }; next: ${row.prospect.nextStep}`,
   );
   const nextBatchLines =
     nextManualBatch.length > 0
-      ? nextManualBatch.map((row) => `- ${row.prospect.company} (${row.serviceTitle}) -> ${row.statusLabel}`)
+      ? nextManualBatch.map(
+          (row) =>
+            `- ${row.prospect.company} (${row.serviceTitle}) -> ${row.statusLabel}; channel: ${
+              LOCAL_SERVICE_OUTREACH_CHANNEL_LABELS[
+                selectedChannelByProspectKey[row.key] ?? DEFAULT_LOCAL_SERVICE_OUTREACH_CHANNEL_ID
+              ]
+            }`,
+        )
       : ["- none"];
   const activityLines =
     activityLog.length > 0
@@ -2076,6 +2088,12 @@ function buildLocalServicePilotWorkspaceExport(
         segment: row.prospect.segment,
         status: row.status,
         status_label: row.statusLabel,
+        selected_channel_id: selectedChannelByProspectKey[row.key] ?? DEFAULT_LOCAL_SERVICE_OUTREACH_CHANNEL_ID,
+        selected_channel:
+          LOCAL_SERVICE_OUTREACH_CHANNEL_LABELS[
+            selectedChannelByProspectKey[row.key] ?? DEFAULT_LOCAL_SERVICE_OUTREACH_CHANNEL_ID
+          ],
+        selected_channel_state_key: "selectedChannelByProspectKey",
         next_step: row.prospect.nextStep,
       })),
       candidates: rows.map((row) => ({
@@ -2091,6 +2109,12 @@ function buildLocalServicePilotWorkspaceExport(
         next_step: row.prospect.nextStep,
         status: row.status,
         status_label: row.statusLabel,
+        selected_channel_id: selectedChannelByProspectKey[row.key] ?? DEFAULT_LOCAL_SERVICE_OUTREACH_CHANNEL_ID,
+        selected_channel:
+          LOCAL_SERVICE_OUTREACH_CHANNEL_LABELS[
+            selectedChannelByProspectKey[row.key] ?? DEFAULT_LOCAL_SERVICE_OUTREACH_CHANNEL_ID
+          ],
+        selected_channel_state_key: "selectedChannelByProspectKey",
       })),
       activity_log: activityLog.map((event) => ({
         id: event.id,
@@ -2123,10 +2147,12 @@ function buildLocalServicePilotWorkspaceExport(
       value: nextManualBatch.map((row) => `${row.prospect.company} / ${row.serviceTitle}`).join(", ") || "none",
     },
     { label: "Last manual action", value: activityLog[0] ? `${activityLog[0].label}: ${activityLog[0].value}` : "none" },
+    { label: "Channel state", value: "selectedChannelByProspectKey" },
     { label: "Guardrail", value: "No outbound message, no CRM write, manual scorecard sync only" },
   ];
   const checklist = [
     "Confirm the browser-local statuses match the operator's latest manual outreach notes.",
+    "Confirm the selected outreach channel before copying the export.",
     "Review the manual activity log before copying the export.",
     "Review the next manual batch before copying the export.",
     "Manually sync useful notes into the pilot scorecard or CRM after review.",
@@ -5271,12 +5297,15 @@ function buildLocalServicePilotEvidencePackExport(
   firstRequestOutcome: LocalServiceFirstRequestOutcome,
   ownerDecision: LocalServiceWeekOneOwnerDecision,
   weeklySyncReviewed: boolean,
+  selectedChannelId: LocalServiceOutreachChannelId,
 ): LocalServicePilotWorkspaceExport {
   const pilotStatusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[pilotStatus];
   const metricStatusLabel = LOCAL_SERVICE_PILOT_METRIC_STATUS_LABELS[metricStatus];
   const firstRequestOutcomeLabel = LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_LABELS[firstRequestOutcome];
   const ownerDecisionLabel = LOCAL_SERVICE_WEEK_ONE_OWNER_DECISION_LABELS[ownerDecision];
   const prospectLabel = prospect ? `${prospect.company} - ${prospect.segment}` : "No prospect selected";
+  const selectedVariant = getSelectedLocalServiceOutreachChannelVariant(template, prospect, selectedChannelId);
+  const selectedChannelLabel = LOCAL_SERVICE_OUTREACH_CHANNEL_LABELS[selectedVariant.id];
   const weeklyScorecardSyncGate =
     firstRequestOutcome === "not_recorded"
       ? "Blocked until first request outcome is recorded"
@@ -5334,6 +5363,8 @@ function buildLocalServicePilotEvidencePackExport(
     `Pilot evidence pack: ${template.title}`,
     `Service: ${template.ref}`,
     `Selected company: ${prospectLabel}`,
+    `Selected outreach channel: ${selectedChannelLabel}`,
+    "Selected channel state key: selectedChannelByProspectKey",
     `Pilot status: ${pilotStatusLabel}`,
     `Metric status: ${metricStatusLabel}`,
     `First request outcome: ${firstRequestOutcomeLabel}`,
@@ -5369,6 +5400,10 @@ function buildLocalServicePilotEvidencePackExport(
       service_title: template.title,
       prospect_id: prospect?.id ?? null,
       prospect_company: prospect?.company ?? null,
+      selected_channel_id: selectedVariant.id,
+      selected_channel: selectedChannelLabel,
+      selected_channel_state_key: "selectedChannelByProspectKey",
+      selected_channel_draft: selectedVariant.text,
       pilot_status: pilotStatus,
       pilot_status_label: pilotStatusLabel,
       metric_status: metricStatus,
@@ -5395,6 +5430,7 @@ function buildLocalServicePilotEvidencePackExport(
       paid_pilot_readiness: readinessCriteria,
       guardrails: [
         "manual_week_two_evidence_pack",
+        "selected_channel_evidence_pack",
         "manual_first_request_outcome_evidence",
         "manual_weekly_scorecard_sync_gate",
         "weeklyScorecardSyncReviewedByService",
@@ -5429,6 +5465,7 @@ function buildLocalServicePilotEvidencePackExport(
     rows: [
       { label: "Service", value: `${template.ref} - ${template.title}` },
       { label: "Company", value: prospectLabel },
+      { label: "Selected outreach channel", value: selectedChannelLabel },
       { label: "First request outcome", value: firstRequestOutcomeLabel },
       { label: "Week-one owner decision", value: ownerDecisionLabel },
       { label: "Weekly scorecard sync gate", value: weeklyScorecardSyncGate },
@@ -5441,6 +5478,7 @@ function buildLocalServicePilotEvidencePackExport(
     ],
     checklist: [
       "Include only redacted screenshots, notes, and job-card excerpts.",
+      "Include the selected outreach channel before sharing the evidence pack internally.",
       "Include the first request outcome before paid-pilot readiness is reviewed.",
       "Include the week-one owner decision before paid-pilot readiness is reviewed.",
       "Include weeklyScorecardSyncReviewedByService proof before treating the private scorecard as reviewed.",
@@ -8081,8 +8119,19 @@ const LocalServicesDispatchDemoPanel = ({
   );
   const pilotFunnelFiltersActive = pilotFunnelServiceFilter !== "all" || pilotFunnelStatusFilter !== "all";
   const pilotWorkspaceExport = useMemo(
-    () => buildLocalServicePilotWorkspaceExport(pilotFunnelRows, pilotFunnelCounts, pilotWorkspaceState.activityLog),
-    [pilotFunnelCounts, pilotFunnelRows, pilotWorkspaceState.activityLog],
+    () =>
+      buildLocalServicePilotWorkspaceExport(
+        pilotFunnelRows,
+        pilotFunnelCounts,
+        pilotWorkspaceState.selectedChannelByProspectKey,
+        pilotWorkspaceState.activityLog,
+      ),
+    [
+      pilotFunnelCounts,
+      pilotFunnelRows,
+      pilotWorkspaceState.activityLog,
+      pilotWorkspaceState.selectedChannelByProspectKey,
+    ],
   );
   const workspaceApiExportView = useMemo(
     () => buildLocalServiceWorkspaceApiExportView(workspaceApiExportPacket, pilotWorkspaceState),
@@ -8142,6 +8191,7 @@ const LocalServicesDispatchDemoPanel = ({
         currentFirstRequestOutcome,
         currentWeekOneOwnerDecision,
         currentWeeklyScorecardSyncReviewed,
+        selectedOutreachChannelId,
       ),
     [
       currentFirstRequestOutcome,
@@ -8149,6 +8199,7 @@ const LocalServicesDispatchDemoPanel = ({
       currentPilotStatus,
       currentWeekOneOwnerDecision,
       currentWeeklyScorecardSyncReviewed,
+      selectedOutreachChannelId,
       selectedOutreachProspect,
       selectedTemplate,
     ],
@@ -8395,6 +8446,8 @@ const LocalServicesDispatchDemoPanel = ({
     "local_services_manual_activity_log",
     `Service: ${selectedTemplate.title}`,
     `Selected company: ${selectedOutreachProspect?.company ?? "Not selected"}`,
+    `Selected outreach channel: ${selectedOutreachChannelLabel}`,
+    "Selected channel state key: selectedChannelByProspectKey",
     "Recorded in browser only. No outbound send, CRM write, calendar event, analytics sync, billing action, or Markdown mutation.",
     "Events:",
     ...(pilotActivityLog.length > 0

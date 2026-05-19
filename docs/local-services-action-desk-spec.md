@@ -819,8 +819,9 @@ Markdown mutation happens.
 The same funnel now opens a `Pilot workspace export drawer` through
 `Open pilot export`. The drawer has `Human-readable` and `JSON` modes, exposes
 `Copy pilot workspace export`, includes the latest `Manual activity log` /
-`Last manual action`, and carries explicit guardrails: no outbound message, no
-CRM write, and manual scorecard sync only.
+`Last manual action`, carries the selected channel for each candidate through
+`selectedChannelByProspectKey`, and carries explicit guardrails: no outbound
+message, no CRM write, and manual scorecard sync only.
 The adjacent `Open workspace API export` opens a `Workspace API export drawer`
 for the repo-owned workspace boundary. It calls the local-services workspace
 adapter/export path, exposes `workspace API + local fallback`,
@@ -1146,10 +1147,11 @@ Current shell readiness for P3:
    launch packet. It remains manual-only: no outreach send, calendar event, CRM
    write, analytics sync, or Markdown mutation.
 19. `Manual activity log`, `Last manual action`, `Copy activity log`,
-   `local_services_manual_activity_log`, and `No external side effects` are
-   visible as the browser-local log for scorecard and metric events. It does
-   not send outreach, create calendar events, write CRM, sync analytics, bill,
-   or mutate Markdown docs.
+   `local_services_manual_activity_log`, `Selected outreach channel`,
+   `selectedChannelByProspectKey`, and `No external side effects` are visible
+   as the browser-local log for scorecard, selected-channel, and metric events.
+   It does not send outreach, create calendar events, write CRM, sync
+   analytics, bill, or mutate Markdown docs.
 20. `Open discovery prep`, `Discovery call prep`, `Questions to ask`,
    `Pilot success criteria`, `Copy discovery call prep`, and
    `local_services_discovery_call_prep` are visible as the manual discovery
@@ -1182,7 +1184,9 @@ Current shell readiness for P3:
    owner decision contract.
 28. `Open evidence pack`, `Pilot evidence pack`, `Week-two evidence pack`,
    `Copy evidence pack`, `local_services_pilot_evidence_pack`,
-   `First request outcome`, `firstRequestOutcomeByProspectKey`, and
+   `Selected outreach channel`, `selected_channel_id`, `selected_channel`,
+   `selected_channel_state_key`, `First request outcome`,
+   `firstRequestOutcomeByProspectKey`, and
    `Week-one owner decision` are visible in the shell.
 29. `Open offer doc`, `Open demo script`, and `Open recording checklist`
    resolve to the repo-owned pilot artifact documents from the same local

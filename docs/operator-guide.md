@@ -199,7 +199,9 @@ It also shows `Selected outreach channel`; use `Select Telegram`,
 `Select WhatsApp`, or `Select phone script` until the UI shows
 `Channel selected`. That choice is stored in `selectedChannelByProspectKey`,
 resets only the current company's preview review, and controls the exact draft
-shown in operator confirmation/export.
+shown in operator confirmation/export. It is also copied into `Manual activity
+log`, the pilot workspace export, and `Pilot evidence pack` so a reviewer can
+see which manual channel was approved.
 The `Operator confirmation` step opens an `Operator confirmation summary` with
 `Ready for manual outreach`, selected company, channel, exact message, approval
 checklist, and `Copy confirmation summary`.
@@ -238,7 +240,9 @@ status guidance only. It does not send,
 write CRM, sync analytics, or mutate docs.
 The same checklist now includes `Manual activity log`, `Last manual action`,
 `Copy activity log`, and `local_services_manual_activity_log` so the operator
-can copy browser-local scorecard and metric events after review. Treat
+can copy browser-local scorecard and metric events after review. The copied log
+also includes `Selected outreach channel` and `selectedChannelByProspectKey`.
+Treat
 `No external side effects` literally: the log does not send outreach, write CRM,
 create calendar events, sync analytics, bill, or mutate docs.
 `Open discovery prep` opens `Discovery call prep` for the replied-company call:
@@ -314,7 +318,8 @@ only writes `weekOneOwnerDecisionByProspectKey`.
 Use `Open evidence pack` at the end of a serious pilot to assemble the redacted
 owner proof pack. `Pilot evidence pack` exposes `Week-two evidence pack`,
 `Copy evidence pack`, `local_services_pilot_evidence_pack`, paid-pilot
-readiness, decision options, and redaction guardrails. It is not CRM, billing,
+readiness, decision options, `selected_channel_id`, `selected_channel`, and
+redaction guardrails. It is not CRM, billing,
 customer-message, or public-doc storage automation. It now also carries
 `First request outcome` and `firstRequestOutcomeByProspectKey` into the
 redacted paid-pilot readiness proof pack, plus `Week-one owner decision` through
