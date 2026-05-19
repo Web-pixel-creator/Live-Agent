@@ -85,7 +85,9 @@ the primary dispatch action.
 The `Requests` view uses the same bounded rail behavior: `Selected request
 decision rail` keeps a fixed-height shell, independent scroll body, and
 footer actions outside the scroll area so preview content is not hidden under
-the buttons.
+the buttons. It carries `Request rail compact stack`: dense rail chrome,
+accent AI packet, separate customer card, collapsed status/outcome controls,
+and a dominant explicit open action.
 Each lane card also exposes `Scenario modal` /
 `local_services_scenario_modal`: `Chat dialogue`, `Structured job card`, and
 `Final handoff and approval state` with JSON export/import for the four fixed

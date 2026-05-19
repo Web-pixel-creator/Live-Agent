@@ -158,6 +158,9 @@ decision content. `Operator action rail` renders local request status,
 first-request outcome, and next approved action for the selected pilot account.
 Its buttons may update only `statusByProspectKey` and
 `firstRequestOutcomeByProspectKey`; they must not add external side effects.
+The rail carries `Request rail compact stack`: dense rail chrome, accent AI
+packet, separate customer card, collapsed status/outcome controls, and a
+dominant explicit open action.
 
 `view=schedule` has the second actionable panel contract. It renders
 `Approval-ready slot planner` and `Schedule compact slot planner`: KPI cards for

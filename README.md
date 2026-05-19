@@ -145,7 +145,9 @@ Local-services expansion spec:
   remains visually dominant over edit/reject.
   The `Requests` view mirrors that rail contract too: `Selected request
   decision rail` now has a bounded viewport, its own scroll body, and a
-  non-overlapping sticky action footer.
+  non-overlapping sticky action footer. It carries `Request rail compact stack`:
+  dense rail chrome, accent AI packet, separate customer card, collapsed
+  status/outcome controls, and a dominant explicit open action.
   `Review queue` includes a `Review queue decision rail`, local
   `weekOneOwnerDecisionByProspectKey` and
   `weeklyScorecardSyncReviewedByService` gates, and a `Copy review queue

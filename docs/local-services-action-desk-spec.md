@@ -1364,7 +1364,10 @@ Current shell readiness for P3:
    `AI recommendation packet`, `Customer request card`, and
    `Sticky operator action footer`. The queue is click-to-preview only; the
    explicit open action is the only path into the full dispatch drawer, and the
-   footer repeats the no-autonomous-dispatch guardrail.
+   footer repeats the no-autonomous-dispatch guardrail. The rail carries
+   `Request rail compact stack`: dense rail chrome, accent AI packet, separate
+   customer card, collapsed status/outcome controls, and a dominant explicit
+   open action.
 55. `?recording=90s`, `90-second recording mode`, `Recording path`, and
    `90s recording` are visible as the demo-recording posture, and outreach
    tables plus scorecard controls are hidden during recording.

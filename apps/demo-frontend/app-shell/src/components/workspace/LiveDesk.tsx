@@ -10644,10 +10644,11 @@ const LocalServicesDispatchDemoPanel = ({
                 </section>
 
                 <aside
-                  className="flex min-h-[560px] min-w-0 flex-col overflow-hidden rounded-md border border-border/60 bg-card/70 xl:max-h-[calc(100vh-10rem)]"
+                  className="flex min-h-[560px] min-w-0 flex-col overflow-hidden rounded-md border border-border/60 bg-card/80 xl:max-h-[calc(100vh-9rem)]"
                   aria-label="Selected request decision rail"
                 >
-                  <div className="shrink-0 border-b border-border/60 px-4 py-4">
+                  <div className="shrink-0 border-b border-border/60 px-4 py-3">
+                    <span className="sr-only">Request rail compact stack</span>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
                         {selectedTemplate.ref}
@@ -10667,8 +10668,8 @@ const LocalServicesDispatchDemoPanel = ({
                     </h4>
                   </div>
 
-                  <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4 pb-6">
-                    <section className="rounded-md border border-[hsl(var(--tint-violet)/0.28)] bg-[hsl(var(--tint-violet)/0.08)] px-3 py-3">
+                  <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3.5 pb-4">
+                    <section className="rounded-md border border-[hsl(var(--tint-violet)/0.34)] bg-[hsl(var(--tint-violet)/0.12)] px-3.5 py-3 shadow-[0_0_24px_hsl(var(--tint-violet)/0.08)]">
                       <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--tint-violet-fg))]">
                         <Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />
                         AI recommendation packet
@@ -10691,7 +10692,7 @@ const LocalServicesDispatchDemoPanel = ({
                       </div>
                     </section>
 
-                    <section className="rounded-md border border-border/50 bg-background/40 px-3 py-3">
+                    <section className="rounded-md border border-border/55 bg-card/75 px-3.5 py-3">
                       <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
                         Customer request card
                       </div>
@@ -10704,7 +10705,7 @@ const LocalServicesDispatchDemoPanel = ({
                           ["District", formatPayloadValue(selectedTemplate.payload.district ?? "Needs confirmation")],
                           ["Owner", formatPayloadValue(selectedTemplate.payload.operator_owner ?? "dispatch_queue")],
                         ].map(([label, value]) => (
-                          <div key={label} className="rounded-[5px] border border-border/45 bg-card/35 px-2.5 py-2">
+                           <div key={label} className="rounded-[5px] border border-border/45 bg-card/45 px-2.5 py-2">
                             <div className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-muted-foreground">
                               {label}
                             </div>
@@ -10714,10 +10715,16 @@ const LocalServicesDispatchDemoPanel = ({
                       </div>
                     </section>
 
-                    <section className="rounded-md border border-border/50 bg-background/40 px-3 py-3">
-                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                        Operator action rail
-                      </div>
+                    <details className="group rounded-md border border-border/50 bg-card/40 px-3 py-2.5">
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+                        <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                          Operator action rail
+                        </span>
+                        <span className="inline-flex items-center gap-2 font-mono text-[9.5px] text-muted-foreground">
+                          statusByProspectKey · firstRequestOutcomeByProspectKey
+                          <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" strokeWidth={1.8} />
+                        </span>
+                      </summary>
                       <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
                         {requestInboxActionRows.map((row) => (
                           <div key={row.label} className="rounded-[5px] bg-card/35 px-2.5 py-2">
@@ -10728,66 +10735,66 @@ const LocalServicesDispatchDemoPanel = ({
                           </div>
                         ))}
                       </div>
-                    </section>
 
-                    <section className="rounded-md border border-border/50 bg-background/40 px-3 py-3">
-                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                        Local status actions
-                      </div>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {LOCAL_SERVICE_PILOT_STATUS_ACTIONS.map((action) => (
+                      <div className="mt-3 border-t border-border/45 pt-3">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                          Local status actions
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {LOCAL_SERVICE_PILOT_STATUS_ACTIONS.map((action) => (
+                            <Button
+                              key={action.status}
+                              size="sm"
+                              variant={currentPilotStatus === action.status ? "default" : "secondary"}
+                              onClick={() => updatePilotWorkspaceStatus(action.status)}
+                              className="h-7"
+                            >
+                              {action.label}
+                            </Button>
+                          ))}
                           <Button
-                            key={action.status}
                             size="sm"
-                            variant={currentPilotStatus === action.status ? "default" : "secondary"}
-                            onClick={() => updatePilotWorkspaceStatus(action.status)}
+                            variant="ghost"
+                            onClick={() => updatePilotWorkspaceStatus("not_contacted")}
                             className="h-7"
                           >
-                            {action.label}
+                            Reset request status
                           </Button>
-                        ))}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => updatePilotWorkspaceStatus("not_contacted")}
-                          className="h-7"
-                        >
-                          Reset request status
-                        </Button>
-                      </div>
-                      <div className="mt-3 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                        First request outcome
-                      </div>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_ACTIONS.map((action) => (
+                        </div>
+                        <div className="mt-3 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                          First request outcome
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_ACTIONS.map((action) => (
+                            <Button
+                              key={action.outcome}
+                              size="sm"
+                              variant={currentFirstRequestOutcome === action.outcome ? "default" : "secondary"}
+                              onClick={() => updateFirstRequestOutcome(action.outcome)}
+                              className="h-7"
+                            >
+                              {action.label}
+                            </Button>
+                          ))}
                           <Button
-                            key={action.outcome}
                             size="sm"
-                            variant={currentFirstRequestOutcome === action.outcome ? "default" : "secondary"}
-                            onClick={() => updateFirstRequestOutcome(action.outcome)}
+                            variant="ghost"
+                            onClick={() => updateFirstRequestOutcome("not_recorded")}
                             className="h-7"
                           >
-                            {action.label}
+                            Reset outcome
                           </Button>
-                        ))}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => updateFirstRequestOutcome("not_recorded")}
-                          className="h-7"
-                        >
-                          Reset outcome
-                        </Button>
+                        </div>
                       </div>
-                    </section>
+                    </details>
                   </div>
 
-                  <div className="shrink-0 border-t border-border/60 bg-card/95 px-4 py-3 backdrop-blur">
-                    <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <div className="shrink-0 border-t border-border/60 bg-card/95 px-3.5 py-2.5">
+                    <div className="grid gap-1.5 sm:grid-cols-[minmax(0,1fr)_auto]">
                       <Button
                         size="sm"
                         onClick={() => onOpenDispatchDrawer("dispatch")}
-                        className="h-9 justify-center"
+                        className="h-10 justify-center px-4 text-[13px] font-semibold"
                         aria-label="Explicit open action: Open dispatch drawer"
                       >
                         <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
@@ -10797,7 +10804,7 @@ const LocalServicesDispatchDemoPanel = ({
                         size="sm"
                         variant="secondary"
                         onClick={() => setIntakeEvidenceOpen(true)}
-                        className="h-9 justify-center"
+                        className="h-9 justify-center px-3 text-[12px]"
                       >
                         Intake evidence
                       </Button>

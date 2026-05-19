@@ -1035,7 +1035,11 @@ Current implementation slice:
    `Selected request decision rail` is a bounded flex column with its own
    scroll body, and the footer stays outside that scroll body so action buttons
    do not cover preview content.
-8. Remaining Step 2 work: keep polishing full-height behavior across
+8. It carries `Request rail compact stack`: dense rail chrome, accent AI
+   packet, separate customer card, collapsed status/outcome controls, and a
+   dominant explicit open action. Technical status/outcome buttons remain
+   available in one collapsed support block and must stay local/manual-only.
+9. Remaining Step 2 work: keep polishing full-height behavior across
    breakpoints and move developer-only payload/evidence detail behind collapsed
    support surfaces.
 
