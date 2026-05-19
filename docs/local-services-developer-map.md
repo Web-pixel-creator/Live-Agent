@@ -288,6 +288,7 @@ Important state fields:
 | `statusByProspectKey` | Local funnel status such as draft ready, contacted manually, reply received, rejected. | None |
 | `firstRequestOutcomeByProspectKey` | Operator-entered first request outcome. | None |
 | `messagePreviewReviewedByProspectKey` | Confirms the operator opened/reviewed the message preview. | None |
+| `selectedChannelByProspectKey` | Stores the `Selected outreach channel` after `Select Telegram`, `Select WhatsApp`, or `Select phone script` shows `Channel selected`. | None |
 | `contactPacketCopiedByProspectKey` | Confirms the manual-only contact packet was copied. | None |
 | `scorecardRowCopiedByProspectKey` | Confirms the private scorecard row was reviewed/copied. | None |
 | `batchReviewHandoffCopiedByProspectKey` | Confirms the current account batch-review handoff was copied. | None |
@@ -357,6 +358,11 @@ event.
 The `Channel variants` section lives inside `Preview / Test message modal` and
 adds `manual_channel_variant_preview_only` proof for Telegram/WhatsApp/phone
 copy drafts without activating channels.
+The same modal owns the `Selected outreach channel` contract:
+`Select Telegram`, `Select WhatsApp`, or `Select phone script` writes
+`Channel selected` to `selectedChannelByProspectKey`. Confirmation and launch
+packet builders read that key so the exported exact message follows the
+operator-approved channel.
 
 `Manual outreach boundary` is the visible operator contract for that rail: the
 shell may prepare the message, preview, and confirmation summary, but the human

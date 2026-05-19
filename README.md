@@ -200,6 +200,10 @@ Local-services expansion spec:
   `Copy WhatsApp variant`, and `Copy phone script`. These are copy-only
   operator drafts; they do not trigger Telegram, WhatsApp, phone, CRM,
   scorecard, or calendar side effects.
+- the modal now also persists a `Selected outreach channel`: `Select Telegram`,
+  `Select WhatsApp`, or `Select phone script` records `Channel selected` under
+  `selectedChannelByProspectKey` and resets only the preview review for that
+  company. Confirmation/export use the selected draft, still with no send.
 - `Operator confirmation` now opens an `Operator confirmation summary` with
   `Ready for manual outreach`, selected company, channel, exact message,
   approval checklist, and `Copy confirmation summary`; it is still manual-only.

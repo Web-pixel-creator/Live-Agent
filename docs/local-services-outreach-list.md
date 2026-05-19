@@ -57,7 +57,9 @@ open `Agent setup / training state`, confirm `Business profile`,
 `Mark check passed`, `Record test passed`, and `Test call passed`, open the
 `Preview / Test message modal`, review `Channel variants`, `Telegram variant`,
 `WhatsApp variant`, `Phone script variant`, `Copy Telegram variant`,
-`Copy WhatsApp variant`, and `Copy phone script`, review
+`Copy WhatsApp variant`, and `Copy phone script`, set `Selected outreach channel`
+with `Select Telegram`, `Select WhatsApp`, or `Select phone script` until
+`Channel selected` is stored in `selectedChannelByProspectKey`, review
 `Operator confirmation summary`, click `Record ready for manual outreach`, open
 `Ask AI about pilot` for
 `Suggested questions`, `Best candidate`, `Bottleneck`, and `Next message`, and

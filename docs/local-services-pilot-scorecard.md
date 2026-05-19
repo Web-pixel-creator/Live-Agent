@@ -207,8 +207,10 @@ plumbing, cleaning, and measurement must compete on manual proof markers.
 current account, next manual action, browser-local account override,
 phone/Telegram/WhatsApp preview, `Channel variants`, `Telegram variant`,
 `WhatsApp variant`, `Phone script variant`, `Copy Telegram variant`,
-`Copy WhatsApp variant`, `Copy phone script`, channel/message/proof/guardrail
-prep checklist, account -> preview -> manual contact -> proof -> continue gate
+`Copy WhatsApp variant`, `Copy phone script`, `Selected outreach channel`,
+`Select Telegram`, `Select WhatsApp`, `Select phone script`, `Channel selected`,
+`selectedChannelByProspectKey`, channel/message/proof/guardrail prep checklist,
+account -> preview -> manual contact -> proof -> continue gate
 path, latest account-local proof events, and browser-local proof marker to
 update after the real action.
 `Leading category action layer` then provides the `Next manual batch`,

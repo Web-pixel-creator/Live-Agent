@@ -558,14 +558,10 @@ type LocalServicePilotMessagePreview = {
   copyPreviewLabel: string;
   copyMessageLabel: string;
   messageText: string;
-  channelVariants: {
-    id: string;
-    label: string;
-    channel: string;
-    copyLabel: string;
-    useCase: string;
-    text: string;
-  }[];
+  selectedChannelId: LocalServiceOutreachChannelId;
+  selectedChannelLabel: string;
+  selectedVariantText: string;
+  channelVariants: (LocalServiceOutreachChannelVariant & { selected: boolean })[];
   humanText: string;
   jsonText: string;
   rows: { label: string; value: string }[];
@@ -712,6 +708,16 @@ type LocalServiceFounderContactField =
   | "demoBooked"
   | "pilotCandidate";
 type LocalServiceFounderContactProof = Partial<Record<LocalServiceFounderContactField, boolean>>;
+type LocalServiceOutreachChannelId = "telegram" | "whatsapp" | "phone-script";
+type LocalServiceOutreachChannelVariant = {
+  id: LocalServiceOutreachChannelId;
+  label: string;
+  channel: string;
+  copyLabel: string;
+  selectLabel: string;
+  useCase: string;
+  text: string;
+};
 type LocalServicePilotActivityKind =
   | "status_change"
   | "metric_change"
@@ -758,6 +764,7 @@ type LocalServicePilotWorkspaceState = {
   customerConfirmationByService: Record<string, LocalServiceCustomerConfirmationDecision>;
   weeklyScorecardSyncReviewedByService: Record<string, boolean>;
   messagePreviewReviewedByProspectKey: Record<string, boolean>;
+  selectedChannelByProspectKey: Record<string, LocalServiceOutreachChannelId>;
   contactPacketCopiedByProspectKey: Record<string, boolean>;
   scorecardRowCopiedByProspectKey: Record<string, boolean>;
   batchReviewHandoffCopiedByProspectKey: Record<string, boolean>;
@@ -950,6 +957,12 @@ const LOCAL_SERVICE_PILOT_STATUS_LABELS: Record<LocalServicePilotStatus, string>
   contacted_manually: "Contacted manually",
   reply_received: "Reply received",
   rejected_for_now: "Rejected for now",
+};
+const DEFAULT_LOCAL_SERVICE_OUTREACH_CHANNEL_ID: LocalServiceOutreachChannelId = "telegram";
+const LOCAL_SERVICE_OUTREACH_CHANNEL_LABELS: Record<LocalServiceOutreachChannelId, string> = {
+  telegram: "Telegram",
+  whatsapp: "WhatsApp",
+  "phone-script": "Phone script",
 };
 const LOCAL_SERVICE_PILOT_STATUS_ORDER: LocalServicePilotStatus[] = [
   "not_contacted",
@@ -1201,11 +1214,25 @@ function isLocalServiceTestCallCheckId(value: unknown): value is LocalServiceTes
   );
 }
 
+function isLocalServiceOutreachChannelId(value: unknown): value is LocalServiceOutreachChannelId {
+  return value === "telegram" || value === "whatsapp" || value === "phone-script";
+}
+
 function readStringRecord(value: unknown): Record<string, string> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   return Object.fromEntries(
     Object.entries(value as Record<string, unknown>).filter(
       (entry): entry is [string, string] => typeof entry[1] === "string",
+    ),
+  );
+}
+
+function readOutreachChannelRecord(value: unknown): Record<string, LocalServiceOutreachChannelId> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).filter(
+      (entry): entry is [string, LocalServiceOutreachChannelId] =>
+        isLocalServiceOutreachChannelId(entry[1]),
     ),
   );
 }
@@ -1513,6 +1540,7 @@ function createEmptyLocalServicePilotWorkspaceState(): LocalServicePilotWorkspac
     customerConfirmationByService: {},
     weeklyScorecardSyncReviewedByService: {},
     messagePreviewReviewedByProspectKey: {},
+    selectedChannelByProspectKey: {},
     contactPacketCopiedByProspectKey: {},
     scorecardRowCopiedByProspectKey: {},
     batchReviewHandoffCopiedByProspectKey: {},
@@ -1557,6 +1585,7 @@ function normalizeLocalServicePilotWorkspaceState(
     customerConfirmationByService: readCustomerConfirmationDecisionRecord(parsed.customerConfirmationByService),
     weeklyScorecardSyncReviewedByService: readBooleanRecord(parsed.weeklyScorecardSyncReviewedByService),
     messagePreviewReviewedByProspectKey: readBooleanRecord(parsed.messagePreviewReviewedByProspectKey),
+    selectedChannelByProspectKey: readOutreachChannelRecord(parsed.selectedChannelByProspectKey),
     contactPacketCopiedByProspectKey: readBooleanRecord(parsed.contactPacketCopiedByProspectKey),
     scorecardRowCopiedByProspectKey: readBooleanRecord(parsed.scorecardRowCopiedByProspectKey),
     batchReviewHandoffCopiedByProspectKey: readBooleanRecord(parsed.batchReviewHandoffCopiedByProspectKey),
@@ -5423,23 +5452,19 @@ function buildLocalServicePilotEvidencePackExport(
   };
 }
 
-function buildLocalServicePilotMessagePreview(
+function buildLocalServiceOutreachChannelVariants(
   template: LocalServiceDemoTemplate,
   prospect: LocalServiceOutreachProspect | undefined,
-  status: LocalServicePilotStatus,
-): LocalServicePilotMessagePreview {
-  const statusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[status];
-  const wizard = template.detail.pilotKit.outreachWizard;
-  const company = prospect?.company ?? "No prospect selected";
+): LocalServiceOutreachChannelVariant[] {
   const segment = prospect?.segment ?? "unknown";
-  const messageText = wizard.testMessage;
   const companyIntro = prospect ? `${prospect.company} team` : "team";
-  const channelVariants = [
+  return [
     {
       id: "telegram",
       label: "Telegram variant",
       channel: "Telegram",
       copyLabel: "Copy Telegram variant",
+      selectLabel: "Select Telegram",
       useCase: "Short chat opener for manual Telegram contact after operator approval.",
       text: `Hi ${companyIntro}. We help ${segment} teams capture missed phone and Telegram requests, collect the right details, and prepare an operator-approved job card. Can I send a 7-minute demo using the ${template.title} flow?`,
     },
@@ -5448,6 +5473,7 @@ function buildLocalServicePilotMessagePreview(
       label: "WhatsApp variant",
       channel: "WhatsApp",
       copyLabel: "Copy WhatsApp variant",
+      selectLabel: "Select WhatsApp",
       useCase: "Compact WhatsApp opener; operator still sends it manually outside the shell.",
       text: `Hi ${companyIntro}. Quick question: would a 7-minute demo be useful if it shows how missed requests become a clean job card with district, slot, price band, and approval owner? No auto-send or CRM write from our side.`,
     },
@@ -5456,14 +5482,44 @@ function buildLocalServicePilotMessagePreview(
       label: "Phone script variant",
       channel: "Phone",
       copyLabel: "Copy phone script",
+      selectLabel: "Select phone script",
       useCase: "Call script for a manual discovery opener, not a dialer action.",
       text: `Hi, I am calling about a 7-minute AI Dispatcher demo for ${segment}. The idea is simple: when a customer calls or writes in Telegram, the system collects district, issue, slot, and price inputs, then gives your operator a job card to approve. Who should I show this to?`,
     },
   ];
+}
+
+function getSelectedLocalServiceOutreachChannelVariant(
+  template: LocalServiceDemoTemplate,
+  prospect: LocalServiceOutreachProspect | undefined,
+  selectedChannelId: LocalServiceOutreachChannelId,
+): LocalServiceOutreachChannelVariant {
+  const variants = buildLocalServiceOutreachChannelVariants(template, prospect);
+  return variants.find((variant) => variant.id === selectedChannelId) ?? variants[0]!;
+}
+
+function buildLocalServicePilotMessagePreview(
+  template: LocalServiceDemoTemplate,
+  prospect: LocalServiceOutreachProspect | undefined,
+  status: LocalServicePilotStatus,
+  selectedChannelId: LocalServiceOutreachChannelId,
+): LocalServicePilotMessagePreview {
+  const statusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[status];
+  const wizard = template.detail.pilotKit.outreachWizard;
+  const company = prospect?.company ?? "No prospect selected";
+  const segment = prospect?.segment ?? "unknown";
+  const messageText = wizard.testMessage;
+  const selectedVariant = getSelectedLocalServiceOutreachChannelVariant(template, prospect, selectedChannelId);
+  const selectedChannelLabel = LOCAL_SERVICE_OUTREACH_CHANNEL_LABELS[selectedVariant.id];
+  const channelVariants = buildLocalServiceOutreachChannelVariants(template, prospect).map((variant) => ({
+    ...variant,
+    selected: variant.id === selectedVariant.id,
+  }));
   const humanLines = [
     `Preview / Test message modal: ${template.title}`,
     `Selected company: ${company}`,
     `Segment: ${segment}`,
+    `Selected outreach channel: ${selectedChannelLabel}`,
     `Current scorecard state: ${statusLabel}`,
     "",
     "Audience:",
@@ -5477,6 +5533,9 @@ function buildLocalServicePilotMessagePreview(
       `- ${variant.label} (${variant.channel}):`,
       `  ${variant.text}`,
     ]),
+    "",
+    "Selected channel draft:",
+    selectedVariant.text,
     "",
     "Operator confirmation:",
     wizard.confirmationGate,
@@ -5506,11 +5565,17 @@ function buildLocalServicePilotMessagePreview(
       current_status_label: statusLabel,
       audience: wizard.audience,
       test_message: messageText,
+      selected_channel_id: selectedVariant.id,
+      selected_channel: selectedChannelLabel,
+      selected_channel_state_key: "selectedChannelByProspectKey",
+      selected_channel_draft: selectedVariant.text,
       channel_variants: channelVariants.map((variant) => ({
         id: variant.id,
         label: variant.label,
         channel: variant.channel,
+        selected: variant.selected,
         copy_label: variant.copyLabel,
+        select_label: variant.selectLabel,
         use_case: variant.useCase,
         text: variant.text,
       })),
@@ -5538,6 +5603,9 @@ function buildLocalServicePilotMessagePreview(
     copyPreviewLabel: "Copy test message preview",
     copyMessageLabel: "Copy test message",
     messageText,
+    selectedChannelId: selectedVariant.id,
+    selectedChannelLabel,
+    selectedVariantText: selectedVariant.text,
     channelVariants,
     humanText: humanLines.join("\n"),
     jsonText,
@@ -5545,6 +5613,7 @@ function buildLocalServicePilotMessagePreview(
       { label: "Service", value: `${template.ref} - ${template.title}` },
       { label: "Selected company", value: company },
       { label: "Segment", value: segment },
+      { label: "Selected outreach channel", value: selectedChannelLabel },
       { label: "Current status", value: statusLabel },
       { label: "Channel variants", value: "Telegram, WhatsApp, phone script" },
       { label: "Guardrail", value: "No Telegram, WhatsApp, phone, CRM, or scorecard side effect" },
@@ -5562,16 +5631,17 @@ function buildLocalServicePilotMessagePreview(
 function buildLocalServicePilotConfirmationSummary(
   template: LocalServiceDemoTemplate,
   prospect: LocalServiceOutreachProspect | undefined,
+  selectedChannelId: LocalServiceOutreachChannelId,
 ): LocalServicePilotConfirmationSummary {
-  const wizard = template.detail.pilotKit.outreachWizard;
   const statusLabel = "Ready for manual outreach";
   const company = prospect?.company ?? "No prospect selected";
   const segment = prospect?.segment ?? "unknown";
-  const channel = prospect?.channelFit ?? template.channel;
-  const messageText = wizard.testMessage;
+  const selectedVariant = getSelectedLocalServiceOutreachChannelVariant(template, prospect, selectedChannelId);
+  const channel = LOCAL_SERVICE_OUTREACH_CHANNEL_LABELS[selectedVariant.id];
+  const messageText = selectedVariant.text;
   const checklist = [
     "Company is selected from the repo-owned outreach list.",
-    "Channel fit is reviewed by the operator before contact.",
+    "Selected outreach channel is reviewed by the operator before contact.",
     "Exact message was inspected in the Preview / Test message modal.",
     "Operator sends manually outside the shell and logs the result afterward.",
   ];
@@ -5602,6 +5672,9 @@ function buildLocalServicePilotConfirmationSummary(
       selected_company: company,
       selected_segment: segment,
       channel,
+      selected_channel_id: selectedVariant.id,
+      selected_channel: channel,
+      selected_channel_state_key: "selectedChannelByProspectKey",
       exact_message: messageText,
       approval_checklist: checklist,
       guardrails: [
@@ -5643,12 +5716,13 @@ function buildLocalServicePilotLaunchPacket(
   pilotStatus: LocalServicePilotStatus,
   testCallPassed: boolean,
   testCallProgress: string,
+  selectedChannelId: LocalServiceOutreachChannelId,
 ): LocalServicePilotWorkspaceExport {
-  const wizard = template.detail.pilotKit.outreachWizard;
   const pilotStatusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[pilotStatus];
   const company = prospect?.company ?? "No prospect selected";
   const segment = prospect?.segment ?? "unknown";
-  const channel = prospect?.channelFit ?? template.channel;
+  const selectedVariant = getSelectedLocalServiceOutreachChannelVariant(template, prospect, selectedChannelId);
+  const channel = LOCAL_SERVICE_OUTREACH_CHANNEL_LABELS[selectedVariant.id];
   const draftReady = pilotStatus === "draft_ready";
   const launchReady = testCallPassed && draftReady;
   const dryRunStatus = testCallPassed ? "Dry run passed" : `Dry run required (${testCallProgress})`;
@@ -5678,7 +5752,7 @@ function buildLocalServicePilotLaunchPacket(
     `Draft status: ${pilotStatusLabel}`,
     "",
     "Message draft:",
-    wizard.testMessage,
+    selectedVariant.text,
     "",
     "Approval checklist:",
     ...approvalChecklist.map((item) => `- ${item}`),
@@ -5712,7 +5786,10 @@ function buildLocalServicePilotLaunchPacket(
       launch_ready: launchReady,
       launch_readiness: launchReadiness,
       channel,
-      message_draft: wizard.testMessage,
+      selected_channel_id: selectedVariant.id,
+      selected_channel: channel,
+      selected_channel_state_key: "selectedChannelByProspectKey",
+      message_draft: selectedVariant.text,
       approval_checklist: approvalChecklist,
       next_operator_action: nextOperatorAction,
       guardrails: [
@@ -5746,6 +5823,7 @@ function buildLocalServicePilotLaunchPacket(
       { label: "Launch readiness", value: launchReadiness },
       { label: "Dry-run gate", value: dryRunStatus },
       { label: "Selected company", value: company },
+      { label: "Selected outreach channel", value: channel },
       { label: "Draft status", value: pilotStatusLabel },
       { label: "Next action", value: nextOperatorAction },
       { label: "Guardrail", value: "Manual send only; no outbound message or CRM write" },
@@ -6929,6 +7007,10 @@ const LocalServicesDispatchDemoPanel = ({
   const selectedOutreachProspect =
     outreachProspects.find((prospect) => prospect.id === selectedOutreachProspectId) ?? outreachProspects[0];
   const scorecardDraftKey = `${selectedTemplate.id}:${selectedOutreachProspect?.id ?? "none"}`;
+  const selectedOutreachChannelId =
+    pilotWorkspaceState.selectedChannelByProspectKey[scorecardDraftKey] ??
+    DEFAULT_LOCAL_SERVICE_OUTREACH_CHANNEL_ID;
+  const selectedOutreachChannelLabel = LOCAL_SERVICE_OUTREACH_CHANNEL_LABELS[selectedOutreachChannelId];
   const currentPilotStatus = pilotWorkspaceState.statusByProspectKey[scorecardDraftKey] ?? "not_contacted";
   const currentPilotStatusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[currentPilotStatus];
   const currentOutreachMessagePreviewReviewed =
@@ -6960,7 +7042,7 @@ const LocalServicesDispatchDemoPanel = ({
     },
     {
       label: "Message/test preview",
-      value: selectedTemplate.detail.pilotKit.outreachWizard.testMessage,
+      value: `Selected outreach channel: ${selectedOutreachChannelLabel}`,
       status: currentOutreachMessagePreviewReviewed ? "Preview reviewed" : "Review",
     },
     {
@@ -6988,10 +7070,10 @@ const LocalServicesDispatchDemoPanel = ({
     },
     {
       label: "Message/test preview",
-      value: selectedTemplate.detail.pilotKit.outreachWizard.testMessage,
+      value: `Channel selected: ${selectedOutreachChannelLabel}`,
       state: currentOutreachMessagePreviewReviewed ? "Reviewed" : "Needs preview",
       done: currentOutreachMessagePreviewReviewed,
-      action: "Open the preview modal and confirm the exact message before any manual contact.",
+      action: "Select the Telegram, WhatsApp, or phone-script draft before any manual contact.",
     },
     {
       label: "Operator confirmation",
@@ -8072,12 +8154,23 @@ const LocalServicesDispatchDemoPanel = ({
     ],
   );
   const pilotMessagePreview = useMemo(
-    () => buildLocalServicePilotMessagePreview(selectedTemplate, selectedOutreachProspect, currentPilotStatus),
-    [currentPilotStatus, selectedOutreachProspect, selectedTemplate],
+    () =>
+      buildLocalServicePilotMessagePreview(
+        selectedTemplate,
+        selectedOutreachProspect,
+        currentPilotStatus,
+        selectedOutreachChannelId,
+      ),
+    [currentPilotStatus, selectedOutreachChannelId, selectedOutreachProspect, selectedTemplate],
   );
   const pilotOperatorConfirmation = useMemo(
-    () => buildLocalServicePilotConfirmationSummary(selectedTemplate, selectedOutreachProspect),
-    [selectedOutreachProspect, selectedTemplate],
+    () =>
+      buildLocalServicePilotConfirmationSummary(
+        selectedTemplate,
+        selectedOutreachProspect,
+        selectedOutreachChannelId,
+      ),
+    [selectedOutreachChannelId, selectedOutreachProspect, selectedTemplate],
   );
   const pilotAnalystBrief = useMemo(
     () =>
@@ -8285,8 +8378,16 @@ const LocalServicesDispatchDemoPanel = ({
         currentPilotStatus,
         testCallPassed,
         testCallProgress,
+        selectedOutreachChannelId,
       ),
-    [currentPilotStatus, selectedOutreachProspect, selectedTemplate, testCallPassed, testCallProgress],
+    [
+      currentPilotStatus,
+      selectedOutreachChannelId,
+      selectedOutreachProspect,
+      selectedTemplate,
+      testCallPassed,
+      testCallProgress,
+    ],
   );
   const pilotActivityLog = pilotWorkspaceState.activityLog;
   const latestPilotActivity = pilotActivityLog[0];
@@ -8308,6 +8409,7 @@ const LocalServicesDispatchDemoPanel = ({
         { label: "Company", value: selectedOutreachProspect.company },
         { label: "Segment", value: selectedOutreachProspect.segment },
         { label: "Channel fit", value: selectedOutreachProspect.channelFit },
+        { label: "Selected outreach channel", value: selectedOutreachChannelLabel },
         { label: "Qualification focus", value: selectedOutreachProspect.scorecardFocus },
         { label: "Next step", value: selectedOutreachProspect.nextStep },
         { label: "Status", value: currentPilotStatusLabel },
@@ -9066,6 +9168,40 @@ const LocalServicesDispatchDemoPanel = ({
         company: selectedOutreachProspect.company,
       }),
     }));
+  };
+  const updateSelectedOutreachChannel = (channelId: LocalServiceOutreachChannelId) => {
+    if (!selectedOutreachProspect) return;
+    const channelLabel = LOCAL_SERVICE_OUTREACH_CHANNEL_LABELS[channelId];
+    setPilotWorkspaceState((prev) => {
+      if (prev.selectedChannelByProspectKey[scorecardDraftKey] === channelId) return prev;
+
+      const nextStatusByProspectKey = { ...prev.statusByProspectKey };
+      if (nextStatusByProspectKey[scorecardDraftKey] === "draft_ready") {
+        nextStatusByProspectKey[scorecardDraftKey] = "not_contacted";
+      }
+
+      return {
+        ...prev,
+        statusByProspectKey: nextStatusByProspectKey,
+        selectedChannelByProspectKey: {
+          ...prev.selectedChannelByProspectKey,
+          [scorecardDraftKey]: channelId,
+        },
+        messagePreviewReviewedByProspectKey: {
+          ...prev.messagePreviewReviewedByProspectKey,
+          [scorecardDraftKey]: false,
+        },
+        activityLog: appendLocalServicePilotActivity(prev.activityLog, {
+          kind: "prep_review",
+          label: "Selected outreach channel",
+          value: `Channel selected: ${channelLabel}`,
+          serviceId: selectedTemplate.id,
+          serviceTitle: selectedTemplate.title,
+          prospectId: selectedOutreachProspect.id,
+          company: selectedOutreachProspect.company,
+        }),
+      };
+    });
   };
 
   const updateLaunchPathStepCompletion = (stepId: LocalServiceLaunchPathStepId, complete: boolean) => {
@@ -14669,6 +14805,33 @@ const LocalServicesDispatchDemoPanel = ({
                           <p className="mt-2 text-[12px] leading-relaxed text-foreground">
                             {selectedTemplate.detail.pilotKit.outreachWizard.testMessage}
                           </p>
+                          <div className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-2.5">
+                            <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                              <div>
+                                <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                                  Selected outreach channel
+                                </div>
+                                <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                                  Channel selected:{" "}
+                                  <span className="font-medium text-foreground">{selectedOutreachChannelLabel}</span>.
+                                  Changing it resets the preview review for this company.
+                                </p>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {pilotMessagePreview.channelVariants.map((variant) => (
+                                  <Button
+                                    key={variant.id}
+                                    size="sm"
+                                    variant={variant.selected ? "default" : "secondary"}
+                                    onClick={() => updateSelectedOutreachChannel(variant.id)}
+                                    className="h-7"
+                                  >
+                                    {variant.selected ? "Channel selected" : variant.selectLabel}
+                                  </Button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
                           <div className="mt-2 flex flex-wrap gap-1.5">
                             {[
                               "Preview test message",
@@ -15221,6 +15384,7 @@ const LocalServicesDispatchDemoPanel = ({
         mode={pilotMessagePreviewMode}
         onModeChange={setPilotMessagePreviewMode}
         onCopy={onCopyText}
+        onSelectChannel={updateSelectedOutreachChannel}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
       />
@@ -16118,6 +16282,7 @@ const LocalServicePilotMessagePreviewSheet = ({
   mode,
   onModeChange,
   onCopy,
+  onSelectChannel,
   onOpenScorecard,
   onOpenExecutionPack,
 }: {
@@ -16127,6 +16292,7 @@ const LocalServicePilotMessagePreviewSheet = ({
   mode: PlaybookExportMode;
   onModeChange: (mode: PlaybookExportMode) => void;
   onCopy: (text: string, label: string) => void;
+  onSelectChannel: (channelId: LocalServiceOutreachChannelId) => void;
   onOpenScorecard: () => void;
   onOpenExecutionPack: () => void;
 }) => {
@@ -16275,20 +16441,35 @@ const LocalServicePilotMessagePreviewSheet = ({
                         <span className="rounded-[5px] border border-border/60 bg-muted/30 px-1.5 py-0.5 text-[10px] text-muted-foreground">
                           {variant.channel}
                         </span>
+                        {variant.selected ? (
+                          <span className="rounded-[5px] bg-[hsl(var(--tint-mint)/0.12)] px-1.5 py-0.5 text-[10px] text-[hsl(var(--tint-mint-fg))] ring-1 ring-inset ring-[hsl(var(--tint-mint)/0.22)]">
+                            Channel selected
+                          </span>
+                        ) : null}
                       </div>
                       <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
                         {variant.useCase}
                       </p>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => onCopy(variant.text, variant.copyLabel)}
-                      className="h-8 shrink-0"
-                    >
-                      <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
-                      {variant.copyLabel}
-                    </Button>
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant={variant.selected ? "default" : "secondary"}
+                        onClick={() => onSelectChannel(variant.id)}
+                        className="h-8"
+                      >
+                        {variant.selected ? "Channel selected" : variant.selectLabel}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => onCopy(variant.text, variant.copyLabel)}
+                        className="h-8"
+                      >
+                        <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                        {variant.copyLabel}
+                      </Button>
+                    </div>
                   </div>
                   <div className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-2.5 text-[12.5px] leading-relaxed text-foreground">
                     {variant.text}

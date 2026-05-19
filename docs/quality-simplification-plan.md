@@ -100,6 +100,10 @@ variant`, and `Phone script variant`, plus `Copy Telegram variant`, `Copy
 WhatsApp variant`, and `Copy phone script`. This keeps the outreach flow useful
 for real manual work while preserving the hard no-send/no-CRM/no-scorecard
 boundary.
+It also shows `Selected outreach channel`; `Select Telegram`,
+`Select WhatsApp`, and `Select phone script` update `Channel selected` in
+`selectedChannelByProspectKey`, then confirmation/export use that exact channel
+draft.
 The `Operator confirmation` step now opens an `Operator confirmation summary`
 with `Ready for manual outreach`, selected company, channel, exact message,
 approval checklist, and `Copy confirmation summary`.

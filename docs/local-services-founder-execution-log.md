@@ -30,6 +30,9 @@ account manually. The in-shell `Preview / Test message modal` also exposes
 `Channel variants`, `Telegram variant`, `WhatsApp variant`,
 `Phone script variant`, `Copy Telegram variant`, `Copy WhatsApp variant`, and
 `Copy phone script`; these remain copy-only and do not send or call anyone.
+`Selected outreach channel`, `Select Telegram`, `Select WhatsApp`,
+`Select phone script`, `Channel selected`, and `selectedChannelByProspectKey`
+now record which draft the operator approved for the selected company.
 `Current account picker` /
 `local_services_current_account_picker` lets the operator override the
 auto-selected current account in browser-local state only; `Auto next account`

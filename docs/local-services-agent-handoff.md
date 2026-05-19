@@ -754,7 +754,10 @@ Useful states:
 6. `Telegram variant`, `WhatsApp variant`, and `Phone script variant`.
 7. Copy actions: `Copy Telegram variant`, `Copy WhatsApp variant`,
    `Copy phone script`.
-8. Guardrail marker: `manual_channel_variant_preview_only`; no Telegram send,
+8. Selected channel proof: `Selected outreach channel`, `Select Telegram`,
+   `Select WhatsApp`, `Select phone script`, `Channel selected`,
+   `selectedChannelByProspectKey`.
+9. Guardrail marker: `manual_channel_variant_preview_only`; no Telegram send,
    WhatsApp send, phone call, CRM write, scorecard mutation, or calendar event.
 
 Add `Ask AI about pilot` later:

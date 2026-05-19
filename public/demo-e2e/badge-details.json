@@ -1,24 +1,24 @@
 {
-  "generatedAt": "2026-05-18T17:35:35.377Z",
+  "generatedAt": "2026-05-18T19:58:54.461Z",
   "ok": true,
   "policyPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\summary.json",
   "checks": 319,
   "violations": 0,
-  "roundTripMs": 713,
+  "roundTripMs": 647,
   "costEstimate": {
     "currency": "USD",
-    "geminiLiveUsd": 0.048462,
+    "geminiLiveUsd": 0.04848,
     "imagenUsd": 0.12,
     "veoUsd": 0.36,
     "ttsUsd": 0.024,
-    "totalUsd": 0.552462,
+    "totalUsd": 0.55248,
     "source": "runtime_estimate"
   },
   "tokensUsed": {
     "input": 3912,
-    "output": 34594,
-    "total": 38506,
+    "output": 34607,
+    "total": 38519,
     "source": "runtime_estimate"
   },
   "liveTransport": {
@@ -104,7 +104,7 @@
     ]
   },
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-05-18T22:35:34.1001821+05:00",
+    "sourceSummaryGeneratedAt": "2026-05-19T00:58:53.3873051+05:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -112,7 +112,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-05-18T17:35:29.417Z",
+      "latestSeenAt": "2026-05-18T19:58:49.177Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -126,7 +126,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-05-18T17:35:29.499Z",
+      "latestSeenAt": "2026-05-18T19:58:49.265Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -160,7 +160,7 @@
         "verdict": "ask",
         "source": "file",
         "matchedRuleCount": 1,
-        "seenAt": "2026-05-18T17:35:27.704Z",
+        "seenAt": "2026-05-18T19:58:47.467Z",
         "seenAtIsIso": true
       }
     },
@@ -224,10 +224,10 @@
       },
       "latest": {
         "outcome": "succeeded",
-        "pluginId": "demo-plugin-skill-2299fe51-2563-4146-b3e4-58f5fe3fb01d",
+        "pluginId": "demo-plugin-skill-258b7581-42b6-4450-986d-189cd777370c",
         "version": 1,
         "signingStatus": "unsigned",
-        "seenAt": "2026-05-18T17:35:32.212Z",
+        "seenAt": "2026-05-18T19:58:52.008Z",
         "seenAtIsIso": true
       }
     },
@@ -260,9 +260,9 @@
       "uniqueRuns": 9,
       "uniqueSessions": 3,
       "totalCalls": 9,
-      "inputTokens": 3250,
+      "inputTokens": 3245,
       "outputTokens": 421,
-      "totalTokens": 3671,
+      "totalTokens": 3666,
       "models": [
         "gemini-3.1-flash-lite-preview",
         "usage_metadata_unavailable"
@@ -276,7 +276,7 @@
       "summaryStatus": "degraded signals=3",
       "signalsSummary": "total=3 | critical=0 | warn=3 | info=0",
       "coverageSummary": "healthy=4/4 | ready=4/4 | runtime=4/4 | metrics=4/4 | startup=0/0",
-      "sloSummary": "liveFirstAudioP95=872ms/2500ms | navigatorStepP95=10ms/25000ms | caseWikiQueryP95=5ms/1500ms",
+      "sloSummary": "liveFirstAudioP95=753ms/2500ms | navigatorStepP95=3ms/25000ms | caseWikiQueryP95=4ms/1500ms",
       "sandboxSummary": "mode=enforce | network=allow_list | setup=current | warnings=0",
       "skillsSummary": "catalog=path/0w | personas=3/10 | recipes=3/10 | runtime=off active=0 skipped=0 blocked=0",
       "topSignal": "warn operator_stage_awaiting_approval@orchestrator | value=2 | Operator trace summary shows runs waiting for approval.",
@@ -309,7 +309,7 @@
           "statusCode": "active",
           "statusText": "active",
           "detailText": "Repo-generated active signal path from runtime diagnostics summary.",
-          "updatedAt": "2026-05-18T22:35:32.4718758+05:00",
+          "updatedAt": "2026-05-19T00:58:52.1780744+05:00",
           "updatedAtIsIso": true
         }
       },
@@ -330,7 +330,7 @@
             "statusCode": "active",
             "statusText": "active",
             "detailText": "Repo-generated active signal path from runtime diagnostics summary.",
-            "updatedAt": "2026-05-18T22:35:32.4718758+05:00",
+            "updatedAt": "2026-05-19T00:58:52.1780744+05:00",
             "updatedAtIsIso": true
           }
         }
@@ -345,14 +345,14 @@
       "signatureStatus": "unsigned",
       "algorithm": "ed25519-sha256",
       "canonicalization": "json-stable-v1",
-      "payloadHash": "sha256:4174c2fe6b29a66b4fd9403560ea54b33983c833a98fde6df027504bacd7dab0",
+      "payloadHash": "sha256:9bf7ee65d15251649c33ed9ccbde6f43500211739055d4a6b3650c3c6cd79127",
       "keyId": null,
       "signerId": "api-backend",
-      "signedAt": "2026-05-18T17:35:32.625Z",
+      "signedAt": "2026-05-18T19:58:52.299Z",
       "signedAtIsIso": true,
       "signaturePresent": false,
-      "caseId": "local-1779125663097-59140",
-      "sessionId": "local-1779125663097-59140",
+      "caseId": "local-1779134259895-8627",
+      "sessionId": "local-1779134259895-8627",
       "overviewStatus": "waiting_on_operator",
       "focusKind": null,
       "focusLabel": null,
@@ -363,7 +363,7 @@
       "status": "pass",
       "validated": true,
       "observed": true,
-      "tenantId": "governance-demo-ad99dfc3-d330-4a59-9d3e-eff518b06085",
+      "tenantId": "governance-demo-0af847ff-66d8-43d6-81f6-ebf77c2c9a49",
       "templateId": "strict",
       "requestedTemplateId": "strict",
       "source": "tenant_override",
@@ -409,15 +409,15 @@
       "status": "pass",
       "validated": true,
       "observed": true,
-      "sessionId": "local-1779125723328-16300",
-      "noteEventId": "bc0b4ae1-e3f3-4fd7-972c-323294542b79",
-      "questionId": "question:event:bc0b4ae1-e3f3-4fd7-972c-323294542b79",
+      "sessionId": "local-1779134323394-33212",
+      "noteEventId": "9c507f14-dbec-4ca3-887d-0e052044b9ea",
+      "questionId": "question:event:9c507f14-dbec-4ca3-887d-0e052044b9ea",
       "questionMatched": true,
       "noteSourceRefSeen": true,
       "questionSuggestedNextStep": "Request passport scan",
       "contextSource": "case_wiki",
       "ingressSource": "gateway_hydrated_case_wiki",
-      "focusId": "question:event:bc0b4ae1-e3f3-4fd7-972c-323294542b79",
+      "focusId": "question:event:9c507f14-dbec-4ca3-887d-0e052044b9ea",
       "blocker": "Passport scan is still missing from the case.",
       "nextAction": "Review the latest case evidence",
       "route": "live-agent",
@@ -508,7 +508,7 @@
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 319 checks | 713ms ws",
+    "message": "pass | 319 checks | 647ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }

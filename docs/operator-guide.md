@@ -195,6 +195,11 @@ The same modal now shows `Channel variants`: `Telegram variant`,
 `Copy WhatsApp variant`, and `Copy phone script`. These are copy-only drafts
 for manual outreach and cannot trigger Telegram, WhatsApp, phone, CRM,
 scorecard, calendar, or outbound-send side effects.
+It also shows `Selected outreach channel`; use `Select Telegram`,
+`Select WhatsApp`, or `Select phone script` until the UI shows
+`Channel selected`. That choice is stored in `selectedChannelByProspectKey`,
+resets only the current company's preview review, and controls the exact draft
+shown in operator confirmation/export.
 The `Operator confirmation` step opens an `Operator confirmation summary` with
 `Ready for manual outreach`, selected company, channel, exact message, approval
 checklist, and `Copy confirmation summary`.

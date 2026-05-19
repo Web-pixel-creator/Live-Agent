@@ -736,6 +736,11 @@ copy only, no external send or CRM write. The same modal now includes
 `Copy WhatsApp variant`, `Copy phone script`). These variants must not start a
 Telegram send, WhatsApp send, phone call, CRM write, scorecard mutation, or
 calendar event.
+The same modal includes a `Selected outreach channel` control. `Select Telegram`,
+`Select WhatsApp`, and `Select phone script` record `Channel selected` in
+`selectedChannelByProspectKey`; changing the channel invalidates only that
+company's preview-review proof. Confirmation and launch packet exports must use
+the selected channel draft instead of the generic lane message.
 The `Operator confirmation` step now opens an `Operator confirmation summary`
 with `Ready for manual outreach`, selected company, channel, exact message,
 approval checklist, and `Copy confirmation summary`. The payload includes
@@ -898,7 +903,10 @@ auto-selected current account inside browser-local state only;
 checks visible before the operator touches the action path; `Mark preview
 reviewed`, `Reset preview review`, `Prep complete`, and
 `messagePreviewReviewedByProspectKey` persist the preview review as
-browser-local prep state only; `Prep gate`,
+browser-local prep state only; `Selected outreach channel`, `Select Telegram`,
+`Select WhatsApp`, `Select phone script`, `Channel selected`, and
+`selectedChannelByProspectKey` persist the operator-approved channel choice
+without sending anything; `Prep gate`,
 `local_services_current_account_prep_gate`, and `Blocked by prep` make manual
 contact visibly blocked until that prep is complete; `Current account contact
 packet`, `local_services_current_account_contact_packet`, `Ready for manual

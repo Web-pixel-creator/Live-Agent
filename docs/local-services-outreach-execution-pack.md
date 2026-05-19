@@ -209,6 +209,10 @@ Allowed reply statuses:
    `Copy WhatsApp variant`, and `Copy phone script`; these are copy-only drafts
    and do not trigger Telegram, WhatsApp, phone, CRM, scorecard, calendar, or
    outbound-send side effects.
+   Select the operator-approved draft through `Selected outreach channel`:
+   `Select Telegram`, `Select WhatsApp`, or `Select phone script` should show
+   `Channel selected` and persist `selectedChannelByProspectKey` before
+   confirmation/export.
 8. Open `Agent setup / training state` and `Open setup checklist`, then show
    `Business profile`, `Knowledge sources`, `Agent behavior`,
    `Test call/message`, `Ready for test call/message`, `Training cards`, and
@@ -318,6 +322,8 @@ Allowed reply statuses:
    the shell now chooses one current account, one next manual action, a
    browser-local account override, phone/Telegram/WhatsApp preview,
    `Channel variants`,
+   `Selected outreach channel`, `Select Telegram`, `Select WhatsApp`,
+   `Select phone script`, `Channel selected`, `selectedChannelByProspectKey`,
    channel/message/proof/guardrail prep checklist, the account -> preview ->
    manual contact -> proof -> continue gate path, the latest account-local
    proof events, proof markers, and one proof marker to update after the real

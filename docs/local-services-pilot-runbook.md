@@ -176,7 +176,10 @@ Do not use the pilot to build:
    inspect the exact message. Review `Channel variants`, `Telegram variant`,
    `WhatsApp variant`, `Phone script variant`, `Copy Telegram variant`,
    `Copy WhatsApp variant`, and `Copy phone script`; these are copy-only drafts
-   and must not trigger channel sends or calls. Open `Operator confirmation summary`
+   and must not trigger channel sends or calls. Set `Selected outreach channel`
+   with `Select Telegram`, `Select WhatsApp`, or `Select phone script` until
+   `Channel selected` is saved in `selectedChannelByProspectKey`. Open
+   `Operator confirmation summary`
    and confirm `Ready for manual outreach`. Click `Record ready for manual outreach`
    to set the browser-local status to `Draft ready`, then keep
    real outreach outside the shell until a human sends the message manually.

@@ -23,6 +23,12 @@ function assertLocalServicesOutreachChannelVariants(source: string): void {
   assert.match(source, phrase("Copy Telegram variant"));
   assert.match(source, phrase("Copy WhatsApp variant"));
   assert.match(source, phrase("Copy phone script"));
+  assert.match(source, phrase("Selected outreach channel"));
+  assert.match(source, phrase("Channel selected"));
+  assert.match(source, phrase("Select Telegram"));
+  assert.match(source, phrase("Select WhatsApp"));
+  assert.match(source, phrase("Select phone script"));
+  assert.match(source, /selectedChannelByProspectKey/);
 }
 
 test("app shell wraps routes with the workspace runtime provider", () => {
