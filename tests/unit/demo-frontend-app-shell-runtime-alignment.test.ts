@@ -554,12 +554,18 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /No row action overlap/);
   assert.match(liveDesk, /Dispatcher compact request queue/);
   assert.match(liveDesk, /Selected request decision rail/);
+  assert.match(liveDesk, /flex min-h-\[560px\] min-w-0 flex-col overflow-hidden rounded-md border border-border\/60 bg-card\/70 xl:max-h-\[calc\(100vh-10rem\)\]/);
+  assert.match(liveDesk, /min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4 pb-6/);
+  assert.match(liveDesk, /shrink-0 border-t border-border\/60 bg-card\/95 px-4 py-3 backdrop-blur/);
   assert.match(liveDesk, /No scroll-spy selection/);
   assert.match(liveDesk, /AI recommendation packet/);
   assert.match(liveDesk, /Customer request card/);
   assert.match(liveDesk, /Sticky operator action footer/);
   assert.match(liveDesk, /Explicit open action: Open dispatch drawer/);
   assert.match(liveDesk, /no autonomous dispatch/);
+  assert.match(readme, /Selected request\s+decision rail` now has a bounded viewport/);
+  assert.match(operatorGuide, /fixed-height shell, independent scroll body/);
+  assert.match(localServicesAgentHandoff, /bounded flex column with its own\s+scroll body/);
   assert.match(liveDesk, /const requestInboxNextAction =/);
   assert.match(liveDesk, /const requestInboxActionRows =/);
   assert.match(liveDesk, /Operator action rail/);

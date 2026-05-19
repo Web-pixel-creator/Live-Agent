@@ -10525,10 +10525,10 @@ const LocalServicesDispatchDemoPanel = ({
 
             {activeView === "requests" && (
               <div
-                className="mt-4 grid gap-3 xl:grid-cols-[minmax(440px,1fr)_minmax(380px,0.62fr)]"
+                className="mt-4 grid gap-3 xl:grid-cols-[minmax(440px,1fr)_minmax(380px,0.62fr)] xl:items-stretch"
                 aria-label="Local services dispatcher workbench contract"
               >
-                <section className="rounded-md border border-border/60 bg-card/55 px-3 py-3">
+                <section className="min-w-0 rounded-md border border-border/60 bg-card/55 px-3 py-3">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div className="min-w-0">
                       <div
@@ -10634,10 +10634,10 @@ const LocalServicesDispatchDemoPanel = ({
                 </section>
 
                 <aside
-                  className="self-start overflow-hidden rounded-md border border-border/60 bg-card/70 xl:sticky xl:top-4"
+                  className="flex min-h-[560px] min-w-0 flex-col overflow-hidden rounded-md border border-border/60 bg-card/70 xl:max-h-[calc(100vh-10rem)]"
                   aria-label="Selected request decision rail"
                 >
-                  <div className="border-b border-border/60 px-4 py-4">
+                  <div className="shrink-0 border-b border-border/60 px-4 py-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
                         {selectedTemplate.ref}
@@ -10657,7 +10657,7 @@ const LocalServicesDispatchDemoPanel = ({
                     </h4>
                   </div>
 
-                  <div className="space-y-3 px-4 py-4">
+                  <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4 pb-6">
                     <section className="rounded-md border border-[hsl(var(--tint-violet)/0.28)] bg-[hsl(var(--tint-violet)/0.08)] px-3 py-3">
                       <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--tint-violet-fg))]">
                         <Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />
@@ -10772,7 +10772,7 @@ const LocalServicesDispatchDemoPanel = ({
                     </section>
                   </div>
 
-                  <div className="sticky bottom-0 border-t border-border/60 bg-card/95 px-4 py-3 backdrop-blur">
+                  <div className="shrink-0 border-t border-border/60 bg-card/95 px-4 py-3 backdrop-blur">
                     <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
                       <Button
                         size="sm"

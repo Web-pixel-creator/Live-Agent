@@ -138,6 +138,9 @@ Local-services expansion spec:
   click updates the preview, `Explicit full task open` stays on the row action,
   and the footer uses the operator-facing guardrail
   `Контроль · оператор · автоотправка выкл.`.
+  The `Requests` view mirrors that rail contract too: `Selected request
+  decision rail` now has a bounded viewport, its own scroll body, and a
+  non-overlapping sticky action footer.
   `Review queue` includes a `Review queue decision rail`, local
   `weekOneOwnerDecisionByProspectKey` and
   `weeklyScorecardSyncReviewedByService` gates, and a `Copy review queue

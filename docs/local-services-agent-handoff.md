@@ -1022,7 +1022,11 @@ Current implementation slice:
    `AI recommendation packet` from the `Customer request card`.
 6. The footer is a `Sticky operator action footer` and repeats the guardrail:
    no autonomous dispatch, no send, and no booking.
-7. Remaining Step 2 work: keep polishing full-height behavior across
+7. The request rail now mirrors the main dispatcher viewport contract:
+   `Selected request decision rail` is a bounded flex column with its own
+   scroll body, and the footer stays outside that scroll body so action buttons
+   do not cover preview content.
+8. Remaining Step 2 work: keep polishing full-height behavior across
    breakpoints and move developer-only payload/evidence detail behind collapsed
    support surfaces.
 
