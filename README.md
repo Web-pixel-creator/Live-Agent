@@ -157,8 +157,10 @@ Local-services expansion spec:
   `Review queue` includes a `Review queue decision rail`, local
   `weekOneOwnerDecisionByProspectKey` and
   `weeklyScorecardSyncReviewedByService` gates, and a `Copy review queue
-  summary` action; these are founder review notes, not CRM, billing, customer
-  message, or autonomous pilot actions.
+  summary` action. It carries `Review rail compact stack`: bounded rail chrome,
+  accent scorecard packet, sticky review actions, and collapsed `Review support details`;
+  these are founder review notes, not CRM, billing, customer message,
+  or autonomous pilot actions.
 - the same route switches the top chrome and first heading to `AI Dispatcher`
   and hides the old runtime alerts, visa demo button, case filters, case search,
   and `New case` action from the local-services header.

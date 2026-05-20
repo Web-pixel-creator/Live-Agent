@@ -139,7 +139,9 @@ Both rails show `Workspace record`, `operatorDecisionByCaseRef`, and
 without treating it as a real send, booking, dispatch, or CRM write.
 `Review queue` includes a `Review queue decision rail` with
 `weekOneOwnerDecisionByProspectKey`, `weeklyScorecardSyncReviewedByService`,
-`Review decision actions`, and `Copy review queue summary`. Use it to record
+`Review decision actions`, and `Copy review queue summary`. It carries
+`Review rail compact stack`: bounded rail chrome, accent scorecard packet,
+sticky review actions, and collapsed `Review support details`. Use it to record
 Continue/Pause/Stop and weekly scorecard sync review before a human prepares
 the evidence pack; the shell still does not write CRM, change billing, message
 customers, activate channels, or make the pilot decision autonomously.

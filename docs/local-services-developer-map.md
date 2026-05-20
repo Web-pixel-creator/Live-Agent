@@ -191,9 +191,12 @@ for `Workspace record` plus the confirmation payload.
 
 `view=reviews` has the fourth actionable panel contract. `Review queue decision
 rail` renders selected account, owner decision, weekly scorecard sync, and
-continue gate. Its buttons may update only `weekOneOwnerDecisionByProspectKey`
-and `weeklyScorecardSyncReviewedByService`; `Copy review queue summary` is a
-manual founder note, not CRM, billing, customer messaging, channel activation,
+continue gate. It carries `Review rail compact stack`: bounded rail chrome,
+accent scorecard packet, sticky review actions, and collapsed `Review support details`
+for decision keys and scorecard sync proof. Its buttons may update
+only `weekOneOwnerDecisionByProspectKey` and
+`weeklyScorecardSyncReviewedByService`; `Copy review queue summary` is a manual
+founder note, not CRM, billing, customer messaging, channel activation,
 paid-pilot launch, or autonomous Continue/Pause/Stop.
 
 ## Main Source Files

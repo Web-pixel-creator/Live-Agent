@@ -1050,7 +1050,11 @@ Current implementation slice:
    the same bounded viewport pattern, keeps consent action, customer request,
    and confirmation preview separate, and moves `Workspace record` plus the
    confirmation payload into collapsed `Customer support details`.
-11. Remaining Step 2 work: keep polishing full-height behavior across
+11. `view=reviews` now carries `Review rail compact stack`: the rail uses the
+   same bounded viewport pattern, separates the scorecard packet from review
+   actions, keeps actions in a sticky footer, and moves decision keys plus
+   `weeklyScorecardSyncReviewedByService` into collapsed `Review support details`.
+12. Remaining Step 2 work: keep polishing full-height behavior across
    breakpoints and move developer-only payload/evidence detail behind collapsed
    support surfaces.
 

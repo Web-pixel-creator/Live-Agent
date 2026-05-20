@@ -584,13 +584,19 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesAgentHandoff, /Decision rail compact stack/);
   assert.match(localServicesAgentHandoff, /Customer rail compact stack/);
   assert.match(localServicesAgentHandoff, /Customer support details/);
+  assert.match(localServicesAgentHandoff, /Review rail compact stack/);
+  assert.match(localServicesAgentHandoff, /Review support details/);
   assert.match(localServicesAgentHandoff, /Two-line compact row/);
   assert.match(localServicesSpec, /Two-line compact row/);
   assert.match(localServicesSpec, /Request rail compact stack/);
   assert.match(localServicesSpec, /Decision rail compact stack/);
+  assert.match(localServicesSpec, /Review rail compact stack/);
+  assert.match(localServicesSpec, /Review support details/);
   assert.match(localServicesDeveloperMap, /Two-line compact row/);
   assert.match(localServicesDeveloperMap, /Request rail compact stack/);
   assert.match(localServicesDeveloperMap, /Decision rail compact stack/);
+  assert.match(localServicesDeveloperMap, /Review rail compact stack/);
+  assert.match(localServicesDeveloperMap, /Review support details/);
   assert.match(liveDesk, /const requestInboxNextAction =/);
   assert.match(liveDesk, /const requestInboxActionRows =/);
   assert.match(liveDesk, /Operator action rail/);
@@ -652,8 +658,17 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Manual only · no SMS \/ Telegram \/ CRM \/ payment \/ booking side effect/);
   assert.match(liveDesk, /const reviewQueueDecisionRows =/);
   assert.match(liveDesk, /Review queue decision rail/);
+  assert.match(liveDesk, /Review rail compact stack/);
+  assert.match(
+    liveDesk,
+    /flex min-h-\[360px\] min-w-0 flex-col overflow-hidden rounded-md border border-border\/60 bg-card\/80 xl:col-span-2 xl:max-h-\[calc\(100vh-12rem\)\]/,
+  );
+  assert.match(liveDesk, /Review scorecard packet/);
+  assert.match(liveDesk, /Review support details/);
+  assert.match(liveDesk, /Decision keys \/ scorecard sync \/ manual summary only/);
   assert.match(liveDesk, /Review decision actions/);
   assert.match(liveDesk, /Copy review queue summary/);
+  assert.match(liveDesk, /Founder review rail - no CRM write - no customer message - no billing change/);
   assert.match(liveDesk, /weeklyScorecardSyncReviewedByService/);
   assert.match(liveDesk, /LOCAL_SERVICE_SEVEN_MINUTE_LAUNCH_PATH/);
   assert.match(liveDesk, /7-minute launch path/);
@@ -1463,6 +1478,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /customerConfirmationByService/);
   assert.match(readme, /Consent-safe confirmation\s+preview/);
   assert.match(readme, /Review queue decision rail/);
+  assert.match(readme, /Review rail compact stack/);
+  assert.match(readme, /Review support details/);
   assert.match(readme, /weekOneOwnerDecisionByProspectKey/);
   assert.match(readme, /weeklyScorecardSyncReviewedByService/);
   assert.match(readme, /Copy review queue\s+summary/);
@@ -2188,6 +2205,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Customer confirmation actions/);
   assert.match(operatorGuide, /Consent-safe confirmation preview/);
   assert.match(operatorGuide, /Review queue decision rail/);
+  assert.match(operatorGuide, /Review rail compact stack/);
+  assert.match(operatorGuide, /Review support details/);
   assert.match(operatorGuide, /Review decision actions/);
   assert.match(operatorGuide, /Copy review queue summary/);
   assert.match(operatorGuide, /path=7min&view=requests/);
@@ -3519,6 +3538,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /weekOneOwnerDecisionByProspectKey/);
   assert.match(localServicesSpec, /weeklyScorecardSyncReviewedByService/);
   assert.match(localServicesDeveloperMap, /Review queue\s+decision\s+rail/);
+  assert.match(localServicesDeveloperMap, /Review rail compact stack/);
+  assert.match(localServicesDeveloperMap, /Review support details/);
   assert.match(localServicesDeveloperMap, /Copy review queue\s+summary/);
   assert.match(localServicesSpec, /path=7min&view=requests/);
   assert.match(localServicesSpec, /path=7min&view=requests&packet=launch/);
