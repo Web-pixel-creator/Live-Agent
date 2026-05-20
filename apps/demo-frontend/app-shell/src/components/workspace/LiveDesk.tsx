@@ -548,6 +548,14 @@ type LocalServicePilotWorkspaceExport = {
   humanText: string;
   jsonText: string;
   rows: { label: string; value: string }[];
+  batchReviewRows?: LocalServiceFirstContactBatchReviewRow[];
+  launchPacket?: {
+    readinessRail: { label: string; value: string }[];
+    manualContactPacket: { label: string; value: string }[];
+    messageDraft: string;
+    guardrails: string[];
+    supportDetails: { label: string; value: string }[];
+  };
   checklist: string[];
 };
 
@@ -5780,6 +5788,28 @@ function buildLocalServicePilotLaunchPacket(
     "Message draft is reviewed in Preview / Test message before a human sends it.",
     "Operator sends manually outside the shell and logs Contacted manually afterward.",
   ];
+  const launchGuardrails = [
+    "No outbound Telegram, WhatsApp, SMS, email, or phone action is fired by this drawer.",
+    "No CRM write, booking, dispatch, billing, or docs mutation happens from this packet.",
+    "Copy only after the operator confirms the browser-local dry run and selected draft are current.",
+    "After manual contact, the operator records the result in the pilot scorecard.",
+  ];
+  const manualContactPacket = [
+    { label: "Service lane", value: template.title },
+    { label: "Selected company", value: company },
+    { label: "Segment", value: segment },
+    { label: "Selected channel", value: channel },
+    { label: "Draft status", value: pilotStatusLabel },
+    { label: "Next operator action", value: nextOperatorAction },
+  ];
+  const supportDetails = [
+    { label: "Export surface", value: "local_services_pilot_launch_packet" },
+    { label: "Export kind", value: "operator_approved_manual_contact_packet" },
+    { label: "Service ref", value: template.ref },
+    { label: "Service id", value: template.id },
+    { label: "Channel state", value: "selectedChannelByProspectKey" },
+    { label: "Dry run progress", value: testCallProgress },
+  ];
   const humanLines = [
     `First manual contact packet: ${template.title}`,
     `Launch readiness: ${launchReadiness}`,
@@ -5796,6 +5826,9 @@ function buildLocalServicePilotLaunchPacket(
     ...approvalChecklist.map((item) => `- ${item}`),
     "",
     `Next operator action: ${nextOperatorAction}`,
+    "Launch packet guardrails:",
+    ...launchGuardrails.map((item) => `- ${item}`),
+    "",
     "Manual execution rule: this launch packet does not send outreach, write CRM, create a calendar event, or mutate docs.",
   ];
   const jsonText = JSON.stringify(
@@ -5838,6 +5871,8 @@ function buildLocalServicePilotLaunchPacket(
         "no_crm_write",
         "manual_scorecard_sync_required",
       ],
+      launch_guardrails: launchGuardrails,
+      support_details: supportDetails,
     },
     null,
     2,
@@ -5866,6 +5901,17 @@ function buildLocalServicePilotLaunchPacket(
       { label: "Next action", value: nextOperatorAction },
       { label: "Guardrail", value: "Manual send only; no outbound message or CRM write" },
     ],
+    launchPacket: {
+      readinessRail: [
+        { label: "Launch readiness", value: launchReadiness },
+        { label: "Dry-run gate", value: dryRunStatus },
+        { label: "Draft status", value: pilotStatusLabel },
+      ],
+      manualContactPacket,
+      messageDraft: selectedVariant.text,
+      guardrails: launchGuardrails,
+      supportDetails,
+    },
     checklist: approvalChecklist,
   };
 }
@@ -16291,6 +16337,245 @@ const LocalServiceDispatchDrawer = ({
   );
 };
 
+const LocalServicePilotLaunchPacketSections = ({
+  exportView,
+  mode,
+  onModeChange,
+  renderedText,
+  onCopy,
+  readyRecorded,
+  onRecordReady,
+  onOpenScorecard,
+  onOpenExecutionPack,
+}: {
+  exportView: LocalServicePilotWorkspaceExport;
+  mode: PlaybookExportMode;
+  onModeChange: (mode: PlaybookExportMode) => void;
+  renderedText: string;
+  onCopy: (text: string, label: string) => void;
+  readyRecorded?: boolean;
+  onRecordReady?: () => void;
+  onOpenScorecard: () => void;
+  onOpenExecutionPack: () => void;
+}) => {
+  const packet = exportView.launchPacket;
+
+  if (!packet) {
+    return null;
+  }
+
+  return (
+    <div className="flex-1 min-h-0 overflow-auto">
+      <section className="px-7 pt-6 pb-5 border-b border-border/50 space-y-4">
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+            Pilot launch packet readiness rail
+          </div>
+          <p className="mt-1 text-[12.5px] text-muted-foreground">
+            Human-first launch state before the first manual contact. This is the operator surface; JSON is support.
+          </p>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {packet.readinessRail.map((row) => (
+            <div key={row.label} className="rounded-md border border-[hsl(var(--tint-mint)/0.25)] bg-[hsl(var(--tint-mint)/0.08)] px-3 py-2.5">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-[hsl(var(--tint-mint-fg))]">
+                {row.label}
+              </div>
+              <div className="mt-1 break-words text-[12.5px] leading-relaxed text-foreground">
+                {row.value}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="px-7 py-5 border-b border-border/50 space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+              First manual contact packet
+            </div>
+            <p className="mt-1 text-[12.5px] text-muted-foreground">
+              The exact company, channel, draft state, and next action the operator needs before copying anything.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => onCopy(exportView.humanText, exportView.copyLabel)}
+            className="h-8 shrink-0"
+          >
+            <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+            {exportView.copyLabel}
+          </Button>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {packet.manualContactPacket.map((row) => (
+            <div key={row.label} className="rounded-md border border-border/60 bg-card/30 px-3 py-2.5">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+                {row.label}
+              </div>
+              <div className="mt-1 break-words text-[12px] leading-relaxed text-foreground">
+                {row.value}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="rounded-md border border-border/60 bg-card/30 px-3 py-3">
+          <div className="mb-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground/75">
+            Manual contact copy preview
+          </div>
+          <div className="whitespace-pre-wrap text-[12.5px] leading-relaxed text-foreground">
+            {packet.messageDraft}
+          </div>
+        </div>
+      </section>
+
+      <section className="px-7 py-5 border-b border-border/50 space-y-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+              {exportView.reviewTitle ?? "First manual contact checklist"}
+            </div>
+            <p className="mt-1 text-[12.5px] text-muted-foreground">
+              {exportView.reviewDescription ??
+                "Confirm the launch packet is current before the human sends the first message."}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {onRecordReady ? (
+              <Button
+                size="sm"
+                variant={readyRecorded ? "secondary" : "default"}
+                onClick={onRecordReady}
+                className="h-8"
+              >
+                <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                Record ready for manual outreach
+              </Button>
+            ) : null}
+            <Button size="sm" variant="secondary" onClick={onOpenExecutionPack} className="h-8">
+              <FileText className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+              {exportView.executionActionLabel ?? "Open outreach execution pack"}
+            </Button>
+            <Button size="sm" variant="secondary" onClick={onOpenScorecard} className="h-8">
+              <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+              {exportView.scorecardActionLabel ?? "Open pilot scorecard"}
+            </Button>
+          </div>
+        </div>
+        <ul className="space-y-2 text-[12.5px] leading-relaxed text-foreground">
+          {exportView.checklist.map((item) => (
+            <li key={item} className="flex gap-2">
+              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="px-7 py-5 border-b border-border/50 space-y-3">
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+            Launch packet guardrails
+          </div>
+          <p className="mt-1 text-[12.5px] text-muted-foreground">
+            These rules make the drawer safe to open during a pilot without implying automation.
+          </p>
+        </div>
+        <div className="rounded-md border border-border/60 bg-card/30 px-3 py-3">
+          <ul className="space-y-2 text-[12.5px] leading-relaxed text-foreground">
+            {packet.guardrails.map((item) => (
+              <li key={item} className="flex gap-2">
+                <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[hsl(var(--tint-mint-fg))]" strokeWidth={1.8} />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section className="px-7 py-5">
+        <details className="group rounded-md border border-border/60 bg-card/30">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-3">
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                Launch packet support details
+              </div>
+              <p className="mt-1 text-[12px] text-muted-foreground">
+                Source keys, raw payload, and CRM/scorecard support copy stay secondary.
+              </p>
+            </div>
+            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" strokeWidth={1.8} />
+          </summary>
+          <div className="space-y-4 border-t border-border/50 px-3 pb-3 pt-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  {exportView.modeLabel}
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Switch only when a developer or CRM import needs the exact payload.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant={mode === "human" ? "default" : "secondary"}
+                  onClick={() => onModeChange("human")}
+                  className="h-8"
+                >
+                  Human-readable
+                </Button>
+                <Button
+                  size="sm"
+                  variant={mode === "json" ? "default" : "secondary"}
+                  onClick={() => onModeChange("json")}
+                  className="h-8"
+                >
+                  JSON
+                </Button>
+              </div>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {packet.supportDetails.map((row) => (
+                <div key={row.label} className="rounded-md border border-border/50 bg-background/35 px-3 py-2.5">
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+                    {row.label}
+                  </div>
+                  <div className="mt-1 break-words text-[12px] leading-relaxed text-foreground">
+                    {row.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  {mode === "human" ? "Human-readable pilot export" : "JSON pilot payload"}
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Copy only after the operator confirms this browser-local state is current.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => onCopy(renderedText, exportView.copyLabel)}
+                className="h-8"
+              >
+                <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                {exportView.copyLabel}
+              </Button>
+            </div>
+            <pre className="max-h-[36vh] overflow-auto rounded-md border border-border/60 bg-background/35 px-3 py-3 font-mono text-[11px] leading-relaxed text-foreground">
+              {renderedText}
+            </pre>
+          </div>
+        </details>
+      </section>
+    </div>
+  );
+};
+
 const LocalServicePilotWorkspaceExportDrawer = ({
   open,
   onOpenChange,
@@ -16334,7 +16619,20 @@ const LocalServicePilotWorkspaceExportDrawer = ({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex-1 min-h-0 overflow-auto">
+        {exportView.launchPacket ? (
+          <LocalServicePilotLaunchPacketSections
+            exportView={exportView}
+            mode={mode}
+            onModeChange={onModeChange}
+            renderedText={renderedText}
+            onCopy={onCopy}
+            readyRecorded={readyRecorded}
+            onRecordReady={onRecordReady}
+            onOpenScorecard={onOpenScorecard}
+            onOpenExecutionPack={onOpenExecutionPack}
+          />
+        ) : (
+          <div className="flex-1 min-h-0 overflow-auto">
           <section className="px-7 pt-6 pb-5 border-b border-border/50 space-y-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
@@ -16484,7 +16782,8 @@ const LocalServicePilotWorkspaceExportDrawer = ({
               {renderedText}
             </pre>
           </section>
-        </div>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );

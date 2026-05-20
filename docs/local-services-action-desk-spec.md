@@ -812,9 +812,12 @@ operating loop built from browser-local funnel and metric state. It shows
 draft. `Open launch packet` opens `Pilot launch packet` / `Launch packet
 preview` with `First manual contact checklist`, `Launch readiness`,
 `Dry-run gate`, `Selected company`, `Draft status`, `Next action`,
-`Copy launch packet`, and `local_services_pilot_launch_packet`. This is still
-an execution guide only: no outreach send, calendar event, CRM write, analytics
-sync, or Markdown mutation happens.
+`Copy launch packet`, and `local_services_pilot_launch_packet`. The drawer
+must show `Pilot launch packet readiness rail`, `First manual contact packet`,
+`Manual contact copy preview`, `First manual contact checklist`, and
+`Launch packet guardrails` before collapsed `Launch packet support details`.
+This is still an execution guide only: no outreach send, calendar event, CRM
+write, analytics sync, or Markdown mutation happens.
 The same checklist now opens `Discovery call prep` through `Open discovery
 prep`. That drawer prepares the first replied-company conversation with
 `Questions to ask`, `Pilot success criteria`, `Copy discovery call prep`, and a
@@ -1155,8 +1158,11 @@ Current shell readiness for P3:
    `First manual contact checklist`, `Launch readiness`, `Dry-run gate`,
    `Selected company`, `Draft status`, `Next action`, `Copy launch packet`,
    and `local_services_pilot_launch_packet` are visible as the first-contact
-   launch packet. It remains manual-only: no outreach send, calendar event, CRM
-   write, analytics sync, or Markdown mutation.
+   launch packet. The drawer must also expose `Pilot launch packet readiness
+   rail`, `First manual contact packet`, `Manual contact copy preview`,
+   `Launch packet guardrails`, and collapsed `Launch packet support details`.
+   It remains manual-only: no outreach send, calendar event, CRM write,
+   analytics sync, or Markdown mutation.
 19. `Manual activity log`, `Last manual action`, `Copy activity log`,
    `local_services_manual_activity_log`, `Selected outreach channel`,
    `selectedChannelByProspectKey`, and `No external side effects` are visible

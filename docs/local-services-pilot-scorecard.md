@@ -86,7 +86,10 @@ Use it to:
    `Pilot launch packet`, `Launch packet preview`,
    `First manual contact checklist`, `Launch readiness`, `Dry-run gate`,
    `Selected company`, `Draft status`, `Next action`, `Copy launch packet`,
-   and `local_services_pilot_launch_packet`
+   and `local_services_pilot_launch_packet`; the drawer should show
+   `Pilot launch packet readiness rail`, `First manual contact packet`,
+   `Manual contact copy preview`, `Launch packet guardrails`, and collapsed
+   `Launch packet support details`
 10. review `Manual activity log`, `Last manual action`, `Copy activity log`,
    `local_services_manual_activity_log`, `Selected outreach channel`,
    `selectedChannelByProspectKey`, and `No external side effects` after

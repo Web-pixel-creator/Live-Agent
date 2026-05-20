@@ -99,8 +99,12 @@ Do not use the pilot to build:
    packet`, `Launch packet preview`, `First manual contact checklist`,
    `Launch readiness`, `Dry-run gate`, `Selected company`, `Draft status`,
    `Next action`, `Copy launch packet`, and
-   `local_services_pilot_launch_packet`. It is manual-only and does not send
-   outreach, create calendar events, write CRM, or mutate docs.
+   `local_services_pilot_launch_packet`. The drawer starts with `Pilot launch
+   packet readiness rail`, `First manual contact packet`, `Manual contact copy
+   preview`, `First manual contact checklist`, and `Launch packet guardrails`;
+   `Launch packet support details` keeps Human/JSON secondary. It is
+   manual-only and does not send outreach, create calendar events, write CRM,
+   or mutate docs.
 11. Review `Manual activity log`, `Last manual action`, `Copy activity log`,
    and `local_services_manual_activity_log` after recording scorecard or metric
    status changes. It is browser-local proof only and has `No external side

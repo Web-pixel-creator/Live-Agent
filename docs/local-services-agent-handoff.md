@@ -231,7 +231,11 @@ Current `Launch packet` decision:
 4. `Open launch packet` still opens the drawer, and `Copy launch packet` still
    copies `local_services_pilot_launch_packet` /
    `operator_approved_manual_contact_packet_with_7_minute_bridge`.
-5. No send, CRM write, booking, dispatch, billing, or docs mutation is triggered
+5. The drawer now follows the same product-first rule: `Pilot launch packet
+   readiness rail`, `First manual contact packet`, `Manual contact copy
+   preview`, `First manual contact checklist`, and `Launch packet guardrails`
+   appear before collapsed `Launch packet support details`.
+6. No send, CRM write, booking, dispatch, billing, or docs mutation is triggered
    by this layer.
 
 Current repo-owned porting state:

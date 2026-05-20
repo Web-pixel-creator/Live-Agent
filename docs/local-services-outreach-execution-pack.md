@@ -278,7 +278,11 @@ Allowed reply statuses:
    operator-reviewed packet before a human sends the first contact manually.
    The path view should read as `Launch packet readiness card` first, with
    `Manual launch checklist` and `Manual execution guardrails` visible and
-   `Launch support details` collapsed for technical source rows.
+   `Launch support details` collapsed for technical source rows. The drawer
+   should mirror that product-first order with `Pilot launch packet readiness
+   rail`, `First manual contact packet`, `Manual contact copy preview`,
+   `First manual contact checklist`, `Launch packet guardrails`, and collapsed
+   `Launch packet support details`.
 17. Show `Manual activity log`, `Last manual action`, `Copy activity log`,
    `local_services_manual_activity_log`, `Selected outreach channel`,
    `selectedChannelByProspectKey`, and `No external side effects`; explain that

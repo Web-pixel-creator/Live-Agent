@@ -95,7 +95,10 @@ draft. `Open launch packet` opens `Pilot launch packet` / `Launch packet
 preview` with `First manual contact checklist`, `Launch readiness`,
 `Dry-run gate`, `Selected company`, `Draft status`, `Next action`,
 `Copy launch packet`, and `local_services_pilot_launch_packet` before the
-operator sends anything manually.
+operator sends anything manually. The drawer now leads with `Pilot launch
+packet readiness rail`, `First manual contact packet`, `Manual contact copy
+preview`, `First manual contact checklist`, and `Launch packet guardrails`;
+`Launch packet support details` keeps raw support copy secondary.
 The same loop now shows `Manual activity log`, `Last manual action`,
 `Copy activity log`, and `local_services_manual_activity_log` for browser-local
 scorecard and metric events. It is explicitly `No external side effects`: no

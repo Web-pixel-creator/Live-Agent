@@ -136,7 +136,12 @@ CRM, phone storage, or scorecards.
 draft. `Open launch packet` opens `Pilot launch packet` / `Launch packet
 preview` with `First manual contact checklist`, `Launch readiness`,
 `Dry-run gate`, `Selected company`, `Draft status`, `Next action`,
-`Copy launch packet`, and `local_services_pilot_launch_packet`; it still does
+`Copy launch packet`, and `local_services_pilot_launch_packet`. The drawer
+now starts with `Pilot launch packet readiness rail`, then
+`First manual contact packet` / `Manual contact copy preview`,
+`First manual contact checklist`, and `Launch packet guardrails`; raw source
+keys and Human/JSON copy stay in collapsed `Launch packet support details`.
+It still does
 not send outreach, create calendar events, write CRM, or mutate docs. It
 mirrors browser-local state only and does not send
 outreach, write CRM, sync analytics, or mutate Markdown docs.

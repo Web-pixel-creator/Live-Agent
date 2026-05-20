@@ -258,7 +258,11 @@ loop with `Pass test call/message`, `Needs test call passed`,
 draft. `Open launch packet` opens `Pilot launch packet` / `Launch packet
 preview` with `First manual contact checklist`, `Launch readiness`,
 `Dry-run gate`, `Selected company`, `Draft status`, `Next action`,
-`Copy launch packet`, and `local_services_pilot_launch_packet`; treat it as
+`Copy launch packet`, and `local_services_pilot_launch_packet`. The operator
+sees `Pilot launch packet readiness rail`, `First manual contact packet`,
+`Manual contact copy preview`, `First manual contact checklist`, and
+`Launch packet guardrails` first; `Launch packet support details` keeps raw
+Human/JSON and source-key detail secondary. Treat it as
 status guidance only. It does not send,
 write CRM, sync analytics, or mutate docs.
 The same checklist now includes `Manual activity log`, `Last manual action`,

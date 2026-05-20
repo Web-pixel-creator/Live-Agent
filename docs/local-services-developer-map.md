@@ -129,7 +129,11 @@ opens the existing packet drawer through `Open launch packet`. The drawer uses
 The visible path view keeps the bridge product-first with a `Launch packet
 readiness card`, `Manual launch checklist`, `Manual execution guardrails`, and
 collapsed `Launch support details`; use the collapsed details for source-key
-debugging instead of making the primary scan JSON-heavy.
+debugging instead of making the primary scan JSON-heavy. The actual
+`Pilot launch packet` drawer uses the same rule: `Pilot launch packet readiness
+rail`, `First manual contact packet`, `Manual contact copy preview`,
+`First manual contact checklist`, and `Launch packet guardrails` are primary;
+`Launch packet support details` keeps Human/JSON and source-key rows secondary.
 
 Implementation records live in three places: runtime behavior in
 `apps/demo-frontend/app-shell/src/components/workspace/LiveDesk.tsx`, product

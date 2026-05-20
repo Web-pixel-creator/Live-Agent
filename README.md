@@ -310,7 +310,11 @@ Local-services expansion spec:
   `Launch packet preview` with `First manual contact checklist`,
   `Launch readiness`, `Dry-run gate`, `Selected company`, `Draft status`,
   `Next action`, `Copy launch packet`, and
-  `local_services_pilot_launch_packet`; it still does not send outreach,
+  `local_services_pilot_launch_packet`. The drawer is now ordered as
+  `Pilot launch packet readiness rail` -> `First manual contact packet` /
+  `Manual contact copy preview` -> `First manual contact checklist` ->
+  `Launch packet guardrails`; `Launch packet support details` keeps the
+  Human/JSON payload and source keys secondary. It still does not send outreach,
   create calendar events, write CRM, or mutate docs. It mirrors
   browser-local statuses only. The same checklist now also shows
   `Manual activity log`, `Last manual action`, `Copy activity log`, and
