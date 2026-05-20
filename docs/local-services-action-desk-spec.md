@@ -418,9 +418,11 @@ latest operator choice to `operatorDecisionByCaseRef` through
 draft`, `Master handoff draft`, and `Booking handoff preview` for a human owner
 or dispatcher. It must not create a booking, dispatch a technician, send a
 customer message, write CRM, collect payment, or activate a channel. The rail
-should show a compact `Workspace record` status with `API + local fallback`,
-latest surface, and timestamp so the persistence boundary is visible without
-exposing raw JSON.
+should carry `Schedule rail compact stack`: bounded rail chrome, accent
+approval card, separate customer/master drafts, and collapsed schedule support
+details with a compact `Workspace record` status (`API + local fallback`,
+latest surface, timestamp) plus the `Booking handoff preview`, so the
+persistence boundary is visible without exposing raw JSON in the first scan.
 
 `Customer directory` is the third actionable product view. It now has a
 `Customer compact directory` with contactable customers, active 30-day demo

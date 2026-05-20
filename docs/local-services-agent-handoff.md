@@ -232,7 +232,10 @@ Current repo-owned porting state:
     The `Schedule approval rail` shows `Customer confirmation draft`, `Master
     handoff draft`, `Booking handoff preview`, and `Workspace record` while
     preserving the no booking / no send / no dispatch / no CRM / no payment
-    guardrail.
+    guardrail. It now carries `Schedule rail compact stack`: a bounded right
+    rail, accent approval card, separate customer/master drafts, and collapsed
+    schedule support details for `Workspace record` plus `Booking handoff
+    preview`.
 3. Customers now has a `Customer compact directory` with contactable customers,
    active 30-day demo cases, honest `Сумма заявок` midpoint estimates, district
    coverage, and `LAST = service + ref`. Row click selects only the preview
@@ -1039,7 +1042,11 @@ Current implementation slice:
    packet, separate customer card, collapsed status/outcome controls, and a
    dominant explicit open action. Technical status/outcome buttons remain
    available in one collapsed support block and must stay local/manual-only.
-9. Remaining Step 2 work: keep polishing full-height behavior across
+9. `view=schedule` now carries `Schedule rail compact stack`: the rail uses the
+   same bounded viewport pattern, keeps the approval slot card separate from
+   customer/master drafts, and moves `Workspace record` plus
+   `Booking handoff preview` into collapsed schedule support details.
+10. Remaining Step 2 work: keep polishing full-height behavior across
    breakpoints and move developer-only payload/evidence detail behind collapsed
    support surfaces.
 

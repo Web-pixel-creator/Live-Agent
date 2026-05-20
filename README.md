@@ -119,9 +119,12 @@ Local-services expansion spec:
   `dispatchApprovalByService`, `Customer confirmation draft`,
   `Master handoff draft`, `Booking handoff preview`, and the compact
   `Workspace record` mirrored to `operatorDecisionByCaseRef` through the
-  local-services workspace API. It remains a manual approval surface, not a live
-  appointment, customer send, technician dispatch, CRM write, payment, or
-  channel activation. `Customer directory` is now a compact customer workspace:
+  local-services workspace API. It now carries `Schedule rail compact stack`:
+  a bounded right rail, accent approval card, separate customer/master drafts,
+  and collapsed schedule support details for workspace record plus booking
+  handoff preview. It remains a manual approval surface, not a live appointment,
+  customer send, technician dispatch, CRM write, payment, or channel activation.
+  `Customer directory` is now a compact customer workspace:
   KPI cards show contactable customers, active 30-day demo cases, honest
   `Сумма заявок` midpoint estimates, and district coverage; the
   `Customer compact directory` uses `LAST = service + ref`, row click selects

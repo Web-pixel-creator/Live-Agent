@@ -11003,8 +11003,9 @@ const LocalServicesDispatchDemoPanel = ({
 
                   <aside
                     aria-label="Schedule approval rail"
-                    className="flex min-h-[620px] min-w-0 flex-col overflow-hidden rounded-md border border-border/60 bg-background/45"
+                    className="flex min-h-[560px] min-w-0 flex-col overflow-hidden rounded-md border border-border/60 bg-card/80 xl:max-h-[calc(100vh-9rem)]"
                   >
+                    <span className="sr-only">Schedule rail compact stack</span>
                     <header className="shrink-0 border-b border-border/55 px-4 py-4">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="rounded-[5px] bg-card/55 px-2 py-1 font-mono text-[10px] text-muted-foreground">
@@ -11025,8 +11026,8 @@ const LocalServicesDispatchDemoPanel = ({
                       </h3>
                     </header>
 
-                    <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4 pb-6">
-                      <section className="rounded-md border border-[hsl(var(--tint-violet)/0.28)] bg-[hsl(var(--tint-violet)/0.08)] px-4 py-4">
+                    <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3.5 pb-4">
+                      <section className="rounded-md border border-[hsl(var(--tint-violet)/0.30)] bg-[hsl(var(--tint-violet)/0.09)] px-4 py-4">
                         <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[hsl(var(--tint-violet-fg))]">
                           Approval-ready slot card
                         </div>
@@ -11035,7 +11036,7 @@ const LocalServicesDispatchDemoPanel = ({
                         </p>
                         <div className="mt-3 grid gap-2 sm:grid-cols-2">
                           {scheduleApprovalRows.map((row) => (
-                            <div key={row.label} className="rounded-md border border-border/45 bg-background/40 px-3 py-2.5">
+                            <div key={row.label} className="rounded-md border border-border/45 bg-background/45 px-3 py-2.5">
                               <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
                                 {row.label}
                               </div>
@@ -11046,7 +11047,7 @@ const LocalServicesDispatchDemoPanel = ({
                         </div>
                       </section>
 
-                      <section className="rounded-md border border-border/55 bg-card/45 px-4 py-3">
+                      <section className="rounded-md border border-border/55 bg-card/75 px-3.5 py-3">
                         <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                           Customer confirmation draft
                         </div>
@@ -11055,7 +11056,7 @@ const LocalServicesDispatchDemoPanel = ({
                         </p>
                       </section>
 
-                      <section className="rounded-md border border-border/55 bg-card/45 px-4 py-3">
+                      <section className="rounded-md border border-border/55 bg-card/75 px-3.5 py-3">
                         <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                           Master handoff draft
                         </div>
@@ -11064,68 +11065,86 @@ const LocalServicesDispatchDemoPanel = ({
                         </p>
                       </section>
 
-                      <section className="rounded-md border border-border/55 bg-card/35 px-4 py-3">
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                          <div>
+                      <details className="group rounded-md border border-border/55 bg-card/45">
+                        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3.5 py-3">
+                          <div className="min-w-0">
                             <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                              Workspace record
+                              Schedule support details
                             </div>
-                            <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
-                              Latest schedule choice mirrored through the workspace API with browser-local fallback.
-                            </p>
+                            <div className="mt-1 truncate text-[11.5px] text-muted-foreground">
+                              Workspace record · booking handoff preview · manual copy only
+                            </div>
                           </div>
-                          <span className="shrink-0 rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
-                            API + local fallback
-                          </span>
-                        </div>
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                          <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-foreground">
-                            operatorDecisionByCaseRef
-                          </span>
-                          <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
-                            {selectedOperatorDecisionSurface}
-                          </span>
-                          <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
-                            {selectedOperatorDecisionTime}
-                          </span>
-                        </div>
-                        <div className="mt-2 text-[11.5px] font-medium text-foreground">
-                          {selectedOperatorDecisionLabel}
-                        </div>
-                      </section>
+                          <ChevronDown
+                            className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+                            strokeWidth={1.8}
+                          />
+                        </summary>
+                        <div className="space-y-3 border-t border-border/55 px-3.5 py-3">
+                          <section className="rounded-md border border-border/50 bg-background/35 px-3 py-3">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                              <div>
+                                <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                                  Workspace record
+                                </div>
+                                <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                                  Latest schedule choice mirrored through the workspace API with browser-local fallback.
+                                </p>
+                              </div>
+                              <span className="shrink-0 rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                                API + local fallback
+                              </span>
+                            </div>
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              <span className="rounded-[5px] bg-card/55 px-2 py-1 font-mono text-[10px] text-foreground">
+                                operatorDecisionByCaseRef
+                              </span>
+                              <span className="rounded-[5px] bg-card/55 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                                {selectedOperatorDecisionSurface}
+                              </span>
+                              <span className="rounded-[5px] bg-card/55 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                                {selectedOperatorDecisionTime}
+                              </span>
+                            </div>
+                            <div className="mt-2 text-[11.5px] font-medium text-foreground">
+                              {selectedOperatorDecisionLabel}
+                            </div>
+                          </section>
 
-                      <section className="rounded-md border border-border/55 bg-card/35 px-4 py-3">
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                          <div>
-                            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                              Booking handoff preview
+                          <section className="rounded-md border border-border/50 bg-background/35 px-3 py-3">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                              <div>
+                                <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                                  Booking handoff preview
+                                </div>
+                                <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                                  Human-readable note for a dispatcher or owner. Copying it is still manual-only and does
+                                  not confirm the appointment.
+                                </p>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => onCopyText(scheduleHandoffPreviewText, "Schedule handoff copied")}
+                                className="h-8 shrink-0"
+                              >
+                                Copy schedule handoff
+                              </Button>
                             </div>
-                            <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
-                              Human-readable note for a dispatcher or owner. Copying it is still manual-only and does
-                              not confirm the appointment.
-                            </p>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => onCopyText(scheduleHandoffPreviewText, "Schedule handoff copied")}
-                            className="h-8"
-                          >
-                            Copy schedule handoff
-                          </Button>
+                            <pre className="mt-3 max-h-40 overflow-auto rounded-md bg-card/55 p-3 font-mono text-[10.5px] leading-relaxed text-muted-foreground">
+                              {scheduleHandoffPreviewText}
+                            </pre>
+                          </section>
                         </div>
-                        <pre className="mt-3 max-h-40 overflow-auto rounded-md bg-background/45 p-3 font-mono text-[10.5px] leading-relaxed text-muted-foreground">
-                          {scheduleHandoffPreviewText}
-                        </pre>
-                      </section>
+                      </details>
                     </div>
 
-                    <footer className="shrink-0 border-t border-border/60 bg-card/95 px-4 py-3">
+                    <footer className="shrink-0 border-t border-border/60 bg-card/95 px-3.5 py-2.5">
                       <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
                         <Button
                           size="sm"
                           onClick={() => updateDispatchApprovalDecision("owner_approved")}
-                          className="h-10 justify-center"
+                          className="h-10 justify-center px-4 text-[13px] font-semibold"
                         >
                           <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
                           Approve manual handoff

@@ -614,6 +614,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Open schedule drawer/);
   assert.match(liveDesk, /Open in Dispatcher/);
   assert.match(liveDesk, /Schedule approval rail/);
+  assert.match(liveDesk, /Schedule rail compact stack/);
+  assert.match(liveDesk, /flex min-h-\[560px\] min-w-0 flex-col overflow-hidden rounded-md border border-border\/60 bg-card\/80 xl:max-h-\[calc\(100vh-9rem\)\]/);
+  assert.match(liveDesk, /min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3\.5 pb-4/);
+  assert.match(liveDesk, /Schedule support details/);
   assert.match(liveDesk, /Customer confirmation draft/);
   assert.match(liveDesk, /Master handoff draft/);
   assert.match(liveDesk, /Booking handoff preview/);
@@ -1437,6 +1441,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /statusByProspectKey/);
   assert.match(readme, /firstRequestOutcomeByProspectKey/);
   assert.match(readme, /Schedule approval rail/);
+  assert.match(readme, /Schedule rail compact stack/);
   assert.match(readme, /dispatchApprovalByService/);
   assert.match(readme, /Booking handoff preview/);
   assert.match(readme, /Customer confirmation rail/);
@@ -2159,6 +2164,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Open schedule drawer/);
   assert.match(operatorGuide, /Open in Dispatcher/);
   assert.match(operatorGuide, /Schedule approval rail/);
+  assert.match(operatorGuide, /Schedule rail compact stack/);
   assert.match(operatorGuide, /Customer confirmation draft/);
   assert.match(operatorGuide, /Master handoff draft/);
   assert.match(operatorGuide, /Booking\s+handoff\s+preview/);
@@ -3476,9 +3482,11 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesDeveloperMap, /Operator action rail/);
   assert.match(localServicesDeveloperMap, /next approved action/);
   assert.match(localServicesSpec, /Schedule approval\s+rail/);
+  assert.match(localServicesSpec, /Schedule rail compact stack/);
   assert.match(localServicesSpec, /dispatchApprovalByService/);
   assert.match(localServicesSpec, /Booking handoff preview/);
   assert.match(localServicesDeveloperMap, /Schedule approval\s+rail/);
+  assert.match(localServicesDeveloperMap, /Schedule rail compact stack/);
   assert.match(localServicesDeveloperMap, /Booking\s+handoff\s+preview/);
   assert.match(localServicesSpec, /Customer\s+confirmation\s+rail/);
   assert.match(localServicesSpec, /Customer compact directory/);
