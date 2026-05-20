@@ -140,7 +140,9 @@ on the dry run and a ready draft. `Open launch packet` opens `Pilot launch
 packet` / `Launch packet preview` with `First manual contact checklist`,
 `Launch readiness`, `Dry-run gate`, `Selected company`, `Draft status`,
 `Next action`, `Copy launch packet`, and
-`local_services_pilot_launch_packet`. It
+`local_services_pilot_launch_packet`. The visible path now uses a `Launch
+packet readiness card` with `Manual launch checklist` and `Manual execution
+guardrails`; `Launch support details` stays collapsed for source-key review. It
 shows the 14-day pilot operating loop without sending anything automatically.
 The same loop now shows `Manual activity log`, `Last manual action`,
 `Copy activity log`, and `local_services_manual_activity_log` for browser-local

@@ -276,6 +276,9 @@ Allowed reply statuses:
    `Selected company`, `Draft status`, `Next action`, `Copy launch packet`,
    and `local_services_pilot_launch_packet`; explain that this is the final
    operator-reviewed packet before a human sends the first contact manually.
+   The path view should read as `Launch packet readiness card` first, with
+   `Manual launch checklist` and `Manual execution guardrails` visible and
+   `Launch support details` collapsed for technical source rows.
 17. Show `Manual activity log`, `Last manual action`, `Copy activity log`,
    `local_services_manual_activity_log`, `Selected outreach channel`,
    `selectedChannelByProspectKey`, and `No external side effects`; explain that

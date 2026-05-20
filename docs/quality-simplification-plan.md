@@ -154,7 +154,9 @@ packet` / `Launch packet preview` with `First manual contact checklist`,
 `Launch readiness`, `Dry-run gate`, `Selected company`, `Draft status`,
 `Next action`, `Copy launch packet`, and
 `local_services_pilot_launch_packet` before any human sends the first manual
-message.
+message. The visible path is now a compact `Launch packet readiness card` with
+`Manual launch checklist`, `Manual execution guardrails`, and collapsed `Launch
+support details` instead of a JSON-heavy primary scan.
 This turns the 14-day pilot runbook into a visible operating loop without
 adding autonomous outreach or CRM scope.
 That operating loop now also includes `Manual activity log`,

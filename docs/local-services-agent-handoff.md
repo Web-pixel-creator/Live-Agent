@@ -1,6 +1,6 @@
 # Local Services Agent Handoff
 
-Last assembled: 2026-05-19.
+Last assembled: 2026-05-20.
 
 Use this file when another agent, developer, or product reviewer needs to
 understand the current direction without reading the whole conversation history.
@@ -218,6 +218,21 @@ What to take from the design workbench now:
 5. Scenario store pattern: zod schema plus static/local/backend-swappable store.
 6. Admin scenario editor idea, but only for four fixed scenarios at first.
 7. Visual regression fixture mindset from the workbench e2e tests.
+
+Current `Launch packet` decision:
+
+1. Keep it as a support/readiness layer over `path=7min`, not as a heavy primary
+   workspace page.
+2. The visible operator surface is `Launch packet readiness card` with `Manual
+   launch checklist` and `Manual execution guardrails`.
+3. Source-key rows such as `Path recorded`, `Schedule approval`, `Customer
+   confirmation`, and `Setup + dry run` stay under collapsed `Launch support
+   details`.
+4. `Open launch packet` still opens the drawer, and `Copy launch packet` still
+   copies `local_services_pilot_launch_packet` /
+   `operator_approved_manual_contact_packet_with_7_minute_bridge`.
+5. No send, CRM write, booking, dispatch, billing, or docs mutation is triggered
+   by this layer.
 
 Current repo-owned porting state:
 

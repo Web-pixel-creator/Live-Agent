@@ -8892,6 +8892,37 @@ const LocalServicesDispatchDemoPanel = ({
       detail: "Pulled from weekOneOwnerDecisionByProspectKey and weeklyScorecardSyncReviewedByService.",
     },
   ];
+  const launchPacketReadinessRows = [
+    {
+      label: "Manual launch checklist",
+      value: launchPathPacketGateLabel,
+      detail: "Path progress, dry run, selected company, draft state, and approval posture are checked before copy.",
+    },
+    {
+      label: "Operator next action",
+      value: manualLaunchGateLabel,
+      detail: "The shell prepares the packet; the operator decides whether to copy it for manual outreach.",
+    },
+    {
+      label: "Export surface",
+      value: "local_services_pilot_launch_packet",
+      detail: "One human-readable/JSON payload for handoff into scorecard, CRM notes, or founder review.",
+    },
+  ];
+  const launchPacketManualGuardrailRows = [
+    {
+      label: "No external send",
+      value: "SMS / Telegram / WhatsApp stay manual",
+    },
+    {
+      label: "No operational mutation",
+      value: "No CRM write, calendar booking, dispatch, billing, or docs mutation",
+    },
+    {
+      label: "No hidden automation",
+      value: "Every first-contact packet is operator-reviewed before use",
+    },
+  ];
   const launchPathLaunchPacketText = [
     "7-minute launch packet bridge:",
     `Service: ${selectedTemplate.ref} - ${selectedTemplate.title}`,
@@ -10041,30 +10072,35 @@ const LocalServicesDispatchDemoPanel = ({
                 );
               })}
             </div>
-            <div className="mt-3 rounded-md border border-border/50 bg-background/35 px-3 py-3">
+            <div className="mt-3 rounded-md border border-border/60 bg-card/75 px-3.5 py-3.5 shadow-sm">
               <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                 <div className="min-w-0">
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                    Launch packet bridge
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                      Launch packet bridge
+                    </span>
+                    <span className="rounded-[5px] bg-secondary/55 px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
+                      Launch packet compact stack
+                    </span>
                   </div>
                   <p className="mt-1.5 max-w-3xl text-[12px] leading-relaxed text-foreground">
-                    Rolls the guided path into the existing Pilot launch packet so the operator can see what is
-                    ready, what is still pending, and what will be copied for manual review.
+                    Launch packet readiness card: one operator scan for what is ready, what still blocks the first
+                    manual contact, and what will be copied into the existing Pilot launch packet.
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <span
                       className={`inline-flex rounded-[5px] px-2 py-1 font-mono text-[10px] ring-1 ring-inset ${
                         launchPathPacketGateLabel === "Launch packet ready for manual review"
-                          ? "bg-[hsl(var(--tint-mint)/0.12)] text-[hsl(var(--tint-mint-fg))] ring-[hsl(var(--tint-mint)/0.22)]"
-                          : "bg-[hsl(var(--tint-amber)/0.12)] text-[hsl(var(--tint-amber-fg))] ring-[hsl(var(--tint-amber)/0.24)]"
+                          ? "bg-[hsl(var(--tint-mint)/0.12)] text-[hsl(var(--tint-mint-fg))] ring-[hsl(var(--tint-mint)/0.26)]"
+                          : "bg-[hsl(var(--tint-amber)/0.16)] text-[hsl(var(--tint-amber-fg))] ring-[hsl(var(--tint-amber)/0.32)]"
                       }`}
                     >
                       {launchPathPacketGateLabel}
                     </span>
-                    <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                    <span className="inline-flex rounded-[5px] bg-secondary/55 px-2 py-1 font-mono text-[10px] text-muted-foreground">
                       local_services_pilot_launch_packet
                     </span>
-                    <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                    <span className="inline-flex rounded-[5px] bg-secondary/55 px-2 py-1 font-mono text-[10px] text-muted-foreground">
                       Manual review only
                     </span>
                   </div>
@@ -10089,17 +10125,55 @@ const LocalServicesDispatchDemoPanel = ({
                   </Button>
                 </div>
               </div>
-              <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-                {launchPathPacketBridgeRows.map((row) => (
-                  <div key={row.label} className="rounded-md border border-border/45 bg-card/25 px-2.5 py-2">
-                    <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
-                      {row.label}
-                    </div>
-                    <div className="mt-1 text-[12px] font-medium text-foreground">{row.value}</div>
-                    <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">{row.detail}</p>
+              <div className="mt-3 grid gap-2 lg:grid-cols-[1.2fr_0.9fr]">
+                <div className="rounded-md border border-border/50 bg-background/35 p-3">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                    Manual launch checklist
                   </div>
-                ))}
+                  <div className="mt-2 grid gap-2 md:grid-cols-3">
+                    {launchPacketReadinessRows.map((row) => (
+                      <div key={row.label} className="rounded-md border border-border/45 bg-card/35 px-2.5 py-2">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/85">
+                          {row.label}
+                        </div>
+                        <div className="mt-1 text-[12px] font-semibold text-foreground">{row.value}</div>
+                        <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">{row.detail}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="rounded-md border border-border/50 bg-background/35 p-3">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                    Manual execution guardrails
+                  </div>
+                  <div className="mt-2 space-y-2">
+                    {launchPacketManualGuardrailRows.map((row) => (
+                      <div key={row.label} className="rounded-md border border-border/35 bg-card/30 px-2.5 py-2">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/85">
+                          {row.label}
+                        </div>
+                        <div className="mt-1 text-[11.5px] leading-relaxed text-foreground">{row.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
+              <details className="mt-3 rounded-md border border-border/45 bg-background/30 px-3 py-2">
+                <summary className="cursor-pointer list-none text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                  Launch support details · Path recorded · Schedule approval · Customer confirmation · Setup + dry run
+                </summary>
+                <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                  {launchPathPacketBridgeRows.map((row) => (
+                    <div key={row.label} className="rounded-md border border-border/45 bg-card/25 px-2.5 py-2">
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/85">
+                        {row.label}
+                      </div>
+                      <div className="mt-1 text-[12px] font-medium text-foreground">{row.value}</div>
+                      <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">{row.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              </details>
             </div>
           </section>
         )}

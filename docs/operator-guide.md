@@ -161,7 +161,11 @@ launch packet`, `Path recorded`, `Schedule approval`, `Customer confirmation`,
 same `7-minute gate` and
 `operator_approved_manual_contact_packet_with_7_minute_bridge` payload. It is a
 navigation and explanation layer only; it does not create external side
-effects.
+effects. The bridge itself is intentionally product-first: `Launch packet
+readiness card` is the visible operator scan, `Manual launch checklist` shows
+what still blocks first contact, `Manual execution guardrails` repeats what the
+shell will not do, and `Launch support details` keeps source-state rows
+available without putting them in the primary scan.
 It now also exposes `Open intake evidence` and `Transcript + evidence`, which
 opens a `Saved intake evidence` drawer with `Intake transcript + evidence link`,
 `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,

@@ -678,6 +678,11 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Recorded progress/);
   assert.match(liveDesk, /launchPathStepCompletionByService/);
   assert.match(liveDesk, /Launch packet bridge/);
+  assert.match(liveDesk, /Launch packet compact stack/);
+  assert.match(liveDesk, /Launch packet readiness card/);
+  assert.match(liveDesk, /Manual launch checklist/);
+  assert.match(liveDesk, /Manual execution guardrails/);
+  assert.match(liveDesk, /Launch support details/);
   assert.match(liveDesk, /Launch packet needs operator review/);
   assert.match(liveDesk, /pilotLaunchPacketWithBridge/);
   assert.match(liveDesk, /7-minute gate/);
@@ -1491,6 +1496,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Record current step reviewed/);
   assert.match(readme, /Reset launch path progress/);
   assert.match(readme, /Launch packet bridge/);
+  assert.match(readme, /Launch packet\s+readiness card/);
+  assert.match(readme, /Manual launch checklist/);
+  assert.match(readme, /Manual\s+execution guardrails/);
+  assert.match(readme, /Launch support details/);
   assert.match(readme, /7-minute gate/);
   assert.match(readme, /operator_approved_manual_contact_packet_with_7_minute_bridge/);
   assert.match(readme, /Path recorded/);
@@ -1939,6 +1948,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /First manual contact checklist/);
   assert.match(localDevelopment, /Copy launch packet/);
   assert.match(localDevelopment, /local_services_pilot_launch_packet/);
+  assert.match(localDevelopment, /Launch packet\s+readiness card/);
+  assert.match(localDevelopment, /Manual launch checklist/);
+  assert.match(localDevelopment, /Manual\s+execution guardrails/);
+  assert.match(localDevelopment, /Launch support details/);
   assert.match(localDevelopment, /Manual activity log/);
   assert.match(localDevelopment, /Last manual action/);
   assert.match(localDevelopment, /Copy activity log/);
@@ -2217,6 +2230,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Record current\s+step reviewed/);
   assert.match(operatorGuide, /Reset launch path progress/);
   assert.match(operatorGuide, /Launch packet bridge/);
+  assert.match(operatorGuide, /Launch packet\s+readiness card/);
+  assert.match(operatorGuide, /Manual launch checklist/);
+  assert.match(operatorGuide, /Manual\s+execution guardrails/);
+  assert.match(operatorGuide, /Launch support details/);
   assert.match(operatorGuide, /7-minute gate/);
   assert.match(operatorGuide, /operator_approved_manual_contact_packet_with_7_minute_bridge/);
   assert.match(operatorGuide, /Path recorded/);
@@ -3222,6 +3239,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /First manual contact checklist/);
   assert.match(localServicesSpec, /Copy launch packet/);
   assert.match(localServicesSpec, /local_services_pilot_launch_packet/);
+  assert.match(localServicesSpec, /Launch packet\s+readiness card/);
+  assert.match(localServicesSpec, /Manual launch checklist/);
+  assert.match(localServicesSpec, /Manual\s+execution guardrails/);
+  assert.match(localServicesSpec, /Launch support details/);
   assert.match(localServicesSpec, /Manual activity log/);
   assert.match(localServicesSpec, /Last manual action/);
   assert.match(localServicesSpec, /Copy activity log/);
@@ -3566,6 +3587,10 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesDeveloperMap, /7-minute gate/);
   assert.match(localServicesDeveloperMap, /operator_approved_manual_contact_packet_with_7_minute_bridge/);
   assert.match(localServicesDeveloperMap, /local_services_pilot_launch_packet/);
+  assert.match(localServicesDeveloperMap, /Launch packet\s+readiness card/);
+  assert.match(localServicesDeveloperMap, /Manual launch checklist/);
+  assert.match(localServicesDeveloperMap, /Manual\s+execution guardrails/);
+  assert.match(localServicesDeveloperMap, /Launch support details/);
 
   assert.match(pilotOffer, /# Local Services Pilot Offer/);
   assert.match(pilotOffer, /AI Dispatcher for Local Services/);

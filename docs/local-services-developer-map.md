@@ -126,6 +126,10 @@ confirmation, setup/dry-run, and founder-review labels, then copies a manual
 opens the existing packet drawer through `Open launch packet`. The drawer uses
 `pilotLaunchPacketWithBridge`, adds `7-minute gate`, and emits the structured
 `operator_approved_manual_contact_packet_with_7_minute_bridge` JSON payload.
+The visible path view keeps the bridge product-first with a `Launch packet
+readiness card`, `Manual launch checklist`, `Manual execution guardrails`, and
+collapsed `Launch support details`; use the collapsed details for source-key
+debugging instead of making the primary scan JSON-heavy.
 
 Implementation records live in three places: runtime behavior in
 `apps/demo-frontend/app-shell/src/components/workspace/LiveDesk.tsx`, product

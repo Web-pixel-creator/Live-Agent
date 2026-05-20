@@ -397,8 +397,11 @@ bridge` to `local_services_pilot_launch_packet`, exposing `Open launch packet`,
 `Customer confirmation`, `Setup + dry run`, and `Founder review` rows. Opening
 the packet must preserve the same `7-minute gate` and structured
 `operator_approved_manual_contact_packet_with_7_minute_bridge` payload. It must
-not send, book, dispatch, write CRM, change billing, activate channels, prepare
-a live paid pilot, or make a Continue/Pause/Stop decision.
+also show the bridge as a compact `Launch packet readiness card` with visible
+`Manual launch checklist` and `Manual execution guardrails` sections, while
+`Launch support details` keeps source-state rows collapsed. It must not send,
+book, dispatch, write CRM, change billing, activate channels, prepare a live
+paid pilot, or make a Continue/Pause/Stop decision.
 
 `Requests inbox` is the first actionable product view. Its `Operator action
 rail` can update only `statusByProspectKey` and

@@ -105,8 +105,12 @@ Local-services expansion spec:
   into the existing `local_services_pilot_launch_packet` surface with
   `Open launch packet`, `Copy launch packet`, `Path recorded`, `Schedule
   approval`, `Customer confirmation`, `Setup + dry run`, and `Founder review`
-  rows. The opened `Pilot launch packet` drawer now uses the same bridge as its
-  source, including `7-minute gate` and the structured
+  rows. The bridge is now shown as a compact `Launch packet readiness card`:
+  the visible operator layer shows `Manual launch checklist` and `Manual
+  execution guardrails`, while `Launch support details` keeps state-key rows
+  collapsed until a developer or owner needs them. The opened `Pilot launch
+  packet` drawer now uses the same bridge as its source, including
+  `7-minute gate` and the structured
   `operator_approved_manual_contact_packet_with_7_minute_bridge` payload.
   `Requests inbox` also includes an `Operator action rail` that records only
   browser-local `statusByProspectKey` and `firstRequestOutcomeByProspectKey`
