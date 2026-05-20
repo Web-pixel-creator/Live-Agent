@@ -582,6 +582,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesAgentHandoff, /bounded flex column with its own\s+scroll body/);
   assert.match(localServicesAgentHandoff, /Request rail compact stack/);
   assert.match(localServicesAgentHandoff, /Decision rail compact stack/);
+  assert.match(localServicesAgentHandoff, /Customer rail compact stack/);
+  assert.match(localServicesAgentHandoff, /Customer support details/);
   assert.match(localServicesAgentHandoff, /Two-line compact row/);
   assert.match(localServicesSpec, /Two-line compact row/);
   assert.match(localServicesSpec, /Request rail compact stack/);
@@ -636,9 +638,17 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Сумма заявок/);
   assert.match(liveDesk, /Customer confirmation rail/);
   assert.match(liveDesk, /Customer confirmation decision rail/);
+  assert.match(liveDesk, /Customer rail compact stack/);
+  assert.match(
+    liveDesk,
+    /flex min-h-\[560px\] min-w-0 flex-col overflow-hidden rounded-md border border-border\/60 bg-card\/80 xl:max-h-\[calc\(100vh-9rem\)\]/,
+  );
+  assert.match(liveDesk, /min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3\.5 pb-4/);
   assert.match(liveDesk, /Customer confirmation actions/);
   assert.match(liveDesk, /Consent-safe confirmation preview/);
   assert.match(liveDesk, /Copy customer-safe preview/);
+  assert.match(liveDesk, /Customer support details/);
+  assert.match(liveDesk, /Workspace record · confirmation payload · manual copy only/);
   assert.match(liveDesk, /Manual only · no SMS \/ Telegram \/ CRM \/ payment \/ booking side effect/);
   assert.match(liveDesk, /const reviewQueueDecisionRows =/);
   assert.match(liveDesk, /Review queue decision rail/);
@@ -1445,6 +1455,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /dispatchApprovalByService/);
   assert.match(readme, /Booking handoff preview/);
   assert.match(readme, /Customer confirmation rail/);
+  assert.match(readme, /Customer rail compact stack/);
+  assert.match(readme, /Customer support details/);
   assert.match(readme, /Customer compact directory/);
   assert.match(readme, /LAST = service \+ ref/);
   assert.match(readme, /contactable customers/);
@@ -2169,6 +2181,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Master handoff draft/);
   assert.match(operatorGuide, /Booking\s+handoff\s+preview/);
   assert.match(operatorGuide, /Customer confirmation rail/);
+  assert.match(operatorGuide, /Customer rail compact stack/);
+  assert.match(operatorGuide, /Customer support details/);
   assert.match(operatorGuide, /Customer compact directory/);
   assert.match(operatorGuide, /contactable customers/);
   assert.match(operatorGuide, /Customer confirmation actions/);
@@ -3489,11 +3503,15 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesDeveloperMap, /Schedule rail compact stack/);
   assert.match(localServicesDeveloperMap, /Booking\s+handoff\s+preview/);
   assert.match(localServicesSpec, /Customer\s+confirmation\s+rail/);
+  assert.match(localServicesSpec, /Customer rail compact stack/);
+  assert.match(localServicesSpec, /Customer support details/);
   assert.match(localServicesSpec, /Customer compact directory/);
   assert.match(localServicesSpec, /contactable customers/);
   assert.match(localServicesSpec, /customerConfirmationByService/);
   assert.match(localServicesSpec, /Consent-safe confirmation\s+preview/);
   assert.match(localServicesDeveloperMap, /Customer\s+confirmation\s+rail/);
+  assert.match(localServicesDeveloperMap, /Customer rail compact stack/);
+  assert.match(localServicesDeveloperMap, /Customer support details/);
   assert.match(localServicesDeveloperMap, /Customer compact directory/);
   assert.match(localServicesDeveloperMap, /LAST = service \+ ref/);
   assert.match(localServicesDeveloperMap, /Consent-safe confirmation\s+preview/);

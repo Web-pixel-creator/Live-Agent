@@ -11333,8 +11333,9 @@ const LocalServicesDispatchDemoPanel = ({
 
                   <aside
                     aria-label="Customer confirmation decision rail"
-                    className="flex min-h-[520px] min-w-0 flex-col overflow-hidden rounded-md border border-border/60 bg-background/45"
+                    className="flex min-h-[560px] min-w-0 flex-col overflow-hidden rounded-md border border-border/60 bg-card/80 xl:max-h-[calc(100vh-9rem)]"
                   >
+                    <span className="sr-only">Customer rail compact stack</span>
                     <header className="shrink-0 border-b border-border/55 px-4 py-4">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="rounded-[5px] bg-card/55 px-2 py-1 font-mono text-[10px] text-muted-foreground">
@@ -11355,8 +11356,8 @@ const LocalServicesDispatchDemoPanel = ({
                       </h3>
                     </header>
 
-                    <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-                      <section className="rounded-md border border-[hsl(var(--tint-violet)/0.28)] bg-[hsl(var(--tint-violet)/0.08)] px-4 py-4">
+                    <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3.5 pb-4">
+                      <section className="rounded-md border border-[hsl(var(--tint-violet)/0.42)] bg-[hsl(var(--tint-violet)/0.11)] px-4 py-4 shadow-[0_0_0_1px_hsl(var(--tint-violet)/0.08)]">
                         <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-[hsl(var(--tint-violet-fg))]">
                           Consent-safe next action
                         </div>
@@ -11376,7 +11377,7 @@ const LocalServicesDispatchDemoPanel = ({
                         </div>
                       </section>
 
-                      <section className="mt-3 rounded-md border border-border/55 bg-card/35 px-4 py-4">
+                      <section className="rounded-md border border-border/55 bg-card/75 px-4 py-4">
                         <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                           Customer request card
                         </div>
@@ -11395,7 +11396,7 @@ const LocalServicesDispatchDemoPanel = ({
                         </div>
                       </section>
 
-                      <section className="mt-3 rounded-md border border-border/55 bg-card/35 px-4 py-4">
+                      <section className="rounded-md border border-border/55 bg-card/75 px-4 py-4">
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0">
                             <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
@@ -11420,21 +11421,26 @@ const LocalServicesDispatchDemoPanel = ({
                         <div className="mt-3 rounded-md border border-border/45 bg-background/45 px-3 py-3 text-[12px] leading-relaxed text-foreground">
                           {selectedTemplate.detail.customerConfirmation}
                         </div>
-                        <pre className="mt-3 max-h-40 overflow-auto rounded-md bg-background/45 p-3 font-mono text-[10.5px] leading-relaxed text-muted-foreground">
-                          {customerSafeConfirmationPreviewText}
-                        </pre>
                       </section>
 
-                      <details className="mt-3 rounded-md border border-border/55 bg-card/35">
+                      <details className="rounded-md border border-border/55 bg-card/75">
                         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
-                          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                            Workspace record
+                          <span className="min-w-0">
+                            <span className="block font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                              Customer support details
+                            </span>
+                            <span className="mt-1 block truncate text-[11px] text-muted-foreground">
+                              Workspace record · confirmation payload · manual copy only
+                            </span>
                           </span>
                           <span className="rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
                             API + local fallback
                           </span>
                         </summary>
                         <div className="border-t border-border/45 px-4 py-3">
+                          <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                            Workspace record
+                          </div>
                           <div className="flex flex-wrap gap-1.5">
                             <span className="rounded-[5px] bg-background/45 px-2 py-1 font-mono text-[10px] text-foreground">
                               operatorDecisionByCaseRef
@@ -11449,19 +11455,25 @@ const LocalServicesDispatchDemoPanel = ({
                           <div className="mt-2 text-[11.5px] font-medium text-foreground">
                             {selectedOperatorDecisionLabel}
                           </div>
+                          <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                            Customer-safe confirmation payload
+                          </div>
+                          <pre className="mt-2 max-h-40 overflow-auto rounded-md bg-background/45 p-3 font-mono text-[10.5px] leading-relaxed text-muted-foreground">
+                            {customerSafeConfirmationPreviewText}
+                          </pre>
                         </div>
                       </details>
                     </div>
 
-                    <footer className="shrink-0 border-t border-border/55 bg-card/70 px-4 py-3">
+                    <footer className="shrink-0 border-t border-border/60 bg-card/95 px-3.5 py-2.5">
                       <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                         Customer confirmation actions
                       </div>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
                         <Button
                           size="sm"
                           onClick={() => updateCustomerConfirmationDecision("consent_confirmed")}
-                          className="h-9 bg-[hsl(var(--tint-mint-fg))] px-4 text-background hover:bg-[hsl(var(--tint-mint-fg)/0.9)]"
+                          className="h-10 justify-center bg-[hsl(var(--tint-mint-fg))] px-4 text-[13px] font-semibold text-background hover:bg-[hsl(var(--tint-mint-fg)/0.9)]"
                         >
                           <Check className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.85} />
                           Confirm manual consent
@@ -11470,7 +11482,7 @@ const LocalServicesDispatchDemoPanel = ({
                           size="sm"
                           variant="secondary"
                           onClick={() => onOpenDispatchDrawer("customer")}
-                          className="h-9"
+                          className="h-10 justify-center"
                         >
                           <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.85} />
                           Open customer drawer
@@ -11479,21 +11491,21 @@ const LocalServicesDispatchDemoPanel = ({
                           size="sm"
                           variant="ghost"
                           onClick={() => updateCustomerConfirmationDecision("blocked")}
-                          className="h-9 text-[hsl(var(--tint-rose-fg))]"
+                          className="h-10 justify-center text-[hsl(var(--tint-rose-fg))] hover:bg-[hsl(var(--tint-rose)/0.12)]"
                         >
                           <X className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.85} />
                           Block customer send
                         </Button>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => updateCustomerConfirmationDecision("not_reviewed")}
-                          className="h-9"
+                          className="h-8"
                         >
                           Reset customer confirmation
                         </Button>
-                      </div>
-                      <div className="mt-2 flex flex-wrap gap-2">
                         {LOCAL_SERVICE_CUSTOMER_CONFIRMATION_ACTIONS.map((action) => (
                           <button
                             key={action.decision}

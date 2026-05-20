@@ -1046,7 +1046,11 @@ Current implementation slice:
    same bounded viewport pattern, keeps the approval slot card separate from
    customer/master drafts, and moves `Workspace record` plus
    `Booking handoff preview` into collapsed schedule support details.
-10. Remaining Step 2 work: keep polishing full-height behavior across
+10. `view=customers` now carries `Customer rail compact stack`: the rail uses
+   the same bounded viewport pattern, keeps consent action, customer request,
+   and confirmation preview separate, and moves `Workspace record` plus the
+   confirmation payload into collapsed `Customer support details`.
+11. Remaining Step 2 work: keep polishing full-height behavior across
    breakpoints and move developer-only payload/evidence detail behind collapsed
    support surfaces.
 

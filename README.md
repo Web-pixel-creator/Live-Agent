@@ -132,7 +132,10 @@ Local-services expansion spec:
   `Customer confirmation rail`, `customerConfirmationByService` decisions, and
   a `Consent-safe confirmation preview` are mirrored to the same
   operator-decision boundary, but remain manual review notes, not customer
-  sends or CRM writes. Both rails now show a compact `Workspace record` signal
+  sends or CRM writes. It now carries `Customer rail compact stack`: bounded
+  rail chrome, accent consent action, separate request/preview cards, and a
+  collapsed `Customer support details` block for `Workspace record` plus the
+  confirmation payload. Both rails now show a compact `Workspace record` signal
   with `operatorDecisionByCaseRef`, `API + local fallback`, and the latest
   recorded case-decision timestamp so operators can see what was persisted
   without opening developer tools.

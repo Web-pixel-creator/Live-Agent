@@ -184,7 +184,10 @@ customers, active 30-day demo cases, honest request-value estimates under
 select the preview only; `Open customer drawer` is the explicit full action.
 Its buttons may update only `customerConfirmationByService`;
 `Consent-safe confirmation preview` is a manual note, not SMS, Telegram,
-WhatsApp, email, CRM, payment, booking, dispatch, or channel activation.
+WhatsApp, email, CRM, payment, booking, dispatch, or channel activation. The
+rail carries `Customer rail compact stack`: bounded rail chrome, accent consent
+action, separate request/preview cards, and collapsed `Customer support details`
+for `Workspace record` plus the confirmation payload.
 
 `view=reviews` has the fourth actionable panel contract. `Review queue decision
 rail` renders selected account, owner decision, weekly scorecard sync, and

@@ -129,8 +129,11 @@ action. The `Customer confirmation rail` contains
 `customerConfirmationByService`, `Customer confirmation actions`, and a
 `Consent-safe confirmation preview`. Use it to review customer copy and consent
 posture before a human manually sends anything; the latest review is mirrored to
-the same operator-decision boundary, but the shell still does not send SMS,
-Telegram, WhatsApp, email, CRM updates, payments, bookings, or dispatches.
+the same operator-decision boundary. It carries `Customer rail compact stack`:
+bounded rail chrome, accent consent action, separate request/preview cards, and
+a collapsed `Customer support details` block for the workspace record plus the
+confirmation payload. The shell still does not send SMS, Telegram, WhatsApp,
+email, CRM updates, payments, bookings, or dispatches.
 Both rails show `Workspace record`, `operatorDecisionByCaseRef`, and
 `API + local fallback` so the operator can confirm the decision was recorded
 without treating it as a real send, booking, dispatch, or CRM write.

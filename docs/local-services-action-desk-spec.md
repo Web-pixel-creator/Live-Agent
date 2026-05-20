@@ -431,10 +431,13 @@ cases, honest `Сумма заявок` midpoint estimates, district coverage, a
 full customer drawer is a separate explicit action. Its `Customer confirmation
 rail` updates `customerConfirmationByService`, mirrors the latest review to the
 same operator-decision boundary, and can show a `Consent-safe confirmation
-preview` for manual human use. It must not send SMS, Telegram, WhatsApp, email,
-write CRM, collect payment, create a booking, dispatch a technician, or activate
-a channel. It uses the same `Workspace record` signal for the latest case-level
-operator decision.
+preview` for manual human use. It carries `Customer rail compact stack`:
+bounded rail chrome, accent consent action, separate customer request and
+confirmation preview cards, and a collapsed `Customer support details` block
+for `Workspace record` plus the confirmation payload. It must not send SMS,
+Telegram, WhatsApp, email, write CRM, collect payment, create a booking,
+dispatch a technician, or activate a channel. It uses the same
+`Workspace record` signal for the latest case-level operator decision.
 
 `Review queue` is the fourth actionable product view. Its `Review queue
 decision rail` can update only `weekOneOwnerDecisionByProspectKey` and
