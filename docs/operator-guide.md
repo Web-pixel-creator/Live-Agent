@@ -262,7 +262,9 @@ preview` with `First manual contact checklist`, `Launch readiness`,
 sees `Pilot launch packet readiness rail`, `First manual contact packet`,
 `Manual contact copy preview`, `First manual contact checklist`, and
 `Launch packet guardrails` first; `Launch packet support details` keeps raw
-Human/JSON and source-key detail secondary. Treat it as
+Human/JSON and source-key detail secondary. Use `Open Preview / Test message`
+inside that checklist to move directly into the copy-only Telegram / WhatsApp /
+phone-script preview for the selected account. Treat it as
 status guidance only. It does not send,
 write CRM, sync analytics, or mutate docs.
 The same checklist now includes `Manual activity log`, `Last manual action`,

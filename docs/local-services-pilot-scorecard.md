@@ -89,7 +89,8 @@ Use it to:
    and `local_services_pilot_launch_packet`; the drawer should show
    `Pilot launch packet readiness rail`, `First manual contact packet`,
    `Manual contact copy preview`, `Launch packet guardrails`, and collapsed
-   `Launch packet support details`
+   `Launch packet support details`, plus `Open Preview / Test message` for the
+   copy-only selected-channel draft
 10. review `Manual activity log`, `Last manual action`, `Copy activity log`,
    `local_services_manual_activity_log`, `Selected outreach channel`,
    `selectedChannelByProspectKey`, and `No external side effects` after

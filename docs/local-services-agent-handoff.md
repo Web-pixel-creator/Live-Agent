@@ -235,7 +235,10 @@ Current `Launch packet` decision:
    readiness rail`, `First manual contact packet`, `Manual contact copy
    preview`, `First manual contact checklist`, and `Launch packet guardrails`
    appear before collapsed `Launch packet support details`.
-6. No send, CRM write, booking, dispatch, billing, or docs mutation is triggered
+6. The launch packet checklist includes `Open Preview / Test message`; that
+   action closes the packet drawer and opens the existing copy-only Telegram /
+   WhatsApp / phone-script preview for the selected account.
+7. No send, CRM write, booking, dispatch, billing, or docs mutation is triggered
    by this layer.
 
 Current repo-owned porting state:

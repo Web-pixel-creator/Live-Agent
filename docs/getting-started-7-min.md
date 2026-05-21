@@ -146,8 +146,10 @@ guardrails`; `Launch support details` stays collapsed for source-key review. It
 The drawer itself is product-first too: `Pilot launch packet readiness rail`,
 `First manual contact packet`, `Manual contact copy preview`,
 `First manual contact checklist`, and `Launch packet guardrails` appear before
-collapsed `Launch packet support details`. It shows the 14-day pilot operating
-loop without sending anything automatically.
+collapsed `Launch packet support details`. The checklist includes
+`Open Preview / Test message`, which opens the existing copy-only Telegram /
+WhatsApp / phone-script preview for the selected account. It shows the 14-day
+pilot operating loop without sending anything automatically.
 The same loop now shows `Manual activity log`, `Last manual action`,
 `Copy activity log`, and `local_services_manual_activity_log` for browser-local
 scorecard, selected-channel, and metric events. It includes

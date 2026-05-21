@@ -98,7 +98,9 @@ preview` with `First manual contact checklist`, `Launch readiness`,
 operator sends anything manually. The drawer now leads with `Pilot launch
 packet readiness rail`, `First manual contact packet`, `Manual contact copy
 preview`, `First manual contact checklist`, and `Launch packet guardrails`;
-`Launch packet support details` keeps raw support copy secondary.
+`Launch packet support details` keeps raw support copy secondary. `Open Preview
+/ Test message` opens the existing copy-only channel preview for that same
+selected company.
 The same loop now shows `Manual activity log`, `Last manual action`,
 `Copy activity log`, and `local_services_manual_activity_log` for browser-local
 scorecard and metric events. It is explicitly `No external side effects`: no

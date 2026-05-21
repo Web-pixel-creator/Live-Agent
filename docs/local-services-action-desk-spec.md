@@ -816,6 +816,8 @@ preview` with `First manual contact checklist`, `Launch readiness`,
 must show `Pilot launch packet readiness rail`, `First manual contact packet`,
 `Manual contact copy preview`, `First manual contact checklist`, and
 `Launch packet guardrails` before collapsed `Launch packet support details`.
+It also exposes `Open Preview / Test message`, reusing the existing copy-only
+Telegram / WhatsApp / phone-script preview for the selected account.
 This is still an execution guide only: no outreach send, calendar event, CRM
 write, analytics sync, or Markdown mutation happens.
 The same checklist now opens `Discovery call prep` through `Open discovery

@@ -134,6 +134,10 @@ debugging instead of making the primary scan JSON-heavy. The actual
 rail`, `First manual contact packet`, `Manual contact copy preview`,
 `First manual contact checklist`, and `Launch packet guardrails` are primary;
 `Launch packet support details` keeps Human/JSON and source-key rows secondary.
+Its checklist exposes `Open Preview / Test message`, which opens the existing
+copy-only `Preview / Test message modal`; the launch-readiness drawer and
+channel preview are connected without adding a second message-preview
+implementation.
 
 Implementation records live in three places: runtime behavior in
 `apps/demo-frontend/app-shell/src/components/workspace/LiveDesk.tsx`, product

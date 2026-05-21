@@ -148,14 +148,15 @@ Point at:
 46. `Manual contact copy preview`
 47. `Launch packet guardrails`
 48. `Launch packet support details`
-49. `Launch readiness`
-50. `Copy launch packet`
-51. `Manual activity log`
-52. `Last manual action`
-53. `Copy activity log`
-54. `local_services_manual_activity_log`
-55. `No external side effects`
-56. `Open discovery prep`
+49. `Open Preview / Test message`
+50. `Launch readiness`
+51. `Copy launch packet`
+52. `Manual activity log`
+53. `Last manual action`
+54. `Copy activity log`
+55. `local_services_manual_activity_log`
+56. `No external side effects`
+57. `Open discovery prep`
 57. `Discovery call prep`
 53. `Questions to ask`
 54. `Pilot success criteria`

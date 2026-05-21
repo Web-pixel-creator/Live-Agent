@@ -282,7 +282,9 @@ Allowed reply statuses:
    should mirror that product-first order with `Pilot launch packet readiness
    rail`, `First manual contact packet`, `Manual contact copy preview`,
    `First manual contact checklist`, `Launch packet guardrails`, and collapsed
-   `Launch packet support details`.
+   `Launch packet support details`. Then click `Open Preview / Test message`
+   from the checklist and show that it opens the existing copy-only Telegram /
+   WhatsApp / phone-script preview for the selected account.
 17. Show `Manual activity log`, `Last manual action`, `Copy activity log`,
    `local_services_manual_activity_log`, `Selected outreach channel`,
    `selectedChannelByProspectKey`, and `No external side effects`; explain that

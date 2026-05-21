@@ -864,6 +864,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Manual contact copy preview/);
   assert.match(liveDesk, /Launch packet guardrails/);
   assert.match(liveDesk, /Launch packet support details/);
+  assert.match(liveDesk, /Open Preview \/ Test message/);
   assert.match(liveDesk, /Copy launch packet/);
   assert.match(liveDesk, /local_services_pilot_launch_packet/);
   assert.match(liveDesk, /dry_run_required_before_first_contact/);
@@ -1601,6 +1602,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Manual contact copy preview/);
   assert.match(readme, /Launch packet guardrails/);
   assert.match(readme, /Launch packet support details/);
+  assert.match(readme, /Open Preview \/ Test message/);
   assert.match(readme, /First manual contact checklist/);
   assert.match(readme, /Copy launch packet/);
   assert.match(readme, /local_services_pilot_launch_packet/);
@@ -1958,6 +1960,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /Manual contact copy preview/);
   assert.match(localDevelopment, /Launch packet guardrails/);
   assert.match(localDevelopment, /Launch packet support details/);
+  assert.match(localDevelopment, /Open Preview \/ Test message/);
   assert.match(localDevelopment, /First manual contact checklist/);
   assert.match(localDevelopment, /Copy launch packet/);
   assert.match(localDevelopment, /local_services_pilot_launch_packet/);
@@ -2251,6 +2254,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Manual contact copy preview/);
   assert.match(operatorGuide, /Launch packet guardrails/);
   assert.match(operatorGuide, /Launch packet support details/);
+  assert.match(operatorGuide, /Open Preview \/ Test message/);
   assert.match(operatorGuide, /7-minute gate/);
   assert.match(operatorGuide, /operator_approved_manual_contact_packet_with_7_minute_bridge/);
   assert.match(operatorGuide, /Path recorded/);
@@ -3257,6 +3261,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /Manual contact copy preview/);
   assert.match(localServicesSpec, /Launch packet guardrails/);
   assert.match(localServicesSpec, /Launch packet support details/);
+  assert.match(localServicesSpec, /Open Preview \/ Test message/);
   assert.match(localServicesSpec, /First manual contact checklist/);
   assert.match(localServicesSpec, /Copy launch packet/);
   assert.match(localServicesSpec, /local_services_pilot_launch_packet/);
@@ -3616,6 +3621,7 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesDeveloperMap, /Manual contact copy preview/);
   assert.match(localServicesDeveloperMap, /Launch packet guardrails/);
   assert.match(localServicesDeveloperMap, /Launch packet support details/);
+  assert.match(localServicesDeveloperMap, /Open Preview \/ Test message/);
 
   assert.match(pilotOffer, /# Local Services Pilot Offer/);
   assert.match(pilotOffer, /AI Dispatcher for Local Services/);

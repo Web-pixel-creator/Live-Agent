@@ -15658,6 +15658,11 @@ const LocalServicesDispatchDemoPanel = ({
         onCopy={onCopyText}
         readyRecorded={currentPilotStatus === "draft_ready"}
         onRecordReady={recordReadyForManualOutreach}
+        onOpenMessagePreview={() => {
+          setPilotLaunchPacketOpenFromSheet(false);
+          setPilotMessagePreviewMode("human");
+          setPilotMessagePreviewOpen(true);
+        }}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
       />
@@ -15670,6 +15675,11 @@ const LocalServicesDispatchDemoPanel = ({
         onCopy={onCopyText}
         readyRecorded={currentPilotStatus === "draft_ready"}
         onRecordReady={recordReadyForManualOutreach}
+        onOpenMessagePreview={() => {
+          setPilotLaunchPacketOpenFromSheet(false);
+          setPilotMessagePreviewMode("human");
+          setPilotMessagePreviewOpen(true);
+        }}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
       />
@@ -16345,6 +16355,7 @@ const LocalServicePilotLaunchPacketSections = ({
   onCopy,
   readyRecorded,
   onRecordReady,
+  onOpenMessagePreview,
   onOpenScorecard,
   onOpenExecutionPack,
 }: {
@@ -16355,6 +16366,7 @@ const LocalServicePilotLaunchPacketSections = ({
   onCopy: (text: string, label: string) => void;
   readyRecorded?: boolean;
   onRecordReady?: () => void;
+  onOpenMessagePreview?: () => void;
   onOpenScorecard: () => void;
   onOpenExecutionPack: () => void;
 }) => {
@@ -16442,6 +16454,12 @@ const LocalServicePilotLaunchPacketSections = ({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            {onOpenMessagePreview ? (
+              <Button size="sm" variant="secondary" onClick={onOpenMessagePreview} className="h-8">
+                <MessageSquareText className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                Open Preview / Test message
+              </Button>
+            ) : null}
             {onRecordReady ? (
               <Button
                 size="sm"
@@ -16585,6 +16603,7 @@ const LocalServicePilotWorkspaceExportDrawer = ({
   onCopy,
   readyRecorded,
   onRecordReady,
+  onOpenMessagePreview,
   onOpenScorecard,
   onOpenExecutionPack,
 }: {
@@ -16596,6 +16615,7 @@ const LocalServicePilotWorkspaceExportDrawer = ({
   onCopy: (text: string, label: string) => void;
   readyRecorded?: boolean;
   onRecordReady?: () => void;
+  onOpenMessagePreview?: () => void;
   onOpenScorecard: () => void;
   onOpenExecutionPack: () => void;
 }) => {
@@ -16628,6 +16648,7 @@ const LocalServicePilotWorkspaceExportDrawer = ({
             onCopy={onCopy}
             readyRecorded={readyRecorded}
             onRecordReady={onRecordReady}
+            onOpenMessagePreview={onOpenMessagePreview}
             onOpenScorecard={onOpenScorecard}
             onOpenExecutionPack={onOpenExecutionPack}
           />

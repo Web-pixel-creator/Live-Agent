@@ -141,6 +141,9 @@ now starts with `Pilot launch packet readiness rail`, then
 `First manual contact packet` / `Manual contact copy preview`,
 `First manual contact checklist`, and `Launch packet guardrails`; raw source
 keys and Human/JSON copy stay in collapsed `Launch packet support details`.
+The checklist also exposes `Open Preview / Test message`, which switches from
+the launch packet into the existing copy-only channel preview for the selected
+account.
 It still does
 not send outreach, create calendar events, write CRM, or mutate docs. It
 mirrors browser-local state only and does not send

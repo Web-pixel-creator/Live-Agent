@@ -160,6 +160,9 @@ support details` instead of a JSON-heavy primary scan. The drawer mirrors that
 ordering with `Pilot launch packet readiness rail`, `First manual contact
 packet`, `Manual contact copy preview`, `First manual contact checklist`,
 `Launch packet guardrails`, and collapsed `Launch packet support details`.
+The checklist now includes `Open Preview / Test message`, so launch readiness
+can hand the operator directly into the existing copy-only Telegram / WhatsApp /
+phone-script preview instead of forcing them to hunt for the modal elsewhere.
 This turns the 14-day pilot runbook into a visible operating loop without
 adding autonomous outreach or CRM scope.
 That operating loop now also includes `Manual activity log`,

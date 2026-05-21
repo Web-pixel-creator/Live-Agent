@@ -314,7 +314,10 @@ Local-services expansion spec:
   `Pilot launch packet readiness rail` -> `First manual contact packet` /
   `Manual contact copy preview` -> `First manual contact checklist` ->
   `Launch packet guardrails`; `Launch packet support details` keeps the
-  Human/JSON payload and source keys secondary. It still does not send outreach,
+  Human/JSON payload and source keys secondary. The checklist also exposes
+  `Open Preview / Test message`, which closes the launch packet and opens the
+  existing copy-only Telegram / WhatsApp / phone-script preview before any
+  manual contact. It still does not send outreach,
   create calendar events, write CRM, or mutate docs. It mirrors
   browser-local statuses only. The same checklist now also shows
   `Manual activity log`, `Last manual action`, `Copy activity log`, and
