@@ -144,6 +144,11 @@ keys and Human/JSON copy stay in collapsed `Launch packet support details`.
 The checklist also exposes `Open Preview / Test message`, which switches from
 the launch packet into the existing copy-only channel preview for the selected
 account.
+The preview exposes `Operator outcome log`: `Preview reviewed` records
+`messagePreviewReviewedByProspectKey`, copy actions record `Copied` in
+`contactPacketCopiedByProspectKey`, and `Contacted manually` records
+`contactProofByProspectKey.manualMessageSent` / `contacted_manually` only after
+the human actually performs outreach outside the shell.
 It still does
 not send outreach, create calendar events, write CRM, or mutate docs. It
 mirrors browser-local state only and does not send

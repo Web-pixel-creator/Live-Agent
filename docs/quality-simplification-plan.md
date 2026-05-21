@@ -95,6 +95,12 @@ The `Message/test preview` step now opens a `Preview / Test message modal` with
 `Human-readable` / `JSON` modes, `Copy test message`, and
 `Copy test message preview`, so the operator can inspect the exact text without
 creating an external send.
+It now also shows an `Operator outcome log` with `Preview reviewed`,
+`Copied`, and `Contacted manually` outcomes. Those map to
+`messagePreviewReviewedByProspectKey`, `contactPacketCopiedByProspectKey`, and
+`contactProofByProspectKey.manualMessageSent` / `contacted_manually`, keeping
+the 4-step flow measurable without adding any Telegram, WhatsApp, phone, CRM,
+booking, billing, dispatch, or outbound-send side effect.
 It now also shows `Channel variants` with `Telegram variant`, `WhatsApp
 variant`, and `Phone script variant`, plus `Copy Telegram variant`, `Copy
 WhatsApp variant`, and `Copy phone script`. This keeps the outreach flow useful

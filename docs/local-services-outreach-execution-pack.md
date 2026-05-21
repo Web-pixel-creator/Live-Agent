@@ -213,6 +213,11 @@ Allowed reply statuses:
    `Select Telegram`, `Select WhatsApp`, or `Select phone script` should show
    `Channel selected` and persist `selectedChannelByProspectKey` before
    confirmation/export.
+   Then show `Operator outcome log`: `Preview reviewed` records
+   `messagePreviewReviewedByProspectKey`, `Copied` records
+   `contactPacketCopiedByProspectKey`, and `Contacted manually` records
+   `contactProofByProspectKey.manualMessageSent` / `contacted_manually` only
+   after the human actually sends or calls outside the shell.
 8. Open `Agent setup / training state` and `Open setup checklist`, then show
    `Business profile`, `Knowledge sources`, `Agent behavior`,
    `Test call/message`, `Ready for test call/message`, `Training cards`, and

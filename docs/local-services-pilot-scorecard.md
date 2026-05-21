@@ -137,6 +137,12 @@ Stored status values:
 These are operator notes only. `Contacted manually` means the operator says they
 contacted the company outside the shell; it is not evidence that the product sent
 anything.
+The `Preview / Test message modal` now gives the operator an `Operator outcome
+log`: `Preview reviewed`, `Copied`, and `Contacted manually`. Those write
+`messagePreviewReviewedByProspectKey`, `contactPacketCopiedByProspectKey`, and
+`contactProofByProspectKey.manualMessageSent` / `contacted_manually` so the
+scorecard can distinguish reviewed draft, copied draft, and real manual
+contact without implying an automated send.
 
 Stored first-request outcome values:
 

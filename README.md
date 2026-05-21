@@ -217,6 +217,13 @@ Local-services expansion spec:
   `Human-readable` / `JSON` modes, the exact `Copy test message` action, and
   `Copy test message preview`; it is still a review artifact and does not send
   outreach.
+- the same modal now includes an `Operator outcome log`: `Preview reviewed`
+  writes `messagePreviewReviewedByProspectKey`, `Copied` writes
+  `contactPacketCopiedByProspectKey`, and `Contacted manually` writes
+  `contactProofByProspectKey.manualMessageSent` / moves the pilot funnel to
+  `contacted_manually`. These are browser-local bookkeeping outcomes only:
+  no Telegram, WhatsApp, phone, CRM, dispatch, booking, billing, or external
+  send is triggered.
 - the same modal now includes `Channel variants`: `Telegram variant`,
   `WhatsApp variant`, and `Phone script variant`, with `Copy Telegram variant`,
   `Copy WhatsApp variant`, and `Copy phone script`. These are copy-only

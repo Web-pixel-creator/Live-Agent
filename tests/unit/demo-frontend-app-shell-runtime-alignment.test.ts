@@ -587,6 +587,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesAgentHandoff, /Review rail compact stack/);
   assert.match(localServicesAgentHandoff, /Review support details/);
   assert.match(localServicesAgentHandoff, /Two-line compact row/);
+  assert.match(localServicesAgentHandoff, /Operator outcome log/);
+  assert.match(localServicesAgentHandoff, /contactProofByProspectKey\.manualMessageSent/);
   assert.match(localServicesSpec, /Two-line compact row/);
   assert.match(localServicesSpec, /Request rail compact stack/);
   assert.match(localServicesSpec, /Decision rail compact stack/);
@@ -597,6 +599,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesDeveloperMap, /Decision rail compact stack/);
   assert.match(localServicesDeveloperMap, /Review rail compact stack/);
   assert.match(localServicesDeveloperMap, /Review support details/);
+  assert.match(localServicesDeveloperMap, /Operator outcome log/);
+  assert.match(localServicesDeveloperMap, /contactProofByProspectKey\.manualMessageSent/);
   assert.match(liveDesk, /const requestInboxNextAction =/);
   assert.match(liveDesk, /const requestInboxActionRows =/);
   assert.match(liveDesk, /Operator action rail/);
@@ -908,6 +912,14 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Preview \/ Test message modal/);
   assert.match(liveDesk, /Copy test message/);
   assert.match(liveDesk, /Copy test message preview/);
+  assert.match(liveDesk, /Operator outcome log/);
+  assert.match(liveDesk, /browser-local state only/);
+  assert.match(liveDesk, /Copy selected draft/);
+  assert.match(liveDesk, /Mark contacted manually/);
+  assert.match(liveDesk, /onRecordMessageCopied=\{updateSelectedOutreachContactPacketCopied\}/);
+  assert.match(liveDesk, /onRecordManualContacted=\{updateSelectedOutreachManualContacted\}/);
+  assert.match(liveDesk, /contactProofByProspectKey\.manualMessageSent/);
+  assert.match(liveDesk, /operator_outcome_log_browser_local_only/);
   assertLocalServicesOutreachChannelVariants(liveDesk);
   assert.match(liveDesk, /local_services_test_message_preview/);
   assert.match(liveDesk, /manual_confirmation_required_before_outreach/);
@@ -1634,6 +1646,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /Preview \/ Test message modal/);
   assert.match(readme, /Copy test message/);
   assert.match(readme, /Copy test message preview/);
+  assert.match(readme, /Operator outcome log/);
+  assert.match(readme, /contactProofByProspectKey\.manualMessageSent/);
   assertLocalServicesOutreachChannelVariants(readme);
   assert.match(readme, /Operator confirmation/);
   assert.match(readme, /Operator confirmation summary/);
@@ -1997,6 +2011,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localDevelopment, /Preview \/ Test message modal/);
   assert.match(localDevelopment, /Copy test message/);
   assert.match(localDevelopment, /Copy test message preview/);
+  assert.match(localDevelopment, /Operator outcome log/);
+  assert.match(localDevelopment, /contactProofByProspectKey\.manualMessageSent/);
   assertLocalServicesOutreachChannelVariants(localDevelopment);
   assert.match(localDevelopment, /Operator confirmation/);
   assert.match(localDevelopment, /Operator confirmation summary/);
@@ -2361,6 +2377,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(operatorGuide, /Preview \/ Test message modal/);
   assert.match(operatorGuide, /Copy test message/);
   assert.match(operatorGuide, /Copy test message preview/);
+  assert.match(operatorGuide, /Operator outcome log/);
+  assert.match(operatorGuide, /contactProofByProspectKey\.manualMessageSent/);
   assertLocalServicesOutreachChannelVariants(operatorGuide);
   assert.match(operatorGuide, /Operator confirmation/);
   assert.match(operatorGuide, /Operator confirmation summary/);
@@ -2661,6 +2679,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(simplificationPlan, /Preview \/ Test message modal/);
   assert.match(simplificationPlan, /Copy test message/);
   assert.match(simplificationPlan, /Copy test message preview/);
+  assert.match(simplificationPlan, /Operator outcome log/);
+  assert.match(simplificationPlan, /contactProofByProspectKey\.manualMessageSent/);
   assertLocalServicesOutreachChannelVariants(simplificationPlan);
   assert.match(simplificationPlan, /Operator confirmation/);
   assert.match(simplificationPlan, /Operator confirmation summary/);
@@ -2961,6 +2981,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(gettingStarted, /Preview \/ Test message modal/);
   assert.match(gettingStarted, /Copy test message/);
   assert.match(gettingStarted, /Copy test message preview/);
+  assert.match(gettingStarted, /Operator outcome log/);
+  assert.match(gettingStarted, /contactProofByProspectKey\.manualMessageSent/);
   assertLocalServicesOutreachChannelVariants(gettingStarted);
   assert.match(gettingStarted, /Operator confirmation/);
   assert.match(gettingStarted, /Operator confirmation summary/);
@@ -3298,6 +3320,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesSpec, /Preview \/ Test message modal/);
   assert.match(localServicesSpec, /Copy test message/);
   assert.match(localServicesSpec, /Copy test message preview/);
+  assert.match(localServicesSpec, /Operator outcome log/);
+  assert.match(localServicesSpec, /contactProofByProspectKey\.manualMessageSent/);
   assertLocalServicesOutreachChannelVariants(localServicesSpec);
   assert.match(localServicesSpec, /local_services_test_message_preview/);
   assert.match(localServicesSpec, /manual_confirmation_required_before_outreach/);
@@ -3876,6 +3900,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotScorecard, /local_services_current_account_prep_checklist/);
   assert.match(pilotScorecard, /Mark preview\s+reviewed/);
   assert.match(pilotScorecard, /messagePreviewReviewedByProspectKey/);
+  assert.match(pilotScorecard, /Operator outcome\s+log/);
+  assert.match(pilotScorecard, /contactProofByProspectKey\.manualMessageSent/);
   assert.match(pilotScorecard, /local_services_current_account_prep_gate/);
   assert.match(pilotScorecard, /local_services_current_account_contact_packet/);
   assert.match(pilotScorecard, /contactPacketCopiedByProspectKey/);
@@ -4108,6 +4134,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(pilotRunbook, /local_services_current_account_prep_checklist/);
   assert.match(pilotRunbook, /Mark preview\s+reviewed/);
   assert.match(pilotRunbook, /messagePreviewReviewedByProspectKey/);
+  assert.match(pilotRunbook, /Operator outcome\s+log/);
+  assert.match(pilotRunbook, /contactProofByProspectKey\.manualMessageSent/);
   assert.match(pilotRunbook, /local_services_current_account_prep_gate/);
   assert.match(pilotRunbook, /local_services_current_account_contact_packet/);
   assert.match(pilotRunbook, /contactPacketCopiedByProspectKey/);
@@ -4260,6 +4288,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(founderExecutionLog, /local_services_current_account_prep_checklist/);
   assert.match(founderExecutionLog, /Mark preview\s+reviewed/);
   assert.match(founderExecutionLog, /messagePreviewReviewedByProspectKey/);
+  assert.match(founderExecutionLog, /Operator outcome\s+log/);
+  assert.match(founderExecutionLog, /contactProofByProspectKey\.manualMessageSent/);
   assert.match(founderExecutionLog, /local_services_current_account_prep_gate/);
   assert.match(founderExecutionLog, /local_services_current_account_contact_packet/);
   assert.match(founderExecutionLog, /contactPacketCopiedByProspectKey/);
@@ -4301,6 +4331,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(founderExecutionLog, /Pilot setup readiness/);
   assert.match(founderExecutionLog, /Ready for first paid pilot/);
   assert.match(outreachExecutionPack, /Preview \/ Test message modal/);
+  assert.match(outreachExecutionPack, /Operator outcome\s+log/);
+  assert.match(outreachExecutionPack, /contactProofByProspectKey\.manualMessageSent/);
   assert.match(outreachExecutionPack, /Agent setup \/ training state/);
   assert.match(outreachExecutionPack, /Open setup checklist/);
   assert.match(outreachExecutionPack, /Business profile/);

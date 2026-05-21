@@ -273,12 +273,20 @@ Current repo-owned porting state:
    `messagePreviewReviewedByProspectKey` for the selected company only and does
    not send outreach, write CRM, mutate the scorecard, or create calendar
    events.
-6. The selected outreach channel is now treated as export proof, not only UI
+6. `Preview / Test message modal` now has an `Operator outcome log` with
+   `Preview reviewed`, `Copied`, and `Contacted manually`. These write
+   `messagePreviewReviewedByProspectKey`,
+   `contactPacketCopiedByProspectKey`, and
+   `contactProofByProspectKey.manualMessageSent` / `contacted_manually`
+   respectively. They are browser-local operator notes only; no Telegram,
+   WhatsApp, phone, CRM, booking, billing, dispatch, or external send is
+   triggered.
+7. The selected outreach channel is now treated as export proof, not only UI
    state. `selectedChannelByProspectKey` feeds confirmation, launch packet,
    `Manual activity log`, pilot workspace export, and `Pilot evidence pack` via
    `selected_channel_id`, `selected_channel`, and
    `selected_channel_state_key`.
-7. The pilot metric/export buttons live in one bounded action rail:
+8. The pilot metric/export buttons live in one bounded action rail:
    `Pilot metric and evidence export actions`. Keep `Open metrics tracker`,
    `Open daily log`, `Open week-one review`, and `Open evidence pack` inside
    that rail so they wrap within the pilot column and cannot overlap the

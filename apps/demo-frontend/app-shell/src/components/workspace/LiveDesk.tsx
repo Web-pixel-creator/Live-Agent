@@ -5583,6 +5583,11 @@ function buildLocalServicePilotMessagePreview(
     "Selected channel draft:",
     selectedVariant.text,
     "",
+    "Operator outcome log:",
+    "- Preview reviewed -> messagePreviewReviewedByProspectKey",
+    "- Copied -> contactPacketCopiedByProspectKey",
+    "- Contacted manually -> contactProofByProspectKey.manualMessageSent / contacted_manually",
+    "",
     "Operator confirmation:",
     wizard.confirmationGate,
     "",
@@ -5615,6 +5620,13 @@ function buildLocalServicePilotMessagePreview(
       selected_channel: selectedChannelLabel,
       selected_channel_state_key: "selectedChannelByProspectKey",
       selected_channel_draft: selectedVariant.text,
+      operator_outcome_log: {
+        preview_reviewed_state_key: "messagePreviewReviewedByProspectKey",
+        copied_state_key: "contactPacketCopiedByProspectKey",
+        manual_contact_state_key: "contactProofByProspectKey.manualMessageSent",
+        manual_contact_status: "contacted_manually",
+        external_side_effects: "none",
+      },
       channel_variants: channelVariants.map((variant) => ({
         id: variant.id,
         label: variant.label,
@@ -5629,6 +5641,7 @@ function buildLocalServicePilotMessagePreview(
       guardrails: [
         "manual_confirmation_required_before_outreach",
         "manual_channel_variant_preview_only",
+        "operator_outcome_log_browser_local_only",
         "no_outbound_message_sent",
         "no_telegram_send",
         "no_whatsapp_send",
@@ -5662,6 +5675,7 @@ function buildLocalServicePilotMessagePreview(
       { label: "Selected outreach channel", value: selectedChannelLabel },
       { label: "Current status", value: statusLabel },
       { label: "Channel variants", value: "Telegram, WhatsApp, phone script" },
+      { label: "Operator outcome log", value: "Preview reviewed, copied, contacted manually" },
       { label: "Guardrail", value: "No Telegram, WhatsApp, phone, CRM, or scorecard side effect" },
     ],
     checklist: [
@@ -7097,9 +7111,10 @@ const LocalServicesDispatchDemoPanel = ({
   const selectedOutreachChannelLabel = LOCAL_SERVICE_OUTREACH_CHANNEL_LABELS[selectedOutreachChannelId];
   const currentPilotStatus = pilotWorkspaceState.statusByProspectKey[scorecardDraftKey] ?? "not_contacted";
   const currentPilotStatusLabel = LOCAL_SERVICE_PILOT_STATUS_LABELS[currentPilotStatus];
+  const currentOutreachMessagePreviewExplicitlyReviewed =
+    pilotWorkspaceState.messagePreviewReviewedByProspectKey[scorecardDraftKey] === true;
   const currentOutreachMessagePreviewReviewed =
-    pilotWorkspaceState.messagePreviewReviewedByProspectKey[scorecardDraftKey] === true ||
-    currentPilotStatus !== "not_contacted";
+    currentOutreachMessagePreviewExplicitlyReviewed || currentPilotStatus !== "not_contacted";
   const currentFirstRequestOutcome =
     pilotWorkspaceState.firstRequestOutcomeByProspectKey[scorecardDraftKey] ?? "not_recorded";
   const currentFirstRequestOutcomeLabel =
@@ -7223,6 +7238,14 @@ const LocalServicesDispatchDemoPanel = ({
       }),
     [allPilotProspects, pilotWorkspaceState.statusByProspectKey],
   );
+  const selectedPilotFunnelRow = pilotFunnelRows.find((row) => row.key === scorecardDraftKey);
+  const currentOutreachContactPacketCopied =
+    pilotWorkspaceState.contactPacketCopiedByProspectKey[scorecardDraftKey] === true;
+  const currentOutreachContactProof = pilotWorkspaceState.contactProofByProspectKey[scorecardDraftKey] ?? {};
+  const currentOutreachManualContacted =
+    currentOutreachContactProof.manualMessageSent === true ||
+    currentPilotStatus === "contacted_manually" ||
+    currentPilotStatus === "reply_received";
   const founderContactRows = useMemo<LocalServiceFounderContactRow[]>(
     () =>
       pilotFunnelRows.slice(0, 10).map((row) => {
@@ -9321,6 +9344,10 @@ const LocalServicesDispatchDemoPanel = ({
           ...prev.messagePreviewReviewedByProspectKey,
           [scorecardDraftKey]: false,
         },
+        contactPacketCopiedByProspectKey: {
+          ...prev.contactPacketCopiedByProspectKey,
+          [scorecardDraftKey]: false,
+        },
         activityLog: appendLocalServicePilotActivity(prev.activityLog, {
           kind: "prep_review",
           label: "Selected outreach channel",
@@ -9332,6 +9359,29 @@ const LocalServicesDispatchDemoPanel = ({
         }),
       };
     });
+  };
+  const updateSelectedOutreachContactPacketCopied = (copied: boolean) => {
+    if (!selectedOutreachProspect) return;
+    setPilotWorkspaceState((prev) => ({
+      ...prev,
+      contactPacketCopiedByProspectKey: {
+        ...prev.contactPacketCopiedByProspectKey,
+        [scorecardDraftKey]: copied,
+      },
+      activityLog: appendLocalServicePilotActivity(prev.activityLog, {
+        kind: "contact_packet_review",
+        label: "Pilot outreach message copied",
+        value: copied ? "Preview message copied for manual outreach" : "Preview message copy reset",
+        serviceId: selectedTemplate.id,
+        serviceTitle: selectedTemplate.title,
+        prospectId: selectedOutreachProspect.id,
+        company: selectedOutreachProspect.company,
+      }),
+    }));
+  };
+  const updateSelectedOutreachManualContacted = (contacted: boolean) => {
+    if (!selectedPilotFunnelRow) return;
+    updateFounderContactProof(selectedPilotFunnelRow, "manualMessageSent", contacted);
   };
 
   const updateLaunchPathStepCompletion = (stepId: LocalServiceLaunchPathStepId, complete: boolean) => {
@@ -15646,6 +15696,12 @@ const LocalServicesDispatchDemoPanel = ({
         onModeChange={setPilotMessagePreviewMode}
         onCopy={onCopyText}
         onSelectChannel={updateSelectedOutreachChannel}
+        previewReviewed={currentOutreachMessagePreviewExplicitlyReviewed}
+        messageCopied={currentOutreachContactPacketCopied}
+        manualContacted={currentOutreachManualContacted}
+        onRecordPreviewReviewed={updateSelectedOutreachMessagePreviewReviewed}
+        onRecordMessageCopied={updateSelectedOutreachContactPacketCopied}
+        onRecordManualContacted={updateSelectedOutreachManualContacted}
         onOpenScorecard={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
         onOpenExecutionPack={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
       />
@@ -16818,6 +16874,12 @@ const LocalServicePilotMessagePreviewSheet = ({
   onModeChange,
   onCopy,
   onSelectChannel,
+  previewReviewed,
+  messageCopied,
+  manualContacted,
+  onRecordPreviewReviewed,
+  onRecordMessageCopied,
+  onRecordManualContacted,
   onOpenScorecard,
   onOpenExecutionPack,
 }: {
@@ -16828,10 +16890,32 @@ const LocalServicePilotMessagePreviewSheet = ({
   onModeChange: (mode: PlaybookExportMode) => void;
   onCopy: (text: string, label: string) => void;
   onSelectChannel: (channelId: LocalServiceOutreachChannelId) => void;
+  previewReviewed: boolean;
+  messageCopied: boolean;
+  manualContacted: boolean;
+  onRecordPreviewReviewed: (reviewed: boolean) => void;
+  onRecordMessageCopied: (copied: boolean) => void;
+  onRecordManualContacted: (contacted: boolean) => void;
   onOpenScorecard: () => void;
   onOpenExecutionPack: () => void;
 }) => {
   const renderedText = mode === "human" ? preview.humanText : preview.jsonText;
+  const copyAndRecordMessage = (text: string, label: string) => {
+    if (!previewReviewed) {
+      onRecordPreviewReviewed(true);
+    }
+    onRecordMessageCopied(true);
+    onCopy(text, label);
+  };
+  const recordManualContact = () => {
+    if (!previewReviewed) {
+      onRecordPreviewReviewed(true);
+    }
+    if (!messageCopied) {
+      onRecordMessageCopied(true);
+    }
+    onRecordManualContacted(true);
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -16897,6 +16981,134 @@ const LocalServicePilotMessagePreviewSheet = ({
           </section>
 
           <section className="px-7 py-5 border-b border-border/50 space-y-3">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  Operator outcome log
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Record the human workflow after preview: reviewed, copied, then contacted manually.
+                </p>
+              </div>
+              <span className="inline-flex w-fit rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                browser-local state only
+              </span>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <div
+                className={`rounded-md border px-3 py-3 ${
+                  previewReviewed
+                    ? "border-[hsl(var(--tint-mint)/0.24)] bg-[hsl(var(--tint-mint)/0.08)]"
+                    : "border-border/60 bg-card/30"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/75">
+                    Preview reviewed
+                  </div>
+                  <span
+                    className={`rounded-[5px] px-1.5 py-0.5 text-[10px] ${
+                      previewReviewed
+                        ? "bg-[hsl(var(--tint-mint)/0.12)] text-[hsl(var(--tint-mint-fg))]"
+                        : "bg-secondary/45 text-muted-foreground"
+                    }`}
+                  >
+                    {previewReviewed ? "Recorded" : "Needed"}
+                  </span>
+                </div>
+                <p className="mt-2 min-h-[42px] text-[11.5px] leading-relaxed text-muted-foreground">
+                  Writes `messagePreviewReviewedByProspectKey` before any manual outreach.
+                </p>
+                <Button
+                  size="sm"
+                  variant={previewReviewed ? "secondary" : "default"}
+                  disabled={previewReviewed}
+                  onClick={() => onRecordPreviewReviewed(true)}
+                  className="mt-3 h-8 w-full"
+                >
+                  <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  {previewReviewed ? "Preview reviewed" : "Mark preview reviewed"}
+                </Button>
+              </div>
+
+              <div
+                className={`rounded-md border px-3 py-3 ${
+                  messageCopied
+                    ? "border-[hsl(var(--tint-mint)/0.24)] bg-[hsl(var(--tint-mint)/0.08)]"
+                    : "border-border/60 bg-card/30"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/75">
+                    Copied
+                  </div>
+                  <span
+                    className={`rounded-[5px] px-1.5 py-0.5 text-[10px] ${
+                      messageCopied
+                        ? "bg-[hsl(var(--tint-mint)/0.12)] text-[hsl(var(--tint-mint-fg))]"
+                        : "bg-secondary/45 text-muted-foreground"
+                    }`}
+                  >
+                    {messageCopied ? "Copied" : "Copy needed"}
+                  </span>
+                </div>
+                <p className="mt-2 min-h-[42px] text-[11.5px] leading-relaxed text-muted-foreground">
+                  Writes `contactPacketCopiedByProspectKey`; no Telegram, WhatsApp, phone, or CRM write.
+                </p>
+                <Button
+                  size="sm"
+                  variant={messageCopied ? "secondary" : "default"}
+                  onClick={() => copyAndRecordMessage(preview.selectedVariantText, preview.copyMessageLabel)}
+                  className="mt-3 h-8 w-full"
+                >
+                  <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  {messageCopied ? "Copy again" : "Copy selected draft"}
+                </Button>
+              </div>
+
+              <div
+                className={`rounded-md border px-3 py-3 ${
+                  manualContacted
+                    ? "border-[hsl(var(--tint-mint)/0.24)] bg-[hsl(var(--tint-mint)/0.08)]"
+                    : "border-border/60 bg-card/30"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/75">
+                    Contacted manually
+                  </div>
+                  <span
+                    className={`rounded-[5px] px-1.5 py-0.5 text-[10px] ${
+                      manualContacted
+                        ? "bg-[hsl(var(--tint-mint)/0.12)] text-[hsl(var(--tint-mint-fg))]"
+                        : "bg-secondary/45 text-muted-foreground"
+                    }`}
+                  >
+                    {manualContacted ? "Logged" : "Waiting"}
+                  </span>
+                </div>
+                <p className="mt-2 min-h-[42px] text-[11.5px] leading-relaxed text-muted-foreground">
+                  Writes `contactProofByProspectKey.manualMessageSent` and updates the pilot funnel status.
+                </p>
+                <Button
+                  size="sm"
+                  variant={manualContacted ? "secondary" : "default"}
+                  disabled={manualContacted || !previewReviewed || !messageCopied}
+                  onClick={recordManualContact}
+                  className="mt-3 h-8 w-full"
+                >
+                  <Send className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
+                  {manualContacted ? "Contact logged" : "Mark contacted manually"}
+                </Button>
+              </div>
+            </div>
+            <div className="rounded-md border border-border/50 bg-muted/20 px-3 py-2 text-[11.5px] leading-relaxed text-muted-foreground">
+              Operator outcomes are only local bookkeeping for the pilot workspace and scorecard. They do not
+              send messages, place calls, dispatch masters, book slots, bill, or write CRM.
+            </div>
+          </section>
+
+          <section className="px-7 py-5 border-b border-border/50 space-y-3">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
@@ -16940,7 +17152,7 @@ const LocalServicePilotMessagePreviewSheet = ({
               <Button
                 size="sm"
                 variant="secondary"
-                onClick={() => onCopy(preview.messageText, preview.copyMessageLabel)}
+                onClick={() => copyAndRecordMessage(preview.messageText, preview.copyMessageLabel)}
                 className="h-8"
               >
                 <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
@@ -16998,7 +17210,7 @@ const LocalServicePilotMessagePreviewSheet = ({
                       <Button
                         size="sm"
                         variant="secondary"
-                        onClick={() => onCopy(variant.text, variant.copyLabel)}
+                        onClick={() => copyAndRecordMessage(variant.text, variant.copyLabel)}
                         className="h-8"
                       >
                         <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
@@ -17030,7 +17242,7 @@ const LocalServicePilotMessagePreviewSheet = ({
               </div>
               <Button
                 size="sm"
-                onClick={() => onCopy(renderedText, preview.copyPreviewLabel)}
+                onClick={() => copyAndRecordMessage(renderedText, preview.copyPreviewLabel)}
                 className="h-8"
               >
                 <Copy className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />

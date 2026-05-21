@@ -213,6 +213,12 @@ The `Message/test preview` step opens a `Preview / Test message modal` with
 `Human-readable` / `JSON` modes, the exact `Copy test message` action, and
 `Copy test message preview`; the operator still sends manually only after
 approval.
+The modal now has an `Operator outcome log`: `Preview reviewed` records
+`messagePreviewReviewedByProspectKey`, `Copied` records
+`contactPacketCopiedByProspectKey`, and `Contacted manually` records
+`contactProofByProspectKey.manualMessageSent` / `contacted_manually`. Treat
+those as local operator notes only. They prove the human workflow happened but
+do not send, dial, dispatch, book, bill, or write CRM.
 The same modal now shows `Channel variants`: `Telegram variant`,
 `WhatsApp variant`, and `Phone script variant`, with `Copy Telegram variant`,
 `Copy WhatsApp variant`, and `Copy phone script`. These are copy-only drafts

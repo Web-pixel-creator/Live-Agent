@@ -742,6 +742,13 @@ The `Message/test preview` step now opens a `Preview / Test message modal` with
 `manual_confirmation_required_before_outreach`, and
 `manual_channel_variant_preview_only` so the contract is explicit: inspect and
 copy only, no external send or CRM write. The same modal now includes
+an `Operator outcome log`: `Preview reviewed` writes
+`messagePreviewReviewedByProspectKey`, `Copied` writes
+`contactPacketCopiedByProspectKey`, and `Contacted manually` writes
+`contactProofByProspectKey.manualMessageSent` / `contacted_manually`. These
+outcomes are allowed to update browser-local pilot bookkeeping only; they must
+not send Telegram/WhatsApp, start a phone call, write CRM, dispatch, book,
+bill, or perform any external side effect. The same modal now includes
 `Channel variants` for `Telegram variant`, `WhatsApp variant`, and
 `Phone script variant`, each with its own copy action (`Copy Telegram variant`,
 `Copy WhatsApp variant`, `Copy phone script`). These variants must not start a

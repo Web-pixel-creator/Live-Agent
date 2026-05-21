@@ -33,6 +33,12 @@ account manually. The in-shell `Preview / Test message modal` also exposes
 `Selected outreach channel`, `Select Telegram`, `Select WhatsApp`,
 `Select phone script`, `Channel selected`, and `selectedChannelByProspectKey`
 now record which draft the operator approved for the selected company.
+The same preview now has `Operator outcome log`: `Preview reviewed`, `Copied`,
+and `Contacted manually` write `messagePreviewReviewedByProspectKey`,
+`contactPacketCopiedByProspectKey`, and
+`contactProofByProspectKey.manualMessageSent` / `contacted_manually` as
+browser-local proof, still without Telegram, WhatsApp, phone, CRM, booking,
+billing, dispatch, or outbound-send side effects.
 `Current account picker` /
 `local_services_current_account_picker` lets the operator override the
 auto-selected current account in browser-local state only; `Auto next account`

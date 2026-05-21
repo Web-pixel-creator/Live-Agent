@@ -364,19 +364,23 @@ Pilot outreach surfaces:
 3. `Next outreach action`
 4. `Mark preview reviewed`
 5. `Preview / Test message modal`
-6. `Channel variants`
-7. `Telegram variant`
-8. `WhatsApp variant`
-9. `Phone script variant`
-10. `Copy Telegram variant`
-11. `Copy WhatsApp variant`
-12. `Copy phone script`
-13. `Operator confirmation summary`
-14. `AI analyst` / `Ask AI about pilot`
-15. `Pilot scorecard action`
-16. `Pilot funnel summary`
-17. `Outreach list filters`
-18. `Column settings`
+6. `Operator outcome log`
+7. `Preview reviewed`
+8. `Copied`
+9. `Contacted manually`
+10. `Channel variants`
+11. `Telegram variant`
+12. `WhatsApp variant`
+13. `Phone script variant`
+14. `Copy Telegram variant`
+15. `Copy WhatsApp variant`
+16. `Copy phone script`
+17. `Operator confirmation summary`
+18. `AI analyst` / `Ask AI about pilot`
+19. `Pilot scorecard action`
+20. `Pilot funnel summary`
+21. `Outreach list filters`
+22. `Column settings`
 
 The readiness rail reads the selected company, `messagePreviewReviewedByProspectKey`,
 and the current pilot status to show the next blocker. It is a manual-only prep
@@ -385,6 +389,12 @@ event.
 The `Channel variants` section lives inside `Preview / Test message modal` and
 adds `manual_channel_variant_preview_only` proof for Telegram/WhatsApp/phone
 copy drafts without activating channels.
+The modal's `Operator outcome log` connects the preview to persistent pilot
+state: `Preview reviewed` -> `messagePreviewReviewedByProspectKey`, `Copied`
+-> `contactPacketCopiedByProspectKey`, and `Contacted manually` ->
+`contactProofByProspectKey.manualMessageSent` plus the
+`contacted_manually` funnel status. These fields are bookkeeping only and do
+not create external sends or CRM writes.
 The same modal owns the `Selected outreach channel` contract:
 `Select Telegram`, `Select WhatsApp`, or `Select phone script` writes
 `Channel selected` to `selectedChannelByProspectKey`. Confirmation and launch

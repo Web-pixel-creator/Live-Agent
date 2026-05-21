@@ -183,7 +183,12 @@ Do not use the pilot to build:
    `Copy WhatsApp variant`, and `Copy phone script`; these are copy-only drafts
    and must not trigger channel sends or calls. Set `Selected outreach channel`
    with `Select Telegram`, `Select WhatsApp`, or `Select phone script` until
-   `Channel selected` is saved in `selectedChannelByProspectKey`. Open
+   `Channel selected` is saved in `selectedChannelByProspectKey`. Use
+   `Operator outcome log` in that same modal to record `Preview reviewed`,
+   `Copied`, and `Contacted manually`; these map to
+   `messagePreviewReviewedByProspectKey`, `contactPacketCopiedByProspectKey`,
+   and `contactProofByProspectKey.manualMessageSent` / `contacted_manually`
+   only after manual outreach happens outside the shell. Open
    `Operator confirmation summary`
    and confirm `Ready for manual outreach`. Click `Record ready for manual outreach`
    to set the browser-local status to `Draft ready`, then keep

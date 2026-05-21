@@ -93,6 +93,12 @@ happens.
 `Message/test preview` now opens a `Preview / Test message modal` with
 `Human-readable` / `JSON` modes, the exact `Copy test message` action, and
 `Copy test message preview`; the preview does not send outreach.
+It also includes `Operator outcome log`: `Preview reviewed` records
+`messagePreviewReviewedByProspectKey`, `Copied` records
+`contactPacketCopiedByProspectKey`, and `Contacted manually` records
+`contactProofByProspectKey.manualMessageSent` / `contacted_manually`.
+These outcomes are only browser-local pilot bookkeeping, not Telegram,
+WhatsApp, phone, CRM, booking, billing, dispatch, or outbound-send actions.
 The modal also includes `Channel variants` for `Telegram variant`,
 `WhatsApp variant`, and `Phone script variant`, plus `Copy Telegram variant`,
 `Copy WhatsApp variant`, and `Copy phone script`. These are manual-only drafts:
