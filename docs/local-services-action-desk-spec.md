@@ -749,6 +749,12 @@ an `Operator outcome log`: `Preview reviewed` writes
 outcomes are allowed to update browser-local pilot bookkeeping only; they must
 not send Telegram/WhatsApp, start a phone call, write CRM, dispatch, book,
 bill, or perform any external side effect. The same modal now includes
+`Outreach outcome trail` / `outreach_outcome_trail` as the downstream export
+contract for those markers: pilot export, communication preview, and
+first-contact batch review must show selected draft, preview-reviewed, copied,
+contacted-manually, first request outcome, scorecard row, and batch handoff
+state before any private CRM or scorecard sync.
+The same modal now includes
 `Channel variants` for `Telegram variant`, `WhatsApp variant`, and
 `Phone script variant`, each with its own copy action (`Copy Telegram variant`,
 `Copy WhatsApp variant`, `Copy phone script`). These variants must not start a
@@ -843,8 +849,9 @@ The same funnel now opens a `Pilot workspace export drawer` through
 `Open pilot export`. The drawer has `Human-readable` and `JSON` modes, exposes
 `Copy pilot workspace export`, includes the latest `Manual activity log` /
 `Last manual action`, carries the selected channel for each candidate through
-`selectedChannelByProspectKey`, and carries explicit guardrails: no outbound
-message, no CRM write, and manual scorecard sync only.
+`selectedChannelByProspectKey`, includes `Outreach outcome trail` /
+`outreach_outcome_trail`, and carries explicit guardrails: no outbound message,
+no CRM write, and manual scorecard sync only.
 The adjacent `Open workspace API export` opens a `Workspace API export drawer`
 for the repo-owned workspace boundary. It calls the local-services workspace
 adapter/export path, exposes `workspace API + local fallback`,
@@ -915,8 +922,9 @@ channel check, manual send, discovery call, demo booking, and pilot candidate;
 `Pilot ops today`, `Copy pilot ops handoff`, `Open ops confirmation`,
 `local_services_pilot_ops_today`, `local_services_pilot_ops_confirmation`,
 `Open communication preview`, and `local_services_pilot_communication_preview`
-add the one-account live execution queue, manual proof confirmation drawer, and
-current-account phone/Telegram/WhatsApp preview;
+add the one-account live execution queue, manual proof confirmation drawer,
+current-account phone/Telegram/WhatsApp preview, and the current account
+`outreach_outcome_trail`;
 `Current account picker`, `local_services_current_account_picker`,
 `Auto next account`, and `Select account` let the operator override the
 auto-selected current account inside browser-local state only;
@@ -1332,8 +1340,9 @@ Current shell readiness for P3:
    browser-local pilot workspace contract, without any external side effect.
 51. `local_services_first_contact_batch_review`,
    `founder_manual_validation_review`, `First-contact batch review rows`,
-   `review_decision`, `scorecard_row_copied`, `batch_handoff_copied`, and
-   `no_booking_created` are present in the first-batch review export contract.
+   `review_decision`, `scorecard_row_copied`, `batch_handoff_copied`,
+   `outreach_outcome_trail`, and `no_booking_created` are present in the
+   first-batch review export contract.
    The drawer shows the operator-ready row contract as
    `Account -> Lane -> Scorecard row -> Batch handoff -> Proof -> Decision`
    before continue, pause, stop, CRM, or weekly scorecard decisions.

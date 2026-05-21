@@ -281,12 +281,18 @@ Current repo-owned porting state:
    respectively. They are browser-local operator notes only; no Telegram,
    WhatsApp, phone, CRM, booking, billing, dispatch, or external send is
    triggered.
-7. The selected outreach channel is now treated as export proof, not only UI
+7. The same preview/copy/manual-contact markers now flow into
+   `Outreach outcome trail` / `outreach_outcome_trail` inside the pilot
+   workspace export, communication preview, and first-contact batch review.
+   This is the bridge from modal bookkeeping to scorecard/export handoff:
+   selected draft, reviewed, copied, contacted manually, scorecard row, and
+   batch handoff are all visible before a human syncs private notes.
+8. The selected outreach channel is now treated as export proof, not only UI
    state. `selectedChannelByProspectKey` feeds confirmation, launch packet,
    `Manual activity log`, pilot workspace export, and `Pilot evidence pack` via
    `selected_channel_id`, `selected_channel`, and
    `selected_channel_state_key`.
-8. The pilot metric/export buttons live in one bounded action rail:
+9. The pilot metric/export buttons live in one bounded action rail:
    `Pilot metric and evidence export actions`. Keep `Open metrics tracker`,
    `Open daily log`, `Open week-one review`, and `Open evidence pack` inside
    that rail so they wrap within the pilot column and cannot overlap the

@@ -224,6 +224,10 @@ Local-services expansion spec:
   `contacted_manually`. These are browser-local bookkeeping outcomes only:
   no Telegram, WhatsApp, phone, CRM, dispatch, booking, billing, or external
   send is triggered.
+- the workspace export and batch review now reuse that same
+  `Outreach outcome trail` / `outreach_outcome_trail`: selected draft,
+  preview-reviewed, copied, contacted-manually, scorecard row, and batch
+  handoff states are visible before a human syncs the pilot scorecard or CRM.
 - the same modal now includes `Channel variants`: `Telegram variant`,
   `WhatsApp variant`, and `Phone script variant`, with `Copy Telegram variant`,
   `Copy WhatsApp variant`, and `Copy phone script`. These are copy-only
@@ -346,8 +350,9 @@ Local-services expansion spec:
 - the funnel summary now opens a `Pilot workspace export drawer` with
   `Human-readable` and `JSON` modes plus `Copy pilot workspace export`; it is a
   browser-local planning artifact that includes the latest `Manual activity log`
-  / `Last manual action` plus the selected channel for each candidate; it does
-  not send outreach or write CRM.
+  / `Last manual action`, `Outreach outcome trail`, and
+  `outreach_outcome_trail` JSON plus the selected channel and selected draft
+  for each candidate; it does not send outreach or write CRM.
 - the same funnel now opens `Workspace API export drawer` through
   `Open workspace API export`. It calls the local-services workspace export
   boundary, exposes `workspace API + local fallback`, `Copy workspace API
@@ -414,7 +419,8 @@ Local-services expansion spec:
   spreadsheets. The first-contact batch review drawer now includes
   `First-contact batch review rows` with `Account -> Lane -> Scorecard row ->
   Batch handoff -> Proof -> Decision`, plus JSON fields `review_decision`,
-  `scorecard_row_copied`, and `batch_handoff_copied`. It also shows
+  `scorecard_row_copied`, `batch_handoff_copied`, and
+  `outreach_outcome_trail`. It also shows
   `Pilot ops today`, `Copy pilot ops handoff`,
   `Open ops confirmation`, `Open communication preview`,
   `local_services_pilot_ops_today`, `local_services_pilot_ops_confirmation`,

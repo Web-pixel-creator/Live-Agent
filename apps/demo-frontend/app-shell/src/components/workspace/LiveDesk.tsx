@@ -549,6 +549,7 @@ type LocalServicePilotWorkspaceExport = {
   jsonText: string;
   rows: { label: string; value: string }[];
   batchReviewRows?: LocalServiceFirstContactBatchReviewRow[];
+  outreachOutcomeTrail?: LocalServiceOutreachOutcomeTrailRow[];
   launchPacket?: {
     readinessRail: { label: string; value: string }[];
     manualContactPacket: { label: string; value: string }[];
@@ -854,6 +855,50 @@ type LocalServiceFounderContactRow = LocalServicePilotFunnelRow & {
   pilotCandidate: boolean;
   proofStatus: string;
 };
+
+type LocalServiceOutreachOutcomeTrailRow = {
+  key: string;
+  serviceId: string;
+  serviceTitle: string;
+  prospectId: string;
+  company: string;
+  segment: string;
+  selectedChannelId: LocalServiceOutreachChannelId;
+  selectedChannel: string;
+  selectedDraft: string;
+  status: LocalServicePilotStatus;
+  statusLabel: string;
+  previewReviewed: boolean;
+  messageCopied: boolean;
+  manualContacted: boolean;
+  firstRequestOutcome: LocalServiceFirstRequestOutcome;
+  firstRequestOutcomeLabel: string;
+  scorecardRowCopied: boolean;
+  batchHandoffCopied: boolean;
+  scorecardFocus: string;
+  nextStep: string;
+  stateKeys: {
+    previewReviewed: "messagePreviewReviewedByProspectKey";
+    messageCopied: "contactPacketCopiedByProspectKey";
+    manualContacted: "contactProofByProspectKey.manualMessageSent";
+    funnelStatus: "statusByProspectKey";
+    selectedChannel: "selectedChannelByProspectKey";
+    firstRequestOutcome: "firstRequestOutcomeByProspectKey";
+    scorecardRowCopied: "scorecardRowCopiedByProspectKey";
+    batchHandoffCopied: "batchReviewHandoffCopiedByProspectKey";
+  };
+};
+
+type LocalServiceOutreachOutcomeTrailState = Pick<
+  LocalServicePilotWorkspaceState,
+  | "selectedChannelByProspectKey"
+  | "messagePreviewReviewedByProspectKey"
+  | "contactPacketCopiedByProspectKey"
+  | "contactProofByProspectKey"
+  | "firstRequestOutcomeByProspectKey"
+  | "scorecardRowCopiedByProspectKey"
+  | "batchReviewHandoffCopiedByProspectKey"
+>;
 
 type LocalServiceFounderDecisionGate = {
   verdictLabel: string;
@@ -2021,12 +2066,71 @@ function buildLocalServiceIntakeEvidence(
   };
 }
 
+function formatLocalServiceOutcomeBoolean(value: boolean): "yes" | "no" {
+  return value ? "yes" : "no";
+}
+
+function buildLocalServiceOutreachOutcomeTrail(
+  rows: LocalServicePilotFunnelRow[],
+  state: LocalServiceOutreachOutcomeTrailState,
+): LocalServiceOutreachOutcomeTrailRow[] {
+  return rows.map((row) => {
+    const selectedChannelId =
+      state.selectedChannelByProspectKey[row.key] ?? DEFAULT_LOCAL_SERVICE_OUTREACH_CHANNEL_ID;
+    const template = LOCAL_SERVICE_DEMO_TEMPLATES.find((item) => item.id === row.serviceId);
+    const selectedVariant = template
+      ? getSelectedLocalServiceOutreachChannelVariant(template, row.prospect, selectedChannelId)
+      : null;
+    const proof = state.contactProofByProspectKey[row.key] ?? {};
+    const firstRequestOutcome = state.firstRequestOutcomeByProspectKey[row.key] ?? "not_recorded";
+    const manualContacted =
+      proof.manualMessageSent === true || row.status === "contacted_manually" || row.status === "reply_received";
+
+    return {
+      key: row.key,
+      serviceId: row.serviceId,
+      serviceTitle: row.serviceTitle,
+      prospectId: row.prospect.id,
+      company: row.prospect.company,
+      segment: row.prospect.segment,
+      selectedChannelId,
+      selectedChannel:
+        selectedVariant?.channel ?? LOCAL_SERVICE_OUTREACH_CHANNEL_LABELS[selectedChannelId],
+      selectedDraft: selectedVariant?.text ?? row.prospect.nextStep,
+      status: row.status,
+      statusLabel: row.statusLabel,
+      previewReviewed:
+        state.messagePreviewReviewedByProspectKey[row.key] === true || row.status !== "not_contacted",
+      messageCopied: state.contactPacketCopiedByProspectKey[row.key] === true,
+      manualContacted,
+      firstRequestOutcome,
+      firstRequestOutcomeLabel: LOCAL_SERVICE_FIRST_REQUEST_OUTCOME_LABELS[firstRequestOutcome],
+      scorecardRowCopied: state.scorecardRowCopiedByProspectKey[row.key] === true,
+      batchHandoffCopied: state.batchReviewHandoffCopiedByProspectKey[row.key] === true,
+      scorecardFocus: row.prospect.scorecardFocus,
+      nextStep: row.prospect.nextStep,
+      stateKeys: {
+        previewReviewed: "messagePreviewReviewedByProspectKey",
+        messageCopied: "contactPacketCopiedByProspectKey",
+        manualContacted: "contactProofByProspectKey.manualMessageSent",
+        funnelStatus: "statusByProspectKey",
+        selectedChannel: "selectedChannelByProspectKey",
+        firstRequestOutcome: "firstRequestOutcomeByProspectKey",
+        scorecardRowCopied: "scorecardRowCopiedByProspectKey",
+        batchHandoffCopied: "batchReviewHandoffCopiedByProspectKey",
+      },
+    };
+  });
+}
+
 function buildLocalServicePilotWorkspaceExport(
   rows: LocalServicePilotFunnelRow[],
   counts: Record<LocalServicePilotStatus, number>,
-  selectedChannelByProspectKey: Record<string, LocalServiceOutreachChannelId>,
+  outcomeState: LocalServiceOutreachOutcomeTrailState,
   activityLog: LocalServicePilotActivityEvent[] = [],
 ): LocalServicePilotWorkspaceExport {
+  const selectedChannelByProspectKey = outcomeState.selectedChannelByProspectKey;
+  const outreachOutcomeTrail = buildLocalServiceOutreachOutcomeTrail(rows, outcomeState);
   const nextManualBatch = rows
     .filter((row) => row.status !== "reply_received" && row.status !== "rejected_for_now")
     .slice(0, 4);
@@ -2059,6 +2163,14 @@ function buildLocalServicePilotWorkspaceExport(
             `- ${event.createdAt} | ${event.serviceTitle} | ${event.company ?? "service"} | ${event.label}: ${event.value}`,
         )
       : ["- No manual activity recorded yet."];
+  const outcomeTrailLines = outreachOutcomeTrail.map(
+    (row, index) =>
+      `${index + 1}. ${row.company} | ${row.serviceTitle} | ${row.selectedChannel} draft | reviewed=${formatLocalServiceOutcomeBoolean(
+        row.previewReviewed,
+      )} | copied=${formatLocalServiceOutcomeBoolean(row.messageCopied)} | contacted=${formatLocalServiceOutcomeBoolean(
+        row.manualContacted,
+      )} | status=${row.statusLabel} | next=${row.nextStep}`,
+  );
   const humanLines = [
     "Pilot workspace export drawer: Local services mini-funnel",
     "Export scope: browser-local planning state",
@@ -2071,6 +2183,10 @@ function buildLocalServicePilotWorkspaceExport(
     "",
     "Candidates:",
     ...candidateLines,
+    "",
+    "Outreach outcome trail:",
+    "Columns: account | lane | selected text | preview reviewed | copied | contacted manually | status | next step.",
+    ...outcomeTrailLines,
     "",
     "Manual activity log:",
     ...activityLines,
@@ -2124,6 +2240,29 @@ function buildLocalServicePilotWorkspaceExport(
           ],
         selected_channel_state_key: "selectedChannelByProspectKey",
       })),
+      outreach_outcome_trail: outreachOutcomeTrail.map((row) => ({
+        key: row.key,
+        service_id: row.serviceId,
+        service_title: row.serviceTitle,
+        prospect_id: row.prospectId,
+        company: row.company,
+        segment: row.segment,
+        selected_channel_id: row.selectedChannelId,
+        selected_channel: row.selectedChannel,
+        selected_draft: row.selectedDraft,
+        preview_reviewed: row.previewReviewed,
+        message_copied: row.messageCopied,
+        contacted_manually: row.manualContacted,
+        status: row.status,
+        status_label: row.statusLabel,
+        first_request_outcome: row.firstRequestOutcome,
+        first_request_outcome_label: row.firstRequestOutcomeLabel,
+        scorecard_row_copied: row.scorecardRowCopied,
+        batch_handoff_copied: row.batchHandoffCopied,
+        scorecard_focus: row.scorecardFocus,
+        next_step: row.nextStep,
+        state_keys: row.stateKeys,
+      })),
       activity_log: activityLog.map((event) => ({
         id: event.id,
         kind: event.kind,
@@ -2154,6 +2293,12 @@ function buildLocalServicePilotWorkspaceExport(
       label: "Next manual batch",
       value: nextManualBatch.map((row) => `${row.prospect.company} / ${row.serviceTitle}`).join(", ") || "none",
     },
+    {
+      label: "Outcome trail",
+      value: `${outreachOutcomeTrail.filter((row) => row.manualContacted).length} contacted / ${
+        outreachOutcomeTrail.length
+      } tracked`,
+    },
     { label: "Last manual action", value: activityLog[0] ? `${activityLog[0].label}: ${activityLog[0].value}` : "none" },
     { label: "Channel state", value: "selectedChannelByProspectKey" },
     { label: "Guardrail", value: "No outbound message, no CRM write, manual scorecard sync only" },
@@ -2161,6 +2306,7 @@ function buildLocalServicePilotWorkspaceExport(
   const checklist = [
     "Confirm the browser-local statuses match the operator's latest manual outreach notes.",
     "Confirm the selected outreach channel before copying the export.",
+    "Confirm the outreach outcome trail shows which draft was reviewed, copied, and contacted manually.",
     "Review the manual activity log before copying the export.",
     "Review the next manual batch before copying the export.",
     "Manually sync useful notes into the pilot scorecard or CRM after review.",
@@ -2181,6 +2327,7 @@ function buildLocalServicePilotWorkspaceExport(
     humanText: humanLines.join("\n"),
     jsonText,
     rows: rowsSummary,
+    outreachOutcomeTrail,
     checklist,
   };
 }
@@ -2266,12 +2413,17 @@ function buildLocalServiceFounderBatchReviewExport(
   pilotReadiness: LocalServiceLeadingCategoryPilotReadiness,
   readinessActionPlan: LocalServicePilotReadinessActionPlan,
   reviewState: {
+    selectedChannelByProspectKey: Record<string, LocalServiceOutreachChannelId>;
+    messagePreviewReviewedByProspectKey: Record<string, boolean>;
+    contactPacketCopiedByProspectKey: Record<string, boolean>;
+    contactProofByProspectKey: Record<string, LocalServiceFounderContactProof>;
     firstRequestOutcomeByProspectKey: Record<string, LocalServiceFirstRequestOutcome>;
     scorecardRowCopiedByProspectKey: Record<string, boolean>;
     batchReviewHandoffCopiedByProspectKey: Record<string, boolean>;
   },
   activityLog: LocalServicePilotActivityEvent[] = [],
 ): LocalServicePilotWorkspaceExport {
+  const outreachOutcomeTrail = buildLocalServiceOutreachOutcomeTrail(rows, reviewState);
   const batchReviewRows: LocalServiceFirstContactBatchReviewRow[] = rows.map((row) => {
     const firstRequestOutcome = reviewState.firstRequestOutcomeByProspectKey[row.key] ?? "not_recorded";
     const scorecardCopied = reviewState.scorecardRowCopiedByProspectKey[row.key] === true;
@@ -2311,6 +2463,16 @@ function buildLocalServiceFounderBatchReviewExport(
   const contactLines = rows.map(
     (row, index) =>
       `${index + 1}. ${row.prospect.company} | ${row.serviceTitle} | ${row.prospect.segment} | ${row.statusLabel} | ${batchReviewRows[index]?.scorecardRow ?? "Outcome needed"} | ${batchReviewRows[index]?.batchHandoff ?? "Blocked by scorecard row"} | ${row.proofStatus} | ${batchReviewRows[index]?.decision ?? "Manual contact needed"}`,
+  );
+  const outcomeTrailLines = outreachOutcomeTrail.map(
+    (row, index) =>
+      `${index + 1}. ${row.company} | ${row.serviceTitle} | ${row.selectedChannel} draft | reviewed=${formatLocalServiceOutcomeBoolean(
+        row.previewReviewed,
+      )} | copied=${formatLocalServiceOutcomeBoolean(row.messageCopied)} | contacted=${formatLocalServiceOutcomeBoolean(
+        row.manualContacted,
+      )} | scorecard=${formatLocalServiceOutcomeBoolean(row.scorecardRowCopied)} | handoff=${formatLocalServiceOutcomeBoolean(
+        row.batchHandoffCopied,
+      )}`,
   );
   const checklistLines = proofChecklist.map((item) => `- ${item.done ? "done" : "pending"} | ${item.label}: ${item.status}`);
   const recentProofEvents = activityLog.filter((event) => event.kind === "contact_proof").slice(0, 8);
@@ -2392,6 +2554,10 @@ function buildLocalServiceFounderBatchReviewExport(
     "First 10 contact review:",
     "Columns: account | lane | segment | status | scorecard row | batch handoff | proof | decision.",
     ...contactLines,
+    "",
+    "Outreach outcome trail:",
+    "Columns: account | lane | selected text | preview reviewed | copied | contacted manually | scorecard row | batch handoff.",
+    ...outcomeTrailLines,
     "",
     "Recent proof activity:",
     ...activityLines,
@@ -2506,6 +2672,29 @@ function buildLocalServiceFounderBatchReviewExport(
         scorecard_row_copied: reviewState.scorecardRowCopiedByProspectKey[row.key] === true,
         batch_handoff_copied: reviewState.batchReviewHandoffCopiedByProspectKey[row.key] === true,
       })),
+      outreach_outcome_trail: outreachOutcomeTrail.map((row) => ({
+        key: row.key,
+        service_id: row.serviceId,
+        service_title: row.serviceTitle,
+        prospect_id: row.prospectId,
+        company: row.company,
+        segment: row.segment,
+        selected_channel_id: row.selectedChannelId,
+        selected_channel: row.selectedChannel,
+        selected_draft: row.selectedDraft,
+        preview_reviewed: row.previewReviewed,
+        message_copied: row.messageCopied,
+        contacted_manually: row.manualContacted,
+        status: row.status,
+        status_label: row.statusLabel,
+        first_request_outcome: row.firstRequestOutcome,
+        first_request_outcome_label: row.firstRequestOutcomeLabel,
+        scorecard_row_copied: row.scorecardRowCopied,
+        batch_handoff_copied: row.batchHandoffCopied,
+        scorecard_focus: row.scorecardFocus,
+        next_step: row.nextStep,
+        state_keys: row.stateKeys,
+      })),
       recent_proof_activity: recentProofEvents.map((event) => ({
         id: event.id,
         label: event.label,
@@ -2543,9 +2732,14 @@ function buildLocalServiceFounderBatchReviewExport(
     },
     { label: "Pilot setup readiness", value: `${pilotReadiness.readinessLabel} / ${pilotReadiness.progressLabel}` },
     { label: "Readiness action plan", value: readinessActionPlan.primarySurface },
+    {
+      label: "Outcome trail",
+      value: `${outreachOutcomeTrail.filter((row) => row.manualContacted).length}/${outreachOutcomeTrail.length} contacted manually`,
+    },
   ];
   const checklist = [
     "Confirm the first 10 contact markers match real manual actions outside the shell.",
+    "Confirm the outreach outcome trail matches preview/copy/manual-contact records before copying the batch review.",
     "Confirm each row has a reviewed scorecard row and batch handoff before using it for continue, pause, or stop.",
     "Confirm the leading category is based on proof markers, not preference or market guesswork.",
     "Confirm the pilot setup readiness gate is complete before selling or activating a paid pilot.",
@@ -2572,6 +2766,7 @@ function buildLocalServiceFounderBatchReviewExport(
     jsonText,
     rows: rowsSummary,
     batchReviewRows,
+    outreachOutcomeTrail,
     checklist,
   };
 }
@@ -2858,6 +3053,7 @@ function buildLocalServicePilotCommunicationPreview(
   proofMarker: string,
   events: LocalServicePilotActivityEvent[],
   decisionGate: LocalServiceFounderDecisionGate,
+  outreachOutcome?: LocalServiceOutreachOutcomeTrailRow,
 ): LocalServicePilotWorkspaceExport {
   const company = row?.prospect.company ?? "No account selected";
   const segment = row?.prospect.segment ?? "unknown";
@@ -2865,6 +3061,13 @@ function buildLocalServicePilotCommunicationPreview(
   const latestActivity = events[0] ? `${events[0].label}: ${events[0].value}` : "No browser-local events yet";
   const channelFit = row?.prospect.channelFit ?? "Review outreach list before choosing a channel.";
   const scorecardFocus = row?.prospect.scorecardFocus ?? "No scorecard focus selected.";
+  const selectedOutcomeChannel = outreachOutcome?.selectedChannel ?? "Not selected";
+  const selectedOutcomeDraft = outreachOutcome?.selectedDraft ?? "No selected outreach draft.";
+  const outcomeTrailStatus = outreachOutcome
+    ? `reviewed=${formatLocalServiceOutcomeBoolean(outreachOutcome.previewReviewed)}, copied=${formatLocalServiceOutcomeBoolean(
+        outreachOutcome.messageCopied,
+      )}, contacted=${formatLocalServiceOutcomeBoolean(outreachOutcome.manualContacted)}`
+    : "No account outcome trail loaded.";
   const baseMessage = row
     ? `Hi. We help ${row.serviceTitle.toLowerCase()} teams answer missed phone and Telegram requests, collect the right details, and prepare an operator-approved job card. Can I show a 7-minute demo using your current ${row.prospect.segment.toLowerCase()} workflow?`
     : template.detail.pilotKit.outreachWizard.testMessage;
@@ -2902,6 +3105,11 @@ function buildLocalServicePilotCommunicationPreview(
     `Latest account activity: ${latestActivity}`,
     `Scorecard focus: ${scorecardFocus}`,
     `Decision gate: ${decisionGate.verdictLabel}`,
+    `Selected outcome draft: ${selectedOutcomeChannel}`,
+    `Outcome trail: ${outcomeTrailStatus}`,
+    "",
+    "Selected outreach draft:",
+    selectedOutcomeDraft,
     "",
     "Phone script:",
     ...phoneScript.map((line) => `- ${line}`),
@@ -2943,6 +3151,24 @@ function buildLocalServicePilotCommunicationPreview(
       next_manual_action: nextManualAction,
       proof_marker: proofMarker,
       latest_activity: events[0] ?? null,
+      outreach_outcome_trail: outreachOutcome
+        ? {
+            key: outreachOutcome.key,
+            selected_channel_id: outreachOutcome.selectedChannelId,
+            selected_channel: outreachOutcome.selectedChannel,
+            selected_draft: outreachOutcome.selectedDraft,
+            preview_reviewed: outreachOutcome.previewReviewed,
+            message_copied: outreachOutcome.messageCopied,
+            contacted_manually: outreachOutcome.manualContacted,
+            status: outreachOutcome.status,
+            status_label: outreachOutcome.statusLabel,
+            first_request_outcome: outreachOutcome.firstRequestOutcome,
+            first_request_outcome_label: outreachOutcome.firstRequestOutcomeLabel,
+            scorecard_row_copied: outreachOutcome.scorecardRowCopied,
+            batch_handoff_copied: outreachOutcome.batchHandoffCopied,
+            state_keys: outreachOutcome.stateKeys,
+          }
+        : null,
       scripts: {
         phone: phoneScript,
         telegram: telegramDraft,
@@ -2992,9 +3218,14 @@ function buildLocalServicePilotCommunicationPreview(
       { label: "Next manual action", value: nextManualAction },
       { label: "Proof marker", value: proofMarker },
       { label: "Latest activity", value: latestActivity },
+      { label: "Selected outcome draft", value: selectedOutcomeChannel },
+      { label: "Outcome trail", value: outcomeTrailStatus },
       { label: "Guardrail", value: "Manual preview only; no autonomous send" },
     ],
-    checklist: approvalGate,
+    checklist: [
+      ...approvalGate,
+      "Confirm the preview/copy/manual-contact outcome trail is up to date before scorecard or batch review.",
+    ],
   };
 }
 
@@ -7279,9 +7510,22 @@ const LocalServicesDispatchDemoPanel = ({
           demoBooked,
           pilotCandidate,
           proofStatus,
-        };
-      }),
+      };
+    }),
     [pilotFunnelRows, pilotWorkspaceState.contactProofByProspectKey],
+  );
+  const pilotOutreachOutcomeTrail = useMemo(
+    () => buildLocalServiceOutreachOutcomeTrail(pilotFunnelRows, pilotWorkspaceState),
+    [
+      pilotFunnelRows,
+      pilotWorkspaceState.batchReviewHandoffCopiedByProspectKey,
+      pilotWorkspaceState.contactPacketCopiedByProspectKey,
+      pilotWorkspaceState.contactProofByProspectKey,
+      pilotWorkspaceState.firstRequestOutcomeByProspectKey,
+      pilotWorkspaceState.messagePreviewReviewedByProspectKey,
+      pilotWorkspaceState.scorecardRowCopiedByProspectKey,
+      pilotWorkspaceState.selectedChannelByProspectKey,
+    ],
   );
   const founderContactCounts = useMemo(
     () => ({
@@ -7444,6 +7688,9 @@ const LocalServicesDispatchDemoPanel = ({
     (row) => row.key === pilotWorkspaceState.currentOpsAccountKey,
   );
   const pilotOpsTodayRow = manuallySelectedPilotOpsRow ?? autoPilotOpsTodayRow;
+  const currentAccountOutreachOutcome = pilotOpsTodayRow
+    ? pilotOutreachOutcomeTrail.find((row) => row.key === pilotOpsTodayRow.key)
+    : undefined;
   const pilotOpsAccountPickerMode = manuallySelectedPilotOpsRow ? "Manual account selection" : "Auto next account";
   const pilotOpsTodayAction = !pilotOpsTodayRow
     ? "No target loaded. Open the outreach list before running the pilot."
@@ -7974,6 +8221,7 @@ const LocalServicesDispatchDemoPanel = ({
     pilotOpsTodayProof,
     currentAccountHistoryEvents,
     founderDecisionGate,
+    currentAccountOutreachOutcome,
   );
   const accountHistoryExport = buildLocalServiceAccountHistoryExport(
     pilotOpsTodayRow,
@@ -8079,6 +8327,10 @@ const LocalServicesDispatchDemoPanel = ({
     leadingCategoryPilotReadiness,
     leadingCategoryReadinessActionPlan,
     {
+      selectedChannelByProspectKey: pilotWorkspaceState.selectedChannelByProspectKey,
+      messagePreviewReviewedByProspectKey: pilotWorkspaceState.messagePreviewReviewedByProspectKey,
+      contactPacketCopiedByProspectKey: pilotWorkspaceState.contactPacketCopiedByProspectKey,
+      contactProofByProspectKey: pilotWorkspaceState.contactProofByProspectKey,
       firstRequestOutcomeByProspectKey: pilotWorkspaceState.firstRequestOutcomeByProspectKey,
       scorecardRowCopiedByProspectKey: pilotWorkspaceState.scorecardRowCopiedByProspectKey,
       batchReviewHandoffCopiedByProspectKey: pilotWorkspaceState.batchReviewHandoffCopiedByProspectKey,
@@ -8192,13 +8444,19 @@ const LocalServicesDispatchDemoPanel = ({
       buildLocalServicePilotWorkspaceExport(
         pilotFunnelRows,
         pilotFunnelCounts,
-        pilotWorkspaceState.selectedChannelByProspectKey,
+        pilotWorkspaceState,
         pilotWorkspaceState.activityLog,
       ),
     [
       pilotFunnelCounts,
       pilotFunnelRows,
       pilotWorkspaceState.activityLog,
+      pilotWorkspaceState.batchReviewHandoffCopiedByProspectKey,
+      pilotWorkspaceState.contactPacketCopiedByProspectKey,
+      pilotWorkspaceState.contactProofByProspectKey,
+      pilotWorkspaceState.firstRequestOutcomeByProspectKey,
+      pilotWorkspaceState.messagePreviewReviewedByProspectKey,
+      pilotWorkspaceState.scorecardRowCopiedByProspectKey,
       pilotWorkspaceState.selectedChannelByProspectKey,
     ],
   );
@@ -16785,6 +17043,56 @@ const LocalServicePilotWorkspaceExportDrawer = ({
                         <td className="px-3 py-2 text-foreground">{row.batchHandoff}</td>
                         <td className="px-3 py-2 text-muted-foreground">{row.proof}</td>
                         <td className="px-3 py-2 text-foreground">{row.decision}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          ) : null}
+
+          {exportView.outreachOutcomeTrail && exportView.outreachOutcomeTrail.length > 0 ? (
+            <section className="px-7 py-5 border-b border-border/50 space-y-3">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/75">
+                  Outreach outcome trail
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted-foreground">
+                  Reviewed, copied, and manual-contact markers that connect the preview modal to scorecard/export work.
+                </p>
+              </div>
+              <div className="overflow-x-auto rounded-md border border-border/60">
+                <table className="min-w-[820px] w-full text-left text-[11.5px]">
+                  <thead className="bg-card/45 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/75">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Account</th>
+                      <th className="px-3 py-2 font-medium">Text</th>
+                      <th className="px-3 py-2 font-medium">Reviewed</th>
+                      <th className="px-3 py-2 font-medium">Copied</th>
+                      <th className="px-3 py-2 font-medium">Contacted</th>
+                      <th className="px-3 py-2 font-medium">Status</th>
+                      <th className="px-3 py-2 font-medium">Next step</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/50">
+                    {exportView.outreachOutcomeTrail.map((row) => (
+                      <tr key={row.key} className="bg-background/25 align-top">
+                        <td className="px-3 py-2">
+                          <div className="font-medium text-foreground">{row.company}</div>
+                          <div className="mt-0.5 text-[10.5px] text-muted-foreground">{row.serviceTitle}</div>
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">{row.selectedChannel}</td>
+                        <td className="px-3 py-2 text-foreground">
+                          {formatLocalServiceOutcomeBoolean(row.previewReviewed)}
+                        </td>
+                        <td className="px-3 py-2 text-foreground">
+                          {formatLocalServiceOutcomeBoolean(row.messageCopied)}
+                        </td>
+                        <td className="px-3 py-2 text-foreground">
+                          {formatLocalServiceOutcomeBoolean(row.manualContacted)}
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">{row.statusLabel}</td>
+                        <td className="px-3 py-2 text-foreground">{row.nextStep}</td>
                       </tr>
                     ))}
                   </tbody>

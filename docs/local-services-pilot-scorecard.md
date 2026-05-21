@@ -170,7 +170,8 @@ outreach list. Use it to see:
 `Open pilot export` opens the `Pilot workspace export drawer`. Use
 `Human-readable` when manually updating this scorecard and `JSON` when pasting
 into CRM or a spreadsheet. It includes the latest `Manual activity log` /
-`Last manual action` and selected channel per candidate. `Copy pilot workspace export` copies the reviewed
+`Last manual action`, selected channel per candidate, `Outreach outcome trail`,
+and `outreach_outcome_trail`. `Copy pilot workspace export` copies the reviewed
 snapshot only; it does not send a message, update CRM, or mutate this Markdown
 file automatically.
 `Open workspace API export` opens `Workspace API export drawer` for the

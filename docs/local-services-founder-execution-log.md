@@ -18,7 +18,7 @@ review drawer` and `Copy batch review` only after the browser-local markers
 match the private founder notes. The drawer shows `First-contact batch review
 rows` as `Account -> Lane -> Scorecard row -> Batch handoff -> Proof ->
 Decision`, and its JSON carries `review_decision`, `scorecard_row_copied`, and
-`batch_handoff_copied`.
+`batch_handoff_copied`, plus `outreach_outcome_trail`.
 Use `Pilot ops today` before each real manual action. `Copy pilot ops handoff`
 exports `local_services_pilot_ops_today`: current account, service lane, next
 manual action, and proof marker to update afterward. `Open ops confirmation`
@@ -39,6 +39,10 @@ and `Contacted manually` write `messagePreviewReviewedByProspectKey`,
 `contactProofByProspectKey.manualMessageSent` / `contacted_manually` as
 browser-local proof, still without Telegram, WhatsApp, phone, CRM, booking,
 billing, dispatch, or outbound-send side effects.
+The same proof now appears as `Outreach outcome trail` /
+`outreach_outcome_trail` in pilot export, communication preview, and batch
+review so selected draft, preview-reviewed, copied, contacted-manually,
+scorecard row, and batch handoff status can be checked before private sync.
 `Current account picker` /
 `local_services_current_account_picker` lets the operator override the
 auto-selected current account in browser-local state only; `Auto next account`

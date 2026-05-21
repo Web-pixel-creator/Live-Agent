@@ -188,7 +188,11 @@ Do not use the pilot to build:
    `Copied`, and `Contacted manually`; these map to
    `messagePreviewReviewedByProspectKey`, `contactPacketCopiedByProspectKey`,
    and `contactProofByProspectKey.manualMessageSent` / `contacted_manually`
-   only after manual outreach happens outside the shell. Open
+   only after manual outreach happens outside the shell. Confirm that
+   `Outreach outcome trail` / `outreach_outcome_trail` carries the selected
+   draft, preview-reviewed, copied, contacted-manually, scorecard row, and
+   batch handoff state into pilot export, communication preview, and batch
+   review. Open
    `Operator confirmation summary`
    and confirm `Ready for manual outreach`. Click `Record ready for manual outreach`
    to set the browser-local status to `Draft ready`, then keep

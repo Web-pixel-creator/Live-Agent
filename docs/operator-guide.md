@@ -219,6 +219,10 @@ The modal now has an `Operator outcome log`: `Preview reviewed` records
 `contactProofByProspectKey.manualMessageSent` / `contacted_manually`. Treat
 those as local operator notes only. They prove the human workflow happened but
 do not send, dial, dispatch, book, bill, or write CRM.
+Those same markers now appear as `Outreach outcome trail` /
+`outreach_outcome_trail` in the pilot workspace export, communication preview,
+and batch review so the operator can see which selected draft was reviewed,
+copied, and manually contacted before private scorecard or CRM sync.
 The same modal now shows `Channel variants`: `Telegram variant`,
 `WhatsApp variant`, and `Phone script variant`, with `Copy Telegram variant`,
 `Copy WhatsApp variant`, and `Copy phone script`. These are copy-only drafts
@@ -315,9 +319,9 @@ the Markdown scorecard first.
 Use `Open pilot export` when the operator needs one reviewed snapshot of the
 mini-funnel. The `Pilot workspace export drawer` switches between
 `Human-readable` and `JSON`, exposes `Copy pilot workspace export`, includes
-the latest `Manual activity log` / `Last manual action`, and remains
-manual-only: no outbound message, no CRM write, and no Markdown scorecard
-mutation.
+the latest `Manual activity log` / `Last manual action`, `Outreach outcome
+trail`, and `outreach_outcome_trail`, and remains manual-only: no outbound
+message, no CRM write, and no Markdown scorecard mutation.
 Use `Open workspace API export` when a developer/operator needs to inspect the
 repo-owned workspace boundary itself. The `Workspace API export drawer` exposes
 `workspace API + local fallback`, `Copy workspace API export`,
@@ -384,7 +388,8 @@ the founder/operator is validating demand. It shows `Pilot proof checklist`,
 review drawer`, `Copy batch review`, `Copy founder workspace`, and
 `First-contact batch review rows` with `Account -> Lane -> Scorecard row ->
 Batch handoff -> Proof -> Decision` plus JSON `review_decision`,
-`scorecard_row_copied`, and `batch_handoff_copied`; use it before any
+`scorecard_row_copied`, `batch_handoff_copied`, and
+`outreach_outcome_trail`; use it before any
 continue, pause, stop, CRM, or weekly scorecard decision. It also shows
 browser-local proof buttons for channel check, manual send, discovery call,
 demo booking, and pilot candidate. `Pilot ops today`, `Copy pilot ops handoff`,

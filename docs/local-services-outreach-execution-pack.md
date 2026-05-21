@@ -218,6 +218,10 @@ Allowed reply statuses:
    `contactPacketCopiedByProspectKey`, and `Contacted manually` records
    `contactProofByProspectKey.manualMessageSent` / `contacted_manually` only
    after the human actually sends or calls outside the shell.
+   Confirm `Outreach outcome trail` / `outreach_outcome_trail` carries that
+   selected draft, preview-reviewed, copied, contacted-manually, scorecard row,
+   and batch handoff proof into pilot export, communication preview, and batch
+   review before private CRM or scorecard sync.
 8. Open `Agent setup / training state` and `Open setup checklist`, then show
    `Business profile`, `Knowledge sources`, `Agent behavior`,
    `Test call/message`, `Ready for test call/message`, `Training cards`, and
@@ -329,7 +333,8 @@ Allowed reply statuses:
    `batchReviewHandoffCopiedByProspectKey`, then verify
    `First-contact batch review rows` with `Account -> Lane -> Scorecard row ->
    Batch handoff -> Proof -> Decision`, `review_decision`,
-   `scorecard_row_copied`, and `batch_handoff_copied` before
+   `scorecard_row_copied`, `batch_handoff_copied`, and
+   `outreach_outcome_trail` before
    `Pilot proof update rail`
    and `local_services_pilot_proof_update_rail`, plus
    `Current account mini-audit`, `local_services_current_account_mini_audit`,

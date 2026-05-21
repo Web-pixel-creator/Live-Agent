@@ -149,6 +149,10 @@ The preview exposes `Operator outcome log`: `Preview reviewed` records
 `contactPacketCopiedByProspectKey`, and `Contacted manually` records
 `contactProofByProspectKey.manualMessageSent` / `contacted_manually` only after
 the human actually performs outreach outside the shell.
+The same state is now exported as `Outreach outcome trail` /
+`outreach_outcome_trail` so pilot export, communication preview, and batch
+review show selected draft, reviewed, copied, contacted-manually, scorecard row,
+and batch handoff markers together.
 It still does
 not send outreach, create calendar events, write CRM, or mutate docs. It
 mirrors browser-local state only and does not send
@@ -211,7 +215,8 @@ store private customer data in public docs.
 checklist`, `Stop / Continue decision gate`, `Open batch review`, `First
 contact batch review drawer`, `Copy batch review`, `Copy founder workspace`,
 `First-contact batch review rows`, `review_decision`,
-`scorecard_row_copied`, and `batch_handoff_copied`,
+`scorecard_row_copied`, `batch_handoff_copied`, and
+`outreach_outcome_trail`,
 `Channel checked`, `Manual sent`, `Discovery call`, `Demo booked`, and
 `Pilot candidate`. It also includes `Pilot ops today`, `Copy pilot ops handoff`,
 `Open ops confirmation`, `Open communication preview`,

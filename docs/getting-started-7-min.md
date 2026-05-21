@@ -99,6 +99,10 @@ It also includes `Operator outcome log`: `Preview reviewed` records
 `contactProofByProspectKey.manualMessageSent` / `contacted_manually`.
 These outcomes are only browser-local pilot bookkeeping, not Telegram,
 WhatsApp, phone, CRM, booking, billing, dispatch, or outbound-send actions.
+The same markers now export as `Outreach outcome trail` /
+`outreach_outcome_trail` in pilot export, communication preview, and batch
+review so the selected draft, preview-reviewed, copied, contacted-manually,
+scorecard row, and batch handoff states stay visible before private sync.
 The modal also includes `Channel variants` for `Telegram variant`,
 `WhatsApp variant`, and `Phone script variant`, plus `Copy Telegram variant`,
 `Copy WhatsApp variant`, and `Copy phone script`. These are manual-only drafts:
@@ -195,8 +199,10 @@ service/company pair.
 Use `Open pilot export` to open the `Pilot workspace export drawer`. It provides
 `Human-readable` and `JSON` modes plus `Copy pilot workspace export` for manual
 scorecard or CRM sync. It includes the latest `Manual activity log` /
-`Last manual action` so reviewed scorecard and metric events travel with the
-funnel snapshot. It does not send messages or write CRM.
+`Last manual action`, `Outreach outcome trail`, and
+`outreach_outcome_trail` so reviewed scorecard, metric, preview, copy, and
+manual-contact events travel with the funnel snapshot. It does not send
+messages or write CRM.
 The same export carries the selected channel for each candidate so the reviewed
 snapshot is enough for manual CRM/scorecard copy.
 Use `Open workspace API export` to inspect the repo-owned workspace boundary.
@@ -247,7 +253,8 @@ review drawer`, and `Copy batch review` / `Copy founder workspace` exports only
 a redacted manual summary. The drawer includes `First-contact batch review
 rows` with `Account -> Lane -> Scorecard row -> Batch handoff -> Proof ->
 Decision`, backed by `review_decision`, `scorecard_row_copied`, and
-`batch_handoff_copied`. `Pilot ops today`, `Copy pilot ops handoff`,
+`batch_handoff_copied`, plus `outreach_outcome_trail`. `Pilot ops today`,
+`Copy pilot ops handoff`,
 `Open ops confirmation`, `Open communication preview`,
 `local_services_pilot_ops_today`, `local_services_pilot_ops_confirmation`,
 `local_services_pilot_communication_preview`, `Current account picker`,

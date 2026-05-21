@@ -365,22 +365,24 @@ Pilot outreach surfaces:
 4. `Mark preview reviewed`
 5. `Preview / Test message modal`
 6. `Operator outcome log`
-7. `Preview reviewed`
-8. `Copied`
-9. `Contacted manually`
-10. `Channel variants`
-11. `Telegram variant`
-12. `WhatsApp variant`
-13. `Phone script variant`
-14. `Copy Telegram variant`
-15. `Copy WhatsApp variant`
-16. `Copy phone script`
-17. `Operator confirmation summary`
-18. `AI analyst` / `Ask AI about pilot`
-19. `Pilot scorecard action`
-20. `Pilot funnel summary`
-21. `Outreach list filters`
-22. `Column settings`
+7. `Outreach outcome trail`
+8. `outreach_outcome_trail`
+9. `Preview reviewed`
+10. `Copied`
+11. `Contacted manually`
+12. `Channel variants`
+13. `Telegram variant`
+14. `WhatsApp variant`
+15. `Phone script variant`
+16. `Copy Telegram variant`
+17. `Copy WhatsApp variant`
+18. `Copy phone script`
+19. `Operator confirmation summary`
+20. `AI analyst` / `Ask AI about pilot`
+21. `Pilot scorecard action`
+22. `Pilot funnel summary`
+23. `Outreach list filters`
+24. `Column settings`
 
 The readiness rail reads the selected company, `messagePreviewReviewedByProspectKey`,
 and the current pilot status to show the next blocker. It is a manual-only prep
@@ -395,6 +397,12 @@ state: `Preview reviewed` -> `messagePreviewReviewedByProspectKey`, `Copied`
 `contactProofByProspectKey.manualMessageSent` plus the
 `contacted_manually` funnel status. These fields are bookkeeping only and do
 not create external sends or CRM writes.
+`Outreach outcome trail` is the export bridge for those same markers. The
+pilot workspace export, communication preview, and first-contact batch review
+include `outreach_outcome_trail` with selected draft, preview-reviewed, copied,
+contacted-manually, first request outcome, scorecard row, and batch handoff
+state so a developer does not have to inspect the modal to understand the
+manual outreach proof chain.
 The same modal owns the `Selected outreach channel` contract:
 `Select Telegram`, `Select WhatsApp`, or `Select phone script` writes
 `Channel selected` to `selectedChannelByProspectKey`. Confirmation and launch
@@ -433,7 +441,9 @@ Review and handoff surfaces:
 5. `First-contact batch review rows`
 6. `Copy batch review`
 7. `Copy founder workspace`
-8. `Open founder execution log`
+8. `Outreach outcome trail`
+9. `outreach_outcome_trail`
+10. `Open founder execution log`
 
 ## Current Account Gate Chain
 
@@ -504,6 +514,7 @@ The JSON payload carries:
 3. `batch_handoff`
 4. `scorecard_row_copied`
 5. `batch_handoff_copied`
+6. `outreach_outcome_trail`
 
 Use this table before any continue, pause, stop, CRM handoff, or weekly
 scorecard decision.

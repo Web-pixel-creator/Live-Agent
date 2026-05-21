@@ -101,6 +101,10 @@ It now also shows an `Operator outcome log` with `Preview reviewed`,
 `contactProofByProspectKey.manualMessageSent` / `contacted_manually`, keeping
 the 4-step flow measurable without adding any Telegram, WhatsApp, phone, CRM,
 booking, billing, dispatch, or outbound-send side effect.
+The same bookkeeping now flows into `Outreach outcome trail` /
+`outreach_outcome_trail` in pilot export, communication preview, and batch
+review so the operator can audit selected draft, preview-reviewed, copied,
+contacted-manually, scorecard row, and batch handoff state before private sync.
 It now also shows `Channel variants` with `Telegram variant`, `WhatsApp
 variant`, and `Phone script variant`, plus `Copy Telegram variant`, `Copy
 WhatsApp variant`, and `Copy phone script`. This keeps the outreach flow useful
@@ -269,8 +273,8 @@ workspace`, `Pilot proof checklist`, `Stop / Continue decision gate`,
 and `Copy founder workspace`. The drawer now has `First-contact batch review
 rows` with `Account -> Lane -> Scorecard row -> Batch handoff -> Proof ->
 Decision`, backed by `review_decision`, `scorecard_row_copied`, and
-`batch_handoff_copied`, so the 7-minute path explains the batch review without
-reading Markdown. It now adds `Pilot ops today`,
+`batch_handoff_copied`, and `outreach_outcome_trail`, so the 7-minute path
+explains the batch review without reading Markdown. It now adds `Pilot ops today`,
 `Copy pilot ops handoff`, `Open ops confirmation`,
 `Open communication preview`, `local_services_pilot_ops_today`,
 `local_services_pilot_ops_confirmation`,
