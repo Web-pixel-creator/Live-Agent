@@ -44,6 +44,16 @@ Recording route:
 
 `/app?demo=local-services-dispatch&service=ac-repair-dispatch&recording=90s`
 
+Design-workbench `/dev` guardrail:
+
+1. The repo-owned app shell does not expose a public `/dev` route.
+2. `App.tsx`, `AppSidebar.tsx`, `Topbar.tsx`, and `CommandPalette.tsx` must
+   keep `/dev` out of product navigation.
+3. Lovable/design-workbench `/dev` screenshots are internal lab references.
+   Port useful patterns into `/app?demo=local-services-dispatch...` product
+   views, support drawers, or workspace docs instead of adding a public dev
+   page.
+
 Local workspace docs served by the demo frontend:
 
 1. `/workspace-docs/local-services-pilot-offer.md`

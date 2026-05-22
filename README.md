@@ -404,6 +404,11 @@ Local-services expansion spec:
   the shell shows `90-second recording mode`, `Recording path`, and
   `Open recording checklist`, while the outreach table and scorecard controls
   are hidden during recording.
+- the repo-owned product shell intentionally does not expose a public `/dev`
+  route. Lovable/design-workbench `/dev` screens are internal lab references;
+  useful patterns should be ported back into
+  `/app?demo=local-services-dispatch...`, collapsed support drawers, or
+  `/workspace-docs/*`, not into product navigation.
 - the same support layer now also links to
   `/workspace-docs/local-services-outreach-list.md` and
   `/workspace-docs/local-services-pilot-scorecard.md` for pilot execution.

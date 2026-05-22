@@ -359,6 +359,7 @@ test("live desk and console surfaces prefer repo-owned runtime data with draft f
 });
 
 test("shared app shell chrome reads runtime-backed counts, nodes, and diagnostics", () => {
+  const app = readAppShellSource("App.tsx");
   const workspace = readAppShellSource("pages/Workspace.tsx");
   const topbar = readAppShellSource("components/workspace/Topbar.tsx");
   const sidebar = readAppShellSource("components/workspace/AppSidebar.tsx");
@@ -413,6 +414,11 @@ test("shared app shell chrome reads runtime-backed counts, nodes, and diagnostic
   assert.match(palette, /run\(\(\) => navigate\("\/app\/nodes"\)\)/);
   assert.match(palette, /run\(\(\) => navigate\("\/app\/console\/runtime"\)\)/);
   assert.match(palette, /run\(\(\) => navigate\("\/app\/console\/runtime#artifact-viewer"\)\)/);
+
+  assert.doesNotMatch(app, /<Route path="\/dev"/);
+  assert.doesNotMatch(sidebar, /url:\s*"\/dev"/);
+  assert.doesNotMatch(topbar, /\/dev/);
+  assert.doesNotMatch(palette, /navigate\("\/dev/);
 
   assert.match(rail, /const \{\s+runtimeActive,\s+pendingApprovalCount,\s+runtimeDiagnostics,\s+bootstrapDoctor,\s+browserWorkers,\s+\} = useWorkspaceRuntime\(\);/);
   assert.match(rail, /const items: RailItem\[\] = runtimeActive/);
@@ -1762,6 +1768,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(readme, /\?recording=90s/);
   assert.match(readme, /90-second recording mode/);
   assert.match(readme, /Recording path/);
+  assert.match(readme, /does not expose a public `\/dev`[\s\S]*route/);
+  assert.match(readme, /Lovable\/design-workbench `\/dev` screens are internal lab references/);
   assert.match(readme, /\/workspace-docs\/local-services-outreach-list\.md/);
   assert.match(readme, /\/workspace-docs\/local-services-pilot-scorecard\.md/);
   assert.match(readme, /Open founder execution log/);
@@ -1877,6 +1885,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(productMasterPlan, /local-services-workspace-adapter\.ts/);
   assert.match(productMasterPlan, /local-services-scenarios\.ts/);
   assert.match(productMasterPlan, /local_services_scenario_modal/);
+  assert.match(productMasterPlan, /Lovable\/design-workbench `\/dev` surface is an internal lab reference/);
+  assert.match(productMasterPlan, /keep `\/dev`[\s\S]*out of product navigation/);
   assert.match(readme, /Open outreach execution pack/);
   assert.match(readme, /Start 7-minute demo/);
   assert.match(readme, /docs\/evidence-and-trust\.md/);
@@ -3227,6 +3237,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(evidenceTrust, /first-10-contact worksheet/);
   assert.match(localServicesSpec, /AI Dispatcher for local service businesses/);
   assert.match(localServicesSpec, /\/app\?demo=local-services-dispatch&service=ac-repair-dispatch/);
+  assert.match(localServicesSpec, /must not expose a public `\/dev` route/);
+  assert.match(localServicesSpec, /keep the lab out of[\s\S]*customer\/operator scan/);
   assert.match(localServicesSpec, /row click selects the\s+right preview only/i);
   assert.match(localServicesSpec, /Scroll position must never act as selection/i);
   assert.match(localServicesSpec, /Measurement visit booking/);
@@ -4463,6 +4475,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesDeveloperMap, /# Local Services Developer Map/);
   assert.match(localServicesDeveloperMap, /AI Dispatcher for local service businesses/);
   assert.match(localServicesDeveloperMap, /\/workspace-docs\/local-services-agent-handoff\.md/);
+  assert.match(localServicesDeveloperMap, /Design-workbench `\/dev` guardrail/);
+  assert.match(localServicesDeveloperMap, /does not expose a public `\/dev` route/);
+  assert.match(localServicesDeveloperMap, /keep `\/dev` out of product navigation/);
   assert.match(localServicesDeveloperMap, /Product-Mode Sidebar/);
   assert.match(localServicesDeveloperMap, /Product View Routes/);
   assert.match(localServicesDeveloperMap, /`view=requests`/);
@@ -4523,6 +4538,9 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(localServicesAgentHandoff, /Selected request decision rail/);
   assert.match(localServicesAgentHandoff, /Design Workbench Review/);
   assert.match(localServicesAgentHandoff, /design-workbench-main/);
+  assert.match(localServicesAgentHandoff, /Current repo-owned app-shell status/);
+  assert.match(localServicesAgentHandoff, /does not define a `\/dev` route/);
+  assert.match(localServicesAgentHandoff, /must not expose\s+`\/dev` in product navigation/);
   assert.match(localServicesAgentHandoff, /not currently backend-integrated/);
   assert.match(localServicesAgentHandoff, /Backend adapter contract/);
   assert.match(localServicesAgentHandoff, /local-services-workspace\.ts/);

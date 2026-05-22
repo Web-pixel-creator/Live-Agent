@@ -663,6 +663,16 @@ English can remain in developer-only pages or code identifiers.
 
 `/dev` is useful as an internal lab, not as the public product.
 
+Current repo-owned app-shell status:
+
+1. `apps/demo-frontend/app-shell/src/App.tsx` does not define a `/dev` route.
+2. `AppSidebar.tsx`, `Topbar.tsx`, and `CommandPalette.tsx` must not expose
+   `/dev` in product navigation.
+3. Lovable/design-workbench `/dev` screenshots are reference material only.
+   Bring useful ideas back into `/app?demo=local-services-dispatch...`,
+   collapsed support surfaces, or `/workspace-docs/*`; do not add a public
+   product route for the lab.
+
 Keep it for:
 
 1. Lanes.

@@ -367,6 +367,11 @@ The top chrome should also read `AI Dispatcher` and keep runtime/SLA/device
 alerts, the visa demo button, case filters, case search, and `New case` out of
 the local-services first scan.
 
+The repo-owned app shell must not expose a public `/dev` route. If a Lovable or
+design-workbench `/dev` screen is useful, port the pattern into `/app` product
+views, collapsed support drawers, or `/workspace-docs/*`; keep the lab out of
+the first customer/operator scan.
+
 ### Product view contract
 
 The product sidebar must open concrete local-services panels, not dead

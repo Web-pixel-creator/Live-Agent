@@ -100,6 +100,11 @@ The current scenario UI is `Scenario modal` /
 `local_services_scenario_modal` in `LiveDesk.tsx`: a hybrid chat-dialogue,
 structured job-card, and final handoff/approval view with JSON export/import
 for the four fixed lanes only.
+The Lovable/design-workbench `/dev` surface is an internal lab reference, not a
+repo-owned public product route. Useful patterns should be ported into `/app`
+product views, support drawers, or `/workspace-docs/*`; `App.tsx`,
+`AppSidebar.tsx`, `Topbar.tsx`, and `CommandPalette.tsx` should keep `/dev`
+out of product navigation.
 That expansion must stay one dispatcher product, not a collection of unrelated
 vertical products. Restaurants can be a secondary demo path, but should not
 displace the local-services wedge before pilot signal exists.
