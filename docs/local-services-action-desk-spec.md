@@ -1391,9 +1391,12 @@ Current shell readiness for P3:
    `Main dispatcher full-height decision rail`, `Click selects dispatcher
    preview`, `Explicit full task open`, `No row action overlap`, and
    `Two-line compact row`. The main queue uses the compact 48px / flexible
-   content / 192-204px action grid, keeps
+   content / minmax(188px, 204px) action grid, keeps
    selection separate from navigation, and anchors the selected case in a
-   full-height right rail with a dominant RU-first sticky footer:
+   `520-540px` right rail. The queue/rail two-column layout is gated at
+   `min-width: 1600px`; below that breakpoint the rail stacks instead of
+   clipping off-canvas. On wide screens the rail is viewport-locked with a
+   dominant RU-first sticky footer:
    `Контроль · оператор · автоотправка выкл.`.
    The right rail also carries `Decision rail compact stack`: dense L1
    `bg-card` shell, accent AI recommendation, separate customer request card,

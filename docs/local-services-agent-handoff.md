@@ -495,6 +495,10 @@ Recommended row grid:
 
 `grid-template-columns: 48px minmax(0, 1fr) 192-204px`
 
+Current shell uses a slightly defensive action reserve:
+
+`grid-template-columns: 48px minmax(0, 1fr) minmax(188px, 204px)`
+
 Rules:
 
 1. Left column: channel icon and urgency dot.
@@ -571,7 +575,11 @@ Current implementation marker: `Decision rail compact stack`. The main
 dispatcher rail uses a dense L1 `bg-card` shell, keeps the AI recommendation as
 the only accent/glass block, renders customer request as a separate `bg-card`
 block, collapses case details by default, and keeps edit/reject visually quieter
-than the primary dispatch action.
+than the primary dispatch action. The dispatcher workbench also reserves a
+`520-540px` rail and uses `min-width: 1600px` as the wide-layout breakpoint, so
+the rail stacks on narrower operator screens instead of clipping off-canvas. On
+wide screens it locks the queue plus rail to the viewport so each side scrolls
+independently.
 
 Operator-facing footer text:
 

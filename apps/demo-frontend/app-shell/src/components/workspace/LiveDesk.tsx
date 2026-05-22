@@ -10537,10 +10537,10 @@ const LocalServicesDispatchDemoPanel = ({
             aria-label="Main dispatcher workbench"
             className="rounded-md border border-border/65 bg-card/65 p-4"
           >
-            <div className="grid gap-3 xl:grid-cols-[minmax(560px,1fr)_minmax(500px,0.58fr)]">
+            <div className="grid gap-3 min-[1600px]:grid-cols-[minmax(600px,1fr)_minmax(520px,540px)]">
               <section
                 aria-label="Main dispatcher compact queue"
-                className="min-w-0 rounded-md border border-border/55 bg-background/35"
+                className="flex min-h-[560px] min-w-0 flex-col rounded-md border border-border/55 bg-background/35 min-[1600px]:h-[calc(100vh-8rem)] min-[1600px]:min-h-[640px]"
               >
                 <div className="border-b border-border/55 px-4 py-3">
                   <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -10570,7 +10570,7 @@ const LocalServicesDispatchDemoPanel = ({
                   </div>
                 </div>
 
-                <div className="max-h-[640px] overflow-y-auto">
+                <div className="min-h-0 flex-1 overflow-y-auto">
                   {LOCAL_SERVICE_DEMO_TEMPLATES.map((template, index) => {
                     const selected = template.id === selectedTemplate.id;
                     const TemplateIcon = template.Icon;
@@ -10609,7 +10609,7 @@ const LocalServicesDispatchDemoPanel = ({
                         }}
                         aria-label={`Click selects dispatcher preview for ${template.ref}`}
                         aria-current={selected ? "true" : undefined}
-                        className={`grid min-h-[86px] grid-cols-1 items-center gap-2 border-b border-border/45 px-3 py-2.5 outline-none transition-smooth md:grid-cols-[48px_minmax(0,1fr)_192px] xl:grid-cols-[48px_minmax(0,1fr)_204px] ${
+                        className={`grid min-h-[86px] grid-cols-1 items-center gap-2 border-b border-border/45 px-3 py-2.5 outline-none transition-smooth md:grid-cols-[48px_minmax(0,1fr)_minmax(188px,204px)] xl:grid-cols-[48px_minmax(0,1fr)_minmax(196px,204px)] ${
                           selected
                             ? "bg-[hsl(var(--tint-amber)/0.09)] ring-1 ring-inset ring-[hsl(var(--tint-amber)/0.30)]"
                             : "bg-card/20 hover:bg-card/35"
@@ -10657,11 +10657,11 @@ const LocalServicesDispatchDemoPanel = ({
                               {formatPayloadValue(template.payload.district ?? "district")}
                             </span>
                           </div>
-                          <div className="flex min-w-0 items-center gap-1.5 overflow-hidden font-mono text-[10.5px]">
-                            <span className="max-w-[220px] truncate rounded-[5px] bg-background/55 px-2 py-1 text-foreground">
+                          <div className="grid min-w-0 grid-cols-1 gap-1.5 overflow-hidden font-mono text-[10.5px] lg:grid-cols-[minmax(150px,220px)_minmax(110px,170px)_auto_minmax(0,1fr)]">
+                            <span className="min-w-0 truncate rounded-[5px] bg-background/55 px-2 py-1 text-foreground">
                               {windowLabel}
                             </span>
-                            <span className="max-w-[170px] truncate rounded-[5px] bg-background/55 px-2 py-1 text-muted-foreground">
+                            <span className="min-w-0 truncate rounded-[5px] bg-background/55 px-2 py-1 text-muted-foreground">
                               {priceOrApproval}
                             </span>
                             <span className="inline-flex shrink-0 items-center gap-1 rounded-[5px] bg-background/55 px-2 py-1 text-foreground">
@@ -10671,17 +10671,16 @@ const LocalServicesDispatchDemoPanel = ({
                                 style={{ backgroundColor: `hsl(var(--tint-${rowTone}-fg))` }}
                               />
                             </span>
-                            <span className="hidden h-3 w-px shrink-0 bg-border/45 lg:inline-flex" />
                             <span className="min-w-0 truncate font-sans text-[11.5px] font-medium text-foreground">
                               {localServiceHighlightValue(template, "Outcome")}
                             </span>
                           </div>
                         </div>
 
-                        <div className="flex min-w-0 items-center justify-between gap-2 md:flex-col md:items-end md:justify-center md:gap-1.5">
-                          <div className="flex max-w-full items-center gap-1.5">
+                        <div className="flex min-w-0 items-center justify-between gap-2 md:w-full md:max-w-[204px] md:flex-col md:items-stretch md:justify-center md:gap-1.5">
+                          <div className="flex max-w-full items-center justify-end gap-1.5 md:w-full">
                             <div
-                              className="max-w-[128px] truncate rounded-[5px] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] ring-1 ring-inset"
+                              className="min-w-0 flex-1 truncate rounded-[5px] px-2 py-1 text-right font-mono text-[10px] uppercase tracking-[0.12em] ring-1 ring-inset"
                               style={{
                                 backgroundColor: `hsl(var(--tint-${rowTone}) / ${index < 2 ? "0.17" : "0.10"})`,
                                 color: `hsl(var(--tint-${rowTone}-fg))`,
@@ -10703,7 +10702,7 @@ const LocalServicesDispatchDemoPanel = ({
                               <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.8} />
                             </button>
                           </div>
-                          <div className="inline-flex items-center gap-0.5 rounded-md border border-border/45 bg-background/70 p-1">
+                          <div className="inline-flex w-full items-center justify-between gap-0.5 rounded-md border border-border/45 bg-background/70 p-1">
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <button
@@ -10713,7 +10712,7 @@ const LocalServicesDispatchDemoPanel = ({
                                     onSelectService(template.id);
                                     onOpenDispatchDrawer("dispatch");
                                   }}
-                                  className="inline-flex h-7 items-center gap-1.5 rounded-[5px] px-2 text-[11px] font-medium text-[hsl(var(--tint-mint-fg))] transition-smooth hover:bg-[hsl(var(--tint-mint)/0.14)]"
+                                  className="inline-flex h-7 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[5px] px-2 text-[11px] font-medium text-[hsl(var(--tint-mint-fg))] transition-smooth hover:bg-[hsl(var(--tint-mint)/0.14)]"
                                   aria-label={`Approve ${template.ref}`}
                                 >
                                   <Check className="h-3.5 w-3.5" strokeWidth={1.85} />
@@ -10766,7 +10765,7 @@ const LocalServicesDispatchDemoPanel = ({
 
               <aside
                 aria-label="Main dispatcher full-height decision rail"
-                className="flex min-h-[640px] min-w-0 flex-col overflow-hidden rounded-md border border-border/60 bg-card/80 xl:max-h-[calc(100vh-9rem)]"
+                className="flex min-h-[560px] min-w-0 flex-col overflow-hidden rounded-md border border-border/60 bg-card/80 min-[1600px]:sticky min-[1600px]:top-4 min-[1600px]:h-[calc(100vh-8rem)] min-[1600px]:min-h-[640px] min-[1600px]:max-h-none"
               >
                 <header className="shrink-0 border-b border-border/55 px-4 py-3">
                   <span className="sr-only">Decision rail compact stack</span>
@@ -10801,7 +10800,7 @@ const LocalServicesDispatchDemoPanel = ({
                   </h3>
                 </header>
 
-                <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3.5 pb-4">
+                <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3.5 pb-6">
                   <section className="rounded-md border border-[hsl(var(--tint-violet)/0.34)] bg-[hsl(var(--tint-violet)/0.12)] px-3.5 py-3 shadow-[0_0_24px_hsl(var(--tint-violet)/0.08)]">
                     <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[hsl(var(--tint-violet-fg))]">
                       <Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />

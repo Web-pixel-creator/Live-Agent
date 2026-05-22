@@ -149,6 +149,11 @@ Local-services expansion spec:
   the queue rows use a two-line compact row contract with a fixed right action
   lane, and the footer uses the operator-facing guardrail
   `Контроль · оператор · автоотправка выкл.`.
+  The main dispatcher now reserves a `520-540px` decision rail and an
+  `188-204px` row-action lane. The two-column queue/rail layout only turns on
+  at `min-width: 1600px`; below that, the rail stacks instead of hiding off
+  canvas. On wide screens, the queue and rail are viewport-locked so they scroll
+  independently instead of stretching or colliding.
   The main rail now carries `Decision rail compact stack`: a dense `bg-card`
   L1 shell, accent AI recommendation, separate customer request card, collapsed
   case details by default, and a footer where the primary dispatch action

@@ -75,7 +75,11 @@ The default `Dispatcher` screen now uses the product workbench layout:
 `Main dispatcher compact queue` plus `Main dispatcher full-height decision
 rail`. The queue rows now use a two-line compact row contract and keep actions
 in the fixed right lane, so inline metadata does not collide with
-approve/wait/reject buttons. The right rail separates
+approve/wait/reject buttons. The current shell reserves `188-204px` for row
+actions and `520-540px` for the decision rail; the two-column queue/rail layout
+only turns on at `min-width: 1600px`, and narrower screens stack the rail
+instead of clipping it. On wide screens, the queue and rail are viewport-locked
+with independent scroll bodies. The right rail separates
 the AI recommendation from the customer request and keeps the sticky footer
 operator-facing: `Контроль · оператор · автоотправка выкл.`.
 It also carries `Decision rail compact stack`: the rail is a dense L1 `bg-card`

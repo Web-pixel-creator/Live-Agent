@@ -160,7 +160,7 @@ source-level guardrails in
 `Main dispatcher compact queue` beside a
 `Main dispatcher full-height decision rail`. The queue is click-to-preview
 only, has no scroll-spy selection, uses the fixed
-`48px minmax(0, 1fr) 192-204px` two-line row grid, and keeps
+`48px minmax(0, 1fr) minmax(188px, 204px)` two-line row grid, and keeps
 `No row action overlap` plus `Two-line compact row` as source-level regression
 markers. The selected-case rail separates the AI recommendation from the
 customer request and ends in the RU-first sticky footer:
@@ -169,7 +169,10 @@ surface: it must not send, book, dispatch, write CRM, bill, or activate a
 channel.
 The same rail carries `Decision rail compact stack`: dense L1 `bg-card` shell,
 accent-only AI recommendation, separate customer request, collapsed details by
-default, and quieter edit/reject footer actions.
+default, quieter edit/reject footer actions, a `520-540px` width reserve, and a
+`min-width: 1600px` wide-layout gate so the rail stacks on narrower operator
+screens. On wide screens it uses a viewport-locked scroll body that does not
+fight the queue scroll.
 
 `view=requests` has the first secondary actionable panel contract. It renders a
 `Dispatcher compact request queue` beside a `Selected request decision rail`.
