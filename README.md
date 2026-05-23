@@ -624,6 +624,8 @@ Priority decision filter:
 - Local Services Action Desk Spec: `docs/local-services-action-desk-spec.md`
 - Local Services Developer Map: `docs/local-services-developer-map.md`
 - Local Services Agent Handoff: `docs/local-services-agent-handoff.md`
+- Current Local Services Agent Handoff:
+  `docs/current-local-services-agent-handoff.md`
 - Local Services Pilot Runbook: `docs/local-services-pilot-runbook.md`
 - Local Services Outreach Execution Pack: `docs/local-services-outreach-execution-pack.md`
 - Product Backlog: `docs/product-backlog.md`
