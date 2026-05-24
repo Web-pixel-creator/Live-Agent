@@ -7220,6 +7220,8 @@ const LocalServicesDispatchDemoPanel = ({
   launchPacketDeepLink,
   recordingMode,
   setupWizardMode,
+  rejectedServiceValue,
+  onClearRejectedService,
   onSelectService,
   onClose,
   onCopyPayload,
@@ -7236,6 +7238,8 @@ const LocalServicesDispatchDemoPanel = ({
   launchPacketDeepLink: boolean;
   recordingMode: boolean;
   setupWizardMode: boolean;
+  rejectedServiceValue: string | null;
+  onClearRejectedService: () => void;
   onSelectService: (id: string) => void;
   onClose: () => void;
   onCopyPayload: (template: LocalServiceDemoTemplate) => void;
@@ -7324,6 +7328,38 @@ const LocalServicesDispatchDemoPanel = ({
   const [pilotFunnelStatusFilter, setPilotFunnelStatusFilter] = useState<LocalServicePilotStatusFilter>("all");
   const [pilotFunnelServiceFilter, setPilotFunnelServiceFilter] = useState("all");
   const [pilotFunnelColumns, setPilotFunnelColumns] = useState(DEFAULT_LOCAL_SERVICE_PILOT_COLUMNS);
+  // dispatcher-flow-connect / Tasks 2.2 + 4.1 + 4.2:
+  // Component-local state that mirrors PromotionProgressState from the design
+  // (Data Models). This is intentionally NOT persisted to the workspace
+  // snapshot, NOT mirrored to the API adapter, and NOT driven by any timer.
+  // It is recomputed from URL query state plus an explicit promotion CTA
+  // activation marker, and force-blocked when the active case content
+  // changes (Manual_Approval invariant, R3.1/R3.2/R3.5).
+  type PromotionStepId = "launch-path" | "launch-packet" | "outreach";
+  type PromotionStepStatus = "idle" | "active" | "completed" | "blocked";
+  type PromotionProgressState = {
+    steps: Record<PromotionStepId, PromotionStepStatus>;
+    lastApprovedCaseRef: string | null;
+  };
+  const initialPromotionProgress: PromotionProgressState = {
+    steps: { "launch-path": "idle", "launch-packet": "idle", outreach: "idle" },
+    lastApprovedCaseRef: null,
+  };
+  const [promotionProgress, setPromotionProgress] = useState<PromotionProgressState>(initialPromotionProgress);
+  // Marks that the operator has activated the promotion CTA at least once in
+  // the current panel session. Required so that `Launch packet readiness
+  // card` can show "active" for the launch-path step before the URL has
+  // switched (R2.6: progress visible after CTA activation).
+  const [promotionCtaActivated, setPromotionCtaActivated] = useState(false);
+  // Surfaced under the promotion CTA / Launch packet readiness card when one
+  // of the four R4.2/R2.7/R2.8/R1.6 error branches fires. Each value carries
+  // a single user-visible message; no retry, no autonomous transition.
+  type PromotionErrorKind = "service" | "navigation" | "timeout" | "stack";
+  const [promotionError, setPromotionError] = useState<{ kind: PromotionErrorKind; message: string } | null>(null);
+  // R1.6: surfaced when the workspace adapter / data fetch fails or times
+  // out. The structural sequence request -> decision -> approval ->
+  // handoff/export is preserved; this only tags the loading/error state.
+  const [pilotWorkspaceLoadFailed, setPilotWorkspaceLoadFailed] = useState(false);
   const localServiceScenarios = useMemo(
     () => mergeLocalServicesScenarioOverrides(DEFAULT_LOCAL_SERVICES_SCENARIOS, pilotWorkspaceState.scenarioOverrides),
     [pilotWorkspaceState.scenarioOverrides],
@@ -9405,19 +9441,30 @@ const LocalServicesDispatchDemoPanel = ({
 
   useEffect(() => {
     let cancelled = false;
+    // R1.6: a single 5000ms guard around the initial snapshot read. If the
+    // adapter does not resolve in time, surface a Local_Stack-unavailable
+    // banner; do NOT retry, do NOT mutate the structural sequence.
+    const guard = setTimeout(() => {
+      if (!cancelled) setPilotWorkspaceLoadFailed(true);
+    }, 5000);
     localServicesWorkspaceAdapter
       .readSnapshot()
       .then((snapshot) => {
         if (cancelled || Object.keys(snapshot).length === 0) return;
         setPilotWorkspaceState(normalizeLocalServicePilotWorkspaceState(snapshot));
       })
+      .catch(() => {
+        if (!cancelled) setPilotWorkspaceLoadFailed(true);
+      })
       .finally(() => {
+        clearTimeout(guard);
         if (!cancelled) {
           setPilotWorkspaceApiHydrated(true);
         }
       });
     return () => {
       cancelled = true;
+      clearTimeout(guard);
     };
   }, [localServicesWorkspaceAdapter]);
 
@@ -9437,6 +9484,221 @@ const LocalServicesDispatchDemoPanel = ({
     setPilotLaunchPacketMode("human");
     setPilotLaunchPacketOpen(true);
   }, [launchPacketDeepLink, selectedTemplate.id]);
+
+  // dispatcher-flow-connect / Task 4.1: stable projected hash of the active
+  // WorkspaceCase fields used by approval. Cheap referential serialization
+  // — JSON.stringify of the small set of fields the existing
+  // updateCaseDecision() write path actually consumes (handoff fields,
+  // payload, customer confirmation). When this hash changes for the same
+  // ref, OR the ref itself changes, we must invalidate the active step
+  // and force the promotion CTA back to its initial visual state (R3.5).
+  const activeCaseRef = selectedTemplate.ref;
+  const activeCaseContentHash = useMemo(
+    () =>
+      JSON.stringify({
+        ref: selectedTemplate.ref,
+        payload: selectedTemplate.payload,
+        handoff: selectedTemplate.detail.handoffFields,
+        customerConfirmation: selectedTemplate.detail.customerConfirmation,
+      }),
+    [
+      selectedTemplate.ref,
+      selectedTemplate.payload,
+      selectedTemplate.detail.handoffFields,
+      selectedTemplate.detail.customerConfirmation,
+    ],
+  );
+  const lastSeenCaseSignatureRef = useRef<string | null>(null);
+
+  // dispatcher-flow-connect / Task 4.1 + Task 2.2: drive PromotionProgressState
+  // from the URL query state plus the explicit promotion CTA activation
+  // marker, and force the active step to "blocked" when the active case
+  // ref or its content hash changes. No timers, no autonomous transitions
+  // — runs once per render tick that observes a relevant change.
+  useEffect(() => {
+    const signature = `${activeCaseRef}::${activeCaseContentHash}`;
+    const previousSignature = lastSeenCaseSignatureRef.current;
+    lastSeenCaseSignatureRef.current = signature;
+    const caseChanged = previousSignature !== null && previousSignature !== signature;
+
+    setPromotionProgress((prev) => {
+      const next: PromotionProgressState = {
+        steps: { ...prev.steps },
+        lastApprovedCaseRef: prev.lastApprovedCaseRef,
+      };
+
+      if (caseChanged) {
+        // R3.5 / R3.1 / R3.2: data of the active case changed — invalidate
+        // any prior approval, force the currently-active step to "blocked",
+        // and reset the promotion CTA back to its initial visual state.
+        const activeStepId = (Object.keys(next.steps) as PromotionStepId[]).find(
+          (id) => next.steps[id] === "active" || next.steps[id] === "completed",
+        );
+        if (activeStepId) {
+          next.steps[activeStepId] = "blocked";
+        }
+        next.lastApprovedCaseRef = null;
+      }
+
+      // Map URL query state -> PromotionProgressState. Only mutate when
+      // the operator has actually activated the promotion CTA at least
+      // once OR is already inside path=7min (deep-linked entry).
+      const insideLaunchPath = launchPathMode;
+      const insideLaunchPacket = launchPathMode && launchPacketDeepLink;
+      const ctaSeen = promotionCtaActivated || insideLaunchPath || insideLaunchPacket;
+
+      if (!ctaSeen && !caseChanged) {
+        return next;
+      }
+
+      if (insideLaunchPacket) {
+        next.steps["launch-path"] = next.steps["launch-path"] === "blocked" ? "blocked" : "completed";
+        next.steps["launch-packet"] = next.steps["launch-packet"] === "blocked" ? "blocked" : "completed";
+        if (next.steps["outreach"] !== "completed" && next.steps["outreach"] !== "blocked") {
+          next.steps["outreach"] = "active";
+        }
+      } else if (insideLaunchPath && activeView === "requests") {
+        next.steps["launch-path"] = next.steps["launch-path"] === "blocked" ? "blocked" : "completed";
+        if (next.steps["launch-packet"] !== "completed" && next.steps["launch-packet"] !== "blocked") {
+          next.steps["launch-packet"] = "active";
+        }
+      } else if (ctaSeen) {
+        if (next.steps["launch-path"] !== "completed" && next.steps["launch-path"] !== "blocked") {
+          next.steps["launch-path"] = "active";
+        }
+      }
+
+      return next;
+    });
+  }, [
+    activeCaseRef,
+    activeCaseContentHash,
+    activeView,
+    launchPathMode,
+    launchPacketDeepLink,
+    promotionCtaActivated,
+  ]);
+
+  // dispatcher-flow-connect / Task 4.2 (R2.7): if the URL ends up in a
+  // path/view/packet combination that is not supported, return the
+  // operator to the promotion CTA (dispatcher view), surface an error,
+  // and PRESERVE the previously recorded step progress.
+  useEffect(() => {
+    if (!launchPathMode && !launchPacketDeepLink) {
+      return;
+    }
+    const supportedViewWithLaunchPath: LocalServiceProductView[] = ["requests", "schedule", "customers", "setup", "reviews"];
+    const launchPathInvalid = launchPathMode && !supportedViewWithLaunchPath.includes(activeView);
+    const launchPacketInvalid = launchPacketDeepLink && !(launchPathMode && activeView === "requests");
+    if (launchPathInvalid || launchPacketInvalid) {
+      setPromotionError({
+        kind: "navigation",
+        message:
+          "Состояние навигации повреждено: вернулись к кнопке запуска. Прогресс шагов сохранён, повторите переход.",
+      });
+      // Drop the operator back on the promotion CTA (dispatcher view).
+      // We do NOT reset PromotionProgressState.steps — the prior progress
+      // is preserved per R2.7.
+      onOpenProductView("dispatcher");
+    }
+  }, [launchPathMode, launchPacketDeepLink, activeView, onOpenProductView]);
+
+  // dispatcher-flow-connect / Task 4.2 (R4.2): the parent uses the raw
+  // `service` query param. If the panel ever sees a service id outside the
+  // supported P0 set, it means the parent's validation effect has not yet
+  // run; surface the error here (the parent also redirects). This is a
+  // single-source error message — no retry, no autonomous transition.
+  useEffect(() => {
+    if (activeServiceId === null) {
+      // The parent will redirect to Default_Demo_Route; nothing to flag.
+      return;
+    }
+    if (!LOCAL_SERVICES_SCENARIO_IDS.includes(activeServiceId as LocalServicesScenarioId)) {
+      setPromotionError({
+        kind: "service",
+        message: `Недопустимое значение service: «${activeServiceId}». Возвращаемся к ${
+          LOCAL_SERVICES_SCENARIO_IDS[0]
+        }.`,
+      });
+    }
+  }, [activeServiceId]);
+
+  // dispatcher-flow-connect / Task 2.2 helper: visible labels and tone for
+  // the three-step pill timeline rendered in `Launch packet readiness card`.
+  const promotionStepRows: Array<{ id: PromotionStepId; label: string; hint: string }> = [
+    { id: "launch-path", label: "Launch_Path_7min", hint: "path=7min&view=requests" },
+    { id: "launch-packet", label: "Launch_Packet", hint: "path=7min&view=requests&packet=launch" },
+    { id: "outreach", label: "Outreach_Execution_Pack", hint: "Open outreach execution pack" },
+  ];
+  const promotionStepStatusLabel = (status: PromotionStepStatus): string => {
+    switch (status) {
+      case "active":
+        return "active";
+      case "completed":
+        return "completed";
+      case "blocked":
+        return "blocked";
+      case "idle":
+      default:
+        return "idle";
+    }
+  };
+
+  // dispatcher-flow-connect / Task 4.2 (R2.8): bounded promise / setTimeout
+  // race used as a guard around navigation calls into Launch_Path_7min,
+  // Launch_Packet, or Outreach_Execution_Pack. This is a guard timeout,
+  // NOT a background autonomous action (R3.3): it only fires if the
+  // navigation does not resolve within 5000 ms, in which case we surface
+  // an error message and leave the operator on the originating screen.
+  const runWithNavigationTimeout = (action: () => void, label: string) => {
+    let timedOut = false;
+    const timer = window.setTimeout(() => {
+      timedOut = true;
+      setPromotionError({
+        kind: "timeout",
+        message: `Переход к ${label} не завершился за 5 секунд. Активируйте кнопку запуска повторно, чтобы попробовать ещё раз.`,
+      });
+      // Force the active step to "blocked" so the readiness card reflects
+      // the failure (still no autonomous re-attempt).
+      setPromotionProgress((prev) => {
+        const next: PromotionProgressState = {
+          steps: { ...prev.steps },
+          lastApprovedCaseRef: prev.lastApprovedCaseRef,
+        };
+        const activeStepId = (Object.keys(next.steps) as PromotionStepId[]).find((id) => next.steps[id] === "active");
+        if (activeStepId) {
+          next.steps[activeStepId] = "blocked";
+        }
+        return next;
+      });
+    }, 5000);
+    try {
+      action();
+    } finally {
+      if (!timedOut) {
+        window.clearTimeout(timer);
+      }
+    }
+  };
+
+  const handlePromotionCtaActivate = () => {
+    setPromotionError(null);
+    // R4.2: clearing the parent-captured rejected literal so the inline
+    // banner auto-dismisses when the operator advances via the promotion
+    // CTA.
+    onClearRejectedService();
+    setPromotionCtaActivated(true);
+    setPromotionProgress((prev) => {
+      if (prev.steps["launch-path"] === "completed" || prev.steps["launch-path"] === "blocked") {
+        return prev;
+      }
+      return {
+        ...prev,
+        steps: { ...prev.steps, "launch-path": "active" },
+      };
+    });
+    runWithNavigationTimeout(() => onOpenProductView("requests"), "Launch_Path_7min");
+  };
 
   const setPilotLaunchPacketOpenFromSheet = (open: boolean) => {
     setPilotLaunchPacketOpen(open);
@@ -9815,6 +10077,19 @@ const LocalServicesDispatchDemoPanel = ({
       decidedAt: new Date().toISOString(),
     };
     void localServicesWorkspaceAdapter.updateCaseDecision(selectedTemplate.ref, operatorDecision);
+    // dispatcher-flow-connect / Task 4.1 (R3.1, R3.2): when the operator
+    // approves dispatch, attach lastApprovedCaseRef to PromotionProgressState
+    // so that a later case-content change can invalidate it (R3.5). When
+    // the decision is "blocked" or "needs_changes", clear it.
+    setPromotionProgress((prev) => {
+      if (decision === "owner_approved") {
+        return { ...prev, lastApprovedCaseRef: selectedTemplate.ref };
+      }
+      if (decision === "blocked" || decision === "needs_changes") {
+        return { ...prev, lastApprovedCaseRef: null };
+      }
+      return prev;
+    });
     setPilotWorkspaceState((prev) => ({
       ...prev,
       dispatchApprovalByService: {
@@ -10441,6 +10716,55 @@ const LocalServicesDispatchDemoPanel = ({
                     Launch packet readiness card: one operator scan for what is ready, what still blocks the first
                     manual contact, and what will be copied into the existing Pilot launch packet.
                   </p>
+                  {/* dispatcher-flow-connect / Task 2.2 (R2.6, R3.5):
+                      Three-step promotion progress for
+                      Launch_Path_7min -> Launch_Packet -> Outreach_Execution_Pack.
+                      Driven by component-local PromotionProgressState; never
+                      written to the workspace snapshot. */}
+                  <div
+                    aria-label="Promotion progress timeline"
+                    className="mt-2 flex flex-wrap items-center gap-2"
+                  >
+                    {promotionStepRows.map((row, index) => {
+                      const status = promotionProgress.steps[row.id];
+                      const tone =
+                        status === "completed"
+                          ? "bg-[hsl(var(--tint-mint)/0.16)] text-[hsl(var(--tint-mint-fg))] ring-[hsl(var(--tint-mint)/0.32)]"
+                          : status === "active"
+                            ? "bg-[hsl(var(--tint-amber)/0.18)] text-[hsl(var(--tint-amber-fg))] ring-[hsl(var(--tint-amber)/0.36)]"
+                            : status === "blocked"
+                              ? "bg-[hsl(var(--tint-rose)/0.18)] text-[hsl(var(--tint-rose-fg))] ring-[hsl(var(--tint-rose)/0.36)]"
+                              : "bg-secondary/55 text-muted-foreground ring-border/45";
+                      return (
+                        <span
+                          key={row.id}
+                          className={`inline-flex items-center gap-1.5 rounded-[5px] px-2 py-1 font-mono text-[10px] ring-1 ring-inset ${tone}`}
+                        >
+                          <span className="font-semibold">
+                            {String(index + 1).padStart(2, "0")} · {row.label}
+                          </span>
+                          <span className="opacity-80">· {promotionStepStatusLabel(status)}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                  {promotionError ? (
+                    <p
+                      role="alert"
+                      className="mt-2 rounded-[5px] bg-[hsl(var(--tint-rose)/0.12)] px-2 py-1 font-mono text-[10.5px] text-[hsl(var(--tint-rose-fg))] ring-1 ring-inset ring-[hsl(var(--tint-rose)/0.32)]"
+                    >
+                      {promotionError.message}
+                    </p>
+                  ) : null}
+                  {pilotWorkspaceLoadFailed ? (
+                    <p
+                      role="status"
+                      className="mt-2 rounded-[5px] bg-[hsl(var(--tint-amber)/0.14)] px-2 py-1 font-mono text-[10.5px] text-[hsl(var(--tint-amber-fg))] ring-1 ring-inset ring-[hsl(var(--tint-amber)/0.32)]"
+                    >
+                      Local_Stack недоступен или не отвечает: используется browser-local fallback.
+                      Структурная последовательность request → decision → approval → handoff/export сохранена.
+                    </p>
+                  ) : null}
                   <div className="mt-2 flex flex-wrap gap-2">
                     <span
                       className={`inline-flex rounded-[5px] px-2 py-1 font-mono text-[10px] ring-1 ring-inset ${
@@ -10537,6 +10861,62 @@ const LocalServicesDispatchDemoPanel = ({
             aria-label="Main dispatcher workbench"
             className="rounded-md border border-border/65 bg-card/65 p-4"
           >
+            {/* dispatcher-flow-connect / R4.2: parent-captured rejected `service` literal.
+                Rendered as a transient inline rose banner ABOVE the mint promotion CTA
+                banner so the operator can see what value they typed even though the
+                URL has already been rewritten back to Default_Demo_Route. Auto-clears
+                via promotion CTA activation (handlePromotionCtaActivate) or via the
+                X dismiss button. No modal, drawer, popover, toast, or autonomous
+                timer is introduced. */}
+            {rejectedServiceValue ? (
+              <div
+                role="alert"
+                className="mb-3 flex items-start gap-2 rounded-md border border-[hsl(var(--tint-rose)/0.32)] bg-[hsl(var(--tint-rose)/0.12)] px-3 py-2 ring-1 ring-inset ring-[hsl(var(--tint-rose)/0.24)]"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--tint-rose-fg))]">
+                    Недопустимое значение service
+                  </div>
+                  <p className="mt-1 break-all font-mono text-[11.5px] leading-relaxed text-[hsl(var(--tint-rose-fg))]">
+                    Значение «{rejectedServiceValue.length > 64
+                      ? rejectedServiceValue.slice(0, 64)
+                      : rejectedServiceValue}» отклонено: оно не входит в набор P0-вертикалей.
+                    Система переключилась обратно на ac-repair-dispatch без сохранения отклонённого значения.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Закрыть сообщение об отклонённом значении service"
+                  onClick={onClearRejectedService}
+                  className="shrink-0 rounded-[5px] px-1.5 py-0.5 font-mono text-[11px] text-[hsl(var(--tint-rose-fg))] ring-1 ring-inset ring-[hsl(var(--tint-rose)/0.32)] hover:bg-[hsl(var(--tint-rose)/0.18)]"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : null}
+            {/* Единственная видимая точка перехода Dispatcher → Launch_Path_7min → Launch_Packet → Outreach_Execution_Pack (см. dispatcher-flow-connect / R2.1). */}
+            <div className="mb-4 flex flex-col gap-3 rounded-md border border-[hsl(var(--tint-mint)/0.34)] bg-[hsl(var(--tint-mint)/0.08)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--tint-mint-fg))]">
+                  <Clock className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  Request → Decision → Approval → Handoff
+                </div>
+                <p className="mt-1 max-w-2xl text-[12px] leading-relaxed text-foreground">
+                  Откройте путь запуска за 7 минут — Launch packet и Outreach execution pack идут следом.
+                  Каждый шаг остаётся ручным и подтверждается оператором.
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="lg"
+                aria-label="Promotion_CTA"
+                onClick={handlePromotionCtaActivate}
+                className="h-12 shrink-0 gap-2 px-8 text-[13.5px] font-semibold"
+              >
+                <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
+                Открыть путь 7-минутного запуска
+              </Button>
+            </div>
             <div className="grid gap-3 min-[1600px]:grid-cols-[minmax(600px,1fr)_minmax(520px,540px)]">
               <section
                 aria-label="Main dispatcher compact queue"
@@ -13178,14 +13558,6 @@ const LocalServicesDispatchDemoPanel = ({
                     <MessageSquareText className="mr-1.5 h-3.5 w-3.5" strokeWidth={1.8} />
                     Open communication preview
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
-                    className="h-7"
-                  >
-                    Open outreach execution pack
-                  </Button>
                   <span className="inline-flex rounded-[5px] bg-secondary/45 px-2 py-1 font-mono text-[10px] text-muted-foreground">
                     local_services_pilot_ops_today
                   </span>
@@ -14496,14 +14868,6 @@ const LocalServicesDispatchDemoPanel = ({
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
-                className="h-7"
-              >
-                Open outreach execution pack
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
                 onClick={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
                 className="h-7"
               >
@@ -14572,14 +14936,6 @@ const LocalServicesDispatchDemoPanel = ({
                   className="h-7"
                 >
                   Open outreach list
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
-                  className="h-7"
-                >
-                  Open outreach execution pack
                 </Button>
                 <Button
                   size="sm"
@@ -14836,14 +15192,6 @@ const LocalServicesDispatchDemoPanel = ({
                       className="h-7"
                     >
                       Open outreach list
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
-                      className="h-7"
-                    >
-                      Open outreach execution pack
                     </Button>
                     <Button
                       size="sm"
@@ -15256,14 +15604,6 @@ const LocalServicesDispatchDemoPanel = ({
                           className="h-7"
                         >
                           Open outreach list
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
-                          className="h-7"
-                        >
-                          Open outreach execution pack
                         </Button>
                         <Button
                           size="sm"
@@ -16950,6 +17290,9 @@ const LocalServicePilotWorkspaceExportDrawer = ({
           <SheetDescription className="text-[12.5px] text-muted-foreground/85 leading-relaxed">
             {exportView.description}
           </SheetDescription>
+          <p className="text-[11.5px] text-muted-foreground/75 leading-relaxed">
+            Внешнее исполнение остаётся ручным: ничего не уходит без подтверждения оператора.
+          </p>
         </SheetHeader>
 
         {exportView.launchPacket ? (
@@ -19034,6 +19377,14 @@ export const LiveDesk = () => {
   const [localServiceDispatchDrawerOpen, setLocalServiceDispatchDrawerOpen] = useState(false);
   const [localServiceDispatchMode, setLocalServiceDispatchMode] = useState<PlaybookExportMode>("human");
   const [localServiceExportKind, setLocalServiceExportKind] = useState<LocalServiceExportKind>("dispatch");
+  // dispatcher-flow-connect / R4.2: parent-level capture of the most recent
+  // rejected `service` query value. The redirect-on-invalid effect below
+  // writes the rejected literal here BEFORE calling setSearchParams, so the
+  // panel can render a transient inline banner even though the URL is
+  // immediately rewritten to Default_Demo_Route. Without this capture the
+  // panel only ever sees the valid value and the error never reaches the
+  // operator. The literal is truncated at 64 chars (the R4.2 length bound).
+  const [rejectedServiceValue, setRejectedServiceValue] = useState<string | null>(null);
   // Marker for the most recently created case — drives a brief fresh-glow on
   // its row so the operator can spot the new entry in the dense list.
   // Cleared shortly after to keep the animation a one-shot affair.
@@ -19077,6 +19428,44 @@ export const LiveDesk = () => {
       LOCAL_SERVICE_DEMO_TEMPLATES[0],
     [activeLocalServiceId],
   );
+  // dispatcher-flow-connect / Task 4.2 (R4.2): strict, case-sensitive,
+  // length-bounded validation of the `service` query param. If the value
+  // is missing, empty, longer than 64 chars, or not in the supported P0
+  // set, redirect to Default_Demo_Route (service=ac-repair-dispatch)
+  // WITHOUT persisting the rejected value. The user-visible error is
+  // surfaced inside the panel via PromotionProgressState's promotionError;
+  // here we just reject and reset the URL.
+  //
+  // R4.2 hardening: the parent's redirect wins the race against the panel's
+  // own validation effect (the panel only ever sees the valid value once
+  // the URL has been rewritten). To preserve the user-visible error, we
+  // capture the rejected literal into `rejectedServiceValue` BEFORE the
+  // setSearchParams call. The panel reads it via prop and renders a
+  // transient inline banner. Truncate at 64 chars to keep the banner
+  // bounded even if the operator pasted a long string.
+  useEffect(() => {
+    if (!localServicesDispatchDemo) return;
+    const raw = activeLocalServiceId;
+    const rejected =
+      raw === null ||
+      raw.length === 0 ||
+      raw.length > 64 ||
+      !LOCAL_SERVICES_SCENARIO_IDS.includes(raw as LocalServicesScenarioId);
+    if (!rejected) return;
+    // Capture the rejected literal for the panel's inline banner. `null`
+    // when the param is absent (no literal to show) — in that case the
+    // panel simply does not render the banner.
+    if (raw !== null && raw.length > 0) {
+      const truncated = raw.length > 64 ? raw.slice(0, 64) : raw;
+      setRejectedServiceValue((prev) => (prev === truncated ? prev : truncated));
+    }
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("demo", "local-services-dispatch");
+      next.set("service", "ac-repair-dispatch");
+      return next;
+    }, { replace: true });
+  }, [localServicesDispatchDemo, activeLocalServiceId, setSearchParams]);
   const nonHealthyNodeIds = useMemo(
     () => new Set(deviceNodes.filter((n) => n.status !== "healthy").map((n) => n.id)),
     [deviceNodes],
@@ -20420,6 +20809,8 @@ export const LiveDesk = () => {
           launchPacketDeepLink={localServicesLaunchPacketDeepLink}
           recordingMode={localServicesRecordingMode}
           setupWizardMode={localServicesSetupWizardMode}
+          rejectedServiceValue={rejectedServiceValue}
+          onClearRejectedService={() => setRejectedServiceValue(null)}
           onSelectService={(id) =>
             setSearchParams((prev) => {
               const next = new URLSearchParams(prev);

@@ -583,6 +583,8 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Sticky operator action footer/);
   assert.match(liveDesk, /Explicit open action: Open dispatch drawer/);
   assert.match(liveDesk, /no autonomous dispatch/);
+  assert.match(liveDesk, /Promotion_CTA/);
+  assert.equal((liveDesk.match(/Promotion_CTA/g) ?? []).length, 1);
   assert.match(readme, /Selected request\s+decision rail` now has a bounded viewport/);
   assert.match(readme, /Request rail compact stack/);
   assert.match(readme, /Decision rail compact stack/);
@@ -4723,4 +4725,19 @@ test("simulation lab prefers runtime governance metadata for the live policy sna
   assert.match(readme, /`\/v1\/governance\/compliance-template`/i);
   assert.match(readme, /`POST \/v1\/governance\/policy`/i);
   assert.match(operatorGuide, /Simulation Lab policy note:/);
+});
+
+test("LiveDesk source defines Promotion_CTA exactly once outside comments", () => {
+  const liveDesk = readAppShellSource("components/workspace/LiveDesk.tsx");
+  const withoutBlockComments = liveDesk.replace(/\/\*[\s\S]*?\*\//g, "");
+  const withoutLineComments = withoutBlockComments
+    .split("\n")
+    .filter((line) => !line.trim().startsWith("//"))
+    .join("\n");
+  const occurrences = (withoutLineComments.match(/Promotion_CTA/g) ?? []).length;
+  assert.equal(
+    occurrences,
+    1,
+    `Expected exactly one Promotion_CTA marker outside comments in LiveDesk.tsx, found ${occurrences}.`,
+  );
 });
