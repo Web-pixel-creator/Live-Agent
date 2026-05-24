@@ -1,9 +1,76 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { execSync, spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
+
+// Local test-file helper introduced by task 3.1 of the bugfix spec
+// `release-evidence-report-windows-shortpath` (see
+// `.kiro/specs/release-evidence-report-windows-shortpath/design.md` Property 1
+// and Property 2). NOT exported - scoped to this test file only.
+//
+// Why this helper exists: on the GitHub Actions `windows-2025` runner image,
+// `os.tmpdir()` and `scripts/release-evidence-report.ps1` agree on the
+// physical temp directory but disagree on its spelling (Windows 8.3 short-name
+// form `RUNNER~1` vs long form `runneradmin`). Textual `assert.equal` rejects
+// the two strings as unequal even though the filesystem treats them as the
+// same file. `assertSamePath` canonicalizes both sides before comparing so
+// same-file pairs that differ only in 8.3 short-name vs long-name spelling
+// compare equal, while genuinely different paths still fail.
+//
+// Platform note: task 1's exploration PBT surfaced (Node v24.4.0 / Windows 10
+// counterexample) that `fs.realpathSync(shortForm)` returns the input
+// unchanged on Node 24+; only `fs.realpathSync.native(shortForm)` collapses
+// 8.3 spellings on Windows. So on Windows we use `realpathSync.native`. On
+// non-Windows platforms we use plain `realpathSync` because it is a no-op for
+// symlink-free paths and 8.3 aliasing does not exist on POSIX.
+//
+// Error shape: when both canonicalizations succeed, the helper delegates to
+// `assert.equal`, so the resulting `AssertionError` keeps the standard Node
+// assertion shape (`code = "ERR_ASSERTION"`). When canonicalization itself
+// throws (e.g. `ENOENT` for a missing path), the helper wraps the underlying
+// error in a readable message that includes the label, the side that failed,
+// the offending path, and the underlying error code, and tags the wrapper
+// with `code = "ERR_ASSERTION"` so callers (including the preservation PBT)
+// see a uniform `ERR_ASSERTION` shape across same-file, distinct-file, and
+// missing-file cases.
+function assertSamePath(actual: string, expected: string, label?: string): void {
+  const realpath = process.platform === "win32" ? realpathSync.native : realpathSync;
+  const labelPart = label ? `[${label}] ` : "";
+
+  let canonicalActual: string;
+  try {
+    canonicalActual = realpath(actual);
+  } catch (error) {
+    const err = error as NodeJS.ErrnoException;
+    const codePart = err.code ? ` (${err.code})` : "";
+    const wrapped = new Error(
+      `${labelPart}assertSamePath: failed to canonicalize actual path "${actual}"${codePart}: ${err.message}`,
+    ) as Error & { code?: string };
+    wrapped.code = "ERR_ASSERTION";
+    throw wrapped;
+  }
+
+  let canonicalExpected: string;
+  try {
+    canonicalExpected = realpath(expected);
+  } catch (error) {
+    const err = error as NodeJS.ErrnoException;
+    const codePart = err.code ? ` (${err.code})` : "";
+    const wrapped = new Error(
+      `${labelPart}assertSamePath: failed to canonicalize expected path "${expected}"${codePart}: ${err.message}`,
+    ) as Error & { code?: string };
+    wrapped.code = "ERR_ASSERTION";
+    throw wrapped;
+  }
+
+  assert.equal(
+    canonicalActual,
+    canonicalExpected,
+    `${labelPart}assertSamePath: canonical paths differ; actual=${canonicalActual}, expected=${canonicalExpected}`,
+  );
+}
 
 const releaseEvidenceReportScriptPath = resolve(process.cwd(), "scripts", "release-evidence-report.ps1");
 
@@ -742,7 +809,11 @@ test(
     assert.equal(report.consultationBookingProof.calendarConnector?.connectorProofObserved, true);
     assert.equal(report.consultationBookingProof.calendarConnector?.writebackObserved, false);
     assert.equal(report.consultationBookingProof.calendarConnector?.approvedBookingArtifactObserved, true);
-    assert.equal(report.consultationBookingProof.calendarConnector?.approvedBookingArtifactPath, approvedBookingArtifactPath);
+    assertSamePath(
+      report.consultationBookingProof.calendarConnector?.approvedBookingArtifactPath ?? "",
+      approvedBookingArtifactPath,
+      "report.consultationBookingProof.calendarConnector.approvedBookingArtifactPath",
+    );
     assert.equal(report.consultationBookingProof.nextGaps?.length ?? 0, 0);
     assert.equal(report.actionDeskWorkflowKpi.product, "AI Action Desk for immigration teams");
     assert.equal(report.actionDeskWorkflowKpi.status, "pilot_ready");
@@ -1194,7 +1265,11 @@ test(
     assert.equal(consultationBookingProof.calendarConnector?.connectorProofObserved, true);
     assert.equal(consultationBookingProof.calendarConnector?.writebackObserved, false);
     assert.equal(consultationBookingProof.calendarConnector?.approvedBookingArtifactObserved, true);
-    assert.equal(consultationBookingProof.calendarConnector?.approvedBookingArtifactPath, approvedBookingArtifactPath);
+    assertSamePath(
+      consultationBookingProof.calendarConnector?.approvedBookingArtifactPath ?? "",
+      approvedBookingArtifactPath,
+      "consultationBookingProof.calendarConnector.approvedBookingArtifactPath",
+    );
     assert.equal(consultationBookingProof.nextGaps?.length ?? 0, 0);
 
     const reportMarkdown = readFileSync(outputMarkdownPath, "utf8");
@@ -1453,7 +1528,11 @@ test(
         summary?: string | null;
       };
     };
-    assert.equal(report.source.runtimeSurfaceSnapshotPath, runtimeSurfaceSnapshotPath);
+    assertSamePath(
+      report.source.runtimeSurfaceSnapshotPath ?? "",
+      runtimeSurfaceSnapshotPath,
+      "report.source.runtimeSurfaceSnapshotPath",
+    );
     assert.equal(report.source.runtimeSurfaceSnapshotPresent, true);
     assert.equal(report.source.runtimeSurfaceSnapshotParsed, true);
     assert.equal(report.statuses.caseWikiRuntimeSurfaceIngressStatus, "pass");
@@ -1489,7 +1568,11 @@ test(
         summary?: string | null;
       };
     };
-    assert.equal(manifest.source.runtimeSurfaceSnapshotPath, runtimeSurfaceSnapshotPath);
+    assertSamePath(
+      manifest.source.runtimeSurfaceSnapshotPath ?? "",
+      runtimeSurfaceSnapshotPath,
+      "manifest.source.runtimeSurfaceSnapshotPath",
+    );
     assert.equal(manifest.criticalEvidenceStatuses.caseWikiRuntimeSurfaceIngressStatus, "pass");
     assert.equal(manifest.caseWikiRuntimeSurfaceIngress.status, "pass");
     assert.equal(manifest.caseWikiRuntimeSurfaceIngress.observed, true);
@@ -1515,7 +1598,11 @@ test(
         };
       };
     };
-    assert.equal(runtimeProof.source.runtimeSurfaceSnapshotPath, runtimeSurfaceSnapshotPath);
+    assertSamePath(
+      runtimeProof.source.runtimeSurfaceSnapshotPath ?? "",
+      runtimeSurfaceSnapshotPath,
+      "runtimeProof.source.runtimeSurfaceSnapshotPath",
+    );
     assert.equal(runtimeProof.lanes.caseWiki?.runtimeSurfaceIngressStatus, "pass");
     assert.equal(runtimeProof.lanes.caseWiki?.runtimeSurfaceContextSource, "case_wiki");
     assert.equal(runtimeProof.lanes.caseWiki?.runtimeSurfaceIngressSource, "gateway_hydrated_case_wiki");
@@ -2010,5 +2097,320 @@ test(
     assert.match(manifestMarkdown, /\| source \| hosted_direct_live_proof \|/);
     assert.match(manifestMarkdown, /\| signatureStatus \| signed \|/);
     assert.match(manifestMarkdown, /\| summary \| .*signing=signed \|/);
+  },
+);
+
+test(
+  "release evidence report path-equality assertion strategy survives Windows 8.3 short-path mismatch (exploratory PBT)",
+  () => {
+    // Bug condition exploration test (Property 1 from design.md).
+    //
+    // GOAL: Surface counterexamples that demonstrate the textual `assert.equal`
+    // strategy rejects same-file paths whose only difference is Windows 8.3
+    // short-name vs long-name spelling. The NEW strategy (canonicalize both
+    // sides via fs.realpathSync, then compare) accepts them as equal.
+    //
+    // EXPECTED OUTCOME on Windows: at least one generated sample produces a
+    //   distinct 8.3 short form, the OLD strategy's `assert.equal` throws
+    //   AssertionError on that sample, and the NEW strategy (the
+    //   `assertSamePath` helper) does NOT throw.
+    //
+    // EXPECTED OUTCOME on Linux: the body short-circuits (8.3 short-path
+    //   aliasing does not exist on POSIX) and the test reports as passed.
+    //
+    // The NEW-strategy demonstration phase below calls `assertSamePath`
+    // directly (introduced by task 3.1) so this PBT exercises the exact helper
+    // used at the production-equivalent test call sites. The precondition
+    // canonicalization uses `fs.realpathSync.native` on Windows because, on
+    // Node 24+ Windows, plain `fs.realpathSync` does NOT collapse 8.3 short
+    // forms (it returns the input unchanged); only the native variant does.
+    // This mirrors `assertSamePath`'s platform pick.
+    if (process.platform !== "win32") {
+      return;
+    }
+
+    // Hand-rolled generator: produce N distinct temp-directory basenames.
+    // Avoids adding `fast-check` as a dev dependency. Each sample is
+    // exercised end-to-end (create real dir, compute 8.3 short form, compare).
+    const sampleCount = 8;
+    const basenames: string[] = [];
+    for (let index = 0; index < sampleCount; index += 1) {
+      const suffix = `${Date.now().toString(36)}-${index}-${Math.random().toString(36).slice(2, 8)}`;
+      // mkdtempSync appends 6 random chars to the prefix we pass; the prefix
+      // we hand it is the basename + a trailing dash, which keeps the
+      // generated directory readable and unique per sample.
+      basenames.push(`shortpath-pbt-${suffix}-`);
+    }
+
+    const counterexamples: Array<{
+      basename: string;
+      shortForm: string;
+      longForm: string;
+      canonicalShort: string;
+      canonicalLong: string;
+      oldStrategyError: string;
+    }> = [];
+
+    let aliasingObservedAtLeastOnce = false;
+    const createdDirs: string[] = [];
+
+    try {
+      for (const basename of basenames) {
+        const longForm = mkdtempSync(join(tmpdir(), basename));
+        createdDirs.push(longForm);
+
+        // Use cmd's `for` token expansion (%~sA = short-path form) to ask
+        // Windows itself for the 8.3 alias. The long path is double-quoted
+        // inside the cmd argument so spaces / special chars are tolerated.
+        const escapedLongForm = longForm.replace(/"/g, '""');
+        const shortForm = execSync(
+          `cmd /c for %A in ("${escapedLongForm}") do @echo %~sA`,
+          { encoding: "utf8" },
+        ).trim();
+
+        if (shortForm === longForm) {
+          // The filesystem did not produce a distinct 8.3 alias for this
+          // sample. The bug condition cannot be exercised here. Warn once
+          // (per test invocation) and move on - other samples may still
+          // surface the alias.
+          if (!aliasingObservedAtLeastOnce) {
+            console.warn(
+              `[shortpath-pbt] sample ${basename} did not yield a distinct 8.3 short form ` +
+                `(short === long: ${longForm}); 8DOT3 may be disabled on this volume`,
+            );
+          }
+          continue;
+        }
+
+        // Precondition: the two textual forms differ.
+        assert.notEqual(shortForm, longForm, "expected 8.3 short form to differ from long form");
+
+        // Both forms must canonicalize to the same physical entry.
+        // We use `realpathSync.native` here (parallel to `assertSamePath`'s
+        // platform pick) because on Node 24+ Windows, plain `realpathSync`
+        // does NOT collapse 8.3 short forms - it returns the input unchanged.
+        // This block is already inside the `process.platform === "win32"`
+        // short-circuit at the top of the test body, so no new platform
+        // branching is introduced.
+        const canonicalShort = realpathSync.native(shortForm);
+        const canonicalLong = realpathSync.native(longForm);
+        assert.equal(
+          canonicalShort,
+          canonicalLong,
+          `expected fs.realpathSync.native(short) === fs.realpathSync.native(long) for ${basename}`,
+        );
+
+        // Demonstrate the OLD strategy fails: textual assert.equal rejects
+        // same-file paths that differ only in 8.3 spelling.
+        let oldStrategyError: Error | null = null;
+        try {
+          assert.equal(shortForm, longForm);
+        } catch (error) {
+          oldStrategyError = error as Error;
+        }
+        assert.ok(
+          oldStrategyError !== null,
+          `OLD strategy (assert.equal) unexpectedly accepted distinct-spelling same-file paths for ${basename}`,
+        );
+        assert.equal(
+          (oldStrategyError as Error & { code?: string }).code,
+          "ERR_ASSERTION",
+          `OLD strategy threw unexpected error type for ${basename}: ${(oldStrategyError as Error).message}`,
+        );
+
+        // Demonstrate the NEW strategy passes by calling `assertSamePath`
+        // directly. This is the helper task 3.1 introduced, and it is the
+        // exact operation the two affected production-equivalent tests now
+        // use (task 3.2). Calling the helper here makes the PBT a stricter,
+        // more durable proof of Property 1: the helper used at the call
+        // sites does not throw for same-file pairs that differ only in
+        // 8.3 short-name vs long-name spelling.
+        let newStrategyError: Error | null = null;
+        try {
+          assertSamePath(shortForm, longForm, "shortpath-pbt-new-strategy");
+        } catch (error) {
+          newStrategyError = error as Error;
+        }
+        assert.equal(
+          newStrategyError,
+          null,
+          `NEW strategy (assertSamePath) unexpectedly rejected same-file paths for ${basename}: ` +
+            `${newStrategyError?.message ?? ""}`,
+        );
+
+        aliasingObservedAtLeastOnce = true;
+        counterexamples.push({
+          basename,
+          shortForm,
+          longForm,
+          canonicalShort,
+          canonicalLong,
+          oldStrategyError: (oldStrategyError as Error).message,
+        });
+      }
+    } finally {
+      for (const dir of createdDirs) {
+        try {
+          rmSync(dir, { recursive: true, force: true });
+        } catch {
+          // best-effort cleanup; do not mask test outcome
+        }
+      }
+    }
+
+    if (!aliasingObservedAtLeastOnce) {
+      console.warn(
+        `[shortpath-pbt] no sample out of ${sampleCount} produced a distinct 8.3 short form on this Windows host; ` +
+          "the bug condition could not be exercised (8DOT3 likely disabled). The test is reporting as passed without " +
+          "having validated the property. Re-run on a host with 8DOT3 enabled (default on the GitHub Actions windows-2025 image).",
+      );
+      return;
+    }
+
+    // Surface the counterexamples found so the bugfix workflow can document
+    // the precise inputs that demonstrate the bug.
+    console.warn(
+      `[shortpath-pbt] surfaced ${counterexamples.length} counterexample(s) where ` +
+        "OLD strategy (textual assert.equal) rejected same-file paths but NEW strategy (canonicalize+compare) accepted them",
+    );
+    for (const sample of counterexamples) {
+      console.warn(
+        `[shortpath-pbt] counterexample: short=${sample.shortForm} long=${sample.longForm} ` +
+          `canonical=${sample.canonicalShort}`,
+      );
+    }
+  },
+);
+
+test(
+  "release evidence report path-equality preservation property (preservation PBT)",
+  () => {
+    // Property 2 from design.md: Preservation - Different-File Path Comparison
+    // Still Fails; Linux And Non-Path Behavior Unchanged.
+    //
+    // GOAL: Capture, as property assertions over a hand-rolled input domain,
+    // the observed Linux-UNFIXED behavior of path-equality assertions for
+    // non-bug inputs. Specifically:
+    //   - same-file pair (p, p):     assertSamePath does NOT throw
+    //   - distinct-file pair (p1,p2): assertSamePath throws AssertionError
+    //   - missing-file pair (m, p):   assertSamePath throws with a readable
+    //                                 error whose message contains the label
+    //
+    // GATE: This block intentionally references `assertSamePath`, the helper
+    // introduced by task 3.1. JavaScript's `typeof` operator is the single
+    // operator that does NOT throw on an undeclared identifier; it returns
+    // the string "undefined" instead. So the gate evaluates to `false`
+    // before task 3.1 lands (and the block short-circuits cleanly), and
+    // flips to `true` once the helper is in scope (and the property
+    // assertions run). This satisfies the bugfix workflow's "preservation
+    // tests authored before the fix" invariant while keeping the unit suite
+    // green between task 2 and task 3.1.
+    //
+    // tsx (esbuild) strips types without type-checking, so the TS reference
+    // to `assertSamePath` does not block the run before task 3.1.
+    // @ts-ignore - assertSamePath is introduced by task 3.1; the gate below
+    // is the deliberate short-circuit until then.
+    const HAS_ASSERT_SAME_PATH = typeof assertSamePath === "function";
+    if (!HAS_ASSERT_SAME_PATH) {
+      console.warn(
+        "[preservation-pbt] assertSamePath not yet introduced (task 3.1); " +
+          "preservation block short-circuits and will activate after the helper lands",
+      );
+      return;
+    }
+
+    // Hand-rolled generator: produce N=8 pairs of distinct real files inside
+    // a fresh temp dir. Avoids adding `fast-check` as a dev dependency.
+    const sampleCount = 8;
+    const tempDir = mkdtempSync(join(tmpdir(), "preservation-pbt-"));
+    const pairs: Array<{ p1: string; p2: string }> = [];
+    try {
+      for (let index = 0; index < sampleCount; index += 1) {
+        const p1 = join(tempDir, `pair-${index}-a.txt`);
+        const p2 = join(tempDir, `pair-${index}-b.txt`);
+        writeFileSync(p1, `preservation-pbt-content-a-${index}`);
+        writeFileSync(p2, `preservation-pbt-content-b-${index}`);
+        pairs.push({ p1, p2 });
+      }
+
+      // Same-file case: assertSamePath(p, p) does NOT throw, for both sides
+      // of every generated pair.
+      for (const { p1, p2 } of pairs) {
+        for (const same of [p1, p2]) {
+          let sameError: Error | null = null;
+          try {
+            // @ts-ignore - assertSamePath is introduced by task 3.1
+            assertSamePath(same, same, "preservation-same");
+          } catch (error) {
+            sameError = error as Error;
+          }
+          assert.equal(
+            sameError,
+            null,
+            `assertSamePath(p, p) unexpectedly threw for ${same}: ${sameError?.message ?? ""}`,
+          );
+        }
+      }
+
+      // Distinct-file case: for each pair (p1, p2) where p1 !== p2 after
+      // fs.realpathSync, assertSamePath throws AssertionError.
+      for (const { p1, p2 } of pairs) {
+        // Sanity check on the generator: the two sides must canonicalize to
+        // different entries, otherwise the property is vacuous for this
+        // sample.
+        assert.notEqual(
+          realpathSync(p1),
+          realpathSync(p2),
+          `expected distinct canonical paths for generator pair (${p1}, ${p2})`,
+        );
+
+        let distinctError: Error | null = null;
+        try {
+          // @ts-ignore - assertSamePath is introduced by task 3.1
+          assertSamePath(p1, p2, "preservation-distinct");
+        } catch (error) {
+          distinctError = error as Error;
+        }
+        assert.ok(
+          distinctError !== null,
+          `assertSamePath unexpectedly accepted distinct-file pair (${p1}, ${p2})`,
+        );
+        assert.equal(
+          (distinctError as Error & { code?: string }).code,
+          "ERR_ASSERTION",
+          `assertSamePath threw unexpected error type for distinct-file pair: ` +
+            `${(distinctError as Error).message}`,
+        );
+      }
+
+      // Missing-file case: a generated (missing, present) pair where the
+      // first path does not exist on disk. assertSamePath must throw with a
+      // readable error whose message includes the label "preservation-missing".
+      const missingPath = join(tempDir, "definitely-missing-preservation-pbt.txt");
+      const presentPath = pairs[0].p1;
+      let missingError: Error | null = null;
+      try {
+        // @ts-ignore - assertSamePath is introduced by task 3.1
+        assertSamePath(missingPath, presentPath, "preservation-missing");
+      } catch (error) {
+        missingError = error as Error;
+      }
+      assert.ok(
+        missingError !== null,
+        "assertSamePath unexpectedly accepted a missing-file pair",
+      );
+      assert.match(
+        (missingError as Error).message,
+        /preservation-missing/,
+        `assertSamePath did not surface label "preservation-missing" in error message: ` +
+          `${(missingError as Error).message}`,
+      );
+    } finally {
+      try {
+        rmSync(tempDir, { recursive: true, force: true });
+      } catch {
+        // best-effort cleanup; do not mask test outcome
+      }
+    }
   },
 );
