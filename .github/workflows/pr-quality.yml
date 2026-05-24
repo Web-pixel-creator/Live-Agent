@@ -16,6 +16,15 @@ jobs:
       UI_NAVIGATOR_EXECUTOR_URL: http://localhost:8090
       UI_EXECUTOR_STRICT_PLAYWRIGHT: "false"
       UI_EXECUTOR_SIMULATE_IF_UNAVAILABLE: "true"
+      # Wire promptfoo eval keys symmetrically to release-strict-final.yml and
+      # railway-deploy-api.yml so the red-team gate inside `verify:pr` can
+      # generate a real artifact instead of failing on a missing
+      # artifacts/evals/latest-run.json. A pre-staged fallback summary at
+      # configs/evals/promptfoo/red-team-fallback-summary.json keeps the lane
+      # deterministic for branches that do not have access to the secret
+      # (e.g. fork PRs); see scripts/pr-quality.ps1.
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
     steps:
       - name: Checkout
