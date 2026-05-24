@@ -627,6 +627,12 @@ function simulateExecution(
   note: string,
   deviceNode: DeviceNodeDescriptor | null,
   sandbox: UiExecutorSandboxEvaluation,
+  sessionLocals: {
+    requestedSessionKey: string | null;
+    persistenceRequested: boolean;
+    persistenceEnabled: boolean;
+    persistAfterRun: boolean;
+  },
 ): ExecuteResponse {
   const screenshotSeed = request.context?.screenshotRef || `ui://executor/${Date.now()}`;
   const trace: TraceStep[] = request.actions.map((action, idx) => ({
@@ -638,9 +644,24 @@ function simulateExecution(
     screenshotRef: `${screenshotSeed}/sim-step-${idx + 1}.png`,
     notes: "Simulated execution step.",
   }));
+  const finalStatus = "completed" as ExecuteResponse["finalStatus"];
+  const { requestedSessionKey, persistenceRequested, persistenceEnabled, persistAfterRun } = sessionLocals;
+  // Mirror the real-Playwright session shape (lines ~1373-1389) so the
+  // browser-job session record reaches a deterministic terminal state in
+  // simulation. The simulation lane never holds a real persistent session;
+  // the explicit `notes` marker plus the simulation-mode adapterNotes let
+  // downstream consumers (inferExecutionMode, judge artifacts) detect that
+  // distinction without schema drift.
+  const sessionStatus: BrowserJobSessionRecord["status"] = !persistenceEnabled
+    ? "ephemeral"
+    : !persistAfterRun || finalStatus === "failed"
+      ? finalStatus === "failed"
+        ? "closed"
+        : "released"
+      : "ready";
   return {
     trace,
-    finalStatus: "completed",
+    finalStatus,
     retries: 0,
     executor: "ui-executor-service",
     adapterMode: "remote_http",
@@ -653,7 +674,17 @@ function simulateExecution(
     deviceNode,
     sandbox: sandboxResponse(sandbox),
     grounding: groundingResponse(request),
-    verification: buildExecutionVerificationSummary(request.actions, trace, "completed"),
+    verification: buildExecutionVerificationSummary(request.actions, trace, finalStatus),
+    session: {
+      mode: persistenceRequested ? "resumable" : "ephemeral",
+      key: persistenceEnabled ? requestedSessionKey : null,
+      persistenceRequested,
+      persistenceEnabled,
+      status: sessionStatus,
+      reuseCount: 0,
+      lastPageUrl: null,
+      notes: ["Simulated browser session: no real persistent session was held."],
+    },
   };
 }
 
@@ -957,12 +988,32 @@ async function executeRequestWithConfiguredAdapter(params: {
   selectedNode: DeviceNodeDescriptor | null;
   sandbox: UiExecutorSandboxEvaluation;
 }): Promise<ExecuteResponse> {
+  // Pre-compute persistent-session locals so both the real-Playwright path
+  // (executeWithPlaywright) and the simulation fallback (simulateExecution)
+  // see the same persistence intent. These mirror the locals computed
+  // inside executeWithPlaywright at lines ~1108-1112.
+  const requestedSessionKey =
+    typeof params.request.session?.key === "string" && params.request.session.key.trim().length > 0
+      ? params.request.session.key.trim()
+      : null;
+  const persistenceRequested =
+    params.request.session?.mode === "resumable" && requestedSessionKey !== null;
+  const persistenceEnabled = params.config.persistentBrowserSessions && persistenceRequested;
+  const persistAfterRun = persistenceEnabled && params.request.session?.persistAfterRun === true;
+  const sessionLocals = {
+    requestedSessionKey,
+    persistenceRequested,
+    persistenceEnabled,
+    persistAfterRun,
+  };
+
   if (params.config.forceSimulation) {
     return simulateExecution(
       params.request,
       "Forced simulation mode (UI_EXECUTOR_FORCE_SIMULATION=true)",
       params.selectedNode,
       params.sandbox,
+      sessionLocals,
     );
   }
 
@@ -980,6 +1031,7 @@ async function executeRequestWithConfiguredAdapter(params: {
     "Playwright unavailable in ui-executor, simulation fallback used",
     params.selectedNode,
     params.sandbox,
+    sessionLocals,
   );
 }
 
