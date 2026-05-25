@@ -1,6 +1,6 @@
 # Current Local Services Agent Handoff
 
-Last assembled: 2026-05-23.
+Last assembled: 2026-05-25.
 
 This is the short operational handoff for the next agent. Use it before making
 any changes to the dispatcher dashboard, local-services backend adapter, setup
@@ -12,11 +12,29 @@ Branch:
 
 `codex/runtime-case-wiki-signed-proof`
 
-Latest pushed commit:
+Latest product-layout commit before the later CI triage work:
 
 `4ea59d35 fix: stabilize dispatcher workbench layout`
 
-Tracked git tree was clean after that commit and push.
+Latest CI-triage commit before this handoff refresh:
+
+`3aa4d877 docs(spec): add demo-e2e-browser-job-paused-race-condition bugfix spec`
+
+PR #2 is open on `codex/runtime-case-wiki-signed-proof` and currently has one
+red PR-quality check. The current failure is no longer the local-services
+dispatcher slice. It is the legacy `ui.navigator.visa_vertical_flows`
+validation summary applying real-Playwright proof criteria to the simulated
+PR-quality lane.
+
+Follow-up spec:
+
+`.kiro/specs/demo-e2e-visa-flows-execution-mode-aware-summary/`
+
+Do not treat that follow-up as part of the local-services product critical path
+unless GitHub branch protection technically blocks the merge.
+
+Tracked git tree was clean after the last pushed CI-triage commit except for
+expected untracked local/editor/cache folders.
 
 Current local health at the moment of this note:
 
@@ -440,7 +458,11 @@ intake -> job card -> price/slot/master handoff -> approval -> evidence/export.
 The Lovable/design-workbench UI is a reference only; its useful dashboard
 patterns are being ported into `apps/demo-frontend`, while the backend boundary
 is this repo's `local-services-workspace` API plus browser fallback, not
-Lovable Cloud. The latest slice stabilized the main dispatcher layout. The next
-step is to connect that stable dashboard more clearly to the 7-minute launch
-path and outreach execution pack, without adding autonomous send, CRM write,
-booking, billing, or marketplace features.
+Lovable Cloud. The latest local-services product slice connected the stable
+dispatcher dashboard to the 7-minute launch path, launch packet, and outreach
+execution pack through one manual, operator-approved promotion CTA. The
+immediate non-product follow-up is to document the remaining visa-flow summary
+validation gap in PR #2, then return to local-services product work unless PR
+Quality is a hard merge blocker. If it is a hard blocker, use a narrow
+PR-quality simulation lane fix; do not weaken release-strict real-Playwright
+proof.
