@@ -1,6 +1,6 @@
 # Current Local Services Agent Handoff
 
-Last assembled: 2026-05-25.
+Last assembled: 2026-05-27.
 
 This is the short operational handoff for the next agent. Use it before making
 any changes to the dispatcher dashboard, local-services backend adapter, setup
@@ -12,13 +12,13 @@ Branch:
 
 `codex/runtime-case-wiki-signed-proof`
 
-Latest product-layout commit before the later CI triage work:
+Latest local-services product-flow commit before the later CI triage work:
 
-`4ea59d35 fix: stabilize dispatcher workbench layout`
+`c91b0142 feat(local-services): wire dispatcher promotion CTA to 7-min launch path`
 
-Latest CI-triage commit before this handoff refresh:
+Latest CI-triage / follow-up documentation commit before this handoff refresh:
 
-`3aa4d877 docs(spec): add demo-e2e-browser-job-paused-race-condition bugfix spec`
+`d2549260 docs(spec): add visa flows validation follow-up`
 
 PR #2 is open on `codex/runtime-case-wiki-signed-proof` and currently has one
 red PR-quality check. The current failure is no longer the local-services
@@ -34,16 +34,21 @@ Do not treat that follow-up as part of the local-services product critical path
 unless GitHub branch protection technically blocks the merge.
 
 Tracked git tree was clean after the last pushed CI-triage commit except for
-expected untracked local/editor/cache folders.
+expected untracked local/editor/cache folders. On 2026-05-27, local runtime /
+Playwright checks observed an unrelated modified generated shell bundle:
+`apps/demo-frontend/public/app-shell/index.js`, plus untracked `.playwright-cli/`
+and `.vscode/`. Do not revert them unless the current owner explicitly asks;
+inspect and stage only the files touched by your slice.
 
-Current local health at the moment of this note:
+Current local health after restarting the stack on 2026-05-27:
 
-1. `http://localhost:3000/healthz` timed out.
-2. `http://localhost:8080/healthz` timed out.
-3. `http://localhost:8081/healthz` timed out.
-4. `http://localhost:8082/healthz` timed out.
+1. `http://localhost:3000/healthz` -> 200.
+2. `http://localhost:8080/healthz` -> 200.
+3. `http://localhost:8081/healthz` -> 200.
+4. `http://localhost:8082/healthz` -> 200.
 
-So the next agent should start the local stack before visual/browser testing.
+The local stack may still be down when a new desktop/session starts, so always
+re-check health before visual/browser testing.
 The last completed validation before the commit was green:
 
 1. targeted app-shell alignment test: pass.
@@ -52,6 +57,19 @@ The last completed validation before the commit was green:
 4. `npm run verify:release`: pass.
 5. browser sanity: no horizontal overflow at `1280px`; dispatcher rail stacks
    below `1600px`; row action buttons stayed inside the row.
+
+Additional runtime sanity on 2026-05-27:
+
+1. default route
+   `/app?demo=local-services-dispatch&service=ac-repair-dispatch` renders
+   the product-first header and the 7-minute launch path entry; the internal
+   `Promotion_CTA` marker is source-level and is not expected as DOM text;
+2. `path=7min&view=requests` renders the 7-minute launch path and the pilot
+   planning surface in DOM text content;
+3. `path=7min&view=requests&packet=launch` renders the launch packet surface
+   and `Open outreach execution pack`;
+4. if a browser check uses `innerText`, it may miss offscreen/overflow content;
+   prefer `textContent` or targeted locators for source-level product markers.
 
 ## Product Direction
 
@@ -293,9 +311,16 @@ Frontend markers to preserve:
 The unit alignment test searches for many of these exact strings. If a label is
 renamed, update the docs and tests in the same change.
 
-## Latest Completed Slice
+## Latest Completed Product Slices
 
-The latest completed slice stabilized the dispatcher workbench layout.
+Recent completed slices, in order:
+
+1. dispatcher workbench layout stabilization;
+2. dispatcher-flow-connect promotion path;
+3. local-services outreach execution pack and pilot runbook surfaces;
+4. CI triage/follow-up documentation for non-wedge visa-flow validation.
+
+### Dispatcher Layout Stabilization
 
 Implemented:
 
@@ -312,16 +337,35 @@ Commit:
 
 `4ea59d35 fix: stabilize dispatcher workbench layout`
 
+### Dispatcher Flow Connect
+
+Implemented:
+
+1. stable dispatcher workbench now exposes a single dominant `Promotion_CTA`;
+2. the CTA opens the 7-minute launch path instead of adding duplicate buttons;
+3. launch path links existing product views:
+   `requests` -> `schedule` -> `customers` -> `setup` -> `reviews`;
+4. `path=7min&view=requests&packet=launch` deep-links launch packet state;
+5. launch packet bridge carries the operator-reviewed state into the outreach
+   execution pack;
+6. all actions stay manual-only: no sends, dispatch, booking, CRM write,
+   analytics sync, billing, or channel activation.
+
+Commits:
+
+1. `c91b0142 feat(local-services): wire dispatcher promotion CTA to 7-min launch path`
+2. `fd148e80 docs(spec): add dispatcher-flow-connect planning artifacts`
+
 ## Current Open Work
 
-The next code slice should not be another broad redesign. The layout is now
-stable enough. Continue by making the product flow clearer and more useful.
+The next code slice should not be another broad redesign and should not repeat
+dispatcher-flow-connect. That slice is already done. Continue by making the
+manual outreach/pilot execution layer more usable from the product shell.
 
 Recommended next slice:
 
-Connect the stable dispatcher workbench to the `7-minute launch path` and
-`outreach execution pack` in a way that a new operator can understand without
-reading docs.
+Make the existing pilot outreach wizard easier to operate and verify in the
+actual product path, without adding autosend or duplicate dominant CTAs.
 
 Concrete next step:
 
@@ -330,19 +374,23 @@ Concrete next step:
    `/app?demo=local-services-dispatch&service=ac-repair-dispatch`.
 3. Verify the dispatcher queue and right rail are still readable in dark and
    light themes.
-4. Add or refine the most direct CTA path from the dispatcher/workbench into:
-   `7-minute launch path` -> `launch packet` -> `outreach execution pack`.
-5. Keep every action manual-only and operator-approved.
-6. Update source-level tests and docs in the same slice.
+4. Click the single `Promotion_CTA` or open
+   `/app?demo=local-services-dispatch&service=ac-repair-dispatch&path=7min&view=requests`.
+5. Verify the path shows the 7-minute rail plus the pilot planning surfaces.
+6. Refine only the first real friction point in the wizard:
+   `Offer preview` -> `Audience from outreach list` ->
+   `Message/test preview` -> `Operator confirmation`.
+7. Keep every action manual-only and operator-approved.
+8. Update source-level tests and docs in the same slice.
 
 Possible implementation target:
 
-1. make `Open outreach execution pack` and `Open launch packet` easier to find
-   from the main dispatcher/pilot surface;
-2. ensure `path=7min&view=requests&packet=launch` opens the exact state an
-   operator expects;
-3. make the handoff copy explain what was selected, what was reviewed, and what
+1. add a small runtime/DOM smoke assertion for the real deep links if the test
+   suite has a suitable local pattern;
+2. make the handoff copy explain what was selected, what was reviewed, and what
    still blocks real outreach;
+3. make the preview/test-message modal clearer if the operator cannot tell what
+   is copied versus what is manually sent outside the shell;
 4. avoid adding autonomous send, CRM write, calendar event, or billing.
 
 ## Still To Do Later
