@@ -840,7 +840,18 @@ async function runScenario(
   const checkpointReadyCleared = checkpointReadyFinal <= checkpointReadyBaseline;
   const traceCount = Array.isArray(completedJob?.trace) ? completedJob.trace.length : 0;
 
-  const success =
+  // Per-flow success rule. Execution-mode-aware: real-Playwright keeps
+  // today's strict recovery proof (BYTE-IDENTICAL to the pre-fix rule);
+  // simulation accepts the honest simulation contract (job completed,
+  // session released, paused state observed, simulation markers visible).
+  // Simulation criteria do NOT inflate recovery counters — they remain 0,
+  // and `result.success` does not depend on them on the simulation lane.
+  // This mirrors the `simulatedValidated` rule in
+  // summarizeNavigatorVisaFlowResults() per design.md "Simulation
+  // Criteria"; without this branch, `succeededFlows` is permanently 0
+  // on the simulation lane and `simulatedValidated` cannot be true even
+  // when every flow honestly reaches the simulation contract.
+  const realPlaywrightSuccess =
     completedJob?.status === "completed" &&
     session?.status === "released" &&
     checkpointCount >= 1 &&
@@ -855,6 +866,12 @@ async function runScenario(
     runtimeStaleRefCount >= staleRefCount &&
     runtimeHealedRefCount >= healedRefCount &&
     traceCount >= 3;
+  const simulatedSuccess =
+    completedJob?.status === "completed" &&
+    session?.status === "released" &&
+    pausedJob?.status === "paused";
+  const success =
+    executionMode === "simulated" ? simulatedSuccess : realPlaywrightSuccess;
 
   return {
     name: scenario.name,
