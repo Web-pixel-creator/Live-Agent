@@ -664,19 +664,51 @@ async function runScenario(
     `${scenario.name} approved plan should include a verification step`,
   );
 
-  // Probe poll: bounded fraction of the overall scenario timeout. Wait for the
-  // job to advance past "queued" so the runtime has a chance to record at least
-  // one adapterNote. We do not gate on "paused" here because a fast simulation
-  // run can land on "completed" before this loop fires; we accept any
-  // post-queued status. The probe captures `adapterNotes` from the public
-  // browser-job response (set by ui-executor's browser-jobs runner after each
-  // executed step), which is the discriminator input for `inferExecutionMode`.
+  // Probe poll: bounded fraction of the overall scenario timeout. The probe
+  // captures `adapterNotes` from the public browser-job response (set by
+  // ui-executor's browser-jobs runner after each executed step), which is the
+  // discriminator input for `inferExecutionMode`.
+  //
+  // Race-safety: the probe must NOT accept a `running` status with an empty
+  // `adapterNotes` array, because that produces a "real_playwright" default
+  // from `inferExecutionMode([])` even when the run is honestly simulated.
+  // A single race'd flow in a 4-flow scenario flips the artifact's
+  // `validationMode` to `"mixed"` and the gate rejects the entire scenario
+  // (CI run 26506509743 surfaced this on commit 169b7cd2). We accept either
+  // (a) a terminal-or-paused status (`paused`, `completed`, `failed`),
+  //     guaranteeing at least one step ran, OR
+  // (b) `running` with `adapterNotes.length >= 1`, guaranteeing at least one
+  //     simulation/real-Playwright self-report was emitted.
+  // Empty-noted `running` keeps the probe waiting until either condition
+  // becomes true, or the bounded timeout elapses.
   const probeTimeoutMs = Math.min(timeoutMs, 10_000);
   const probeResponse = await waitForBrowserJobState(
     uiExecutorBaseUrl,
     jobId,
     ["running", "paused", "completed", "failed"],
     probeTimeoutMs,
+    (response) => {
+      const job = response.data?.job;
+      const status = job?.status ?? "unknown";
+      if (status === "paused" || status === "completed" || status === "failed") {
+        return true;
+      }
+      if (status === "running") {
+        const notes = Array.isArray(job?.adapterNotes) ? job.adapterNotes : [];
+        return notes.some((note) => typeof note === "string" && note.length > 0);
+      }
+      return false;
+    },
+    (response) => {
+      const job = response.data?.job;
+      const noteCount = Array.isArray(job?.adapterNotes) ? job.adapterNotes.length : 0;
+      return (
+        `probe predicate observed status=${job?.status ?? "<missing>"}, ` +
+        `adapterNotes.length=${noteCount}; required terminal/paused status OR ` +
+        `running status with at least one adapterNote so inferExecutionMode can ` +
+        `read an honest discriminator`
+      );
+    },
   );
   const probeJob = probeResponse.data?.job;
   const probeAdapterNotes = Array.isArray(probeJob?.adapterNotes)
