@@ -107,8 +107,23 @@ export type VisaFlowResult = {
   success: boolean;
 };
 
+export type NavigatorVisaFlowValidationMode =
+  | "real_playwright"
+  | "simulated"
+  | "mixed"
+  | "unknown";
+
 export type VisaFlowSummary = {
   validated: boolean;
+  validationMode: NavigatorVisaFlowValidationMode;
+  realPlaywrightValidated: boolean;
+  simulatedValidated: boolean;
+  strictPersistentSessionValidated: boolean;
+  executionModeCounts: {
+    real_playwright: number;
+    simulated: number;
+    unknown: number;
+  };
   totalFlows: number;
   succeededFlows: number;
   successRate: number;
@@ -489,6 +504,63 @@ export function inferExecutionMode(
 (globalThis as { inferExecutionMode?: typeof inferExecutionMode }).inferExecutionMode =
   inferExecutionMode;
 
+/**
+ * Infers the `NavigatorVisaFlowValidationMode` from a set of `VisaFlowResult`
+ * entries. The discriminator is the per-result `executionMode` field, which
+ * the runtime self-reports honestly via the probe-poll path in `runScenario`
+ * (see `inferExecutionMode` above). The rule is the literal contract from
+ * `design.md` "Proposed Contract":
+ *
+ *   - `results.length === 0` → `"unknown"`.
+ *   - any `result.executionMode` outside the strict union
+ *     (`"real_playwright"` | `"simulated"`) → `"unknown"`.
+ *   - every `result.executionMode === "real_playwright"` → `"real_playwright"`.
+ *   - every `result.executionMode === "simulated"` → `"simulated"`.
+ *   - otherwise (mix of the two valid modes) → `"mixed"`.
+ *
+ * Downstream gates and tests can branch on declared mode without
+ * re-implementing the rule. The helper is also published on `globalThis`
+ * (mirroring the `inferExecutionMode` publish) so the summary preservation
+ * PBT activation gate (`typeof inferNavigatorVisaFlowValidationMode === "function"`)
+ * flips on at module-import time without forcing the test file to import the
+ * helper directly.
+ */
+export function inferNavigatorVisaFlowValidationMode(
+  results: VisaFlowResult[],
+): NavigatorVisaFlowValidationMode {
+  if (results.length === 0) {
+    return "unknown";
+  }
+  let realCount = 0;
+  let simulatedCount = 0;
+  for (const result of results) {
+    if (result.executionMode === "real_playwright") {
+      realCount += 1;
+    } else if (result.executionMode === "simulated") {
+      simulatedCount += 1;
+    } else {
+      return "unknown";
+    }
+  }
+  if (realCount === results.length) {
+    return "real_playwright";
+  }
+  if (simulatedCount === results.length) {
+    return "simulated";
+  }
+  return "mixed";
+}
+
+// Side-effect: publish `inferNavigatorVisaFlowValidationMode` on `globalThis`
+// so the summary preservation PBT block in
+// `tests/unit/demo-e2e-navigator-visa-flows.test.ts` flips its
+// `typeof inferNavigatorVisaFlowValidationMode === "function"` activation
+// gate to truthy once this module is imported by the test file. Mirrors the
+// `inferExecutionMode` publish above. Pure-function publish — no leaked state.
+(globalThis as {
+  inferNavigatorVisaFlowValidationMode?: typeof inferNavigatorVisaFlowValidationMode;
+}).inferNavigatorVisaFlowValidationMode = inferNavigatorVisaFlowValidationMode;
+
 function toActionPlan(output: unknown): Array<Record<string, unknown>> {
   if (!output || typeof output !== "object") {
     return [];
@@ -786,6 +858,52 @@ async function runScenario(
   };
 }
 
+/**
+ * Builds a `VisaFlowSummary` from per-flow `VisaFlowResult` entries. The
+ * summary is the artifact JSON that downstream gates (`scripts/demo-e2e.ps1`,
+ * `scripts/release-readiness.ps1`, `scripts/release-evidence-report.ps1`)
+ * consume to decide whether the navigator visa proof has met the contract
+ * for the active workflow.
+ *
+ * The summary is execution-mode-aware. Per `design.md` "Proposed Contract":
+ *
+ *   - `validationMode` is inferred via `inferNavigatorVisaFlowValidationMode`
+ *     from the per-result `executionMode` field.
+ *   - `realPlaywrightValidated` follows `design.md` "Real-Playwright
+ *     Criteria" and is BYTE-IDENTICAL to today's strict rule
+ *     (`totalFlows >= 3 && every counter === totalFlows` over
+ *     `succeededFlows`, `persistentSessionCount`, `replayBundleCount`,
+ *     `verifiedCount`, `staleRecoveryObservedCount`,
+ *     `healedRecoveryObservedCount`, `resumedCheckpointCount`). No
+ *     real-Playwright assertion is weakened.
+ *   - `simulatedValidated` follows `design.md` "Simulation Criteria":
+ *     `totalFlows >= 3 && succeededFlows === totalFlows && every result has
+ *     executionMode === "simulated" && finalStatus === "completed" &&
+ *     pausedStatus === "paused"`. Simulation criteria DO NOT increment
+ *     `persistentSessionCount` or `replayBundleCount` — those counters keep
+ *     their existing definition (real persistent-session proof, real replay
+ *     bundle proof) and naturally compute to 0 on the simulation lane.
+ *   - `strictPersistentSessionValidated` is `true` iff every result has both
+ *     `persistentSessionReady === true` and `persistentSessionReleased ===
+ *     true`, INDEPENDENT of `validationMode`. Release-strict gates read this
+ *     field after Task 3.2 lands so they always require real
+ *     persistent-session evidence regardless of the declared mode.
+ *   - `validated` (RETAINED for backward compatibility with the existing
+ *     artifact consumers) now mirrors the declared validation mode:
+ *     `real_playwright` → `realPlaywrightValidated`,
+ *     `simulated` → `simulatedValidated`, `mixed`/`unknown` → `false`. PR
+ *     Quality may read `validated && validationMode === "simulated"`
+ *     honestly; release-strict gates must depend on
+ *     `strictPersistentSessionValidated`.
+ *   - `executionModeCounts` reports the per-mode tally drawn from the
+ *     per-result `executionMode` field; `real_playwright` counts results
+ *     with `executionMode === "real_playwright"`, `simulated` counts
+ *     `"simulated"`, and `unknown` counts every other value (including
+ *     `undefined`, `null`, or out-of-union strings).
+ *
+ * All existing fields are preserved unchanged in name, type, and meaning.
+ * The artifact JSON gains five new fields; no caller's interface is broken.
+ */
 export function summarizeNavigatorVisaFlowResults(results: VisaFlowResult[]): VisaFlowSummary {
   const totalFlows = results.length;
   const succeededFlows = results.filter((result) => result.success).length;
@@ -799,7 +917,22 @@ export function summarizeNavigatorVisaFlowResults(results: VisaFlowResult[]): Vi
   const resumedCheckpointCount = results.filter((result) => result.resumedCheckpointCount >= 1).length;
   const checkpointReadyClearedCount = results.filter((result) => result.checkpointReadyCleared).length;
   const successRate = totalFlows > 0 ? Number((succeededFlows / totalFlows).toFixed(6)) : 0;
-  const validated =
+
+  const validationMode = inferNavigatorVisaFlowValidationMode(results);
+  const realPlaywrightModeCount = results.filter(
+    (result) => result.executionMode === "real_playwright",
+  ).length;
+  const simulatedModeCount = results.filter(
+    (result) => result.executionMode === "simulated",
+  ).length;
+  const executionModeCounts = {
+    real_playwright: realPlaywrightModeCount,
+    simulated: simulatedModeCount,
+    unknown: totalFlows - realPlaywrightModeCount - simulatedModeCount,
+  };
+
+  // Real-Playwright Criteria — BYTE-IDENTICAL to the pre-fix strict rule.
+  const realPlaywrightValidated =
     totalFlows >= 3 &&
     succeededFlows === totalFlows &&
     persistentSessionCount === totalFlows &&
@@ -808,10 +941,47 @@ export function summarizeNavigatorVisaFlowResults(results: VisaFlowResult[]): Vi
     staleRecoveryObservedCount === totalFlows &&
     healedRecoveryObservedCount === totalFlows &&
     resumedCheckpointCount === totalFlows;
+
+  // Simulation Criteria — honest about absence of real persistent session
+  // and replay bundle. Does NOT inflate `persistentSessionCount` or
+  // `replayBundleCount`; those counters keep their existing definition.
+  const simulatedValidated =
+    totalFlows >= 3 &&
+    succeededFlows === totalFlows &&
+    results.every((result) => result.executionMode === "simulated") &&
+    results.every((result) => result.finalStatus === "completed") &&
+    results.every((result) => result.pausedStatus === "paused");
+
+  // Independent of validationMode: release-strict gates read this field
+  // after Task 3.2 lands so they always require real persistent-session
+  // evidence regardless of declared mode.
+  const strictPersistentSessionValidated =
+    totalFlows > 0 &&
+    results.every(
+      (result) => result.persistentSessionReady === true && result.persistentSessionReleased === true,
+    );
+
+  // `validated` mirrors the declared validation mode. Documented in the
+  // JSDoc above. Mixed/unknown defaults to false until a deliberate
+  // mixed-mode contract is designed (per `design.md` "Mixed Mode").
+  let validated: boolean;
+  if (validationMode === "real_playwright") {
+    validated = realPlaywrightValidated;
+  } else if (validationMode === "simulated") {
+    validated = simulatedValidated;
+  } else {
+    validated = false;
+  }
+
   const scenarioNames = results.map((result) => result.name);
 
   return {
     validated,
+    validationMode,
+    realPlaywrightValidated,
+    simulatedValidated,
+    strictPersistentSessionValidated,
+    executionModeCounts,
     totalFlows,
     succeededFlows,
     successRate,
