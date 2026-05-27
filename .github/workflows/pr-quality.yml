@@ -16,6 +16,19 @@ jobs:
       UI_NAVIGATOR_EXECUTOR_URL: http://localhost:8090
       UI_EXECUTOR_STRICT_PLAYWRIGHT: "false"
       UI_EXECUTOR_SIMULATE_IF_UNAVAILABLE: "true"
+      # Opt the PR Quality lane into honest simulation acceptance for the
+      # ui.navigator.visa_vertical_flows scenario so the
+      # `Navigator visa proof must validate all configured flows.` gate in
+      # scripts/demo-e2e.ps1 accepts validationMode === "simulated" with
+      # validated === true on the windows-latest simulation lane. Mixed and
+      # unknown modes stay rejected regardless of this env. Release-strict
+      # workflows leave this env unset so they keep today's strict
+      # real-Playwright requirement byte-identical and read
+      # navigatorVisaFlowsStrictPersistentSessionValidated for real
+      # persistent-session evidence.
+      # See .kiro/specs/demo-e2e-visa-flows-execution-mode-aware-summary
+      # ("Downstream Gate Update") for the contract that this env opts into.
+      DEMO_E2E_VISA_FLOWS_ACCEPT_SIMULATION: "true"
       # Wire promptfoo eval keys symmetrically to release-strict-final.yml and
       # railway-deploy-api.yml so the red-team gate inside `verify:pr` can
       # generate a real artifact instead of failing on a missing
