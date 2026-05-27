@@ -1348,6 +1348,25 @@ function buildBrowserWorkerRecoveryEvidence(kpis) {
 
 function buildNavigatorVisaFlowsEvidence(kpis) {
   const validated = toBoolean(kpis.navigatorVisaFlowsValidated) === true;
+  // New execution-mode-aware evidence fields per
+  // `.kiro/specs/demo-e2e-visa-flows-execution-mode-aware-summary/design.md`
+  // "Proposed Contract". Purely descriptive forwarding — no gate change in
+  // the badge evidence shape; the consumers that actually gate are
+  // `demo-e2e-policy-check.mjs` (release-strict env-gated check) and
+  // `demo-e2e.ps1` scenario assertion (PR Quality opt-in env). Existing
+  // fields stay byte-identical.
+  const validationModeRaw = toOptionalString(kpis.navigatorVisaFlowsValidationMode);
+  const validationMode =
+    validationModeRaw === "real_playwright" ||
+    validationModeRaw === "simulated" ||
+    validationModeRaw === "mixed" ||
+    validationModeRaw === "unknown"
+      ? validationModeRaw
+      : "unknown";
+  const realPlaywrightValidated = toBoolean(kpis.navigatorVisaFlowsRealPlaywrightValidated) === true;
+  const simulatedValidated = toBoolean(kpis.navigatorVisaFlowsSimulatedValidated) === true;
+  const strictPersistentSessionValidated =
+    toBoolean(kpis.navigatorVisaFlowsStrictPersistentSessionValidated) === true;
   const totalFlows = Math.max(0, Math.trunc(toNumber(kpis.navigatorVisaFlowsTotal) ?? 0));
   const succeededFlows = Math.max(0, Math.trunc(toNumber(kpis.navigatorVisaFlowsSucceeded) ?? 0));
   const successRate = Math.max(0, toNumber(kpis.navigatorVisaFlowsSuccessRate) ?? 0);
@@ -1404,6 +1423,10 @@ function buildNavigatorVisaFlowsEvidence(kpis) {
   return {
     status,
     validated,
+    validationMode,
+    realPlaywrightValidated,
+    simulatedValidated,
+    strictPersistentSessionValidated,
     observed,
     totalFlows,
     succeededFlows,

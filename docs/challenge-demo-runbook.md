@@ -335,6 +335,8 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
   - `kpi.scenarioRetryableFailuresTotal >= 0`
 - UI Navigator vertical-flow proof:
   - `kpi.navigatorVisaFlowsValidated=true`
+  - `kpi.navigatorVisaFlowsValidationMode = "real_playwright"`
+  - `kpi.navigatorVisaFlowsStrictPersistentSessionValidated=true`
   - `kpi.navigatorVisaFlowsTotal >= 3`
   - `kpi.navigatorVisaFlowsSucceeded = kpi.navigatorVisaFlowsTotal`
   - `kpi.navigatorVisaFlowsSuccessRate >= 1`

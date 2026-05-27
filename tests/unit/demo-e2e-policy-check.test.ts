@@ -285,6 +285,10 @@ function createPassingSummary(overrides?: {
     uiGroundingSignalsValidated: true,
     browserWorkerRecoveryValidated: true,
     navigatorVisaFlowsValidated: true,
+    navigatorVisaFlowsValidationMode: "real_playwright",
+    navigatorVisaFlowsRealPlaywrightValidated: true,
+    navigatorVisaFlowsSimulatedValidated: false,
+    navigatorVisaFlowsStrictPersistentSessionValidated: true,
     navigatorVisaFlowsTotal: 4,
     navigatorVisaFlowsSucceeded: 4,
     navigatorVisaFlowsSuccessRate: 1,
@@ -1768,4 +1772,67 @@ test("demo-e2e policy check fails when gateway requested transport mode is inval
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.gatewayTransportRequestedMode")));
+});
+
+// New execution-mode-aware navigator-visa-flows policy checks per
+// `.kiro/specs/demo-e2e-visa-flows-execution-mode-aware-summary/design.md`
+// "Downstream Gate Update" and bugfix.md R5 ("Downstream Gates Must Keep
+// Their Meaning").
+
+test("demo-e2e policy check accepts navigator visa flows simulation lane when validationMode=simulated and simulatedValidated=true and strict persistent-session check is not required", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        // Honest simulation lane: no real persistent session, no real
+        // replay bundle, no real recovery proof. The simulation contract is
+        // captured by `simulatedValidated` and the artifact-level
+        // `validated` mirroring it.
+        navigatorVisaFlowsValidationMode: "simulated",
+        navigatorVisaFlowsValidated: true,
+        navigatorVisaFlowsRealPlaywrightValidated: false,
+        navigatorVisaFlowsSimulatedValidated: true,
+        navigatorVisaFlowsStrictPersistentSessionValidated: false,
+        navigatorVisaFlowsPersistentSessionCount: 0,
+        navigatorVisaFlowsReplayBundleCount: 0,
+        navigatorVisaFlowsVerifiedCount: 0,
+        navigatorVisaFlowsStaleRecoveryObservedCount: 0,
+        navigatorVisaFlowsHealedRecoveryObservedCount: 0,
+        navigatorVisaFlowsResumedCheckpointCount: 0,
+        navigatorVisaFlowsCheckpointReadyClearedCount: 0,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
+  assert.equal(result.payload.ok, true);
+});
+
+test("demo-e2e policy check rejects mixed validation mode regardless of any per-mode boolean", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        navigatorVisaFlowsValidationMode: "mixed",
+        // Mixed mode must be rejected even if `validated` happens to be
+        // true on input — the policy gate insists on
+        // `validated === false` per design.md "Mixed Mode" until a
+        // deliberate mixed-mode contract is designed.
+        navigatorVisaFlowsValidated: true,
+        navigatorVisaFlowsRealPlaywrightValidated: false,
+        navigatorVisaFlowsSimulatedValidated: false,
+        navigatorVisaFlowsStrictPersistentSessionValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(
+    violations.some((item) => item.includes("kpi.navigatorVisaFlowsValidationMode")),
+    "violations should call out the unsupported validationMode",
+  );
+  assert.ok(
+    violations.some((item) => item.includes("kpi.navigatorVisaFlowsValidated")),
+    "violations should call out the validated check rejecting mixed mode",
+  );
 });

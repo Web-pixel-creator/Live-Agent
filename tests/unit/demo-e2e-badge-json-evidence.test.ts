@@ -204,6 +204,10 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
         navigatorVisaFlowsScenarioNames: ["booking", "reminder", "handoff", "escalation"],
         navigatorVisaFlowsSummary: "4/4 visa flows passed; persistent=4; verified=4; staleRecovery=4; resumed=4.",
         navigatorVisaFlowsValidated: true,
+        navigatorVisaFlowsValidationMode: "real_playwright",
+        navigatorVisaFlowsRealPlaywrightValidated: true,
+        navigatorVisaFlowsSimulatedValidated: false,
+        navigatorVisaFlowsStrictPersistentSessionValidated: true,
         operatorTurnTruncationSummaryValidated: true,
         operatorTurnTruncationExpectedEventSeen: true,
         operatorTurnTruncationTotal: 1,
@@ -663,6 +667,15 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
     navigatorVisaFlows.summary,
     "4/4 visa flows passed; persistent=4; verified=4; staleRecovery=4; resumed=4.",
   );
+  // New execution-mode-aware evidence fields per
+  // `.kiro/specs/demo-e2e-visa-flows-execution-mode-aware-summary/design.md`
+  // "Proposed Contract". The badge evidence is purely descriptive
+  // forwarding — the gate logic lives in the policy-check / scenario
+  // assertion layers.
+  assert.equal(navigatorVisaFlows.validationMode, "real_playwright");
+  assert.equal(navigatorVisaFlows.realPlaywrightValidated, true);
+  assert.equal(navigatorVisaFlows.simulatedValidated, false);
+  assert.equal(navigatorVisaFlows.strictPersistentSessionValidated, true);
   assert.equal(runtimeGuardrailsSignalPaths.totalPaths, 3);
   assert.equal(runtimeGuardrailsSignalPaths.lifecycleSummary, "active=3");
   const runtimeGuardrailsCounts = runtimeGuardrailsSignalPaths.lifecycleCounts as Record<string, unknown>;

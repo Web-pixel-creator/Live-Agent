@@ -3238,7 +3238,37 @@ try {
     )
 
     Assert-Condition -Condition ($null -ne $navigatorVisaFlowData) -Message "Navigator visa proof returned no data."
-    Assert-Condition -Condition ([bool](Get-FieldValue -Object $navigatorVisaFlowData -Path @("validated")) -eq $true) -Message "Navigator visa proof must validate all configured flows."
+
+    # Execution-mode-aware acceptance per
+    # `.kiro/specs/demo-e2e-visa-flows-execution-mode-aware-summary/design.md`
+    # "Downstream Gate Update" and bugfix.md R5 ("Downstream Gates Must Keep
+    # Their Meaning"):
+    #   - Default (env unset / off): require validationMode === "real_playwright"
+    #     AND validated === true. release-strict-final keeps today's strict
+    #     semantics byte-identical.
+    #   - DEMO_E2E_VISA_FLOWS_ACCEPT_SIMULATION truthy (PR Quality opt-in,
+    #     wired in a follow-up commit, not in this slice): also accept
+    #     validationMode === "simulated" with validated === true.
+    #   - "mixed" / "unknown" are rejected regardless of the env (per
+    #     design.md "Mixed Mode": no deliberate mixed-mode contract yet).
+    $navigatorVisaFlowsValidationMode = [string](Get-FieldValue -Object $navigatorVisaFlowData -Path @("validationMode"))
+    $navigatorVisaFlowsValidated = [bool](Get-FieldValue -Object $navigatorVisaFlowData -Path @("validated"))
+    $navigatorVisaFlowsAcceptSimulationEnv = [Environment]::GetEnvironmentVariable("DEMO_E2E_VISA_FLOWS_ACCEPT_SIMULATION")
+    $navigatorVisaFlowsAcceptSimulationEnvDisplay = if ($null -eq $navigatorVisaFlowsAcceptSimulationEnv) { "<unset>" } else { $navigatorVisaFlowsAcceptSimulationEnv }
+    $navigatorVisaFlowsAcceptSimulationEnabled = $false
+    if ($null -ne $navigatorVisaFlowsAcceptSimulationEnv) {
+      $navigatorVisaFlowsAcceptSimulationEnabled = (@("1", "true", "yes", "on") -contains $navigatorVisaFlowsAcceptSimulationEnv.ToString().Trim().ToLowerInvariant())
+    }
+
+    if ($navigatorVisaFlowsValidationMode -eq "real_playwright") {
+      Assert-Condition -Condition ($navigatorVisaFlowsValidated -eq $true) -Message ("Navigator visa proof must validate all configured flows. validationMode=" + $navigatorVisaFlowsValidationMode + ", validated=" + $navigatorVisaFlowsValidated)
+    } elseif ($navigatorVisaFlowsValidationMode -eq "simulated") {
+      Assert-Condition -Condition $navigatorVisaFlowsAcceptSimulationEnabled -Message ("Navigator visa proof reported simulated mode but DEMO_E2E_VISA_FLOWS_ACCEPT_SIMULATION is not enabled. validationMode=" + $navigatorVisaFlowsValidationMode + ", env=" + $navigatorVisaFlowsAcceptSimulationEnvDisplay)
+      Assert-Condition -Condition ($navigatorVisaFlowsValidated -eq $true) -Message ("Navigator visa proof simulation lane reported validated=false. validationMode=" + $navigatorVisaFlowsValidationMode + ", validated=" + $navigatorVisaFlowsValidated)
+    } else {
+      throw ("Navigator visa proof reported unsupported validationMode=" + $navigatorVisaFlowsValidationMode + ". Mixed and unknown modes are rejected regardless of DEMO_E2E_VISA_FLOWS_ACCEPT_SIMULATION (per design.md Mixed Mode). env=" + $navigatorVisaFlowsAcceptSimulationEnvDisplay)
+    }
+
     Assert-Condition -Condition ([int](Get-FieldValue -Object $navigatorVisaFlowData -Path @("totalFlows")) -ge 3) -Message "Navigator visa proof must cover at least three flows."
     Assert-Condition -Condition ([int](Get-FieldValue -Object $navigatorVisaFlowData -Path @("succeededFlows")) -eq [int](Get-FieldValue -Object $navigatorVisaFlowData -Path @("totalFlows"))) -Message "Navigator visa proof must succeed across all configured flows."
 
@@ -6757,18 +6787,34 @@ $summary = [ordered]@{
     navigatorVisaFlowsCheckpointReadyClearedCount = if ($null -ne $uiNavigatorVisaFlowsData) { [int]$uiNavigatorVisaFlowsData.checkpointReadyClearedCount } else { 0 }
     navigatorVisaFlowsScenarioNames = if ($null -ne $uiNavigatorVisaFlowsData) { @($uiNavigatorVisaFlowsData.scenarioNames) } else { @() }
     navigatorVisaFlowsSummary = if ($null -ne $uiNavigatorVisaFlowsData) { [string]$uiNavigatorVisaFlowsData.summary } else { $null }
-    navigatorVisaFlowsValidated = if (
-      $null -ne $uiNavigatorVisaFlowsData -and
-      [bool]$uiNavigatorVisaFlowsData.validated -eq $true -and
-      [int]$uiNavigatorVisaFlowsData.totalFlows -ge 3 -and
-      [int]$uiNavigatorVisaFlowsData.succeededFlows -eq [int]$uiNavigatorVisaFlowsData.totalFlows -and
-      [int]$uiNavigatorVisaFlowsData.persistentSessionCount -eq [int]$uiNavigatorVisaFlowsData.totalFlows -and
-      [int]$uiNavigatorVisaFlowsData.replayBundleCount -eq [int]$uiNavigatorVisaFlowsData.totalFlows -and
-      [int]$uiNavigatorVisaFlowsData.verifiedCount -eq [int]$uiNavigatorVisaFlowsData.totalFlows -and
-      [int]$uiNavigatorVisaFlowsData.staleRecoveryObservedCount -eq [int]$uiNavigatorVisaFlowsData.totalFlows -and
-      [int]$uiNavigatorVisaFlowsData.healedRecoveryObservedCount -eq [int]$uiNavigatorVisaFlowsData.totalFlows -and
-      [int]$uiNavigatorVisaFlowsData.resumedCheckpointCount -eq [int]$uiNavigatorVisaFlowsData.totalFlows
-    ) { $true } else { $false }
+    # validationMode is the declared per-run execution mode emitted by
+    # `summarizeNavigatorVisaFlowResults()` per
+    # `.kiro/specs/demo-e2e-visa-flows-execution-mode-aware-summary/design.md`
+    # "Proposed Contract": "real_playwright" | "simulated" | "mixed" |
+    # "unknown". Downstream gates branch on this field after Task 3.2 lands.
+    navigatorVisaFlowsValidationMode = if ($null -ne $uiNavigatorVisaFlowsData) { [string]$uiNavigatorVisaFlowsData.validationMode } else { "unknown" }
+    navigatorVisaFlowsRealPlaywrightValidated = if ($null -ne $uiNavigatorVisaFlowsData) { [bool]$uiNavigatorVisaFlowsData.realPlaywrightValidated } else { $false }
+    navigatorVisaFlowsSimulatedValidated = if ($null -ne $uiNavigatorVisaFlowsData) { [bool]$uiNavigatorVisaFlowsData.simulatedValidated } else { $false }
+    # strictPersistentSessionValidated is the release-strict-only gate field
+    # (true iff every result has both persistentSessionReady AND
+    # persistentSessionReleased). Independent of validationMode. Honest
+    # simulation runs naturally report false because they hold no real
+    # persistent session.
+    navigatorVisaFlowsStrictPersistentSessionValidated = if ($null -ne $uiNavigatorVisaFlowsData) { [bool]$uiNavigatorVisaFlowsData.strictPersistentSessionValidated } else { $false }
+    # `validated` mirrors the artifact's `validated` field directly. After
+    # Task 3.1 of this slice, `summarizeNavigatorVisaFlowResults()` already
+    # makes the artifact's `validated` execution-mode-aware:
+    # real_playwright -> realPlaywrightValidated (today's strict criteria),
+    # simulated -> simulatedValidated (honest simulation contract),
+    # mixed/unknown -> false. Mirroring the artifact keeps the KPI honest
+    # for both lanes; the previous re-derivation that AND-ed every counter
+    # against `validated` collapsed simulation-mode runs into false because
+    # honest simulation reports zero persistent-session / replay-bundle
+    # counts. Release-strict gates use `navigatorVisaFlowsStrictPersistentSessionValidated`
+    # plus the new `navigatorVisaFlowsValidationMode` check (added by
+    # `scripts/demo-e2e-policy-check.mjs`) to require real proof regardless
+    # of the declared mode.
+    navigatorVisaFlowsValidated = if ($null -ne $uiNavigatorVisaFlowsData) { [bool]$uiNavigatorVisaFlowsData.validated } else { $false }
     scenarioRetriesUsedCount = $scenarioRetriedSet.Count
     scenarioRetriesUsedNames = @($scenarioRetriedSet | ForEach-Object { [string]$_.name })
     scenarioRetryableFailuresTotal = [int]$scenarioRetryableFailuresTotal

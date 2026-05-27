@@ -183,6 +183,10 @@ function createPassingSummary(
     runtimeMetricsScenarioAttempts: number | string;
     scenarioRetryableFailuresTotal: number | string;
     navigatorVisaFlowsValidated: boolean | string;
+    navigatorVisaFlowsValidationMode: string;
+    navigatorVisaFlowsRealPlaywrightValidated: boolean | string;
+    navigatorVisaFlowsSimulatedValidated: boolean | string;
+    navigatorVisaFlowsStrictPersistentSessionValidated: boolean | string;
     navigatorVisaFlowsTotal: number | string;
     navigatorVisaFlowsSucceeded: number | string;
     navigatorVisaFlowsSuccessRate: number | string;
@@ -743,6 +747,20 @@ function createPassingSummary(
         : 0,
       navigatorVisaFlowsValidated: hasOverride("navigatorVisaFlowsValidated")
         ? overrides.navigatorVisaFlowsValidated
+        : true,
+      navigatorVisaFlowsValidationMode: hasOverride("navigatorVisaFlowsValidationMode")
+        ? overrides.navigatorVisaFlowsValidationMode
+        : "real_playwright",
+      navigatorVisaFlowsRealPlaywrightValidated: hasOverride("navigatorVisaFlowsRealPlaywrightValidated")
+        ? overrides.navigatorVisaFlowsRealPlaywrightValidated
+        : true,
+      navigatorVisaFlowsSimulatedValidated: hasOverride("navigatorVisaFlowsSimulatedValidated")
+        ? overrides.navigatorVisaFlowsSimulatedValidated
+        : false,
+      navigatorVisaFlowsStrictPersistentSessionValidated: hasOverride(
+        "navigatorVisaFlowsStrictPersistentSessionValidated",
+      )
+        ? overrides.navigatorVisaFlowsStrictPersistentSessionValidated
         : true,
       navigatorVisaFlowsTotal: hasOverride("navigatorVisaFlowsTotal")
         ? overrides.navigatorVisaFlowsTotal

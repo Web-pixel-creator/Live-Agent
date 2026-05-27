@@ -183,6 +183,8 @@ test("runbook documents release perf artifact-only mode and critical evidence ke
     "`kpi.runtimeMetricsScenarioAttempts <= options.scenarioRetryMaxAttempts`",
     "`kpi.scenarioRetryableFailuresTotal >= 0`",
     "`kpi.navigatorVisaFlowsValidated=true`",
+    "`kpi.navigatorVisaFlowsValidationMode = \"real_playwright\"`",
+    "`kpi.navigatorVisaFlowsStrictPersistentSessionValidated=true`",
     "`kpi.navigatorVisaFlowsTotal >= 3`",
     "`kpi.navigatorVisaFlowsSucceeded = kpi.navigatorVisaFlowsTotal`",
     "`kpi.navigatorVisaFlowsSuccessRate >= 1`",

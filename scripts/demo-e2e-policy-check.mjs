@@ -1784,12 +1784,76 @@ async function main() {
     kpis.browserWorkerRecoveryValidated,
     true,
   );
-  addCheck(
-    "kpi.navigatorVisaFlowsValidated",
-    kpis.navigatorVisaFlowsValidated === true,
-    kpis.navigatorVisaFlowsValidated,
-    true,
+  // Navigator visa-flows checks are execution-mode-aware per
+  // `.kiro/specs/demo-e2e-visa-flows-execution-mode-aware-summary/design.md`
+  // "Downstream Gate Update" and bugfix.md R5 ("Downstream Gates Must Keep
+  // Their Meaning"). The artifact's `validationMode` is the discriminator:
+  //   - "real_playwright" → keep all of today's strict checks (4 booleans
+  //     plus the seven persistent/replay/verified/stale/healed/resumed
+  //     counters that follow). Byte-identical to the pre-fix policy on the
+  //     real-Playwright lane.
+  //   - "simulated" → require `validated === true` AND
+  //     `simulatedValidated === true`. The simulation contract owns the
+  //     proof; persistent/replay/verified/stale/healed/resumed counters
+  //     naturally compute to 0 on the simulation lane (honest about absence
+  //     of real persistent session / replay bundle), so those counter ==
+  //     totalFlows checks are skipped here for the simulation branch.
+  //   - "mixed" / "unknown" → reject by requiring `validated === false`
+  //     and emitting the rejection in the violation list.
+  // The unconditional new check `kpi.navigatorVisaFlowsStrictPersistentSessionValidated`
+  // is gated on the env `DEMO_E2E_REQUIRE_STRICT_PERSISTENT_SESSION` so
+  // release-strict-final (which sets the env in a follow-up commit) always
+  // requires real persistent-session evidence regardless of declared mode,
+  // while PR Quality (env unset) leaves it as a soft observation that does
+  // not break the run on honest simulation proof. Smallest-diff approach:
+  // env-gated emission rather than introducing a per-check severity flag.
+  const navigatorVisaFlowsValidationMode = String(kpis.navigatorVisaFlowsValidationMode ?? "unknown");
+  const navigatorVisaFlowsRequireStrictPersistentSession = toBooleanFlag(
+    process.env.DEMO_E2E_REQUIRE_STRICT_PERSISTENT_SESSION ?? false,
   );
+  addCheck(
+    "kpi.navigatorVisaFlowsValidationMode",
+    navigatorVisaFlowsValidationMode === "real_playwright" ||
+      navigatorVisaFlowsValidationMode === "simulated",
+    kpis.navigatorVisaFlowsValidationMode,
+    "real_playwright | simulated",
+  );
+  if (navigatorVisaFlowsValidationMode === "real_playwright") {
+    addCheck(
+      "kpi.navigatorVisaFlowsValidated",
+      kpis.navigatorVisaFlowsValidated === true,
+      kpis.navigatorVisaFlowsValidated,
+      true,
+    );
+  } else if (navigatorVisaFlowsValidationMode === "simulated") {
+    addCheck(
+      "kpi.navigatorVisaFlowsValidated",
+      kpis.navigatorVisaFlowsValidated === true,
+      kpis.navigatorVisaFlowsValidated,
+      true,
+    );
+    addCheck(
+      "kpi.navigatorVisaFlowsSimulatedValidated",
+      kpis.navigatorVisaFlowsSimulatedValidated === true,
+      kpis.navigatorVisaFlowsSimulatedValidated,
+      true,
+    );
+  } else {
+    addCheck(
+      "kpi.navigatorVisaFlowsValidated",
+      kpis.navigatorVisaFlowsValidated === false,
+      kpis.navigatorVisaFlowsValidated,
+      "false (mixed/unknown rejected per design.md Mixed Mode)",
+    );
+  }
+  if (navigatorVisaFlowsRequireStrictPersistentSession) {
+    addCheck(
+      "kpi.navigatorVisaFlowsStrictPersistentSessionValidated",
+      kpis.navigatorVisaFlowsStrictPersistentSessionValidated === true,
+      kpis.navigatorVisaFlowsStrictPersistentSessionValidated,
+      "true (release-strict requirement; honest simulation runs report false)",
+    );
+  }
   addCheck(
     "kpi.navigatorVisaFlowsTotal",
     toNumber(kpis.navigatorVisaFlowsTotal) >= 3,
@@ -1809,48 +1873,50 @@ async function main() {
     kpis.navigatorVisaFlowsSuccessRate,
     ">= 1",
   );
-  addCheck(
-    "kpi.navigatorVisaFlowsPersistentSessionCount",
-    toNumber(kpis.navigatorVisaFlowsPersistentSessionCount) === toNumber(kpis.navigatorVisaFlowsTotal),
-    kpis.navigatorVisaFlowsPersistentSessionCount,
-    "== navigatorVisaFlowsTotal",
-  );
-  addCheck(
-    "kpi.navigatorVisaFlowsReplayBundleCount",
-    toNumber(kpis.navigatorVisaFlowsReplayBundleCount) === toNumber(kpis.navigatorVisaFlowsTotal),
-    kpis.navigatorVisaFlowsReplayBundleCount,
-    "== navigatorVisaFlowsTotal",
-  );
-  addCheck(
-    "kpi.navigatorVisaFlowsVerifiedCount",
-    toNumber(kpis.navigatorVisaFlowsVerifiedCount) === toNumber(kpis.navigatorVisaFlowsTotal),
-    kpis.navigatorVisaFlowsVerifiedCount,
-    "== navigatorVisaFlowsTotal",
-  );
-  addCheck(
-    "kpi.navigatorVisaFlowsStaleRecoveryObservedCount",
-    toNumber(kpis.navigatorVisaFlowsStaleRecoveryObservedCount) === toNumber(kpis.navigatorVisaFlowsTotal),
-    kpis.navigatorVisaFlowsStaleRecoveryObservedCount,
-    "== navigatorVisaFlowsTotal",
-  );
-  addCheck(
-    "kpi.navigatorVisaFlowsHealedRecoveryObservedCount",
-    toNumber(kpis.navigatorVisaFlowsHealedRecoveryObservedCount) === toNumber(kpis.navigatorVisaFlowsTotal),
-    kpis.navigatorVisaFlowsHealedRecoveryObservedCount,
-    "== navigatorVisaFlowsTotal",
-  );
-  addCheck(
-    "kpi.navigatorVisaFlowsResumedCheckpointCount",
-    toNumber(kpis.navigatorVisaFlowsResumedCheckpointCount) === toNumber(kpis.navigatorVisaFlowsTotal),
-    kpis.navigatorVisaFlowsResumedCheckpointCount,
-    "== navigatorVisaFlowsTotal",
-  );
-  addCheck(
-    "kpi.navigatorVisaFlowsCheckpointReadyClearedCount",
-    toNumber(kpis.navigatorVisaFlowsCheckpointReadyClearedCount) === toNumber(kpis.navigatorVisaFlowsTotal),
-    kpis.navigatorVisaFlowsCheckpointReadyClearedCount,
-    "== navigatorVisaFlowsTotal",
-  );
+  if (navigatorVisaFlowsValidationMode === "real_playwright") {
+    addCheck(
+      "kpi.navigatorVisaFlowsPersistentSessionCount",
+      toNumber(kpis.navigatorVisaFlowsPersistentSessionCount) === toNumber(kpis.navigatorVisaFlowsTotal),
+      kpis.navigatorVisaFlowsPersistentSessionCount,
+      "== navigatorVisaFlowsTotal",
+    );
+    addCheck(
+      "kpi.navigatorVisaFlowsReplayBundleCount",
+      toNumber(kpis.navigatorVisaFlowsReplayBundleCount) === toNumber(kpis.navigatorVisaFlowsTotal),
+      kpis.navigatorVisaFlowsReplayBundleCount,
+      "== navigatorVisaFlowsTotal",
+    );
+    addCheck(
+      "kpi.navigatorVisaFlowsVerifiedCount",
+      toNumber(kpis.navigatorVisaFlowsVerifiedCount) === toNumber(kpis.navigatorVisaFlowsTotal),
+      kpis.navigatorVisaFlowsVerifiedCount,
+      "== navigatorVisaFlowsTotal",
+    );
+    addCheck(
+      "kpi.navigatorVisaFlowsStaleRecoveryObservedCount",
+      toNumber(kpis.navigatorVisaFlowsStaleRecoveryObservedCount) === toNumber(kpis.navigatorVisaFlowsTotal),
+      kpis.navigatorVisaFlowsStaleRecoveryObservedCount,
+      "== navigatorVisaFlowsTotal",
+    );
+    addCheck(
+      "kpi.navigatorVisaFlowsHealedRecoveryObservedCount",
+      toNumber(kpis.navigatorVisaFlowsHealedRecoveryObservedCount) === toNumber(kpis.navigatorVisaFlowsTotal),
+      kpis.navigatorVisaFlowsHealedRecoveryObservedCount,
+      "== navigatorVisaFlowsTotal",
+    );
+    addCheck(
+      "kpi.navigatorVisaFlowsResumedCheckpointCount",
+      toNumber(kpis.navigatorVisaFlowsResumedCheckpointCount) === toNumber(kpis.navigatorVisaFlowsTotal),
+      kpis.navigatorVisaFlowsResumedCheckpointCount,
+      "== navigatorVisaFlowsTotal",
+    );
+    addCheck(
+      "kpi.navigatorVisaFlowsCheckpointReadyClearedCount",
+      toNumber(kpis.navigatorVisaFlowsCheckpointReadyClearedCount) === toNumber(kpis.navigatorVisaFlowsTotal),
+      kpis.navigatorVisaFlowsCheckpointReadyClearedCount,
+      "== navigatorVisaFlowsTotal",
+    );
+  }
   addCheck(
     "kpi.gatewayWsRoundTripMs",
     toNumber(kpis.gatewayWsRoundTripMs) <= maxGatewayWsRoundTripMs,
