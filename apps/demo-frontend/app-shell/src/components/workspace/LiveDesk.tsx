@@ -15608,6 +15608,14 @@ const LocalServicesDispatchDemoPanel = ({
                         <Button
                           size="sm"
                           variant="ghost"
+                          onClick={() => onOpenPath(LOCAL_SERVICES_OUTREACH_EXECUTION_PACK_PATH)}
+                          className="h-7"
+                        >
+                          Open outreach execution pack
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           onClick={() => onOpenPath(LOCAL_SERVICES_PILOT_SCORECARD_PATH)}
                           className="h-7"
                         >

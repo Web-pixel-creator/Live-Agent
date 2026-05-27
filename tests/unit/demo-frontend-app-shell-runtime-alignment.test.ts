@@ -930,6 +930,21 @@ test("live desk exposes the seven-minute visa intake product path", () => {
   assert.match(liveDesk, /Open pilot scorecard/);
   assert.match(liveDesk, /4-step outreach wizard/);
   assert.match(liveDesk, /Pilot outreach wizard/);
+  // Structural guard: inside the Pilot outreach wizard footer the operator must
+  // see all four quick-link ghost buttons in a stable order so the wizard step
+  // proof connects to the launch packet's outreach execution pack without
+  // requiring a second dominant CTA. This regex pins "Open outreach list" →
+  // "Open outreach execution pack" → "Open pilot scorecard" → "Open founder
+  // execution log" appearing in the same Tailwind ghost-button cluster (they
+  // are emitted consecutively as `<Button size="sm" variant="ghost" ...>` rows
+  // with `className="h-7"`). If any one of them is removed, reordered, or
+  // promoted to a non-ghost variant, this match drops and the regression
+  // surfaces here rather than waiting for a DOM smoke run.
+  assert.match(
+    liveDesk,
+    /Open outreach list[\s\S]{0,400}?Open outreach execution pack[\s\S]{0,400}?Open pilot scorecard[\s\S]{0,400}?Open founder execution log/,
+    "Pilot outreach wizard footer must keep ghost links in stable order: outreach list → execution pack → pilot scorecard → founder execution log",
+  );
   assert.match(liveDesk, /Offer preview/);
   assert.match(liveDesk, /Audience from outreach list/);
   assert.match(liveDesk, /Message\/test preview/);
