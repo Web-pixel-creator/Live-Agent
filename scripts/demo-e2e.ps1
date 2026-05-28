@@ -3030,10 +3030,14 @@ try {
     $enabledSubmitSeen = @($traceObservations | Where-Object { [string]$_ -eq "submit state=enabled" }).Count -ge 1
     $healingNoteSeen = @($traceNotes | Where-Object { [string]$_ -like "Recovered stale grounding ref*" }).Count -ge 2
 
-    Assert-Condition -Condition $disabledSubmitSeen -Message "UI executor ref-healing should observe the disabled submit state before typing."
-    Assert-Condition -Condition $enabledSubmitSeen -Message "UI executor ref-healing should observe the enabled submit state after typing."
-    Assert-Condition -Condition $healingObservationSeen -Message "UI executor ref-healing trace should record healed grounding observations."
-    Assert-Condition -Condition $healingNoteSeen -Message "UI executor ref-healing trace should record healed grounding notes."
+    if (Test-DemoE2eRefHealingRequiresRealPlaywright) {
+      Assert-Condition -Condition $disabledSubmitSeen -Message "UI executor ref-healing should observe the disabled submit state before typing."
+      Assert-Condition -Condition $enabledSubmitSeen -Message "UI executor ref-healing should observe the enabled submit state after typing."
+      Assert-Condition -Condition $healingObservationSeen -Message "UI executor ref-healing trace should record healed grounding observations."
+      Assert-Condition -Condition $healingNoteSeen -Message "UI executor ref-healing trace should record healed grounding notes."
+    } else {
+      Write-Step ("ui.executor.ref_healing: skipping real-DOM trace observation assertions because DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT=`"" + $refHealingRequireRealPlaywrightEnvDisplay + "`"; simulation lane does not exercise the real-DOM submit-state observations or healing trace notes.")
+    }
 
     $inputApproxTokens = Estimate-ApproxTokensFromObject -Value $request
     $outputApproxTokens = Estimate-ApproxTokensFromObject -Value $response
