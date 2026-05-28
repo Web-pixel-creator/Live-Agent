@@ -71,6 +71,45 @@ test("ui navigator handles button-driven visa demo presets without falling back 
 
   const scenarios = [
     {
+      name: "booking",
+      goal:
+        "Open the visa consultation booking demo page, prepare Anna Petrova's consultation booking from the provided summary, stop before the protected calendar confirmation step, and wait for approval.",
+      url: "http://localhost:3000/ui-task-visa-booking-demo.html",
+      summary: [
+        "full_name: Anna Petrova",
+        "email: anna.petrova@example.com",
+        "service: Initial consultation",
+        "preferred_timezone: Europe/Madrid",
+        "requested_window: Tomorrow afternoon",
+        "backup_slot: Tomorrow 17:00",
+      ].join("\n"),
+      domSnapshot:
+        "<main><section id='protected-booking-boundary'><button id='prepare-booking-btn' type='button'>Prepare booking draft</button><button id='confirm-booking-btn' type='button' disabled>Confirm booking for approval</button></section><section id='approved-booking-confirmation' data-state='approved'><h3>Approved booking confirmation</h3></section></main>",
+      accessibilityTree:
+        "main > section[name=protected booking boundary] > button[name=Prepare booking draft] > button[name=Confirm booking for approval disabled] > section[name=approved booking confirmation]",
+      markHints: [
+        "prepare-booking-btn@(240,460)",
+        "confirm-booking-btn@(540,460)",
+        "approved-booking-confirmation@(260,610)",
+      ],
+      refMap: {
+        "prepare-booking-btn": {
+          selector: "#prepare-booking-btn",
+          kind: "button",
+          label: "Prepare booking draft",
+          aliases: ["prepare booking", "prepare consultation booking"],
+        },
+        "confirm-booking-btn": {
+          selector: "#confirm-booking-btn",
+          kind: "submit",
+          label: "Confirm booking for approval",
+          aliases: ["confirm booking for approval", "protected calendar confirmation step"],
+        },
+      },
+      prepareTarget: "ref:prepare-booking-btn",
+      submitTarget: "ref:confirm-booking-btn",
+    },
+    {
       name: "reminder",
       goal:
         "Open the visa reminder demo page, prepare Anna Petrova's consultation reminder from the provided summary, stop before the protected send step, and wait for approval.",

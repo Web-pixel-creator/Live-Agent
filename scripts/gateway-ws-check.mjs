@@ -59,6 +59,30 @@ function fail(message, details) {
   process.exit(1);
 }
 
+function parseBooleanArg(name, value) {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === "true") {
+    return true;
+  }
+  if (value === "false") {
+    return false;
+  }
+  fail(`Invalid ${name} argument`, { [name]: value });
+}
+
+function parseJsonArg(name, value) {
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    fail(`Invalid ${name} JSON argument`, {
+      [name]: value,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
 const args = parseArgs(process.argv.slice(2));
 
 const wsUrl = args.url ?? "ws://localhost:8080/realtime";
@@ -66,9 +90,38 @@ const sessionId = args.sessionId ?? `ws-check-${randomUUID()}`;
 const runId = args.runId ?? `ws-check-run-${randomUUID()}`;
 const userId = args.userId ?? "demo-user";
 const timeoutMs = Number(args.timeoutMs ?? 12000);
+const intent = args.intent ?? "translation";
+const expectedRoute = args.expectedRoute ?? "live-agent";
+const expectTranslation =
+  parseBooleanArg("expectTranslation", args.expectTranslation) ?? intent === "translation";
 
 if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
   fail("Invalid timeoutMs argument", { timeoutMs: args.timeoutMs });
+}
+
+const defaultInput =
+  intent === "translation"
+    ? {
+        text: "Hello from gateway websocket e2e check.",
+        targetLanguage: "ru",
+      }
+    : {
+        text: "Continue with this case.",
+      };
+
+let requestInput = defaultInput;
+if (args.inputJson) {
+  requestInput = parseJsonArg("inputJson", args.inputJson);
+} else {
+  requestInput = {
+    ...defaultInput,
+  };
+  if (typeof args.inputText === "string" && args.inputText.trim().length > 0) {
+    requestInput.text = args.inputText;
+  }
+  if (typeof args.inputTargetLanguage === "string" && args.inputTargetLanguage.trim().length > 0) {
+    requestInput.targetLanguage = args.inputTargetLanguage;
+  }
 }
 
 const requestEnvelope = {
@@ -80,11 +133,8 @@ const requestEnvelope = {
   source: "frontend",
   ts: new Date().toISOString(),
   payload: {
-    intent: "translation",
-    input: {
-      text: "Hello from gateway websocket e2e check.",
-      targetLanguage: "ru",
-    },
+    intent,
+    input: requestInput,
   },
 };
 
@@ -135,6 +185,12 @@ function finish() {
     isObject(responseEnvelope.payload) && typeof responseEnvelope.payload.route === "string"
       ? responseEnvelope.payload.route
       : null;
+  const responseRouting =
+    isObject(responseEnvelope.payload) &&
+    isObject(responseEnvelope.payload.output) &&
+    isObject(responseEnvelope.payload.output.routing)
+      ? responseEnvelope.payload.output.routing
+      : null;
   const responseTranslation =
     isObject(responseEnvelope.payload) &&
     isObject(responseEnvelope.payload.output) &&
@@ -161,15 +217,16 @@ function finish() {
       receivedEventTypes,
     });
   }
-  if (responseRoute !== "live-agent") {
-    fail("WebSocket response route is not live-agent", {
+  if (responseRoute !== expectedRoute) {
+    fail("WebSocket response route mismatch", {
       responseStatus,
       responseRoute,
+      expectedRoute,
       runId,
       receivedEventTypes,
     });
   }
-  if (!responseTranslation) {
+  if (expectTranslation && !responseTranslation) {
     fail("WebSocket translation payload is missing", {
       responseStatus,
       responseRoute,
@@ -224,15 +281,52 @@ function finish() {
     responseType: responseEnvelope.type,
     responseStatus,
     responseRoute,
+    requestIntent: intent,
+    expectedRoute,
+    expectTranslation,
     roundTripMs,
     eventTypes: receivedEventTypes,
     sessionStateCount: transitionStates.length,
     sessionStateTransitions: transitionStates,
     contextValidated,
+    routingContextSource:
+      responseRouting && typeof responseRouting.contextSource === "string"
+        ? responseRouting.contextSource
+        : null,
+    routingContextIngressSource:
+      responseRouting && typeof responseRouting.contextIngressSource === "string"
+        ? responseRouting.contextIngressSource
+        : null,
+    routingFocusId:
+      responseRouting && typeof responseRouting.contextFocusId === "string"
+        ? responseRouting.contextFocusId
+        : null,
+    routingBlocker:
+      responseRouting && typeof responseRouting.contextBlocker === "string"
+        ? responseRouting.contextBlocker
+        : null,
+    routingNextAction:
+      responseRouting && typeof responseRouting.contextNextAction === "string"
+        ? responseRouting.contextNextAction
+        : null,
+    routingMode:
+      responseRouting && typeof responseRouting.mode === "string" ? responseRouting.mode : null,
+    routingRequestedIntent:
+      responseRouting && typeof responseRouting.requestedIntent === "string"
+        ? responseRouting.requestedIntent
+        : null,
+    routingRoutedIntent:
+      responseRouting && typeof responseRouting.routedIntent === "string"
+        ? responseRouting.routedIntent
+        : null,
     translationProvider:
-      typeof responseTranslation.provider === "string" ? responseTranslation.provider : null,
+      responseTranslation && typeof responseTranslation.provider === "string"
+        ? responseTranslation.provider
+        : null,
     translationModel:
-      typeof responseTranslation.model === "string" ? responseTranslation.model : null,
+      responseTranslation && typeof responseTranslation.model === "string"
+        ? responseTranslation.model
+        : null,
   };
 
   process.stdout.write(`${JSON.stringify(result)}\n`);

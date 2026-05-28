@@ -22,6 +22,30 @@ function resolvePowerShellBinary(): string | null {
 
 const powershellBin = resolvePowerShellBinary();
 const skipIfNoPowerShell = powershellBin ? false : "PowerShell binary is not available";
+const isolatedReleaseReadinessEnvKeys = [
+  "RUNTIME_EVIDENCE_SIGNING_ENABLED",
+  "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM",
+  "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64",
+  "RUNTIME_EVIDENCE_SIGNING_KEY_ID",
+  "RUNTIME_EVIDENCE_SIGNING_SIGNER_ID",
+] as const;
+
+function createReleaseReadinessTestEnv(
+  overrides?: Record<string, string | undefined>,
+): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...process.env };
+  for (const key of isolatedReleaseReadinessEnvKeys) {
+    delete env[key];
+  }
+  for (const [key, value] of Object.entries(overrides ?? {})) {
+    if (value === undefined) {
+      delete env[key];
+      continue;
+    }
+    env[key] = value;
+  }
+  return env;
+}
 
 test("release-readiness keeps provider env out of nested unit tests while preserving policy overrides", () => {
   const source = readFileSync(releaseScriptPath, "utf8");
@@ -29,14 +53,30 @@ test("release-readiness keeps provider env out of nested unit tests while preser
   assert.match(source, /function Invoke-WithTemporaryClearedEnvVars/);
   assert.match(source, /function Resolve-ReleaseDemoFrontendDecision/);
   assert.match(source, /function Get-ReleaseReadinessDotEnvValues/);
+  assert.match(source, /function Read-EnvStyleFileValues/);
+  assert.match(source, /function Enable-ReleaseRuntimeEvidenceSigningFromLocalBundle/);
   assert.match(source, /function Get-ReleaseReadinessEnvValue/);
   assert.match(source, /"GOOGLE_API_KEY", "GEMINI_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY", "GOOGLE_GENAI_API_KEY"/);
   assert.match(source, /Join-Path \(Join-Path \$PSScriptRoot "\.\."\) "\.env"/);
+  assert.match(source, /runtime-evidence\.env/);
+  assert.match(source, /UseLocalRuntimeEvidenceSigningBundle/);
+  assert.match(source, /RuntimeEvidenceSigningBundleDir/);
   assert.match(source, /-ScriptBlock \{ Run-Step "Run unit tests" "npm run test:unit" \}/);
   assert.match(source, /DEMO_E2E_ALLOW_UI_EXECUTOR_RUNTIME_FALLBACK/);
   assert.match(source, /DEMO_E2E_INCLUDE_FRONTEND/);
   assert.match(source, /LIVE_DIRECT_MODE_ENABLED/);
   assert.match(source, /LIVE_EPHEMERAL_TOKENS_ENABLED/);
+  assert.match(source, /RUNTIME_EVIDENCE_SIGNING_ENABLED/);
+  assert.match(source, /caseWikiEvidenceSignature/);
+  assert.match(source, /caseWikiRoutingContext/);
+  assert.match(source, /caseWikiContextAdoption/);
+  assert.match(source, /case_wiki\.evidence_signature: validated=/);
+  assert.match(source, /case_wiki\.routing_context: validated=/);
+  assert.match(source, /case_wiki\.context_adoption: validated=/);
+  assert.match(
+    source,
+    /-RuntimeSurfaceSnapshotOutputPath \.\/artifacts\/runtime\/runtime-surface-snapshot\.json/,
+  );
   assert.match(source, /-IncludeFrontend/);
   assert.match(source, /--allowUiExecutorRuntimeFallback true/);
   assert.match(source, /--allowedTranslationProviders fallback,gemini,google_translate/);
@@ -94,6 +134,10 @@ function createPassingSummary(
     governancePolicySummarySource: string;
     governancePolicyOverridesTotal: number | string;
     governancePolicyComplianceTemplate: string;
+    governancePolicyRetentionRawMediaDays: number | string;
+    governancePolicyRetentionAuditLogsDays: number | string;
+    governancePolicyRetentionEventsDays: number | string;
+    governancePolicyRetentionSessionsDays: number | string;
     skillsRegistryLifecycleValidated: boolean | string;
     skillsRegistryIndexHasSkill: boolean | string;
     skillsRegistryRegistryHasSkill: boolean | string;
@@ -133,10 +177,26 @@ function createPassingSummary(
     storytellerPipelineScenarioAttempts: number | string;
     uiSandboxPolicyModesScenarioAttempts: number | string;
     uiVisualTestingScenarioAttempts: number | string;
+    navigatorVisaFlowsScenarioAttempts: number | string;
     operatorConsoleActionsScenarioAttempts: number | string;
     runtimeLifecycleScenarioAttempts: number | string;
     runtimeMetricsScenarioAttempts: number | string;
     scenarioRetryableFailuresTotal: number | string;
+    navigatorVisaFlowsValidated: boolean | string;
+    navigatorVisaFlowsValidationMode: string;
+    navigatorVisaFlowsRealPlaywrightValidated: boolean | string;
+    navigatorVisaFlowsSimulatedValidated: boolean | string;
+    navigatorVisaFlowsStrictPersistentSessionValidated: boolean | string;
+    navigatorVisaFlowsTotal: number | string;
+    navigatorVisaFlowsSucceeded: number | string;
+    navigatorVisaFlowsSuccessRate: number | string;
+    navigatorVisaFlowsPersistentSessionCount: number | string;
+    navigatorVisaFlowsReplayBundleCount: number | string;
+    navigatorVisaFlowsVerifiedCount: number | string;
+    navigatorVisaFlowsStaleRecoveryObservedCount: number | string;
+    navigatorVisaFlowsHealedRecoveryObservedCount: number | string;
+    navigatorVisaFlowsResumedCheckpointCount: number | string;
+    navigatorVisaFlowsCheckpointReadyClearedCount: number | string;
     analyticsSplitTargetsValidated: boolean | string;
     analyticsBigQueryConfigValidated: boolean | string;
     analyticsServicesValidated: number | string;
@@ -219,6 +279,7 @@ function createPassingSummary(
       { name: "governance.policy.lifecycle", status: "passed" },
       { name: "skills.registry.lifecycle", status: "passed" },
       { name: "api.sessions.versioning", status: "passed" },
+      { name: "ui.navigator.visa_vertical_flows", status: "passed" },
     ],
     kpis: {
       gatewayItemTruncateValidated: hasOverride("gatewayItemTruncateValidated")
@@ -559,6 +620,18 @@ function createPassingSummary(
       governancePolicyComplianceTemplate: hasOverride("governancePolicyComplianceTemplate")
         ? overrides.governancePolicyComplianceTemplate
         : "strict",
+      governancePolicyRetentionRawMediaDays: hasOverride("governancePolicyRetentionRawMediaDays")
+        ? overrides.governancePolicyRetentionRawMediaDays
+        : 2,
+      governancePolicyRetentionAuditLogsDays: hasOverride("governancePolicyRetentionAuditLogsDays")
+        ? overrides.governancePolicyRetentionAuditLogsDays
+        : 540,
+      governancePolicyRetentionEventsDays: hasOverride("governancePolicyRetentionEventsDays")
+        ? overrides.governancePolicyRetentionEventsDays
+        : 400,
+      governancePolicyRetentionSessionsDays: hasOverride("governancePolicyRetentionSessionsDays")
+        ? overrides.governancePolicyRetentionSessionsDays
+        : 45,
       skillsRegistryLifecycleValidated: hasOverride("skillsRegistryLifecycleValidated")
         ? overrides.skillsRegistryLifecycleValidated
         : true,
@@ -657,6 +730,9 @@ function createPassingSummary(
       uiVisualTestingScenarioAttempts: hasOverride("uiVisualTestingScenarioAttempts")
         ? overrides.uiVisualTestingScenarioAttempts
         : 1,
+      navigatorVisaFlowsScenarioAttempts: hasOverride("navigatorVisaFlowsScenarioAttempts")
+        ? overrides.navigatorVisaFlowsScenarioAttempts
+        : 1,
       operatorConsoleActionsScenarioAttempts: hasOverride("operatorConsoleActionsScenarioAttempts")
         ? overrides.operatorConsoleActionsScenarioAttempts
         : 1,
@@ -669,6 +745,53 @@ function createPassingSummary(
       scenarioRetryableFailuresTotal: hasOverride("scenarioRetryableFailuresTotal")
         ? overrides.scenarioRetryableFailuresTotal
         : 0,
+      navigatorVisaFlowsValidated: hasOverride("navigatorVisaFlowsValidated")
+        ? overrides.navigatorVisaFlowsValidated
+        : true,
+      navigatorVisaFlowsValidationMode: hasOverride("navigatorVisaFlowsValidationMode")
+        ? overrides.navigatorVisaFlowsValidationMode
+        : "real_playwright",
+      navigatorVisaFlowsRealPlaywrightValidated: hasOverride("navigatorVisaFlowsRealPlaywrightValidated")
+        ? overrides.navigatorVisaFlowsRealPlaywrightValidated
+        : true,
+      navigatorVisaFlowsSimulatedValidated: hasOverride("navigatorVisaFlowsSimulatedValidated")
+        ? overrides.navigatorVisaFlowsSimulatedValidated
+        : false,
+      navigatorVisaFlowsStrictPersistentSessionValidated: hasOverride(
+        "navigatorVisaFlowsStrictPersistentSessionValidated",
+      )
+        ? overrides.navigatorVisaFlowsStrictPersistentSessionValidated
+        : true,
+      navigatorVisaFlowsTotal: hasOverride("navigatorVisaFlowsTotal")
+        ? overrides.navigatorVisaFlowsTotal
+        : 3,
+      navigatorVisaFlowsSucceeded: hasOverride("navigatorVisaFlowsSucceeded")
+        ? overrides.navigatorVisaFlowsSucceeded
+        : 3,
+      navigatorVisaFlowsSuccessRate: hasOverride("navigatorVisaFlowsSuccessRate")
+        ? overrides.navigatorVisaFlowsSuccessRate
+        : 1,
+      navigatorVisaFlowsPersistentSessionCount: hasOverride("navigatorVisaFlowsPersistentSessionCount")
+        ? overrides.navigatorVisaFlowsPersistentSessionCount
+        : 3,
+      navigatorVisaFlowsReplayBundleCount: hasOverride("navigatorVisaFlowsReplayBundleCount")
+        ? overrides.navigatorVisaFlowsReplayBundleCount
+        : 3,
+      navigatorVisaFlowsVerifiedCount: hasOverride("navigatorVisaFlowsVerifiedCount")
+        ? overrides.navigatorVisaFlowsVerifiedCount
+        : 3,
+      navigatorVisaFlowsStaleRecoveryObservedCount: hasOverride("navigatorVisaFlowsStaleRecoveryObservedCount")
+        ? overrides.navigatorVisaFlowsStaleRecoveryObservedCount
+        : 3,
+      navigatorVisaFlowsHealedRecoveryObservedCount: hasOverride("navigatorVisaFlowsHealedRecoveryObservedCount")
+        ? overrides.navigatorVisaFlowsHealedRecoveryObservedCount
+        : 3,
+      navigatorVisaFlowsResumedCheckpointCount: hasOverride("navigatorVisaFlowsResumedCheckpointCount")
+        ? overrides.navigatorVisaFlowsResumedCheckpointCount
+        : 3,
+      navigatorVisaFlowsCheckpointReadyClearedCount: hasOverride("navigatorVisaFlowsCheckpointReadyClearedCount")
+        ? overrides.navigatorVisaFlowsCheckpointReadyClearedCount
+        : 3,
     },
     options: {
       serviceStartMaxAttempts: hasOverride("serviceStartMaxAttempts") ? overrides.serviceStartMaxAttempts : "2",
@@ -686,6 +809,8 @@ function runReleaseReadiness(
   options?: Partial<{
     strictFinalRun: boolean;
     promptfooEvalSummary: Record<string, unknown> | null;
+    useLocalRuntimeEvidenceSigningBundle: boolean;
+    runtimeEvidenceSigningBundleDir: string;
   }>,
 ): { exitCode: number; stdout: string; stderr: string } {
   if (!powershellBin) {
@@ -739,14 +864,229 @@ function runReleaseReadiness(
     if (options?.strictFinalRun) {
       args.push("-StrictFinalRun");
     }
+    if (options?.useLocalRuntimeEvidenceSigningBundle) {
+      args.push("-UseLocalRuntimeEvidenceSigningBundle");
+    }
+    if (options?.runtimeEvidenceSigningBundleDir) {
+      args.push("-RuntimeEvidenceSigningBundleDir", options.runtimeEvidenceSigningBundleDir);
+    }
 
     const result = spawnSync(
       powershellBin,
       args,
       {
+        cwd: tempDir,
         encoding: "utf8",
+        env: createReleaseReadinessTestEnv(),
       },
     );
+
+    return {
+      exitCode: result.status ?? 1,
+      stdout: result.stdout ?? "",
+      stderr: result.stderr ?? "",
+    };
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+}
+
+function createCaseWikiEvidenceSignatureBadgeDetails(
+  overrides: Partial<{
+    status: string;
+    validated: boolean;
+    totalArtifacts: number;
+    signedArtifacts: number;
+    unsignedArtifacts: number;
+    signatureStatus: string;
+    signerId: string;
+    signedAt: string;
+    signedAtIsIso: boolean;
+    signaturePresent: boolean;
+    payloadHash: string;
+  }> = {},
+): Record<string, unknown> {
+  const hasOverride = (key: string): boolean => Object.prototype.hasOwnProperty.call(overrides, key);
+  const expectedSignatureStatus = hasOverride("signatureStatus") ? overrides.signatureStatus : "unsigned";
+  const evidenceSigningEnabled = expectedSignatureStatus === "signed";
+  const evidenceSigningKeyState = expectedSignatureStatus === "signed" ? "loaded" : "missing";
+  const evidenceSigningKeyId = expectedSignatureStatus === "signed" ? "local-release-key" : null;
+  const complianceSummary =
+    "template=strict | tenant_override | pii=high | rawMedia=2d | audit=required | signing=" + expectedSignatureStatus;
+  return {
+    generatedAt: "2026-02-26T00:00:00.000Z",
+    ok: true,
+    checks: 1,
+    violations: 0,
+    evidence: {
+      caseWikiEvidenceSignature: {
+        status: hasOverride("status") ? overrides.status : "warn",
+        validated: hasOverride("validated") ? overrides.validated : true,
+        totalArtifacts: hasOverride("totalArtifacts") ? overrides.totalArtifacts : 1,
+        signedArtifacts: hasOverride("signedArtifacts") ? overrides.signedArtifacts : 0,
+        unsignedArtifacts: hasOverride("unsignedArtifacts") ? overrides.unsignedArtifacts : 1,
+        signatureStatus: hasOverride("signatureStatus") ? overrides.signatureStatus : "unsigned",
+        algorithm: "ed25519-sha256",
+        canonicalization: "json-stable-v1",
+        payloadHash: hasOverride("payloadHash")
+          ? overrides.payloadHash
+          : "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+        keyId: null,
+        signerId: hasOverride("signerId") ? overrides.signerId : "api-backend",
+        signedAt: hasOverride("signedAt") ? overrides.signedAt : "2026-02-26T00:00:00.000Z",
+        signedAtIsIso: hasOverride("signedAtIsIso") ? overrides.signedAtIsIso : true,
+        signaturePresent: hasOverride("signaturePresent") ? overrides.signaturePresent : false,
+        caseId: "case-visa-042",
+        sessionId: "session-visa-042",
+        overviewStatus: "blocked",
+        focusKind: "question",
+        focusLabel: "Passport scan is missing",
+        nextAction: "Ask the customer to upload the passport scan.",
+        sourceRefsCount: 2,
+      },
+      caseWikiCompliance: {
+        status: "pass",
+        validated: true,
+        observed: true,
+        tenantId: "governance-demo-tenant",
+        templateId: "strict",
+        requestedTemplateId: "strict",
+        source: "tenant_override",
+        fallbackApplied: false,
+        controls: {
+          piiRedactionLevel: "high",
+          crossTenantAdminOnly: true,
+          approvalSlaEnforced: true,
+          auditTrailRequired: true,
+        },
+        retention: {
+          rawMediaDays: 2,
+          auditLogsDays: 540,
+          eventsDays: 400,
+          sessionsDays: 45,
+        },
+        evidenceSigning: {
+          enabled: evidenceSigningEnabled,
+          expectedSignatureStatus,
+          keyState: evidenceSigningKeyState,
+          signerId: "api-backend",
+          keyId: evidenceSigningKeyId,
+        },
+        observedSignatureStatus: expectedSignatureStatus,
+        signatureMatch: true,
+        summary: complianceSummary,
+      },
+      caseWikiRoutingContext: {
+        status: "pass",
+        validated: true,
+        observed: true,
+        contextSource: "case_wiki",
+        focusId: "question:passport-scan",
+        blocker: "Do we have the passport scan?",
+        nextAction: "Request passport scan",
+        route: "live-agent",
+        mode: "assistive_override",
+        requestedIntent: "conversation",
+        routedIntent: "negotiation",
+      },
+      caseWikiContextAdoption: {
+        status: "pass",
+        validated: true,
+        observed: true,
+        observedCount: 21,
+        caseWikiObservedCount: 20,
+        inputOnlyObservedCount: 1,
+        unknownObservedCount: 0,
+        caseWikiRate: 0.952381,
+      },
+    },
+  };
+}
+
+function runReleaseReadinessWithCaseWikiEvidence(
+  summary: Record<string, unknown>,
+  badgeDetails: Record<string, unknown>,
+  options?: Partial<{
+    strictFinalRun: boolean;
+    promptfooEvalSummary: Record<string, unknown> | null;
+    hostedDirectLiveProof: Record<string, unknown> | null;
+    env: Record<string, string | undefined>;
+    useLocalRuntimeEvidenceSigningBundle: boolean;
+    runtimeEvidenceSigningBundleDir: string;
+  }>,
+): { exitCode: number; stdout: string; stderr: string } {
+  if (!powershellBin) {
+    throw new Error("PowerShell binary is not available");
+  }
+
+  const tempDir = mkdtempSync(join(tmpdir(), "mla-release-readiness-case-wiki-"));
+  try {
+    const summaryPath = join(tempDir, "summary.json");
+    const badgeDetailsPath = join(tempDir, "badge-details.json");
+    const hostedDirectLiveProofPath = join(tempDir, "artifacts", "deploy", "direct-live-proof.json");
+    const promptfooEvalSummaryPath = join(tempDir, "evals", "latest-run.json");
+    const releaseEvidenceReportPath = join(tempDir, "release-evidence", "report.json");
+    const releaseEvidenceReportMarkdownPath = join(tempDir, "release-evidence", "report.md");
+    const releaseEvidenceManifestPath = join(tempDir, "release-evidence", "manifest.json");
+    const releaseEvidenceManifestMarkdownPath = join(tempDir, "release-evidence", "manifest.md");
+    writeFileSync(summaryPath, `${JSON.stringify(summary, null, 2)}\n`, "utf8");
+    writeFileSync(badgeDetailsPath, `${JSON.stringify(badgeDetails, null, 2)}\n`, "utf8");
+    if (Object.prototype.hasOwnProperty.call(options ?? {}, "hostedDirectLiveProof") && options?.hostedDirectLiveProof) {
+      mkdirSync(dirname(hostedDirectLiveProofPath), { recursive: true });
+      writeFileSync(hostedDirectLiveProofPath, `${JSON.stringify(options.hostedDirectLiveProof, null, 2)}\n`, "utf8");
+    }
+    const promptfooEvalSummary = Object.prototype.hasOwnProperty.call(options ?? {}, "promptfooEvalSummary")
+      ? options?.promptfooEvalSummary
+      : createPassingPromptfooEvalSummary();
+    if (promptfooEvalSummary !== null && promptfooEvalSummary !== undefined) {
+      mkdirSync(dirname(promptfooEvalSummaryPath), { recursive: true });
+      writeFileSync(promptfooEvalSummaryPath, `${JSON.stringify(promptfooEvalSummary, null, 2)}\n`, "utf8");
+    }
+
+    const args = [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      releaseScriptPath,
+      "-SkipBuild",
+      "-SkipUnitTests",
+      "-SkipMonitoringTemplates",
+      "-SkipProfileSmoke",
+      "-SkipPolicy",
+      "-SkipBadge",
+      "-SkipPerfLoad",
+      "-SkipDemoRun",
+      "-PromptfooEvalSummaryPath",
+      promptfooEvalSummaryPath,
+      "-SummaryPath",
+      summaryPath,
+      "-BadgeDetailsPath",
+      badgeDetailsPath,
+      "-ReleaseEvidenceReportPath",
+      releaseEvidenceReportPath,
+      "-ReleaseEvidenceReportMarkdownPath",
+      releaseEvidenceReportMarkdownPath,
+      "-ReleaseEvidenceManifestPath",
+      releaseEvidenceManifestPath,
+      "-ReleaseEvidenceManifestMarkdownPath",
+      releaseEvidenceManifestMarkdownPath,
+    ];
+    if (options?.strictFinalRun) {
+      args.push("-StrictFinalRun");
+    }
+    if (options?.useLocalRuntimeEvidenceSigningBundle) {
+      args.push("-UseLocalRuntimeEvidenceSigningBundle");
+    }
+    if (options?.runtimeEvidenceSigningBundleDir) {
+      args.push("-RuntimeEvidenceSigningBundleDir", options.runtimeEvidenceSigningBundleDir);
+    }
+
+    const result = spawnSync(powershellBin, args, {
+      cwd: tempDir,
+      encoding: "utf8",
+      env: createReleaseReadinessTestEnv(options?.env),
+    });
 
     return {
       exitCode: result.status ?? 1,
@@ -866,6 +1206,25 @@ function createPassingSourceRunManifest(
     evidenceRuntimeGuardrailsSignalPathsSummaryStatus: string;
     evidenceRuntimeGuardrailsSignalPathsTotalPaths: number | string;
     evidenceRuntimeGuardrailsSignalPathsPrimaryPath: Record<string, unknown> | null;
+    evidenceCaseWikiRoutingContextStatus: string;
+    evidenceCaseWikiRoutingContextValidated: boolean | string;
+    evidenceCaseWikiRoutingContextObserved: boolean | string;
+    evidenceCaseWikiRoutingContextSource: string;
+    evidenceCaseWikiRoutingContextFocusId: string;
+    evidenceCaseWikiRoutingContextBlocker: string;
+    evidenceCaseWikiRoutingContextNextAction: string;
+    evidenceCaseWikiRoutingContextRoute: string;
+    evidenceCaseWikiRoutingContextMode: string;
+    evidenceCaseWikiRoutingContextRequestedIntent: string;
+    evidenceCaseWikiRoutingContextRoutedIntent: string;
+    evidenceCaseWikiContextAdoptionStatus: string;
+    evidenceCaseWikiContextAdoptionValidated: boolean | string;
+    evidenceCaseWikiContextAdoptionObserved: boolean | string;
+    evidenceCaseWikiContextAdoptionObservedCount: number | string;
+    evidenceCaseWikiContextAdoptionCaseWikiObservedCount: number | string;
+    evidenceCaseWikiContextAdoptionInputOnlyObservedCount: number | string;
+    evidenceCaseWikiContextAdoptionUnknownObservedCount: number | string;
+    evidenceCaseWikiContextAdoptionCaseWikiRate: number | string;
     evidenceProviderUsageStatus: string;
     evidenceProviderUsageValidated: boolean;
     evidenceProviderUsageActiveSecondaryProviders: number | string;
@@ -888,6 +1247,15 @@ function createPassingSourceRunManifest(
     railwayDeploySummaryRootDescriptorExpectedUiUrl: string;
     railwayDeploySummaryPublicBadgeAttempted: boolean | string;
     railwayDeploySummaryPublicBadgeSkipped: boolean | string;
+    railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus: string;
+    railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved: boolean | string;
+    railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource: string;
+    railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource: string;
+    railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId: string;
+    railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker: string;
+    railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction: string;
+    railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute: string;
+    railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt: string;
     repoPublishSummaryPresent: boolean | string;
     repoPublishSummaryBranch: string;
     repoPublishSummaryRemoteName: string;
@@ -997,6 +1365,33 @@ function createPassingSourceRunManifest(
         railwayDeploySummaryPublicBadgeSkipped: hasOverride("railwayDeploySummaryPublicBadgeSkipped")
           ? overrides.railwayDeploySummaryPublicBadgeSkipped
           : false,
+        railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus: hasOverride("railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus")
+          ? overrides.railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus
+          : "pass",
+        railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved: hasOverride("railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved")
+          ? overrides.railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved
+          : true,
+        railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource: hasOverride("railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource")
+          ? overrides.railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource
+          : "case_wiki",
+        railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource: hasOverride("railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource")
+          ? overrides.railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource
+          : "gateway_hydrated_case_wiki",
+        railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId: hasOverride("railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId")
+          ? overrides.railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId
+          : "focus-railway-case-wiki-ingress",
+        railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker: hasOverride("railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker")
+          ? overrides.railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker
+          : "clear_export_blocker",
+        railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction: hasOverride("railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction")
+          ? overrides.railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction
+          : "Prepare signed replacement",
+        railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute: hasOverride("railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute")
+          ? overrides.railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute
+          : "live_agent.operator_handoff",
+        railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt: hasOverride("railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt")
+          ? overrides.railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt
+          : "2026-02-23T00:00:00.000Z",
         repoPublishSummaryPresent: hasOverride("repoPublishSummaryPresent")
           ? overrides.repoPublishSummaryPresent
           : true,
@@ -1123,6 +1518,63 @@ function createPassingSourceRunManifest(
                 "Recovery drill: UI executor sandbox audit mode for ui_executor_sandbox_not_enforce@ui-executor.",
               lifecycleStatus: "active",
             },
+        badgeEvidenceCaseWikiRoutingContextStatus: hasOverride("evidenceCaseWikiRoutingContextStatus")
+          ? overrides.evidenceCaseWikiRoutingContextStatus
+          : "pass",
+        badgeEvidenceCaseWikiRoutingContextValidated: hasOverride("evidenceCaseWikiRoutingContextValidated")
+          ? overrides.evidenceCaseWikiRoutingContextValidated
+          : true,
+        badgeEvidenceCaseWikiRoutingContextObserved: hasOverride("evidenceCaseWikiRoutingContextObserved")
+          ? overrides.evidenceCaseWikiRoutingContextObserved
+          : true,
+        badgeEvidenceCaseWikiRoutingContextSource: hasOverride("evidenceCaseWikiRoutingContextSource")
+          ? overrides.evidenceCaseWikiRoutingContextSource
+          : "case_wiki",
+        badgeEvidenceCaseWikiRoutingContextFocusId: hasOverride("evidenceCaseWikiRoutingContextFocusId")
+          ? overrides.evidenceCaseWikiRoutingContextFocusId
+          : "question:passport-scan",
+        badgeEvidenceCaseWikiRoutingContextBlocker: hasOverride("evidenceCaseWikiRoutingContextBlocker")
+          ? overrides.evidenceCaseWikiRoutingContextBlocker
+          : "Do we have the passport scan?",
+        badgeEvidenceCaseWikiRoutingContextNextAction: hasOverride("evidenceCaseWikiRoutingContextNextAction")
+          ? overrides.evidenceCaseWikiRoutingContextNextAction
+          : "Request passport scan",
+        badgeEvidenceCaseWikiRoutingContextRoute: hasOverride("evidenceCaseWikiRoutingContextRoute")
+          ? overrides.evidenceCaseWikiRoutingContextRoute
+          : "live-agent",
+        badgeEvidenceCaseWikiRoutingContextMode: hasOverride("evidenceCaseWikiRoutingContextMode")
+          ? overrides.evidenceCaseWikiRoutingContextMode
+          : "assistive_override",
+        badgeEvidenceCaseWikiRoutingContextRequestedIntent: hasOverride("evidenceCaseWikiRoutingContextRequestedIntent")
+          ? overrides.evidenceCaseWikiRoutingContextRequestedIntent
+          : "conversation",
+        badgeEvidenceCaseWikiRoutingContextRoutedIntent: hasOverride("evidenceCaseWikiRoutingContextRoutedIntent")
+          ? overrides.evidenceCaseWikiRoutingContextRoutedIntent
+          : "negotiation",
+        badgeEvidenceCaseWikiContextAdoptionStatus: hasOverride("evidenceCaseWikiContextAdoptionStatus")
+          ? overrides.evidenceCaseWikiContextAdoptionStatus
+          : "pass",
+        badgeEvidenceCaseWikiContextAdoptionValidated: hasOverride("evidenceCaseWikiContextAdoptionValidated")
+          ? overrides.evidenceCaseWikiContextAdoptionValidated
+          : true,
+        badgeEvidenceCaseWikiContextAdoptionObserved: hasOverride("evidenceCaseWikiContextAdoptionObserved")
+          ? overrides.evidenceCaseWikiContextAdoptionObserved
+          : true,
+        badgeEvidenceCaseWikiContextAdoptionObservedCount: hasOverride("evidenceCaseWikiContextAdoptionObservedCount")
+          ? overrides.evidenceCaseWikiContextAdoptionObservedCount
+          : 21,
+        badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount: hasOverride("evidenceCaseWikiContextAdoptionCaseWikiObservedCount")
+          ? overrides.evidenceCaseWikiContextAdoptionCaseWikiObservedCount
+          : 20,
+        badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount: hasOverride("evidenceCaseWikiContextAdoptionInputOnlyObservedCount")
+          ? overrides.evidenceCaseWikiContextAdoptionInputOnlyObservedCount
+          : 1,
+        badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount: hasOverride("evidenceCaseWikiContextAdoptionUnknownObservedCount")
+          ? overrides.evidenceCaseWikiContextAdoptionUnknownObservedCount
+          : 0,
+        badgeEvidenceCaseWikiContextAdoptionCaseWikiRate: hasOverride("evidenceCaseWikiContextAdoptionCaseWikiRate")
+          ? overrides.evidenceCaseWikiContextAdoptionCaseWikiRate
+          : 0.952381,
         badgeEvidenceProviderUsageStatus: hasOverride("evidenceProviderUsageStatus")
           ? overrides.evidenceProviderUsageStatus
           : "pass",
@@ -1272,7 +1724,9 @@ function runReleaseReadinessWithPerfArtifacts(
         releaseEvidenceManifestMarkdownPath,
       ],
       {
+        cwd: tempDir,
         encoding: "utf8",
+        env: createReleaseReadinessTestEnv(),
       },
     );
 
@@ -1346,7 +1800,9 @@ function runReleaseReadinessArtifactOnly(
         manifestPath,
       ],
       {
+        cwd: tempDir,
         encoding: "utf8",
+        env: createReleaseReadinessTestEnv(),
       },
     );
 
@@ -1366,6 +1822,276 @@ test(
   () => {
     const result = runReleaseReadiness(createPassingSummary());
     assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
+  },
+);
+
+test(
+  "release-readiness passes with unsigned case wiki evidence signature when runtime signing is disabled",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessWithCaseWikiEvidence(
+      createPassingSummary(),
+      createCaseWikiEvidenceSignatureBadgeDetails(),
+    );
+    assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /case_wiki\.evidence_signature: validated=True/i);
+    assert.match(output, /case_wiki\.evidence_signature: .*status=warn/i);
+    assert.match(output, /case_wiki\.routing_context: validated=True/i);
+    assert.match(output, /case_wiki\.context_adoption: validated=True/i);
+    assert.match(output, /case_wiki_rate=0\.95/i);
+    assert.match(output, /context_source=case_wiki/i);
+    assert.match(output, /signature_status=unsigned/i);
+    assert.match(output, /signed=0/i);
+    assert.match(output, /unsigned=1/i);
+  },
+);
+
+test(
+  "release-readiness accepts hosted signed case wiki evidence promoted from direct-live proof",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessWithCaseWikiEvidence(
+      createPassingSummary(),
+      createCaseWikiEvidenceSignatureBadgeDetails(),
+      {
+        hostedDirectLiveProof: {
+          generatedAt: new Date().toISOString(),
+          status: "pass",
+          runtimeStatus: {
+            preferredMode: "direct_live",
+            activeMode: "direct_live",
+          },
+          replay: {
+            liveTransport: {
+              activeMode: "direct_live",
+              evidenceSource: "session_events",
+              firstAudioMs: 812,
+              firstOutputMs: 812,
+              fallbackEventCount: 0,
+              fallbackReason: null,
+            },
+          },
+          runtimeDiagnostics: {
+            apiBackendEvidenceSigning: {
+              expectedSignatureStatus: "signed",
+              keyState: "loaded",
+            },
+          },
+          caseWikiEvidenceSignatureExpectation: {
+            expectedStatus: "signed",
+            source: "runtime_diagnostics",
+          },
+          caseWiki: {
+            evidenceSignature: {
+              status: "signed",
+              signaturePresent: true,
+              signerId: "api-backend",
+              signedAt: "2026-04-15T12:01:19.698Z",
+              payloadHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              keyId: "runtime-evidence-20260410",
+            },
+          },
+          summary: "direct_live observed via session_events first_audio=812ms",
+        },
+      },
+    );
+    assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /case_wiki\.evidence_signature: validated=True/i);
+    assert.match(output, /case_wiki\.evidence_signature: .*status=pass/i);
+    assert.match(output, /signature_status=signed/i);
+    assert.match(output, /signed=1/i);
+    assert.match(output, /unsigned=0/i);
+    assert.match(output, /runtime_proof\.summary: status=fail/i);
+    assert.match(output, /direct_live=pass/i);
+    assert.match(output, /case_wiki=fail/i);
+  },
+);
+
+test(
+  "release-readiness can bootstrap signed case wiki evidence from a local signing bundle",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const bundleDir = mkdtempSync(join(tmpdir(), "mla-release-readiness-signing-bundle-"));
+    try {
+      writeFileSync(
+        join(bundleDir, "runtime-evidence.env"),
+        [
+          "RUNTIME_EVIDENCE_SIGNING_ENABLED=true",
+          `RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64=${Buffer.from("fake-private-key", "utf8").toString("base64")}`,
+          "RUNTIME_EVIDENCE_SIGNING_KEY_ID=local-release-key",
+          "RUNTIME_EVIDENCE_SIGNING_SIGNER_ID=api-backend-local",
+          "",
+        ].join("\n"),
+        "utf8",
+      );
+
+      const result = runReleaseReadinessWithCaseWikiEvidence(
+        createPassingSummary(),
+        createCaseWikiEvidenceSignatureBadgeDetails({
+          status: "pass",
+          signedArtifacts: 1,
+          unsignedArtifacts: 0,
+          signatureStatus: "signed",
+          signaturePresent: true,
+          signerId: "api-backend-local",
+        }),
+        {
+          useLocalRuntimeEvidenceSigningBundle: true,
+          runtimeEvidenceSigningBundleDir: bundleDir,
+        },
+      );
+      assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
+      const output = `${result.stderr}\n${result.stdout}`;
+      assert.match(output, /Loaded local runtime evidence signing bundle/i);
+      assert.match(output, /case_wiki\.evidence_signature: .*status=pass/i);
+      assert.match(output, /signature_status=signed/i);
+      assert.match(output, /signed=1/i);
+      assert.match(output, /unsigned=0/i);
+    } finally {
+      rmSync(bundleDir, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
+  "release-readiness ignores inherited runtime signing env for unsigned fixture checks",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const previousEnabled = process.env.RUNTIME_EVIDENCE_SIGNING_ENABLED;
+    const previousPrivateKeyBase64 = process.env.RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64;
+    const previousKeyId = process.env.RUNTIME_EVIDENCE_SIGNING_KEY_ID;
+    const previousSignerId = process.env.RUNTIME_EVIDENCE_SIGNING_SIGNER_ID;
+    process.env.RUNTIME_EVIDENCE_SIGNING_ENABLED = "true";
+    process.env.RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64 = Buffer.from("not-a-valid-private-key", "utf8").toString(
+      "base64",
+    );
+    process.env.RUNTIME_EVIDENCE_SIGNING_KEY_ID = "outer-shell-key";
+    process.env.RUNTIME_EVIDENCE_SIGNING_SIGNER_ID = "outer-shell-signer";
+
+    try {
+      const result = runReleaseReadinessWithCaseWikiEvidence(
+        createPassingSummary(),
+        createCaseWikiEvidenceSignatureBadgeDetails(),
+      );
+      assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
+      const output = `${result.stderr}\n${result.stdout}`;
+      assert.match(output, /case_wiki\.evidence_signature: .*status=warn/i);
+      assert.match(output, /signature_status=unsigned/i);
+    } finally {
+      if (previousEnabled === undefined) {
+        delete process.env.RUNTIME_EVIDENCE_SIGNING_ENABLED;
+      } else {
+        process.env.RUNTIME_EVIDENCE_SIGNING_ENABLED = previousEnabled;
+      }
+      if (previousPrivateKeyBase64 === undefined) {
+        delete process.env.RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64;
+      } else {
+        process.env.RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64 = previousPrivateKeyBase64;
+      }
+      if (previousKeyId === undefined) {
+        delete process.env.RUNTIME_EVIDENCE_SIGNING_KEY_ID;
+      } else {
+        process.env.RUNTIME_EVIDENCE_SIGNING_KEY_ID = previousKeyId;
+      }
+      if (previousSignerId === undefined) {
+        delete process.env.RUNTIME_EVIDENCE_SIGNING_SIGNER_ID;
+      } else {
+        process.env.RUNTIME_EVIDENCE_SIGNING_SIGNER_ID = previousSignerId;
+      }
+    }
+  },
+);
+
+test(
+  "release-readiness fails fast when the requested local signing bundle is missing",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const missingBundleDir = join(tmpdir(), `mla-release-readiness-missing-signing-bundle-${Date.now()}`);
+    const result = runReleaseReadinessWithCaseWikiEvidence(
+      createPassingSummary(),
+      createCaseWikiEvidenceSignatureBadgeDetails({
+        status: "pass",
+        signedArtifacts: 1,
+        unsignedArtifacts: 0,
+        signatureStatus: "signed",
+        signaturePresent: true,
+      }),
+      {
+        useLocalRuntimeEvidenceSigningBundle: true,
+        runtimeEvidenceSigningBundleDir: missingBundleDir,
+      },
+    );
+    assert.equal(result.exitCode, 1);
+    assert.match(`${result.stderr}\n${result.stdout}`, /Local runtime evidence signing bundle is missing/i);
+    assert.match(`${result.stderr}\n${result.stdout}`, /runtime:evidence:keygen/i);
+  },
+);
+
+test(
+  "release-readiness fails when runtime signing is enabled but case wiki evidence remains unsigned",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessWithCaseWikiEvidence(
+      createPassingSummary(),
+      createCaseWikiEvidenceSignatureBadgeDetails(),
+      {
+        env: {
+          RUNTIME_EVIDENCE_SIGNING_ENABLED: "true",
+        },
+      },
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /caseWikiEvidenceSignature expected status=pass and validated=true, actual status=warn/i,
+    );
+  },
+);
+
+test(
+  "release-readiness fails when runtime signing key material is present but case wiki evidence remains unsigned",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessWithCaseWikiEvidence(
+      createPassingSummary(),
+      createCaseWikiEvidenceSignatureBadgeDetails(),
+      {
+        env: {
+          RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64: Buffer.from("not-a-valid-private-key", "utf8").toString("base64"),
+        },
+      },
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /caseWikiEvidenceSignature expected status=pass and validated=true, actual status=warn/i,
+    );
+  },
+);
+
+test(
+  "release-readiness fails when case wiki context adoption proof is below threshold",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const failingBadgeDetails = createCaseWikiEvidenceSignatureBadgeDetails();
+    (
+      ((failingBadgeDetails.evidence as Record<string, unknown>).caseWikiContextAdoption as Record<string, unknown>)
+    ).caseWikiRate = 0.9;
+
+    const result = runReleaseReadinessWithCaseWikiEvidence(
+      createPassingSummary(),
+      failingBadgeDetails,
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /release evidence caseWikiContextAdoption must prove observed\+validated adoption with count conservation[\s\S]*case[\s\S]*WikiRate>=0\.95/i,
+    );
   },
 );
 
@@ -1733,6 +2459,22 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /kpi\.uiVisualTestingScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when navigator visa flow scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        navigatorVisaFlowsScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.navigatorVisaFlowsScenarioAttempts expected 1\.\.2, actual 3/i);
   },
 );
 
@@ -2676,6 +3418,15 @@ test(
     assert.match(output, /railway_deploy_summary_expected_ui_url=https:\/\/demo\.live-agent\.example\.test/i);
     assert.match(output, /railway_deploy_summary_public_badge_attempted=true/i);
     assert.match(output, /railway_deploy_summary_public_badge_skipped=false/i);
+    assert.match(output, /railway_deploy_summary_case_wiki_runtime_surface_ingress_status=pass/i);
+    assert.match(output, /railway_deploy_summary_case_wiki_runtime_surface_ingress_observed=true/i);
+    assert.match(output, /railway_deploy_summary_case_wiki_runtime_surface_ingress_context_source=case_wiki/i);
+    assert.match(output, /railway_deploy_summary_case_wiki_runtime_surface_ingress_ingress_source=gateway_hydrated_case_wiki/i);
+    assert.match(output, /railway_deploy_summary_case_wiki_runtime_surface_ingress_focus_id=focus-railway-case-wiki-ingress/i);
+    assert.match(output, /railway_deploy_summary_case_wiki_runtime_surface_ingress_blocker=clear_export_blocker/i);
+    assert.match(output, /railway_deploy_summary_case_wiki_runtime_surface_ingress_next_action=Prepare signed replacement/i);
+    assert.match(output, /railway_deploy_summary_case_wiki_runtime_surface_ingress_route=live_agent\.operator_handoff/i);
+    assert.match(output, /railway_deploy_summary_case_wiki_runtime_surface_ingress_updated_at=2026-02-23T00:00:00.000Z/i);
     assert.match(output, /repo_publish_summary_present=true/i);
     assert.match(output, /repo_publish_summary_branch=main/i);
     assert.match(output, /repo_publish_summary_remote_name=origin/i);
@@ -2719,6 +3470,15 @@ test(
       "railwayDeploySummaryRootDescriptorExpectedUiUrl",
       "railwayDeploySummaryPublicBadgeAttempted",
       "railwayDeploySummaryPublicBadgeSkipped",
+      "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus",
+      "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved",
+      "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource",
+      "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource",
+      "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId",
+      "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker",
+      "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction",
+      "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute",
+      "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt",
       "repoPublishSummaryBranch",
       "repoPublishSummaryRemoteName",
       "repoPublishSummaryVerificationSkipped",
@@ -3072,6 +3832,22 @@ test(
     assert.match(
       output,
       /source run manifest evidenceSnapshot\.badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath is required when\s*total\s*Paths > 0/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run evidence case wiki context adoption rate is below threshold",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ evidenceCaseWikiContextAdoptionCaseWikiRate: 0.9 }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.badgeEvidenceCaseWikiContextAdoptionCaseWikiRate expected 0\.95\.\.1, actual\s*0\s*\.9/i,
     );
   },
 );

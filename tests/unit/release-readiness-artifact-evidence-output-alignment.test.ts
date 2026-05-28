@@ -25,6 +25,25 @@ test("release-readiness emits artifact source-run evidence snapshot output contr
   assert.match(source, /runtime_guardrails_signal_paths_summary_status=/);
   assert.match(source, /runtime_guardrails_signal_paths_total_paths=/);
   assert.match(source, /runtime_guardrails_signal_paths_primary_path_title=/);
+  assert.match(source, /case_wiki_routing_context_status=/);
+  assert.match(source, /case_wiki_routing_context_validated=/);
+  assert.match(source, /case_wiki_routing_context_observed=/);
+  assert.match(source, /case_wiki_routing_context_source=/);
+  assert.match(source, /case_wiki_routing_context_focus_id=/);
+  assert.match(source, /case_wiki_routing_context_blocker=/);
+  assert.match(source, /case_wiki_routing_context_next_action=/);
+  assert.match(source, /case_wiki_routing_context_route=/);
+  assert.match(source, /case_wiki_routing_context_mode=/);
+  assert.match(source, /case_wiki_routing_context_requested_intent=/);
+  assert.match(source, /case_wiki_routing_context_routed_intent=/);
+  assert.match(source, /case_wiki_context_adoption_status=/);
+  assert.match(source, /case_wiki_context_adoption_validated=/);
+  assert.match(source, /case_wiki_context_adoption_observed=/);
+  assert.match(source, /case_wiki_context_adoption_observed_count=/);
+  assert.match(source, /case_wiki_context_adoption_case_wiki_observed_count=/);
+  assert.match(source, /case_wiki_context_adoption_input_only_observed_count=/);
+  assert.match(source, /case_wiki_context_adoption_unknown_observed_count=/);
+  assert.match(source, /case_wiki_context_adoption_case_wiki_rate=/);
   assert.match(source, /provider_usage_status=/);
   assert.match(source, /provider_usage_validated=/);
   assert.match(source, /provider_usage_active_secondary_providers=/);
@@ -50,6 +69,15 @@ test("release-readiness emits artifact source-run evidence snapshot output contr
   assert.match(source, /railway_deploy_summary_expected_ui_url=/);
   assert.match(source, /railway_deploy_summary_public_badge_attempted=/);
   assert.match(source, /railway_deploy_summary_public_badge_skipped=/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_status=/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_observed=/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_context_source=/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_ingress_source=/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_focus_id=/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_blocker=/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_next_action=/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_route=/);
+  assert.match(source, /railway_deploy_summary_case_wiki_runtime_surface_ingress_updated_at=/);
   assert.match(source, /repo_publish_summary_present=/);
   assert.match(source, /repo_publish_summary_branch=/);
   assert.match(source, /repo_publish_summary_remote_name=/);
@@ -92,6 +120,25 @@ test("release-readiness emits artifact source-run evidence snapshot output contr
   assert.match(source, /evidenceSnapshot\.badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus is required/);
   assert.match(source, /evidenceSnapshot\.badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths expected >= 0/);
   assert.match(source, /evidenceSnapshot\.badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath is required when totalPaths > 0/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidenceCaseWikiRoutingContextStatus expected pass/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidenceCaseWikiRoutingContextValidated expected true/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidenceCaseWikiRoutingContextObserved expected true/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidenceCaseWikiRoutingContextSource expected case_wiki/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidenceCaseWikiRoutingContextFocusId is required/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidenceCaseWikiRoutingContextBlocker is required/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidenceCaseWikiRoutingContextNextAction is required/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidenceCaseWikiRoutingContextRoute is required/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidenceCaseWikiRoutingContextMode is required/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidenceCaseWikiRoutingContextRequestedIntent is required/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidenceCaseWikiRoutingContextRoutedIntent is required/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidenceCaseWikiContextAdoptionStatus expected pass/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidenceCaseWikiContextAdoptionValidated expected true/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidenceCaseWikiContextAdoptionObserved expected true/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidenceCaseWikiContextAdoptionObservedCount expected >= 3/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount expected >= 3/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount expected >= 0/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount expected >= 0/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidenceCaseWikiContextAdoptionCaseWikiRate expected 0\.95\.\.1/);
   assert.match(source, /evidenceSnapshot\.badgeEvidenceProviderUsageStatus expected pass/);
   assert.match(source, /evidenceSnapshot\.badgeEvidenceProviderUsageValidated expected true/);
   assert.match(source, /evidenceSnapshot\.badgeEvidenceProviderUsageActiveSecondaryProviders expected >= 0/);
@@ -104,6 +151,14 @@ test("release-readiness emits artifact source-run evidence snapshot output contr
   assert.match(
     source,
     /Get-OptionalNonEmptyStringPropertyValue -Object \$manifestEvidenceSnapshot -Name "railwayDeploySummaryProjectId"/,
+  );
+  assert.match(
+    source,
+    /Get-OptionalNonEmptyStringPropertyValue -Object \$manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus"/,
+  );
+  assert.match(
+    source,
+    /Get-OptionalBooleanPropertyValue -Object \$manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved"/,
   );
   assert.match(
     source,

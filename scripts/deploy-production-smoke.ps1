@@ -85,19 +85,62 @@ function New-MarkdownSummary {
     [hashtable]$Summary
   )
 
+  function Get-MarkdownFieldValue {
+    param(
+      [Parameter(Mandatory = $false)]
+      [object]$Value,
+      [Parameter(Mandatory = $true)]
+      [string[]]$Path,
+      [Parameter(Mandatory = $true)]
+      [string]$DefaultValue
+    )
+
+    $current = $Value
+    foreach ($segment in $Path) {
+      if ($null -eq $current) {
+        return $DefaultValue
+      }
+
+      if ($current -is [System.Collections.IDictionary]) {
+        if (-not $current.Contains($segment)) {
+          return $DefaultValue
+        }
+        $current = $current[$segment]
+        continue
+      }
+
+      $property = $current.PSObject.Properties[$segment]
+      if ($null -eq $property) {
+        return $DefaultValue
+      }
+      $current = $property.Value
+    }
+
+    if ($null -eq $current) {
+      return $DefaultValue
+    }
+
+    $text = [string]$current
+    if ([string]::IsNullOrWhiteSpace($text)) {
+      return $DefaultValue
+    }
+
+    return $text
+  }
+
   $lines = @(
     "# Production Smoke",
     "",
-    "- Status: $($Summary.status)",
-    "- Generated At (UTC): $($Summary.generatedAt)",
-    "- Gateway URL: $($Summary.gateway.url)",
-    "- Frontend URL: $($Summary.frontend.url)",
-    "- Badge: $($Summary.badge.label) -> $($Summary.badge.message) ($($Summary.badge.color))",
-    "- Gateway Runtime: state=$($Summary.gateway.runtimeState), ready=$($Summary.gateway.ready), draining=$($Summary.gateway.draining)",
-    "- Gateway UI URL: $($Summary.gateway.uiUrl)",
-    "- Frontend Health: ok=$($Summary.frontend.healthOk), service=$($Summary.frontend.healthService)",
-    "- Frontend Title: $($Summary.frontend.title)",
-    "- Frontend Markers: AI Action Desk=$($Summary.frontend.markers.aiActionDesk), Case Workspace=$($Summary.frontend.markers.caseWorkspace), Operator Console=$($Summary.frontend.markers.operatorConsole), Session Boundary=$($Summary.frontend.markers.sessionBoundary)"
+    "- Status: $(Get-MarkdownFieldValue -Value $Summary -Path @("status") -DefaultValue "unknown")",
+    "- Generated At (UTC): $(Get-MarkdownFieldValue -Value $Summary -Path @("generatedAt") -DefaultValue "n/a")",
+    "- Gateway URL: $(Get-MarkdownFieldValue -Value $Summary -Path @("gateway", "url") -DefaultValue "n/a")",
+    "- Frontend URL: $(Get-MarkdownFieldValue -Value $Summary -Path @("frontend", "url") -DefaultValue "n/a")",
+    "- Badge: $(Get-MarkdownFieldValue -Value $Summary -Path @("badge", "label") -DefaultValue "n/a") -> $(Get-MarkdownFieldValue -Value $Summary -Path @("badge", "message") -DefaultValue "n/a") ($(Get-MarkdownFieldValue -Value $Summary -Path @("badge", "color") -DefaultValue "n/a"))",
+    "- Gateway Runtime: state=$(Get-MarkdownFieldValue -Value $Summary -Path @("gateway", "runtimeState") -DefaultValue "n/a"), ready=$(Get-MarkdownFieldValue -Value $Summary -Path @("gateway", "ready") -DefaultValue "n/a"), draining=$(Get-MarkdownFieldValue -Value $Summary -Path @("gateway", "draining") -DefaultValue "n/a")",
+    "- Gateway UI URL: $(Get-MarkdownFieldValue -Value $Summary -Path @("gateway", "uiUrl") -DefaultValue "n/a")",
+    "- Frontend Health: ok=$(Get-MarkdownFieldValue -Value $Summary -Path @("frontend", "healthOk") -DefaultValue "n/a"), service=$(Get-MarkdownFieldValue -Value $Summary -Path @("frontend", "healthService") -DefaultValue "n/a")",
+    "- Frontend Title: $(Get-MarkdownFieldValue -Value $Summary -Path @("frontend", "title") -DefaultValue "n/a")",
+    "- Frontend Markers: AI Action Desk=$(Get-MarkdownFieldValue -Value $Summary -Path @("frontend", "markers", "aiActionDesk") -DefaultValue "n/a"), Case Workspace=$(Get-MarkdownFieldValue -Value $Summary -Path @("frontend", "markers", "caseWorkspace") -DefaultValue "n/a"), Operator Console=$(Get-MarkdownFieldValue -Value $Summary -Path @("frontend", "markers", "operatorConsole") -DefaultValue "n/a"), Session Boundary=$(Get-MarkdownFieldValue -Value $Summary -Path @("frontend", "markers", "sessionBoundary") -DefaultValue "n/a")"
   )
 
   $hasError = $false

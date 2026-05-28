@@ -87,7 +87,7 @@ npm run dev:ui-executor
 npm run dev:frontend
 ```
 
-Open: `http://localhost:3000`
+Open: `http://localhost:3000/app`
 
 ## 3) Run Judge-Evidence Automation
 
@@ -321,7 +321,7 @@ npm run verify:release
 ## 7) Demo Script by Minute (5-6 min)
 
 1. `00:00-00:45` Platform intro:
-   - Open `http://localhost:3000`.
+   - Open `http://localhost:3000/app`.
    - Show connection panel and assistant lifecycle (`idle/streaming/speaking`).
    - Point to judge artifacts target: `artifacts/judge-visual-evidence/presentation.md`.
 2. `00:45-02:15` Live Agent category:

@@ -19,6 +19,7 @@
     "runtime-bootstrap-status",
     "runtime-surface",
     "runtime-surface-readiness",
+    "operator-queue",
     "runtime-session-replay",
     "runtime-case-wiki",
     "runtime-case-wiki-notes",
@@ -59,7 +60,7 @@
   "summary": {
     "totalAgents": 3,
     "totalRoutes": 6,
-    "totalControlPlaneSurfaces": 18,
+    "totalControlPlaneSurfaces": 19,
     "totalEvidenceLanes": 6,
     "totalUiCapabilities": 4,
     "minimumPlaybooks": 18

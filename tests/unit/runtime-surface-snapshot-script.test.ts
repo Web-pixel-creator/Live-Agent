@@ -32,9 +32,13 @@ test("runtime surface snapshot script writes an offline artifact", () => {
 
     const inventory = artifact.inventory as Record<string, unknown>;
     const readiness = artifact.readiness as Record<string, unknown>;
+    const readinessSummary = readiness.summary as Record<string, unknown>;
+    const workflow = readinessSummary.workflow as Record<string, unknown>;
+    const caseWikiIngress = workflow.caseWikiIngress as Record<string, unknown>;
     assert.equal(inventory.source, "repo_owned_runtime_surface_inventory");
     assert.equal(readiness.source, "repo_owned_runtime_surface_readiness");
     assert.ok(typeof readiness.status === "string" && String(readiness.status).length > 0);
+    assert.equal(caseWikiIngress.observed, false);
   } finally {
     rmSync(tempDir, { recursive: true, force: true });
   }
@@ -59,6 +63,9 @@ test("runtime surface snapshot script stays aligned across package and docs", ()
     'mode: offline ? "offline" : "live"',
     'buildRuntimeSurfaceInventorySnapshot',
     'buildRuntimeSurfaceReadinessSnapshot',
+    "/v1/runtime/surface/readiness",
+    "listRecentEvents",
+    "events: recentEvents",
     "artifacts/runtime/runtime-surface-snapshot.json",
   ]) {
     assert.ok(scriptSource.includes(token), `runtime surface snapshot script missing token: ${token}`);
@@ -67,6 +74,7 @@ test("runtime surface snapshot script stays aligned across package and docs", ()
   assert.match(readme, /npm run runtime:surface:snapshot/);
   assert.match(readme, /artifacts\/runtime\/runtime-surface-snapshot\.json/);
   assert.match(readme, /offline true/);
+  assert.match(readme, /verify:release[^.\n]+artifacts\/runtime\/runtime-surface-snapshot\.json/);
   assert.match(architecture, /runtime-surface-snapshot\.mjs/);
   assert.match(architecture, /artifacts\/runtime\/runtime-surface-snapshot\.json/);
   assert.match(operatorGuide, /npm run runtime:surface:snapshot/);

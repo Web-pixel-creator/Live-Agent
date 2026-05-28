@@ -8,6 +8,7 @@ param(
   [switch]$SkipDemoRun,
   [switch]$UseFastDemoE2E,
   [switch]$StrictFinalRun,
+  [switch]$UseLocalRuntimeEvidenceSigningBundle,
   [switch]$SkipPolicy,
   [switch]$SkipBadge,
   [switch]$SkipPublicBadgeSync,
@@ -37,7 +38,8 @@ param(
   [string]$ReleaseEvidenceReportPath = "artifacts/release-evidence/report.json",
   [string]$ReleaseEvidenceReportMarkdownPath = "artifacts/release-evidence/report.md",
   [string]$ReleaseEvidenceManifestPath = "artifacts/release-evidence/manifest.json",
-  [string]$ReleaseEvidenceManifestMarkdownPath = "artifacts/release-evidence/manifest.md"
+  [string]$ReleaseEvidenceManifestMarkdownPath = "artifacts/release-evidence/manifest.md",
+  [string]$RuntimeEvidenceSigningBundleDir = ".credentials/runtime-evidence-signing"
 )
 
 $ErrorActionPreference = "Stop"
@@ -66,6 +68,8 @@ $ReleaseThresholds = @{
 $MaxAllowedScenarioRetriesUsedCount = if ($StrictFinalRun) { 0 } else { $ReleaseThresholds.MaxScenarioRetriesUsedCount }
 $EffectiveDemoRunMaxAttempts = if ($StrictFinalRun) { 1 } else { $DemoRunMaxAttempts }
 $IsArtifactOnlyMode = $SkipDemoE2E -and $SkipPolicy -and $SkipBadge
+$ReleaseEvidenceRuntimeProofReportPath = Join-Path (Split-Path -Parent $ReleaseEvidenceReportPath) "runtime-proof-report.json"
+$ReleaseEvidenceRuntimeProofReportMarkdownPath = Join-Path (Split-Path -Parent $ReleaseEvidenceReportMarkdownPath) "runtime-proof-report.md"
 $script:ReleaseReadinessDotEnvValues = $null
 
 function To-NumberOrNaN([object]$Value) {
@@ -275,19 +279,13 @@ function Ensure-ReleaseDemoStorytellerMediaMode {
   Write-Host "[release-check] DEMO_E2E_STORYTELLER_MEDIA_MODE defaulted to simulated for release verification."
 }
 
-function Get-ReleaseReadinessDotEnvValues {
-  if ($null -ne $script:ReleaseReadinessDotEnvValues) {
-    return $script:ReleaseReadinessDotEnvValues
-  }
-
+function Read-EnvStyleFileValues([string]$Path) {
   $values = @{}
-  $envPath = Join-Path (Join-Path $PSScriptRoot "..") ".env"
-  if (-not (Test-Path $envPath)) {
-    $script:ReleaseReadinessDotEnvValues = $values
-    return $script:ReleaseReadinessDotEnvValues
+  if (-not (Test-Path $Path)) {
+    return $values
   }
 
-  foreach ($line in (Get-Content $envPath)) {
+  foreach ($line in (Get-Content $Path)) {
     if ([string]::IsNullOrWhiteSpace($line)) {
       continue
     }
@@ -312,9 +310,19 @@ function Get-ReleaseReadinessDotEnvValues {
       $value = $value.Substring(1, $value.Length - 2)
     }
 
-    $values[$name] = $value
+    $values[$name] = [string]$value
   }
 
+  return $values
+}
+
+function Get-ReleaseReadinessDotEnvValues {
+  if ($null -ne $script:ReleaseReadinessDotEnvValues) {
+    return $script:ReleaseReadinessDotEnvValues
+  }
+
+  $envPath = Join-Path (Join-Path $PSScriptRoot "..") ".env"
+  $values = Read-EnvStyleFileValues -Path $envPath
   $script:ReleaseReadinessDotEnvValues = $values
   return $script:ReleaseReadinessDotEnvValues
 }
@@ -342,6 +350,18 @@ function Test-ReleaseDemoAnyNonEmptyEnvVar([string[]]$Names) {
   }
 
   return $false
+}
+
+function Test-ReleaseRuntimeEvidenceSigningConfigured {
+  $runtimeEvidenceSigningEnabled = To-BoolOrNull (Get-ReleaseReadinessEnvValue "RUNTIME_EVIDENCE_SIGNING_ENABLED")
+  if ($runtimeEvidenceSigningEnabled -eq $true) {
+    return $true
+  }
+
+  return Test-ReleaseDemoAnyNonEmptyEnvVar @(
+    "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM",
+    "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64"
+  )
 }
 
 function Resolve-ReleaseDemoFrontendDecision {
@@ -426,6 +446,86 @@ function Get-FullPathString([string]$Path) {
   }
 }
 
+function Enable-ReleaseRuntimeEvidenceSigningFromLocalBundle {
+  if (-not $UseLocalRuntimeEvidenceSigningBundle) {
+    return
+  }
+
+  if (Test-ReleaseRuntimeEvidenceSigningConfigured) {
+    Write-Host "[release-check] Runtime evidence signing already configured by env/.env; local bundle bootstrap skipped."
+    return
+  }
+
+  $repoRoot = Get-FullPathString (Join-Path $PSScriptRoot "..")
+  $resolvedBundleDir = if ([System.IO.Path]::IsPathRooted($RuntimeEvidenceSigningBundleDir)) {
+    Get-FullPathString $RuntimeEvidenceSigningBundleDir
+  } else {
+    Get-FullPathString (Join-Path $repoRoot $RuntimeEvidenceSigningBundleDir)
+  }
+  $envSnippetPath = Join-Path $resolvedBundleDir "runtime-evidence.env"
+  if (-not (Test-Path $envSnippetPath)) {
+    Fail (
+      "Local runtime evidence signing bundle is missing: " +
+      $envSnippetPath +
+      ". Run npm run runtime:evidence:keygen -- --outputDir " +
+      $RuntimeEvidenceSigningBundleDir +
+      " --keyId local-release-key or configure runtime signing env vars directly."
+    )
+  }
+
+  $bundleValues = Read-EnvStyleFileValues -Path $envSnippetPath
+  $enabledRaw = if ($bundleValues.ContainsKey("RUNTIME_EVIDENCE_SIGNING_ENABLED")) {
+    [string]$bundleValues["RUNTIME_EVIDENCE_SIGNING_ENABLED"]
+  } else {
+    ""
+  }
+  $privateKeyPem = if ($bundleValues.ContainsKey("RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM")) {
+    [string]$bundleValues["RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM"]
+  } else {
+    ""
+  }
+  $privateKeyBase64 = if ($bundleValues.ContainsKey("RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64")) {
+    [string]$bundleValues["RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64"]
+  } else {
+    ""
+  }
+
+  if ((To-BoolOrNull $enabledRaw) -ne $true) {
+    Fail ("Local runtime evidence signing bundle must set RUNTIME_EVIDENCE_SIGNING_ENABLED=true: " + $envSnippetPath)
+  }
+  if ([string]::IsNullOrWhiteSpace($privateKeyPem) -and [string]::IsNullOrWhiteSpace($privateKeyBase64)) {
+    Fail (
+      "Local runtime evidence signing bundle requires RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM or " +
+      "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64: " +
+      $envSnippetPath
+    )
+  }
+
+  foreach ($name in @(
+      "RUNTIME_EVIDENCE_SIGNING_ENABLED",
+      "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM",
+      "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64",
+      "RUNTIME_EVIDENCE_SIGNING_KEY_ID",
+      "RUNTIME_EVIDENCE_SIGNING_SIGNER_ID"
+    )) {
+    if ($bundleValues.ContainsKey($name)) {
+      [Environment]::SetEnvironmentVariable($name, [string]$bundleValues[$name], "Process")
+    }
+  }
+
+  $loadedKeyId = [string][Environment]::GetEnvironmentVariable("RUNTIME_EVIDENCE_SIGNING_KEY_ID", "Process")
+  $loadedSignerId = [string][Environment]::GetEnvironmentVariable("RUNTIME_EVIDENCE_SIGNING_SIGNER_ID", "Process")
+  Write-Host (
+    "[release-check] Loaded local runtime evidence signing bundle from " +
+    $envSnippetPath +
+    " (keyId=" +
+    $(if ([string]::IsNullOrWhiteSpace($loadedKeyId)) { "n/a" } else { $loadedKeyId }) +
+    ", signerId=" +
+    $(if ([string]::IsNullOrWhiteSpace($loadedSignerId)) { "api-backend" } else { $loadedSignerId }) +
+    ")."
+  )
+}
+
 function Assert-PromptfooRedTeamSummary([string]$Path) {
   if (-not (Test-Path $Path)) {
     Fail ("Promptfoo red-team summary missing: " + $Path)
@@ -503,6 +603,8 @@ if (-not $SkipUnitTests) {
     -ScriptBlock { Run-Step "Run unit tests" "npm run test:unit" }
 }
 
+Enable-ReleaseRuntimeEvidenceSigningFromLocalBundle
+
 if (-not $SkipPromptfooRedTeam) {
   $defaultPromptfooEvalSummaryPath = Join-Path $PSScriptRoot "..\artifacts\evals\latest-run.json"
   $hasPromptfooApiKey = -not [string]::IsNullOrWhiteSpace(
@@ -564,9 +666,9 @@ if ((-not $SkipDemoE2E) -and (-not $SkipDemoRun)) {
     ")"
   )
   $demoCommand = if ($runFastDemo) {
-    "npm run demo:e2e:fast -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec $scenarioRetryArgs $serviceRestartArgs $frontendArgs"
+    "npm run demo:e2e:fast -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec $scenarioRetryArgs $serviceRestartArgs $frontendArgs -RuntimeSurfaceSnapshotOutputPath ./artifacts/runtime/runtime-surface-snapshot.json"
   } else {
-    "npm run demo:e2e -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec $scenarioRetryArgs $serviceRestartArgs $frontendArgs"
+    "npm run demo:e2e -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec $scenarioRetryArgs $serviceRestartArgs $frontendArgs -RuntimeSurfaceSnapshotOutputPath ./artifacts/runtime/runtime-surface-snapshot.json"
   }
   Run-StepWithRetry "Run demo e2e" $demoCommand $EffectiveDemoRunMaxAttempts $DemoRunRetryBackoffMs
 }
@@ -640,6 +742,8 @@ if ($IsArtifactOnlyMode) {
 if (Test-Path $BadgeDetailsPath) {
   $requiredFiles += $ReleaseEvidenceReportPath
   $requiredFiles += $ReleaseEvidenceReportMarkdownPath
+  $requiredFiles += $ReleaseEvidenceRuntimeProofReportPath
+  $requiredFiles += $ReleaseEvidenceRuntimeProofReportMarkdownPath
   $requiredFiles += $ReleaseEvidenceManifestPath
   $requiredFiles += $ReleaseEvidenceManifestMarkdownPath
 }
@@ -874,6 +978,134 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       }
     }
 
+    $manifestCaseWikiRoutingContextStatusRaw = [string]$manifestEvidenceSnapshot.badgeEvidenceCaseWikiRoutingContextStatus
+    $manifestCaseWikiRoutingContextStatus = $manifestCaseWikiRoutingContextStatusRaw.ToLowerInvariant()
+    if ($manifestCaseWikiRoutingContextStatus -ne "pass") {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextStatus expected pass, actual " +
+        $manifestCaseWikiRoutingContextStatusRaw
+      )
+    }
+
+    $manifestCaseWikiRoutingContextValidated = To-BoolOrNull $manifestEvidenceSnapshot.badgeEvidenceCaseWikiRoutingContextValidated
+    if ($manifestCaseWikiRoutingContextValidated -ne $true) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextValidated expected true")
+    }
+
+    $manifestCaseWikiRoutingContextObserved = To-BoolOrNull $manifestEvidenceSnapshot.badgeEvidenceCaseWikiRoutingContextObserved
+    if ($manifestCaseWikiRoutingContextObserved -ne $true) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextObserved expected true")
+    }
+
+    $manifestCaseWikiRoutingContextSource = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextSource")
+    if ($manifestCaseWikiRoutingContextSource -ne "case_wiki") {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextSource expected case_wiki, actual " +
+        $manifestCaseWikiRoutingContextSource
+      )
+    }
+
+    $manifestCaseWikiRoutingContextFocusId = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextFocusId")
+    if ([string]::IsNullOrWhiteSpace($manifestCaseWikiRoutingContextFocusId)) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextFocusId is required")
+    }
+
+    $manifestCaseWikiRoutingContextBlocker = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextBlocker")
+    if ([string]::IsNullOrWhiteSpace($manifestCaseWikiRoutingContextBlocker)) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextBlocker is required")
+    }
+
+    $manifestCaseWikiRoutingContextNextAction = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextNextAction")
+    if ([string]::IsNullOrWhiteSpace($manifestCaseWikiRoutingContextNextAction)) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextNextAction is required")
+    }
+
+    $manifestCaseWikiRoutingContextRoute = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextRoute")
+    if ([string]::IsNullOrWhiteSpace($manifestCaseWikiRoutingContextRoute)) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextRoute is required")
+    }
+
+    $manifestCaseWikiRoutingContextMode = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextMode")
+    if ([string]::IsNullOrWhiteSpace($manifestCaseWikiRoutingContextMode)) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextMode is required")
+    }
+
+    $manifestCaseWikiRoutingContextRequestedIntent = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextRequestedIntent")
+    if ([string]::IsNullOrWhiteSpace($manifestCaseWikiRoutingContextRequestedIntent)) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextRequestedIntent is required")
+    }
+
+    $manifestCaseWikiRoutingContextRoutedIntent = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextRoutedIntent")
+    if ([string]::IsNullOrWhiteSpace($manifestCaseWikiRoutingContextRoutedIntent)) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextRoutedIntent is required")
+    }
+
+    $manifestCaseWikiContextAdoptionStatusRaw = [string]$manifestEvidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionStatus
+    $manifestCaseWikiContextAdoptionStatus = $manifestCaseWikiContextAdoptionStatusRaw.ToLowerInvariant()
+    if ($manifestCaseWikiContextAdoptionStatus -ne "pass") {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionStatus expected pass, actual " +
+        $manifestCaseWikiContextAdoptionStatusRaw
+      )
+    }
+
+    $manifestCaseWikiContextAdoptionValidated = To-BoolOrNull $manifestEvidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionValidated
+    if ($manifestCaseWikiContextAdoptionValidated -ne $true) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionValidated expected true")
+    }
+
+    $manifestCaseWikiContextAdoptionObserved = To-BoolOrNull $manifestEvidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionObserved
+    if ($manifestCaseWikiContextAdoptionObserved -ne $true) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionObserved expected true")
+    }
+
+    $manifestCaseWikiContextAdoptionObservedCount = To-NumberOrNaN (Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionObservedCount")
+    if ([double]::IsNaN($manifestCaseWikiContextAdoptionObservedCount) -or $manifestCaseWikiContextAdoptionObservedCount -lt 3) {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionObservedCount expected >= 3, actual " +
+        (Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionObservedCount")
+      )
+    }
+
+    $manifestCaseWikiContextAdoptionCaseWikiObservedCount = To-NumberOrNaN (Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount")
+    if ([double]::IsNaN($manifestCaseWikiContextAdoptionCaseWikiObservedCount) -or $manifestCaseWikiContextAdoptionCaseWikiObservedCount -lt 3) {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount expected >= 3, actual " +
+        (Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount")
+      )
+    }
+
+    $manifestCaseWikiContextAdoptionInputOnlyObservedCount = To-NumberOrNaN (Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount")
+    if ([double]::IsNaN($manifestCaseWikiContextAdoptionInputOnlyObservedCount) -or $manifestCaseWikiContextAdoptionInputOnlyObservedCount -lt 0) {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount expected >= 0, actual " +
+        (Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount")
+      )
+    }
+
+    $manifestCaseWikiContextAdoptionUnknownObservedCount = To-NumberOrNaN (Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount")
+    if ([double]::IsNaN($manifestCaseWikiContextAdoptionUnknownObservedCount) -or $manifestCaseWikiContextAdoptionUnknownObservedCount -lt 0) {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount expected >= 0, actual " +
+        (Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount")
+      )
+    }
+
+    if (($manifestCaseWikiContextAdoptionCaseWikiObservedCount + $manifestCaseWikiContextAdoptionInputOnlyObservedCount + $manifestCaseWikiContextAdoptionUnknownObservedCount) -ne $manifestCaseWikiContextAdoptionObservedCount) {
+      Fail (
+        "source run manifest evidenceSnapshot.caseWikiContextAdoption counts must sum to observedCount, actual observedCount=" +
+        $manifestCaseWikiContextAdoptionObservedCount
+      )
+    }
+
+    $manifestCaseWikiContextAdoptionRate = To-NumberOrNaN (Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionCaseWikiRate")
+    if ([double]::IsNaN($manifestCaseWikiContextAdoptionRate) -or $manifestCaseWikiContextAdoptionRate -lt 0.95 -or $manifestCaseWikiContextAdoptionRate -gt 1) {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionCaseWikiRate expected 0.95..1, actual " +
+        (Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionCaseWikiRate")
+      )
+    }
+
     $manifestProviderUsageStatusRaw = [string]$manifestEvidenceSnapshot.badgeEvidenceProviderUsageStatus
     $manifestProviderUsageStatus = $manifestProviderUsageStatusRaw.ToLowerInvariant()
     if ($manifestProviderUsageStatus -ne "pass") {
@@ -961,6 +1193,15 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryEffectiveStartCommand" -ContextLabel $manifestEvidenceContextLabel
       $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryConfigSource" -ContextLabel $manifestEvidenceContextLabel
       $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryRootDescriptorExpectedUiUrl" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalBooleanPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt" -ContextLabel $manifestEvidenceContextLabel
 
       # Contract: source run manifest evidenceSnapshot.railwayDeploySummaryRootDescriptorAttempted expected boolean when provided
       $manifestRailwayDeploySummaryRootDescriptorAttempted = Get-OptionalBooleanPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryRootDescriptorAttempted" -ContextLabel $manifestEvidenceContextLabel
@@ -2043,6 +2284,20 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     )
   }
 
+  $navigatorVisaFlowsScenarioAttempts = To-NumberOrNaN $summary.kpis.navigatorVisaFlowsScenarioAttempts
+  if (
+    [double]::IsNaN($navigatorVisaFlowsScenarioAttempts) -or
+    $navigatorVisaFlowsScenarioAttempts -lt 1 -or
+    $navigatorVisaFlowsScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.navigatorVisaFlowsScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.navigatorVisaFlowsScenarioAttempts
+    )
+  }
+
   $operatorConsoleActionsScenarioAttempts = To-NumberOrNaN $summary.kpis.operatorConsoleActionsScenarioAttempts
   if (
     [double]::IsNaN($operatorConsoleActionsScenarioAttempts) -or
@@ -2188,6 +2443,314 @@ if ((-not $SkipBadge) -and (Test-Path $BadgePath)) {
   $missingBadgeFields = @("schemaVersion", "label", "message", "color" | Where-Object { $badgeProps -notcontains $_ })
   if ($missingBadgeFields.Count -gt 0) {
     Fail ("badge.json missing fields: " + ($missingBadgeFields -join ", "))
+  }
+}
+
+if (Test-Path $ReleaseEvidenceReportPath) {
+  $releaseEvidenceReport = Get-Content $ReleaseEvidenceReportPath -Raw | ConvertFrom-Json
+  $caseWikiEvidenceSignature = Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiEvidenceSignature"
+  if ($null -eq $caseWikiEvidenceSignature) {
+    Fail ("release evidence report missing caseWikiEvidenceSignature block: " + $ReleaseEvidenceReportPath)
+  }
+  $caseWikiCompliance = Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiCompliance"
+  if ($null -eq $caseWikiCompliance) {
+    Fail ("release evidence report missing caseWikiCompliance block: " + $ReleaseEvidenceReportPath)
+  }
+
+  $caseWikiRoutingContext = Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext"
+  if ($null -eq $caseWikiRoutingContext) {
+    Fail ("release evidence report missing caseWikiRoutingContext block: " + $ReleaseEvidenceReportPath)
+  }
+  $caseWikiContextAdoption = Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiContextAdoption"
+  if ($null -eq $caseWikiContextAdoption) {
+    Fail ("release evidence report missing caseWikiContextAdoption block: " + $ReleaseEvidenceReportPath)
+  }
+
+  $caseWikiEvidenceStatus = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "status")
+  $caseWikiEvidenceValidated = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "validated")
+  $caseWikiEvidenceTotalArtifacts = To-NumberOrNaN (Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "totalArtifacts")
+  $caseWikiEvidenceSignedArtifacts = To-NumberOrNaN (Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "signedArtifacts")
+  $caseWikiEvidenceUnsignedArtifacts = To-NumberOrNaN (Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "unsignedArtifacts")
+  $caseWikiEvidenceSignatureStatus = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "signatureStatus")
+  $caseWikiEvidenceSignaturePresent = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "signaturePresent")
+  $caseWikiEvidenceSignerId = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "signerId")
+  $caseWikiEvidenceSignedAt = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "signedAt")
+  $caseWikiEvidenceSignedAtIsIso = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "signedAtIsIso")
+  $caseWikiEvidencePayloadHash = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "payloadHash")
+  $caseWikiEvidenceSource = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "source")
+  $caseWikiEvidenceObserved =
+    ($caseWikiEvidenceStatus -ne "unavailable") -or
+    ((-not [double]::IsNaN($caseWikiEvidenceTotalArtifacts)) -and $caseWikiEvidenceTotalArtifacts -gt 0) -or
+    ($caseWikiEvidenceSignatureStatus -in @("signed", "unsigned")) -or
+    (-not [string]::IsNullOrWhiteSpace($caseWikiEvidencePayloadHash))
+
+  if ($caseWikiEvidenceObserved) {
+    $runtimeEvidenceSigningEnabled = To-BoolOrNull (Get-ReleaseReadinessEnvValue "RUNTIME_EVIDENCE_SIGNING_ENABLED")
+    if ($null -eq $runtimeEvidenceSigningEnabled) {
+      $runtimeEvidenceSigningEnabled = $false
+    }
+    $runtimeEvidenceSigningConfigured =
+      ($runtimeEvidenceSigningEnabled -eq $true) -or
+      (Test-ReleaseDemoAnyNonEmptyEnvVar @(
+        "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM",
+        "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64"
+      ))
+    $hostedDirectLiveProof = Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "hostedDirectLiveProof"
+    $hostedDirectLiveProofStatus = [string](Get-ObjectPropertyValue -Object $hostedDirectLiveProof -Name "status")
+    $hostedDirectLiveProofFreshnessStatus = [string](Get-ObjectPropertyValue -Object $hostedDirectLiveProof -Name "freshnessStatus")
+    $hostedSignedCaseWikiEvidencePromoted =
+      ($caseWikiEvidenceSource -eq "hosted_direct_live_proof") -and
+      ($hostedDirectLiveProofStatus -eq "pass") -and
+      ($hostedDirectLiveProofFreshnessStatus -eq "pass") -and
+      ($caseWikiEvidenceSignatureStatus -eq "signed") -and
+      ($caseWikiEvidenceSignaturePresent -eq $true)
+    $caseWikiEvidenceRequiresSignedEnvelope = $runtimeEvidenceSigningConfigured -or $hostedSignedCaseWikiEvidencePromoted
+    $expectedCaseWikiEvidenceStatus = if ($caseWikiEvidenceRequiresSignedEnvelope) { "pass" } else { "warn" }
+
+    if ($caseWikiEvidenceStatus -ne $expectedCaseWikiEvidenceStatus -or $caseWikiEvidenceValidated -ne $true) {
+      Fail (
+        "release evidence caseWikiEvidenceSignature expected status=" +
+        $expectedCaseWikiEvidenceStatus +
+        " and validated=true, actual status=" +
+        $caseWikiEvidenceStatus +
+        ", validated=" +
+        (Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "validated")
+      )
+    }
+    if (
+      [double]::IsNaN($caseWikiEvidenceTotalArtifacts) -or
+      [double]::IsNaN($caseWikiEvidenceSignedArtifacts) -or
+      [double]::IsNaN($caseWikiEvidenceUnsignedArtifacts) -or
+      $caseWikiEvidenceTotalArtifacts -lt 1 -or
+      $caseWikiEvidenceSignedArtifacts -lt 0 -or
+      $caseWikiEvidenceUnsignedArtifacts -lt 0
+    ) {
+      Fail "release evidence caseWikiEvidenceSignature artifact counts are invalid"
+    }
+    if (($caseWikiEvidenceSignedArtifacts + $caseWikiEvidenceUnsignedArtifacts) -ne $caseWikiEvidenceTotalArtifacts) {
+      Fail "release evidence caseWikiEvidenceSignature signedArtifacts + unsignedArtifacts must equal totalArtifacts"
+    }
+    if ($caseWikiEvidenceSignatureStatus -notin @("signed", "unsigned")) {
+      Fail ("release evidence caseWikiEvidenceSignature.signatureStatus expected signed|unsigned, actual " + $caseWikiEvidenceSignatureStatus)
+    }
+    if ([string]::IsNullOrWhiteSpace($caseWikiEvidenceSignerId)) {
+      Fail "release evidence caseWikiEvidenceSignature.signerId is required"
+    }
+    if ([string]::IsNullOrWhiteSpace($caseWikiEvidenceSignedAt) -or $caseWikiEvidenceSignedAtIsIso -ne $true) {
+      Fail "release evidence caseWikiEvidenceSignature.signedAt must be an ISO timestamp"
+    }
+    if ([string]::IsNullOrWhiteSpace($caseWikiEvidencePayloadHash) -or $caseWikiEvidencePayloadHash -notmatch "^sha256:[a-f0-9]{64}$") {
+      Fail "release evidence caseWikiEvidenceSignature.payloadHash must be a canonical sha256:<hex> digest"
+    }
+
+    if ($caseWikiEvidenceRequiresSignedEnvelope -eq $true) {
+      if (
+        $caseWikiEvidenceSignatureStatus -ne "signed" -or
+        $caseWikiEvidenceSignaturePresent -ne $true -or
+        $caseWikiEvidenceSignedArtifacts -ne $caseWikiEvidenceTotalArtifacts -or
+        $caseWikiEvidenceUnsignedArtifacts -ne 0
+      ) {
+        Fail (
+          "release evidence caseWikiEvidenceSignature expected signedArtifacts=totalArtifacts and unsignedArtifacts=0 when signed runtime evidence is required"
+        )
+      }
+    }
+    else {
+      if (
+        $caseWikiEvidenceSignatureStatus -ne "unsigned" -or
+        $caseWikiEvidenceSignaturePresent -ne $false -or
+        $caseWikiEvidenceUnsignedArtifacts -ne $caseWikiEvidenceTotalArtifacts -or
+        $caseWikiEvidenceSignedArtifacts -ne 0
+      ) {
+        Fail (
+          "release evidence caseWikiEvidenceSignature expected unsignedArtifacts=totalArtifacts and signedArtifacts=0 when runtime evidence signing is not configured"
+        )
+      }
+    }
+  }
+
+  $caseWikiComplianceStatus = [string](Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "status")
+  $caseWikiComplianceValidated = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "validated")
+  $caseWikiComplianceObserved = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "observed")
+  $caseWikiComplianceTemplateId = [string](Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "templateId")
+  $caseWikiComplianceRequestedTemplateId = [string](Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "requestedTemplateId")
+  $caseWikiComplianceSource = [string](Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "source")
+  $caseWikiComplianceFallbackApplied = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "fallbackApplied")
+  $caseWikiCompliancePiiRedactionLevel = [string](Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "controls") -Name "piiRedactionLevel")
+  $caseWikiComplianceCrossTenantAdminOnly = To-BoolOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "controls") -Name "crossTenantAdminOnly")
+  $caseWikiComplianceApprovalSlaEnforced = To-BoolOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "controls") -Name "approvalSlaEnforced")
+  $caseWikiComplianceAuditTrailRequired = To-BoolOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "controls") -Name "auditTrailRequired")
+  $caseWikiComplianceRawMediaDays = To-NumberOrNaN (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "retention") -Name "rawMediaDays")
+  $caseWikiComplianceAuditLogsDays = To-NumberOrNaN (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "retention") -Name "auditLogsDays")
+  $caseWikiComplianceEventsDays = To-NumberOrNaN (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "retention") -Name "eventsDays")
+  $caseWikiComplianceSessionsDays = To-NumberOrNaN (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "retention") -Name "sessionsDays")
+  $caseWikiComplianceEvidenceSigningEnabled = To-BoolOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "evidenceSigning") -Name "enabled")
+  $caseWikiComplianceExpectedSignatureStatus = [string](Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "evidenceSigning") -Name "expectedSignatureStatus")
+  $caseWikiComplianceKeyState = [string](Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "evidenceSigning") -Name "keyState")
+  $caseWikiComplianceSignerId = [string](Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "evidenceSigning") -Name "signerId")
+  $caseWikiComplianceObservedSignatureStatus = [string](Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "observedSignatureStatus")
+  $caseWikiComplianceSignatureMatch = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "signatureMatch")
+  $caseWikiComplianceSummary = [string](Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "summary")
+  $caseWikiComplianceObservedAny =
+    ($caseWikiComplianceObserved -eq $true) -or
+    ($caseWikiComplianceStatus -ne "unavailable") -or
+    (-not [string]::IsNullOrWhiteSpace($caseWikiComplianceTemplateId)) -or
+    (-not [string]::IsNullOrWhiteSpace($caseWikiComplianceSource)) -or
+    (-not [double]::IsNaN($caseWikiComplianceRawMediaDays)) -or
+    (-not [string]::IsNullOrWhiteSpace($caseWikiComplianceExpectedSignatureStatus))
+
+  if ($caseWikiComplianceObservedAny) {
+    if ($caseWikiComplianceStatus -ne "pass" -or $caseWikiComplianceValidated -ne $true) {
+      Fail (
+        "release evidence caseWikiCompliance expected status=pass and validated=true, actual status=" +
+        $caseWikiComplianceStatus +
+        ", validated=" +
+        (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "validated")
+      )
+    }
+    if ($caseWikiComplianceTemplateId -ne [string]$summary.kpis.governancePolicySummaryTemplateId) {
+      Fail ("release evidence caseWikiCompliance.templateId expected " + [string]$summary.kpis.governancePolicySummaryTemplateId + ", actual " + $caseWikiComplianceTemplateId)
+    }
+    if ($caseWikiComplianceRequestedTemplateId -ne [string]$summary.kpis.governancePolicyComplianceTemplate) {
+      Fail ("release evidence caseWikiCompliance.requestedTemplateId expected " + [string]$summary.kpis.governancePolicyComplianceTemplate + ", actual " + $caseWikiComplianceRequestedTemplateId)
+    }
+    if ($caseWikiComplianceSource -ne [string]$summary.kpis.governancePolicySummarySource) {
+      Fail ("release evidence caseWikiCompliance.source expected " + [string]$summary.kpis.governancePolicySummarySource + ", actual " + $caseWikiComplianceSource)
+    }
+    if ($caseWikiComplianceFallbackApplied -ne $false) {
+      Fail ("release evidence caseWikiCompliance.fallbackApplied expected false, actual " + $caseWikiComplianceFallbackApplied)
+    }
+    if ($caseWikiCompliancePiiRedactionLevel -ne "high") {
+      Fail ("release evidence caseWikiCompliance.controls.piiRedactionLevel expected high, actual " + $caseWikiCompliancePiiRedactionLevel)
+    }
+    if ($caseWikiComplianceCrossTenantAdminOnly -ne $true) {
+      Fail ("release evidence caseWikiCompliance.controls.crossTenantAdminOnly expected true, actual " + $caseWikiComplianceCrossTenantAdminOnly)
+    }
+    if ($caseWikiComplianceApprovalSlaEnforced -ne $true) {
+      Fail ("release evidence caseWikiCompliance.controls.approvalSlaEnforced expected true, actual " + $caseWikiComplianceApprovalSlaEnforced)
+    }
+    if ($caseWikiComplianceAuditTrailRequired -ne $true) {
+      Fail ("release evidence caseWikiCompliance.controls.auditTrailRequired expected true, actual " + $caseWikiComplianceAuditTrailRequired)
+    }
+    if ([double]::IsNaN($caseWikiComplianceRawMediaDays) -or $caseWikiComplianceRawMediaDays -ne (To-NumberOrNaN $summary.kpis.governancePolicyRetentionRawMediaDays)) {
+      Fail ("release evidence caseWikiCompliance.retention.rawMediaDays expected " + [string]$summary.kpis.governancePolicyRetentionRawMediaDays + ", actual " + $caseWikiComplianceRawMediaDays)
+    }
+    if ([double]::IsNaN($caseWikiComplianceAuditLogsDays) -or $caseWikiComplianceAuditLogsDays -ne (To-NumberOrNaN $summary.kpis.governancePolicyRetentionAuditLogsDays)) {
+      Fail ("release evidence caseWikiCompliance.retention.auditLogsDays expected " + [string]$summary.kpis.governancePolicyRetentionAuditLogsDays + ", actual " + $caseWikiComplianceAuditLogsDays)
+    }
+    if ([double]::IsNaN($caseWikiComplianceEventsDays) -or $caseWikiComplianceEventsDays -ne (To-NumberOrNaN $summary.kpis.governancePolicyRetentionEventsDays)) {
+      Fail ("release evidence caseWikiCompliance.retention.eventsDays expected " + [string]$summary.kpis.governancePolicyRetentionEventsDays + ", actual " + $caseWikiComplianceEventsDays)
+    }
+    if ([double]::IsNaN($caseWikiComplianceSessionsDays) -or $caseWikiComplianceSessionsDays -ne (To-NumberOrNaN $summary.kpis.governancePolicyRetentionSessionsDays)) {
+      Fail ("release evidence caseWikiCompliance.retention.sessionsDays expected " + [string]$summary.kpis.governancePolicyRetentionSessionsDays + ", actual " + $caseWikiComplianceSessionsDays)
+    }
+    if ($caseWikiComplianceExpectedSignatureStatus -notin @("signed", "unsigned")) {
+      Fail ("release evidence caseWikiCompliance.evidenceSigning.expectedSignatureStatus expected signed|unsigned, actual " + $caseWikiComplianceExpectedSignatureStatus)
+    }
+    if ($caseWikiComplianceExpectedSignatureStatus -ne $caseWikiEvidenceSignatureStatus) {
+      Fail ("release evidence caseWikiCompliance expectedSignatureStatus must match caseWikiEvidenceSignature.signatureStatus; expected " + $caseWikiComplianceExpectedSignatureStatus + ", actual " + $caseWikiEvidenceSignatureStatus)
+    }
+    if ($caseWikiComplianceObservedSignatureStatus -ne $caseWikiEvidenceSignatureStatus) {
+      Fail ("release evidence caseWikiCompliance observedSignatureStatus must match caseWikiEvidenceSignature.signatureStatus; observed " + $caseWikiComplianceObservedSignatureStatus + ", signature_status=" + $caseWikiEvidenceSignatureStatus)
+    }
+    if ($caseWikiComplianceSignatureMatch -ne $true) {
+      Fail ("release evidence caseWikiCompliance.signatureMatch expected true, actual " + $caseWikiComplianceSignatureMatch)
+    }
+    if ($caseWikiComplianceKeyState -notin @("missing", "loaded", "invalid")) {
+      Fail ("release evidence caseWikiCompliance.evidenceSigning.keyState expected missing|loaded|invalid, actual " + $caseWikiComplianceKeyState)
+    }
+    if ([string]::IsNullOrWhiteSpace($caseWikiComplianceSignerId)) {
+      Fail "release evidence caseWikiCompliance.evidenceSigning.signerId is required"
+    }
+    if ([string]::IsNullOrWhiteSpace($caseWikiComplianceSummary)) {
+      Fail "release evidence caseWikiCompliance.summary is required"
+    }
+  }
+
+  $caseWikiRoutingContextStatus = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "status")
+  $caseWikiRoutingContextValidated = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "validated")
+  $caseWikiRoutingContextObserved = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "observed")
+  $caseWikiRoutingContextSource = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "contextSource")
+  $caseWikiRoutingContextFocusId = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "focusId")
+  $caseWikiRoutingContextBlocker = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "blocker")
+  $caseWikiRoutingContextNextAction = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "nextAction")
+  $caseWikiRoutingContextRoute = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "route")
+  $caseWikiRoutingContextMode = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "mode")
+  $caseWikiRoutingContextRequestedIntent = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "requestedIntent")
+  $caseWikiRoutingContextRoutedIntent = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "routedIntent")
+  $allowedCaseWikiRoutingModes = @("deterministic", "assistive_override", "assistive_match", "assistive_fallback")
+  $caseWikiRoutingObserved =
+    ($caseWikiRoutingContextObserved -eq $true) -or
+    ($caseWikiRoutingContextStatus -ne "unavailable") -or
+    (-not [string]::IsNullOrWhiteSpace($caseWikiRoutingContextSource)) -or
+    (-not [string]::IsNullOrWhiteSpace($caseWikiRoutingContextFocusId)) -or
+    (-not [string]::IsNullOrWhiteSpace($caseWikiRoutingContextBlocker)) -or
+    (-not [string]::IsNullOrWhiteSpace($caseWikiRoutingContextNextAction))
+
+  if ($caseWikiRoutingObserved) {
+    if ($caseWikiRoutingContextStatus -ne "pass" -or $caseWikiRoutingContextValidated -ne $true) {
+      Fail (
+        "release evidence caseWikiRoutingContext expected status=pass and validated=true, actual status=" +
+        $caseWikiRoutingContextStatus +
+        ", validated=" +
+        (Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "validated")
+      )
+    }
+    if ($caseWikiRoutingContextObserved -ne $true) {
+      Fail "release evidence caseWikiRoutingContext.observed must be true"
+    }
+    if ($caseWikiRoutingContextSource -ne "case_wiki") {
+      Fail ("release evidence caseWikiRoutingContext.contextSource expected case_wiki, actual " + $caseWikiRoutingContextSource)
+    }
+    if ([string]::IsNullOrWhiteSpace($caseWikiRoutingContextFocusId)) {
+      Fail "release evidence caseWikiRoutingContext.focusId is required"
+    }
+    if ([string]::IsNullOrWhiteSpace($caseWikiRoutingContextBlocker)) {
+      Fail "release evidence caseWikiRoutingContext.blocker is required"
+    }
+    if ([string]::IsNullOrWhiteSpace($caseWikiRoutingContextNextAction)) {
+      Fail "release evidence caseWikiRoutingContext.nextAction is required"
+    }
+    if ([string]::IsNullOrWhiteSpace($caseWikiRoutingContextRoute)) {
+      Fail "release evidence caseWikiRoutingContext.route is required"
+    }
+    if ([string]::IsNullOrWhiteSpace($caseWikiRoutingContextRequestedIntent)) {
+      Fail "release evidence caseWikiRoutingContext.requestedIntent is required"
+    }
+    if ([string]::IsNullOrWhiteSpace($caseWikiRoutingContextRoutedIntent)) {
+      Fail "release evidence caseWikiRoutingContext.routedIntent is required"
+    }
+    if ($allowedCaseWikiRoutingModes -notcontains $caseWikiRoutingContextMode) {
+      Fail ("release evidence caseWikiRoutingContext.mode expected one of " + ($allowedCaseWikiRoutingModes -join ", ") + "; actual " + $caseWikiRoutingContextMode)
+    }
+  }
+
+  $caseWikiContextAdoptionStatus = [string](Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "status")
+  $caseWikiContextAdoptionValidated = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "validated")
+  $caseWikiContextAdoptionObserved = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "observed")
+  $caseWikiContextAdoptionObservedCount = To-NumberOrNaN (Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "observedCount")
+  $caseWikiContextAdoptionCaseWikiObservedCount = To-NumberOrNaN (Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "caseWikiObservedCount")
+  $caseWikiContextAdoptionInputOnlyObservedCount = To-NumberOrNaN (Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "inputOnlyObservedCount")
+  $caseWikiContextAdoptionUnknownObservedCount = To-NumberOrNaN (Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "unknownObservedCount")
+  $caseWikiContextAdoptionRate = To-NumberOrNaN (Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "caseWikiRate")
+  if (
+    $caseWikiContextAdoptionStatus -ne "pass" -or
+    $caseWikiContextAdoptionValidated -ne $true -or
+    $caseWikiContextAdoptionObserved -ne $true -or
+    [double]::IsNaN($caseWikiContextAdoptionObservedCount) -or
+    $caseWikiContextAdoptionObservedCount -lt 1 -or
+    [double]::IsNaN($caseWikiContextAdoptionCaseWikiObservedCount) -or
+    $caseWikiContextAdoptionCaseWikiObservedCount -lt 1 -or
+    [double]::IsNaN($caseWikiContextAdoptionInputOnlyObservedCount) -or
+    $caseWikiContextAdoptionInputOnlyObservedCount -lt 0 -or
+    [double]::IsNaN($caseWikiContextAdoptionUnknownObservedCount) -or
+    $caseWikiContextAdoptionUnknownObservedCount -lt 0 -or
+    (($caseWikiContextAdoptionCaseWikiObservedCount + $caseWikiContextAdoptionInputOnlyObservedCount + $caseWikiContextAdoptionUnknownObservedCount) -ne $caseWikiContextAdoptionObservedCount) -or
+    [double]::IsNaN($caseWikiContextAdoptionRate) -or
+    $caseWikiContextAdoptionRate -lt 0.95 -or
+    $caseWikiContextAdoptionRate -gt 1
+  ) {
+    Fail "release evidence caseWikiContextAdoption must prove observed+validated adoption with count conservation and caseWikiRate>=0.95"
   }
 }
 
@@ -2353,6 +2916,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $pluginMarketplaceAttempts = $summary.kpis.pluginMarketplaceScenarioAttempts
   $sessionVersioningAttempts = $summary.kpis.sessionVersioningScenarioAttempts
   $uiVisualAttempts = $summary.kpis.uiVisualTestingScenarioAttempts
+  $navigatorVisaFlowsAttempts = $summary.kpis.navigatorVisaFlowsScenarioAttempts
   $operatorActionsAttempts = $summary.kpis.operatorConsoleActionsScenarioAttempts
   $runtimeLifecycleAttempts = $summary.kpis.runtimeLifecycleScenarioAttempts
   $runtimeMetricsAttempts = $summary.kpis.runtimeMetricsScenarioAttempts
@@ -2383,6 +2947,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     $null -ne $pluginMarketplaceAttempts -or
     $null -ne $sessionVersioningAttempts -or
     $null -ne $uiVisualAttempts -or
+    $null -ne $navigatorVisaFlowsAttempts -or
     $null -ne $operatorActionsAttempts -or
     $null -ne $runtimeLifecycleAttempts -or
     $null -ne $runtimeMetricsAttempts
@@ -2415,6 +2980,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
       ", operator.plugin_marketplace.lifecycle_attempts=" + $pluginMarketplaceAttempts +
       ", api.sessions.versioning_attempts=" + $sessionVersioningAttempts +
       ", ui.visual_testing_attempts=" + $uiVisualAttempts +
+      ", ui.navigator.visa_vertical_flows_attempts=" + $navigatorVisaFlowsAttempts +
       ", operator.console.actions_attempts=" + $operatorActionsAttempts +
       ", runtime.lifecycle.endpoints_attempts=" + $runtimeLifecycleAttempts +
       ", runtime.metrics.endpoints_attempts=" + $runtimeMetricsAttempts
@@ -2640,6 +3206,101 @@ if ((-not $SkipPerfLoad) -and (Test-Path $PerfPolicyPath)) {
 }
 if (Test-Path $ReleaseEvidenceReportPath) {
   Write-Host ("release.evidence.report: " + $ReleaseEvidenceReportPath)
+  $releaseEvidenceReport = Get-Content $ReleaseEvidenceReportPath -Raw | ConvertFrom-Json
+  $caseWikiEvidenceSignature = Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiEvidenceSignature"
+  if ($null -ne $caseWikiEvidenceSignature) {
+    $caseWikiEvidenceValidated = Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "validated"
+    $caseWikiEvidenceStatus = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "status")
+    $caseWikiEvidenceTotalArtifacts = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "totalArtifacts")
+    $caseWikiEvidenceSignedArtifacts = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "signedArtifacts")
+    $caseWikiEvidenceUnsignedArtifacts = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "unsignedArtifacts")
+    $caseWikiEvidenceSignatureStatus = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "signatureStatus")
+    Write-Host (
+      "case_wiki.evidence_signature: validated=" + $caseWikiEvidenceValidated +
+      ", status=" + $caseWikiEvidenceStatus +
+      ", signature_status=" + $caseWikiEvidenceSignatureStatus +
+      ", total=" + $caseWikiEvidenceTotalArtifacts +
+      ", signed=" + $caseWikiEvidenceSignedArtifacts +
+      ", unsigned=" + $caseWikiEvidenceUnsignedArtifacts
+    )
+  }
+  $caseWikiCompliance = Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiCompliance"
+  if ($null -ne $caseWikiCompliance) {
+    $caseWikiComplianceStatus = [string](Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "status")
+    $caseWikiComplianceValidated = Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "validated"
+    $caseWikiComplianceTemplateId = [string](Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "templateId")
+    $caseWikiComplianceSource = [string](Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "source")
+    $caseWikiComplianceObservedSignatureStatus = [string](Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "observedSignatureStatus")
+    $caseWikiComplianceSignatureMatch = Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "signatureMatch"
+    $caseWikiComplianceSummary = [string](Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "summary")
+    $caseWikiCompliancePiiRedactionLevel = [string](Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "controls") -Name "piiRedactionLevel")
+    $caseWikiComplianceRawMediaDays = [string](Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "retention") -Name "rawMediaDays")
+    $caseWikiComplianceExpectedSignatureStatus = [string](Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $caseWikiCompliance -Name "evidenceSigning") -Name "expectedSignatureStatus")
+    Write-Host (
+      "case_wiki.compliance: validated=" + $caseWikiComplianceValidated +
+      ", status=" + $caseWikiComplianceStatus +
+      ", template_id=" + $caseWikiComplianceTemplateId +
+      ", source=" + $caseWikiComplianceSource +
+      ", pii=" + $caseWikiCompliancePiiRedactionLevel +
+      ", raw_media_days=" + $caseWikiComplianceRawMediaDays +
+      ", expected_signature_status=" + $caseWikiComplianceExpectedSignatureStatus +
+      ", observed_signature_status=" + $caseWikiComplianceObservedSignatureStatus +
+      ", signature_match=" + $caseWikiComplianceSignatureMatch +
+      ", summary=" + $caseWikiComplianceSummary
+    )
+  }
+  $caseWikiRoutingContext = Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext"
+  if ($null -ne $caseWikiRoutingContext) {
+    $caseWikiRoutingStatus = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "status")
+    $caseWikiRoutingValidated = Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "validated"
+    $caseWikiRoutingObserved = Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "observed"
+    $caseWikiRoutingContextSource = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "contextSource")
+    $caseWikiRoutingFocusId = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "focusId")
+    $caseWikiRoutingRoute = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "route")
+    $caseWikiRoutingMode = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "mode")
+    Write-Host (
+      "case_wiki.routing_context: validated=" + $caseWikiRoutingValidated +
+      ", status=" + $caseWikiRoutingStatus +
+      ", observed=" + $caseWikiRoutingObserved +
+      ", context_source=" + $caseWikiRoutingContextSource +
+      ", focus_id=" + $caseWikiRoutingFocusId +
+      ", route=" + $caseWikiRoutingRoute +
+      ", mode=" + $caseWikiRoutingMode
+    )
+  }
+  $caseWikiContextAdoption = Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiContextAdoption"
+  if ($null -ne $caseWikiContextAdoption) {
+    $caseWikiContextAdoptionStatus = [string](Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "status")
+    $caseWikiContextAdoptionValidated = Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "validated"
+    $caseWikiContextAdoptionObserved = Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "observed"
+    $caseWikiContextAdoptionObservedCount = Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "observedCount"
+    $caseWikiContextAdoptionCaseWikiObservedCount = Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "caseWikiObservedCount"
+    $caseWikiContextAdoptionInputOnlyObservedCount = Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "inputOnlyObservedCount"
+    $caseWikiContextAdoptionUnknownObservedCount = Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "unknownObservedCount"
+    $caseWikiContextAdoptionRate = Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "caseWikiRate"
+    Write-Host (
+      "case_wiki.context_adoption: validated=" + $caseWikiContextAdoptionValidated +
+      ", status=" + $caseWikiContextAdoptionStatus +
+      ", observed=" + $caseWikiContextAdoptionObserved +
+      ", observed_count=" + $caseWikiContextAdoptionObservedCount +
+      ", case_wiki_observed_count=" + $caseWikiContextAdoptionCaseWikiObservedCount +
+      ", input_only_observed_count=" + $caseWikiContextAdoptionInputOnlyObservedCount +
+      ", unknown_observed_count=" + $caseWikiContextAdoptionUnknownObservedCount +
+      ", case_wiki_rate=" + $caseWikiContextAdoptionRate
+    )
+  }
+}
+if (Test-Path $ReleaseEvidenceRuntimeProofReportPath) {
+  Write-Host ("release.evidence.runtime_proof_report: " + $ReleaseEvidenceRuntimeProofReportPath)
+  $runtimeProofReport = Get-Content $ReleaseEvidenceRuntimeProofReportPath -Raw | ConvertFrom-Json
+  $runtimeProofStatus = [string](Get-ObjectPropertyValue -Object $runtimeProofReport -Name "status")
+  $runtimeProofReadyForOperatorDemo = Get-ObjectPropertyValue -Object $runtimeProofReport -Name "readyForOperatorDemo"
+  $runtimeProofSummary = [string](Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $runtimeProofReport -Name "summary") -Name "overallSummary")
+  Write-Host (
+    "runtime_proof.summary: status=" + $runtimeProofStatus +
+    ", ready_for_operator_demo=" + $runtimeProofReadyForOperatorDemo +
+    ", summary=" + $runtimeProofSummary
+  )
 }
 if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
   $sourceRunManifest = Get-Content $SourceRunManifestPath -Raw | ConvertFrom-Json
@@ -2672,6 +3333,25 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
     $manifestRuntimeGuardrailsSignalPathsTotalPaths = [string]$manifestEvidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths
     $manifestRuntimeGuardrailsSignalPathsPrimaryPath = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath"
     $manifestRuntimeGuardrailsSignalPathsPrimaryPathTitle = if ($null -ne $manifestRuntimeGuardrailsSignalPathsPrimaryPath) { [string](Get-ObjectPropertyValue -Object $manifestRuntimeGuardrailsSignalPathsPrimaryPath -Name "title") } else { "" }
+    $manifestCaseWikiRoutingContextStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceCaseWikiRoutingContextStatus
+    $manifestCaseWikiRoutingContextValidated = if ((To-BoolOrNull $manifestEvidenceSnapshot.badgeEvidenceCaseWikiRoutingContextValidated) -eq $true) { "true" } else { "false" }
+    $manifestCaseWikiRoutingContextObserved = if ((To-BoolOrNull $manifestEvidenceSnapshot.badgeEvidenceCaseWikiRoutingContextObserved) -eq $true) { "true" } else { "false" }
+    $manifestCaseWikiRoutingContextSource = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextSource")
+    $manifestCaseWikiRoutingContextFocusId = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextFocusId")
+    $manifestCaseWikiRoutingContextBlocker = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextBlocker")
+    $manifestCaseWikiRoutingContextNextAction = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextNextAction")
+    $manifestCaseWikiRoutingContextRoute = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextRoute")
+    $manifestCaseWikiRoutingContextMode = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextMode")
+    $manifestCaseWikiRoutingContextRequestedIntent = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextRequestedIntent")
+    $manifestCaseWikiRoutingContextRoutedIntent = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextRoutedIntent")
+    $manifestCaseWikiContextAdoptionStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionStatus
+    $manifestCaseWikiContextAdoptionValidated = if ((To-BoolOrNull $manifestEvidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionValidated) -eq $true) { "true" } else { "false" }
+    $manifestCaseWikiContextAdoptionObserved = if ((To-BoolOrNull $manifestEvidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionObserved) -eq $true) { "true" } else { "false" }
+    $manifestCaseWikiContextAdoptionObservedCount = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionObservedCount")
+    $manifestCaseWikiContextAdoptionCaseWikiObservedCount = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount")
+    $manifestCaseWikiContextAdoptionInputOnlyObservedCount = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount")
+    $manifestCaseWikiContextAdoptionUnknownObservedCount = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount")
+    $manifestCaseWikiContextAdoptionCaseWikiRate = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionCaseWikiRate")
     $manifestProviderUsageStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceProviderUsageStatus
     $manifestProviderUsageValidated = if ([bool]$manifestEvidenceSnapshot.badgeEvidenceProviderUsageValidated) { "true" } else { "false" }
     $manifestProviderUsageActiveSecondaryProviders = [string]$manifestEvidenceSnapshot.badgeEvidenceProviderUsageActiveSecondaryProviders
@@ -2698,6 +3378,15 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
     $manifestRailwayDeploySummaryRootDescriptorExpectedUiUrl = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryRootDescriptorExpectedUiUrl")
     $manifestRailwayDeploySummaryPublicBadgeAttempted = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryPublicBadgeAttempted"
     $manifestRailwayDeploySummaryPublicBadgeSkipped = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryPublicBadgeSkipped"
+    $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus")
+    $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved"
+    $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource")
+    $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource")
+    $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId")
+    $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker")
+    $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction")
+    $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute")
+    $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt")
     $manifestRepoPublishSummaryPresent = if ((To-BoolOrNull $manifestEvidenceSnapshot.repoPublishSummaryPresent) -eq $true) { "true" } else { "false" }
     $manifestRepoPublishSummaryBranch = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryBranch")
     $manifestRepoPublishSummaryRemoteName = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryRemoteName")
@@ -2740,6 +3429,25 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       ", runtime_guardrails_signal_paths_summary_status=" + $manifestRuntimeGuardrailsSignalPathsSummaryStatus +
       ", runtime_guardrails_signal_paths_total_paths=" + $manifestRuntimeGuardrailsSignalPathsTotalPaths +
       ", runtime_guardrails_signal_paths_primary_path_title=" + $manifestRuntimeGuardrailsSignalPathsPrimaryPathTitle +
+      ", case_wiki_routing_context_status=" + $manifestCaseWikiRoutingContextStatus +
+      ", case_wiki_routing_context_validated=" + $manifestCaseWikiRoutingContextValidated +
+      ", case_wiki_routing_context_observed=" + $manifestCaseWikiRoutingContextObserved +
+      ", case_wiki_routing_context_source=" + $manifestCaseWikiRoutingContextSource +
+      ", case_wiki_routing_context_focus_id=" + $manifestCaseWikiRoutingContextFocusId +
+      ", case_wiki_routing_context_blocker=" + $manifestCaseWikiRoutingContextBlocker +
+      ", case_wiki_routing_context_next_action=" + $manifestCaseWikiRoutingContextNextAction +
+      ", case_wiki_routing_context_route=" + $manifestCaseWikiRoutingContextRoute +
+      ", case_wiki_routing_context_mode=" + $manifestCaseWikiRoutingContextMode +
+      ", case_wiki_routing_context_requested_intent=" + $manifestCaseWikiRoutingContextRequestedIntent +
+      ", case_wiki_routing_context_routed_intent=" + $manifestCaseWikiRoutingContextRoutedIntent +
+      ", case_wiki_context_adoption_status=" + $manifestCaseWikiContextAdoptionStatus +
+      ", case_wiki_context_adoption_validated=" + $manifestCaseWikiContextAdoptionValidated +
+      ", case_wiki_context_adoption_observed=" + $manifestCaseWikiContextAdoptionObserved +
+      ", case_wiki_context_adoption_observed_count=" + $manifestCaseWikiContextAdoptionObservedCount +
+      ", case_wiki_context_adoption_case_wiki_observed_count=" + $manifestCaseWikiContextAdoptionCaseWikiObservedCount +
+      ", case_wiki_context_adoption_input_only_observed_count=" + $manifestCaseWikiContextAdoptionInputOnlyObservedCount +
+      ", case_wiki_context_adoption_unknown_observed_count=" + $manifestCaseWikiContextAdoptionUnknownObservedCount +
+      ", case_wiki_context_adoption_case_wiki_rate=" + $manifestCaseWikiContextAdoptionCaseWikiRate +
       ", provider_usage_status=" + $manifestProviderUsageStatus +
       ", provider_usage_validated=" + $manifestProviderUsageValidated +
       ", provider_usage_active_secondary_providers=" + $manifestProviderUsageActiveSecondaryProviders +
@@ -2765,6 +3473,15 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       ", railway_deploy_summary_expected_ui_url=" + $manifestRailwayDeploySummaryRootDescriptorExpectedUiUrl +
       ", railway_deploy_summary_public_badge_attempted=" + $(if ($null -ne $manifestRailwayDeploySummaryPublicBadgeAttempted) { [string]$manifestRailwayDeploySummaryPublicBadgeAttempted } else { "" }) +
       ", railway_deploy_summary_public_badge_skipped=" + $(if ($null -ne $manifestRailwayDeploySummaryPublicBadgeSkipped) { [string]$manifestRailwayDeploySummaryPublicBadgeSkipped } else { "" }) +
+      ", railway_deploy_summary_case_wiki_runtime_surface_ingress_status=" + $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus +
+      ", railway_deploy_summary_case_wiki_runtime_surface_ingress_observed=" + $(if ($null -ne $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved) { [string]$manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved } else { "" }) +
+      ", railway_deploy_summary_case_wiki_runtime_surface_ingress_context_source=" + $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource +
+      ", railway_deploy_summary_case_wiki_runtime_surface_ingress_ingress_source=" + $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource +
+      ", railway_deploy_summary_case_wiki_runtime_surface_ingress_focus_id=" + $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId +
+      ", railway_deploy_summary_case_wiki_runtime_surface_ingress_blocker=" + $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker +
+      ", railway_deploy_summary_case_wiki_runtime_surface_ingress_next_action=" + $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction +
+      ", railway_deploy_summary_case_wiki_runtime_surface_ingress_route=" + $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute +
+      ", railway_deploy_summary_case_wiki_runtime_surface_ingress_updated_at=" + $manifestRailwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt +
       ", repo_publish_summary_present=" + $manifestRepoPublishSummaryPresent +
       ", repo_publish_summary_branch=" + $manifestRepoPublishSummaryBranch +
       ", repo_publish_summary_remote_name=" + $manifestRepoPublishSummaryRemoteName +

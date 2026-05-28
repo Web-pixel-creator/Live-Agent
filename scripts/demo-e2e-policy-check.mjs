@@ -209,7 +209,10 @@ async function main() {
         "ui.approval.approve_resume",
         "ui.sandbox.policy_modes",
         "ui.visual_testing",
+        "ui.browser_worker.checkpoint_resume",
+        "ui.navigator.visa_vertical_flows",
         "multi_agent.delegation",
+        "gateway.websocket.case_wiki_hydration",
         "gateway.websocket.roundtrip",
         "gateway.websocket.task_progress",
         "gateway.websocket.request_replay",
@@ -1619,6 +1622,26 @@ async function main() {
     kpis.uiVisualTestingScenarioAttempts,
     "1..options.scenarioRetryMaxAttempts",
   );
+  const uiBrowserWorkerRecoveryScenarioAttempts = toNumber(kpis.uiBrowserWorkerRecoveryScenarioAttempts);
+  addCheck(
+    "kpi.uiBrowserWorkerRecoveryScenarioAttempts",
+    Number.isFinite(uiBrowserWorkerRecoveryScenarioAttempts) &&
+      uiBrowserWorkerRecoveryScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      uiBrowserWorkerRecoveryScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.uiBrowserWorkerRecoveryScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
+  const navigatorVisaFlowsScenarioAttempts = toNumber(kpis.navigatorVisaFlowsScenarioAttempts);
+  addCheck(
+    "kpi.navigatorVisaFlowsScenarioAttempts",
+    Number.isFinite(navigatorVisaFlowsScenarioAttempts) &&
+      navigatorVisaFlowsScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      navigatorVisaFlowsScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.navigatorVisaFlowsScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
   const operatorConsoleActionsScenarioAttempts = toNumber(kpis.operatorConsoleActionsScenarioAttempts);
   addCheck(
     "kpi.operatorConsoleActionsScenarioAttempts",
@@ -1755,6 +1778,186 @@ async function main() {
     kpis.uiGroundingSignalsValidated,
     true,
   );
+  // Browser-worker recovery validation is execution-mode-aware per
+  // `.kiro/specs/ui-executor-ref-healing-execution-mode-aware/design.md`
+  // "Downstream Gate Update". The KPI `browserWorkerRecoveryValidated` is
+  // computed from the same real-DOM healing fields that
+  // `scripts/demo-e2e.ps1` gates on
+  // `Test-DemoE2eRefHealingRequiresRealPlaywright`; on the PR-quality
+  // simulation lane those fields honestly stay zero and the KPI computes
+  // to false even though the scenario itself passes the mode-independent
+  // invariants. The env discriminator
+  // `DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT` (default `"true"` for
+  // release-strict; PR Quality opts out via `"false"`) decides whether
+  // the policy gate requires the strict KPI:
+  //   - default (env unset OR truthy): require
+  //     `kpi.browserWorkerRecoveryValidated === true` byte-identical to
+  //     today.
+  //   - opt-out (env `"false"` / `"0"` / `"no"` / `"off"`, case +
+  //     whitespace insensitive): SKIP the strict KPI check entirely.
+  //     The unconditional `kpi.uiBrowserWorkerRecoveryScenarioAttempts`
+  //     check above (1..options.scenarioRetryMaxAttempts) already proves
+  //     the scenario itself passed; on the simulation lane the
+  //     mode-independent invariants (finalStatus="completed",
+  //     adapterMode="remote_http", checkpointReadyCleared=true) are
+  //     enforced by demo-e2e.ps1's own Assert-Condition chain (which
+  //     stays unconditional regardless of the env), so re-asserting them
+  //     here in the policy-check would duplicate the demo-e2e contract
+  //     without strengthening the proof.
+  // Smallest-diff approach: env-gated check selection rather than a
+  // per-check severity flag. The simulation lane's honest absence of
+  // real-DOM healing evidence is encoded as "no policy assertion" rather
+  // than as a relaxed alternate assertion, mirroring the bugfix slice's
+  // Cross-cutting Rule that the policy-check / KPI emission stays
+  // byte-identical for the strict release-strict default.
+  const refHealingRequireRealPlaywrightEnvRaw = process.env.DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT;
+  const refHealingRequireRealPlaywright =
+    refHealingRequireRealPlaywrightEnvRaw === undefined ||
+    refHealingRequireRealPlaywrightEnvRaw === null ||
+    !["0", "false", "no", "off"].includes(
+      String(refHealingRequireRealPlaywrightEnvRaw).trim().toLowerCase(),
+    );
+  if (refHealingRequireRealPlaywright) {
+    addCheck(
+      "kpi.browserWorkerRecoveryValidated",
+      kpis.browserWorkerRecoveryValidated === true,
+      kpis.browserWorkerRecoveryValidated,
+      true,
+    );
+  }
+  // Navigator visa-flows checks are execution-mode-aware per
+  // `.kiro/specs/demo-e2e-visa-flows-execution-mode-aware-summary/design.md`
+  // "Downstream Gate Update" and bugfix.md R5 ("Downstream Gates Must Keep
+  // Their Meaning"). The artifact's `validationMode` is the discriminator:
+  //   - "real_playwright" → keep all of today's strict checks (4 booleans
+  //     plus the seven persistent/replay/verified/stale/healed/resumed
+  //     counters that follow). Byte-identical to the pre-fix policy on the
+  //     real-Playwright lane.
+  //   - "simulated" → require `validated === true` AND
+  //     `simulatedValidated === true`. The simulation contract owns the
+  //     proof; persistent/replay/verified/stale/healed/resumed counters
+  //     naturally compute to 0 on the simulation lane (honest about absence
+  //     of real persistent session / replay bundle), so those counter ==
+  //     totalFlows checks are skipped here for the simulation branch.
+  //   - "mixed" / "unknown" → reject by requiring `validated === false`
+  //     and emitting the rejection in the violation list.
+  // The unconditional new check `kpi.navigatorVisaFlowsStrictPersistentSessionValidated`
+  // is gated on the env `DEMO_E2E_REQUIRE_STRICT_PERSISTENT_SESSION` so
+  // release-strict-final (which sets the env in a follow-up commit) always
+  // requires real persistent-session evidence regardless of declared mode,
+  // while PR Quality (env unset) leaves it as a soft observation that does
+  // not break the run on honest simulation proof. Smallest-diff approach:
+  // env-gated emission rather than introducing a per-check severity flag.
+  const navigatorVisaFlowsValidationMode = String(kpis.navigatorVisaFlowsValidationMode ?? "unknown");
+  const navigatorVisaFlowsRequireStrictPersistentSession = toBooleanFlag(
+    process.env.DEMO_E2E_REQUIRE_STRICT_PERSISTENT_SESSION ?? false,
+  );
+  addCheck(
+    "kpi.navigatorVisaFlowsValidationMode",
+    navigatorVisaFlowsValidationMode === "real_playwright" ||
+      navigatorVisaFlowsValidationMode === "simulated",
+    kpis.navigatorVisaFlowsValidationMode,
+    "real_playwright | simulated",
+  );
+  if (navigatorVisaFlowsValidationMode === "real_playwright") {
+    addCheck(
+      "kpi.navigatorVisaFlowsValidated",
+      kpis.navigatorVisaFlowsValidated === true,
+      kpis.navigatorVisaFlowsValidated,
+      true,
+    );
+  } else if (navigatorVisaFlowsValidationMode === "simulated") {
+    addCheck(
+      "kpi.navigatorVisaFlowsValidated",
+      kpis.navigatorVisaFlowsValidated === true,
+      kpis.navigatorVisaFlowsValidated,
+      true,
+    );
+    addCheck(
+      "kpi.navigatorVisaFlowsSimulatedValidated",
+      kpis.navigatorVisaFlowsSimulatedValidated === true,
+      kpis.navigatorVisaFlowsSimulatedValidated,
+      true,
+    );
+  } else {
+    addCheck(
+      "kpi.navigatorVisaFlowsValidated",
+      kpis.navigatorVisaFlowsValidated === false,
+      kpis.navigatorVisaFlowsValidated,
+      "false (mixed/unknown rejected per design.md Mixed Mode)",
+    );
+  }
+  if (navigatorVisaFlowsRequireStrictPersistentSession) {
+    addCheck(
+      "kpi.navigatorVisaFlowsStrictPersistentSessionValidated",
+      kpis.navigatorVisaFlowsStrictPersistentSessionValidated === true,
+      kpis.navigatorVisaFlowsStrictPersistentSessionValidated,
+      "true (release-strict requirement; honest simulation runs report false)",
+    );
+  }
+  addCheck(
+    "kpi.navigatorVisaFlowsTotal",
+    toNumber(kpis.navigatorVisaFlowsTotal) >= 3,
+    kpis.navigatorVisaFlowsTotal,
+    ">= 3",
+  );
+  addCheck(
+    "kpi.navigatorVisaFlowsSucceeded",
+    toNumber(kpis.navigatorVisaFlowsSucceeded) === toNumber(kpis.navigatorVisaFlowsTotal),
+    kpis.navigatorVisaFlowsSucceeded,
+    "== navigatorVisaFlowsTotal",
+  );
+  addCheck(
+    "kpi.navigatorVisaFlowsSuccessRate",
+    Number.isFinite(toNumber(kpis.navigatorVisaFlowsSuccessRate)) &&
+      toNumber(kpis.navigatorVisaFlowsSuccessRate) >= 1,
+    kpis.navigatorVisaFlowsSuccessRate,
+    ">= 1",
+  );
+  if (navigatorVisaFlowsValidationMode === "real_playwright") {
+    addCheck(
+      "kpi.navigatorVisaFlowsPersistentSessionCount",
+      toNumber(kpis.navigatorVisaFlowsPersistentSessionCount) === toNumber(kpis.navigatorVisaFlowsTotal),
+      kpis.navigatorVisaFlowsPersistentSessionCount,
+      "== navigatorVisaFlowsTotal",
+    );
+    addCheck(
+      "kpi.navigatorVisaFlowsReplayBundleCount",
+      toNumber(kpis.navigatorVisaFlowsReplayBundleCount) === toNumber(kpis.navigatorVisaFlowsTotal),
+      kpis.navigatorVisaFlowsReplayBundleCount,
+      "== navigatorVisaFlowsTotal",
+    );
+    addCheck(
+      "kpi.navigatorVisaFlowsVerifiedCount",
+      toNumber(kpis.navigatorVisaFlowsVerifiedCount) === toNumber(kpis.navigatorVisaFlowsTotal),
+      kpis.navigatorVisaFlowsVerifiedCount,
+      "== navigatorVisaFlowsTotal",
+    );
+    addCheck(
+      "kpi.navigatorVisaFlowsStaleRecoveryObservedCount",
+      toNumber(kpis.navigatorVisaFlowsStaleRecoveryObservedCount) === toNumber(kpis.navigatorVisaFlowsTotal),
+      kpis.navigatorVisaFlowsStaleRecoveryObservedCount,
+      "== navigatorVisaFlowsTotal",
+    );
+    addCheck(
+      "kpi.navigatorVisaFlowsHealedRecoveryObservedCount",
+      toNumber(kpis.navigatorVisaFlowsHealedRecoveryObservedCount) === toNumber(kpis.navigatorVisaFlowsTotal),
+      kpis.navigatorVisaFlowsHealedRecoveryObservedCount,
+      "== navigatorVisaFlowsTotal",
+    );
+    addCheck(
+      "kpi.navigatorVisaFlowsResumedCheckpointCount",
+      toNumber(kpis.navigatorVisaFlowsResumedCheckpointCount) === toNumber(kpis.navigatorVisaFlowsTotal),
+      kpis.navigatorVisaFlowsResumedCheckpointCount,
+      "== navigatorVisaFlowsTotal",
+    );
+    addCheck(
+      "kpi.navigatorVisaFlowsCheckpointReadyClearedCount",
+      toNumber(kpis.navigatorVisaFlowsCheckpointReadyClearedCount) === toNumber(kpis.navigatorVisaFlowsTotal),
+      kpis.navigatorVisaFlowsCheckpointReadyClearedCount,
+      "== navigatorVisaFlowsTotal",
+    );
+  }
   addCheck(
     "kpi.gatewayWsRoundTripMs",
     toNumber(kpis.gatewayWsRoundTripMs) <= maxGatewayWsRoundTripMs,
@@ -1950,6 +2153,142 @@ async function main() {
     ["gemini_api", "openai", "anthropic", "deepseek", "moonshot"].includes(String(kpis.assistiveRouterProvider)),
     kpis.assistiveRouterProvider,
     "gemini_api | openai | anthropic | deepseek | moonshot",
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationValidated",
+    kpis.caseWikiGatewayHydrationValidated === true,
+    kpis.caseWikiGatewayHydrationValidated,
+    true,
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationSessionId",
+    typeof kpis.caseWikiGatewayHydrationSessionId === "string" &&
+      String(kpis.caseWikiGatewayHydrationSessionId).trim().length > 0,
+    kpis.caseWikiGatewayHydrationSessionId,
+    "non-empty sessionId",
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationNoteEventId",
+    typeof kpis.caseWikiGatewayHydrationNoteEventId === "string" &&
+      String(kpis.caseWikiGatewayHydrationNoteEventId).trim().length > 0,
+    kpis.caseWikiGatewayHydrationNoteEventId,
+    "non-empty note event id",
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationQuestionId",
+    typeof kpis.caseWikiGatewayHydrationQuestionId === "string" &&
+      String(kpis.caseWikiGatewayHydrationQuestionId).trim().length > 0,
+    kpis.caseWikiGatewayHydrationQuestionId,
+    "non-empty question id",
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationQuestionMatched",
+    kpis.caseWikiGatewayHydrationQuestionMatched === true,
+    kpis.caseWikiGatewayHydrationQuestionMatched,
+    true,
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationNoteSourceRefSeen",
+    kpis.caseWikiGatewayHydrationNoteSourceRefSeen === true,
+    kpis.caseWikiGatewayHydrationNoteSourceRefSeen,
+    true,
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationQuestionSuggestedNextStep",
+    typeof kpis.caseWikiGatewayHydrationQuestionSuggestedNextStep === "string" &&
+      String(kpis.caseWikiGatewayHydrationQuestionSuggestedNextStep).trim().length > 0,
+    kpis.caseWikiGatewayHydrationQuestionSuggestedNextStep,
+    "non-empty suggested next step",
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationContextSource",
+    String(kpis.caseWikiGatewayHydrationContextSource) === "case_wiki",
+    kpis.caseWikiGatewayHydrationContextSource,
+    "case_wiki",
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationFocusId",
+    typeof kpis.caseWikiGatewayHydrationFocusId === "string" &&
+      String(kpis.caseWikiGatewayHydrationFocusId).trim().length > 0,
+    kpis.caseWikiGatewayHydrationFocusId,
+    "non-empty focusId",
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationBlocker",
+    typeof kpis.caseWikiGatewayHydrationBlocker === "string" &&
+      String(kpis.caseWikiGatewayHydrationBlocker).trim().length > 0,
+    kpis.caseWikiGatewayHydrationBlocker,
+    "non-empty blocker",
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationNextAction",
+    typeof kpis.caseWikiGatewayHydrationNextAction === "string" &&
+      String(kpis.caseWikiGatewayHydrationNextAction).trim().length > 0,
+    kpis.caseWikiGatewayHydrationNextAction,
+    "non-empty next action",
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationRoute",
+    String(kpis.caseWikiGatewayHydrationRoute) === "live-agent",
+    kpis.caseWikiGatewayHydrationRoute,
+    "live-agent",
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationMode",
+    allowedAssistiveRouterModes.includes(String(kpis.caseWikiGatewayHydrationMode)),
+    kpis.caseWikiGatewayHydrationMode,
+    allowedAssistiveRouterModes.join(" | "),
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationRequestedIntent",
+    String(kpis.caseWikiGatewayHydrationRequestedIntent) === "conversation",
+    kpis.caseWikiGatewayHydrationRequestedIntent,
+    "conversation",
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationRoutedIntent",
+    typeof kpis.caseWikiGatewayHydrationRoutedIntent === "string" &&
+      String(kpis.caseWikiGatewayHydrationRoutedIntent).trim().length > 0,
+    kpis.caseWikiGatewayHydrationRoutedIntent,
+    "non-empty routed intent",
+  );
+  addCheck(
+    "kpi.caseWikiContextAdoptionValidated",
+    kpis.caseWikiContextAdoptionValidated === true,
+    kpis.caseWikiContextAdoptionValidated,
+    true,
+  );
+  addCheck(
+    "kpi.caseWikiContextAdoptionObservedCount",
+    toNumber(kpis.caseWikiContextAdoptionObservedCount) >= 3,
+    kpis.caseWikiContextAdoptionObservedCount,
+    ">= 3",
+  );
+  addCheck(
+    "kpi.caseWikiContextAdoptionCaseWikiCount",
+    toNumber(kpis.caseWikiContextAdoptionCaseWikiCount) >= 1,
+    kpis.caseWikiContextAdoptionCaseWikiCount,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.caseWikiContextAdoptionInputOnlyCount",
+    toNumber(kpis.caseWikiContextAdoptionInputOnlyCount) >= 0,
+    kpis.caseWikiContextAdoptionInputOnlyCount,
+    ">= 0",
+  );
+  addCheck(
+    "kpi.caseWikiContextAdoptionUnknownCount",
+    toNumber(kpis.caseWikiContextAdoptionUnknownCount) === 0,
+    kpis.caseWikiContextAdoptionUnknownCount,
+    0,
+  );
+  addCheck(
+    "kpi.caseWikiContextAdoptionRate",
+    Number.isFinite(toNumber(kpis.caseWikiContextAdoptionRate)) &&
+      toNumber(kpis.caseWikiContextAdoptionRate) >= 0.95 &&
+      toNumber(kpis.caseWikiContextAdoptionRate) <= 1,
+    kpis.caseWikiContextAdoptionRate,
+    "0.95..1",
   );
   addCheck(
     "kpi.lifecycleEndpointsValidated",

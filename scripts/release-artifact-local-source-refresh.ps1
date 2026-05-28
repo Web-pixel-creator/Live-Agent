@@ -348,10 +348,12 @@ $repoPublishRuntime = Get-ObjectPropertyValue -Object $repoPublishSummary -Name 
 $repoPublishArtifacts = Get-ObjectPropertyValue -Object $repoPublishSummary -Name "artifacts"
 $repoPublishReleaseEvidenceArtifacts = Get-ObjectPropertyValue -Object $repoPublishVerification -Name "releaseEvidenceArtifacts"
 $repoPublishReleaseEvidenceArtifactsCount = if ($null -ne $repoPublishReleaseEvidenceArtifacts) { @($repoPublishReleaseEvidenceArtifacts).Count } else { $null }
+$repoPublishCaseWikiRuntimeSurfaceIngress = Get-ObjectPropertyValue -Object $repoPublishSummary -Name "caseWikiRuntimeSurfaceIngress"
 
 $railwayChecks = Get-ObjectPropertyValue -Object $railwayDeploySummary -Name "checks"
 $railwayRootDescriptor = Get-ObjectPropertyValue -Object $railwayChecks -Name "rootDescriptor"
 $railwayPublicBadge = Get-ObjectPropertyValue -Object $railwayChecks -Name "publicBadge"
+$railwayCaseWikiRuntimeSurfaceIngress = Get-ObjectPropertyValue -Object $railwayDeploySummary -Name "caseWikiRuntimeSurfaceIngress"
 
 $runtimeGuardrailsPrimaryPath = New-NullablePrimaryPath (Get-ObjectPropertyValue -Object $runtimeGuardrails -Name "primaryPath")
 $providerUsagePrimaryEntry = New-NullableProviderPrimaryEntry (Get-ObjectPropertyValue -Object $providerUsage -Name "primaryEntry")
@@ -413,6 +415,15 @@ $sourceRunManifest = [ordered]@{
       railwayDeploySummaryRootDescriptorExpectedUiUrl = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object $railwayRootDescriptor -Name "expectedUiUrl")
       railwayDeploySummaryPublicBadgeAttempted = Get-ObjectPropertyValue -Object $railwayPublicBadge -Name "attempted"
       railwayDeploySummaryPublicBadgeSkipped = Get-ObjectPropertyValue -Object $railwayPublicBadge -Name "skipped"
+      railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus = Get-StatusOrFallback -Primary (Get-ObjectPropertyValue -Object $railwayCaseWikiRuntimeSurfaceIngress -Name "status") -Secondary $null
+      railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved = ((Get-ObjectPropertyValue -Object $railwayCaseWikiRuntimeSurfaceIngress -Name "observed") -eq $true)
+      railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object $railwayCaseWikiRuntimeSurfaceIngress -Name "contextSource")
+      railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object $railwayCaseWikiRuntimeSurfaceIngress -Name "ingressSource")
+      railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object $railwayCaseWikiRuntimeSurfaceIngress -Name "focusId")
+      railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object $railwayCaseWikiRuntimeSurfaceIngress -Name "blocker")
+      railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object $railwayCaseWikiRuntimeSurfaceIngress -Name "nextAction")
+      railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object $railwayCaseWikiRuntimeSurfaceIngress -Name "route")
+      railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object $railwayCaseWikiRuntimeSurfaceIngress -Name "updatedAt")
       repoPublishSummaryPresent = (Test-Path $repoPublishSummaryPath)
       repoPublishSummaryBranch = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object $repoPublishSummary -Name "branch")
       repoPublishSummaryRemoteName = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object $repoPublishSummary -Name "remoteName")
@@ -436,6 +447,15 @@ $sourceRunManifest = [ordered]@{
       repoPublishSummaryArtifactReleaseEvidenceReportJson = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object $repoPublishArtifacts -Name "releaseEvidenceReportJson")
       repoPublishSummaryArtifactReleaseEvidenceManifestJson = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object $repoPublishArtifacts -Name "releaseEvidenceManifestJson")
       repoPublishSummaryArtifactBadgeDetailsJson = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object $repoPublishArtifacts -Name "badgeDetailsJson")
+      repoPublishSummaryCaseWikiRuntimeSurfaceIngressStatus = Get-StatusOrFallback -Primary (Get-ObjectPropertyValue -Object $repoPublishCaseWikiRuntimeSurfaceIngress -Name "status") -Secondary $null
+      repoPublishSummaryCaseWikiRuntimeSurfaceIngressObserved = ((Get-ObjectPropertyValue -Object $repoPublishCaseWikiRuntimeSurfaceIngress -Name "observed") -eq $true)
+      repoPublishSummaryCaseWikiRuntimeSurfaceIngressContextSource = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object $repoPublishCaseWikiRuntimeSurfaceIngress -Name "contextSource")
+      repoPublishSummaryCaseWikiRuntimeSurfaceIngressIngressSource = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object $repoPublishCaseWikiRuntimeSurfaceIngress -Name "ingressSource")
+      repoPublishSummaryCaseWikiRuntimeSurfaceIngressFocusId = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object $repoPublishCaseWikiRuntimeSurfaceIngress -Name "focusId")
+      repoPublishSummaryCaseWikiRuntimeSurfaceIngressBlocker = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object $repoPublishCaseWikiRuntimeSurfaceIngress -Name "blocker")
+      repoPublishSummaryCaseWikiRuntimeSurfaceIngressNextAction = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object $repoPublishCaseWikiRuntimeSurfaceIngress -Name "nextAction")
+      repoPublishSummaryCaseWikiRuntimeSurfaceIngressRoute = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object $repoPublishCaseWikiRuntimeSurfaceIngress -Name "route")
+      repoPublishSummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object $repoPublishCaseWikiRuntimeSurfaceIngress -Name "updatedAt")
       operatorTurnTruncationSummaryValidated = ((Get-ObjectPropertyValue -Object $summaryKpis -Name "operatorTurnTruncationSummaryValidated") -eq $true)
       operatorTurnDeleteSummaryValidated = ((Get-ObjectPropertyValue -Object $summaryKpis -Name "operatorTurnDeleteSummaryValidated") -eq $true)
       operatorDamageControlSummaryValidated = ((Get-ObjectPropertyValue -Object $summaryKpis -Name "operatorDamageControlSummaryValidated") -eq $true)
@@ -455,6 +475,25 @@ $sourceRunManifest = [ordered]@{
       badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus = Get-StatusOrFallback -Primary (Get-ObjectPropertyValue -Object $runtimeGuardrails -Name "summaryStatus") -Secondary (Get-ObjectPropertyValue -Object $runtimeGuardrailsBadge -Name "summaryStatus")
       badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths = Get-IntOrDefault (Get-ObjectPropertyValue -Object $runtimeGuardrails -Name "totalPaths") (Get-IntOrDefault (Get-ObjectPropertyValue -Object $runtimeGuardrailsBadge -Name "totalPaths") 0)
       badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath = $runtimeGuardrailsPrimaryPath
+      badgeEvidenceCaseWikiRoutingContextStatus = Get-StatusOrFallback -Primary (Get-ObjectPropertyValue -Object $reportStatuses -Name "caseWikiRoutingContextStatus") -Secondary (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $badgeEvidence -Name "caseWikiRoutingContext") -Name "status")
+      badgeEvidenceCaseWikiRoutingContextValidated = ((Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "validated") -eq $true)
+      badgeEvidenceCaseWikiRoutingContextObserved = ((Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "observed") -eq $true)
+      badgeEvidenceCaseWikiRoutingContextSource = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "contextSource")
+      badgeEvidenceCaseWikiRoutingContextFocusId = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "focusId")
+      badgeEvidenceCaseWikiRoutingContextBlocker = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "blocker")
+      badgeEvidenceCaseWikiRoutingContextNextAction = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "nextAction")
+      badgeEvidenceCaseWikiRoutingContextRoute = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "route")
+      badgeEvidenceCaseWikiRoutingContextMode = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "mode")
+      badgeEvidenceCaseWikiRoutingContextRequestedIntent = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "requestedIntent")
+      badgeEvidenceCaseWikiRoutingContextRoutedIntent = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "routedIntent")
+      badgeEvidenceCaseWikiContextAdoptionStatus = Get-StatusOrFallback -Primary (Get-ObjectPropertyValue -Object $reportStatuses -Name "caseWikiContextAdoptionStatus") -Secondary (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $badgeEvidence -Name "caseWikiContextAdoption") -Name "status")
+      badgeEvidenceCaseWikiContextAdoptionValidated = ((Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiContextAdoption") -Name "validated") -eq $true)
+      badgeEvidenceCaseWikiContextAdoptionObserved = ((Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiContextAdoption") -Name "observed") -eq $true)
+      badgeEvidenceCaseWikiContextAdoptionObservedCount = Get-IntOrDefault (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiContextAdoption") -Name "observedCount") 0
+      badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount = Get-IntOrDefault (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiContextAdoption") -Name "caseWikiObservedCount") 0
+      badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount = Get-IntOrDefault (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiContextAdoption") -Name "inputOnlyObservedCount") 0
+      badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount = Get-IntOrDefault (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiContextAdoption") -Name "unknownObservedCount") 0
+      badgeEvidenceCaseWikiContextAdoptionCaseWikiRate = Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiContextAdoption") -Name "caseWikiRate"
       badgeEvidenceProviderUsageStatus = Get-StatusOrFallback -Primary (Get-ObjectPropertyValue -Object $providerUsage -Name "status") -Secondary (Get-ObjectPropertyValue -Object $providerUsageBadge -Name "status")
       badgeEvidenceProviderUsageValidated = $providerUsageValidated
       badgeEvidenceProviderUsageActiveSecondaryProviders = Get-IntOrDefault (Get-ObjectPropertyValue -Object $providerUsage -Name "activeSecondaryProviders") (Get-IntOrDefault (Get-ObjectPropertyValue -Object $providerUsageBadge -Name "activeSecondaryProviders") 0)
@@ -477,4 +516,6 @@ Write-Host ("[local-source-refresh] Source run manifest written: " + $resolvedOu
 Write-Host ("[local-source-refresh] Branch guard: allowAnySourceBranch=" + [string]$branchSelection.allowAnySourceBranch + "; allowedBranches=" + ($branchSelection.allowedBranches -join ", "))
 Write-Host ("[local-source-refresh] Perf mode: " + $perfMode)
 Write-Host ("[local-source-refresh] Runtime guardrails status: " + [string]$sourceRunManifest.gate.evidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsStatus)
+Write-Host ("[local-source-refresh] Case wiki routing context status: " + [string]$sourceRunManifest.gate.evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextStatus)
+Write-Host ("[local-source-refresh] Case wiki context adoption status: " + [string]$sourceRunManifest.gate.evidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionStatus)
 Write-Host ("[local-source-refresh] Provider usage status: " + [string]$sourceRunManifest.gate.evidenceSnapshot.badgeEvidenceProviderUsageStatus)

@@ -47,7 +47,7 @@
 
 1. THE System SHALL use ADK as the primary framework for agent orchestration, tools, and workflows.
 2. THE System SHALL use Live_API for all real-time voice/video interactions.
-3. THE System SHALL use `gemini-live-2.5-flash-native-audio` (Vertex AI) or `gemini-2.5-flash-native-audio-preview-12-2025` (Gemini API) for real-time audio turns, and `gemini-3-flash` or `gemini-3-pro` for non-live reasoning tasks.
+3. THE System SHALL use `gemini-live-2.5-flash-native-audio` (Vertex AI) or `gemini-3.1-flash-live-preview` (Gemini API) for real-time audio turns, and `gemini-3-flash` or `gemini-3-pro` for non-live reasoning tasks.
 4. THE System SHALL be deployable on Vertex_AI_Agent_Engine or Cloud_Run with ADK runtime.
 5. THE System SHALL use at least one Google Cloud service, with recommended baseline: Vertex AI, Firestore, Cloud Run.
 6. THE System SHALL pin model IDs and API versions in configuration to ensure reproducibility.
@@ -61,7 +61,7 @@
 #### Acceptance Criteria
 
 1. THE Live_Agent SHALL accept Audio_Stream input and optional Video_Stream input.
-2. THE Live_Agent SHALL use stateful bidirectional Live_API streaming over WebSocket with a Gemini Live profile (recommended: `gemini-live-2.5-flash-native-audio` on Vertex AI).
+2. THE Live_Agent SHALL use stateful bidirectional Live_API streaming over WebSocket with a Gemini Live profile (recommended: `gemini-3.1-flash-live-preview` on Gemini API or `gemini-live-2.5-flash-native-audio` on Vertex AI).
 3. THE Live_Agent SHALL handle user interruptions natively via Live_API interruption events.
 4. THE Live_Agent SHALL stop ongoing speech playback immediately when interruption is detected.
 5. THE Live_Agent SHALL target end-to-end voice round-trip latency of <= 1.2s and SHALL keep p95 <= 1.8s under normal network conditions.
@@ -326,7 +326,7 @@
 
 | Workload | Recommended Model |
 | --- | --- |
-| Real-time voice/video | `gemini-live-2.5-flash-native-audio` (Vertex AI) or `gemini-2.5-flash-native-audio-preview-12-2025` (Gemini API) |
+| Real-time voice/video | `gemini-live-2.5-flash-native-audio` (Vertex AI) or `gemini-3.1-flash-live-preview` (Gemini API) |
 | Fast reasoning and branch generation | `gemini-3-flash` |
 | Deep reasoning and planning | `gemini-3-pro` |
 | Computer Use | `gemini-3-flash-preview` or `gemini-3-pro-preview` (fallback: `gemini-2.5-computer-use-preview-10-2025`) |

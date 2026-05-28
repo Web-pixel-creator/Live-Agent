@@ -105,18 +105,71 @@ async function withMockBadgeServer(
   }
 }
 
+function withDefaultCaseWikiEvidence(details: Record<string, unknown>): Record<string, unknown> {
+  const cloned = JSON.parse(JSON.stringify(details)) as Record<string, unknown>;
+  const evidence = (cloned.evidence ?? {}) as Record<string, unknown>;
+  cloned.evidence = evidence;
+  evidence.caseWikiRoutingContext = {
+    status: "pass",
+    validated: true,
+    observed: true,
+    contextSource: "case_wiki",
+    focusId: "question:passport-scan",
+    blocker: "Do we have the passport scan?",
+    nextAction: "Request passport scan",
+    route: "live-agent",
+    mode: "assistive_override",
+    requestedIntent: "conversation",
+    routedIntent: "negotiation",
+  };
+  evidence.caseWikiGatewayHydration = {
+    status: "pass",
+    validated: true,
+    observed: true,
+    sessionId: "session-hydration-042",
+    noteEventId: "event-case-wiki-note-042",
+    questionId: "question:operator-note:event-case-wiki-note-042",
+    questionMatched: true,
+    noteSourceRefSeen: true,
+    questionSuggestedNextStep: "Request passport scan",
+    contextSource: "case_wiki",
+    focusId: "question:operator-note:event-case-wiki-note-042",
+    blocker: "Passport scan is still missing from the case.",
+    nextAction: "Request passport scan",
+    route: "live-agent",
+    mode: "assistive_override",
+    requestedIntent: "conversation",
+    routedIntent: "conversation",
+  };
+  evidence.caseWikiContextAdoption = {
+    status: "pass",
+    validated: true,
+    observed: true,
+    observedCount: 21,
+    caseWikiObservedCount: 20,
+    inputOnlyObservedCount: 1,
+    unknownObservedCount: 0,
+    caseWikiRate: 0.952381,
+  };
+  return cloned;
+}
+
 test(
   "public-badge-check passes when tracked badge details include valid plugin marketplace and provider usage evidence",
   { skip: skipIfNoPowerShell },
   async () => {
     const badge = JSON.parse(readFileSync(trackedBadgePath, "utf8")) as Record<string, unknown>;
-    const details = JSON.parse(readFileSync(trackedBadgeDetailsPath, "utf8")) as Record<string, unknown>;
+    const details = withDefaultCaseWikiEvidence(
+      JSON.parse(readFileSync(trackedBadgeDetailsPath, "utf8")) as Record<string, unknown>,
+    );
 
     await withMockBadgeServer(badge, details, async ({ badgeEndpoint, detailsEndpoint }) => {
       const result = await runPublicBadgeCheck({ badgeEndpoint, detailsEndpoint });
       assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
       assert.match(result.stdout, /Public badge endpoint is valid\./);
       assert.match(result.stdout, /Device-node-updates status \(badge evidence\): pass/);
+      assert.match(result.stdout, /Case-wiki-routing-context status \(badge evidence\): pass/);
+      assert.match(result.stdout, /Case-wiki-context-adoption status \(badge evidence\): pass/);
       assert.match(result.stdout, /Provider-usage status \(badge evidence\): pass/);
     });
   },
@@ -127,7 +180,9 @@ test(
   { skip: skipIfNoPowerShell },
   async () => {
     const badge = JSON.parse(readFileSync(trackedBadgePath, "utf8")) as Record<string, unknown>;
-    const details = JSON.parse(readFileSync(trackedBadgeDetailsPath, "utf8")) as Record<string, unknown>;
+    const details = withDefaultCaseWikiEvidence(
+      JSON.parse(readFileSync(trackedBadgeDetailsPath, "utf8")) as Record<string, unknown>,
+    );
     const failingDetails = JSON.parse(JSON.stringify(details)) as Record<string, unknown>;
 
     const evidence = failingDetails.evidence as Record<string, unknown>;
@@ -152,7 +207,9 @@ test(
   { skip: skipIfNoPowerShell },
   async () => {
     const badge = JSON.parse(readFileSync(trackedBadgePath, "utf8")) as Record<string, unknown>;
-    const details = JSON.parse(readFileSync(trackedBadgeDetailsPath, "utf8")) as Record<string, unknown>;
+    const details = withDefaultCaseWikiEvidence(
+      JSON.parse(readFileSync(trackedBadgeDetailsPath, "utf8")) as Record<string, unknown>,
+    );
     const failingDetails = JSON.parse(JSON.stringify(details)) as Record<string, unknown>;
 
     const providerUsage = failingDetails.providerUsage as Record<string, unknown>;
@@ -163,6 +220,40 @@ test(
       assert.equal(result.status, 1, `${result.stderr}\n${result.stdout}`);
       const output = `${result.stderr}\n${result.stdout}`;
       assert.match(output, /providerUsage must be validated with entries>=1 and activeSecondaryProviders>=0\./);
+    });
+  },
+);
+
+test(
+  "public-badge-check fails when case wiki context adoption proof is incomplete",
+  { skip: skipIfNoPowerShell },
+  async () => {
+    const badge = JSON.parse(readFileSync(trackedBadgePath, "utf8")) as Record<string, unknown>;
+    const details = withDefaultCaseWikiEvidence(
+      JSON.parse(readFileSync(trackedBadgeDetailsPath, "utf8")) as Record<string, unknown>,
+    );
+    const failingDetails = JSON.parse(JSON.stringify(details)) as Record<string, unknown>;
+
+    const evidence = failingDetails.evidence as Record<string, unknown>;
+    evidence.caseWikiContextAdoption = {
+      status: "pass",
+      validated: true,
+      observed: true,
+      observedCount: 20,
+      caseWikiObservedCount: 18,
+      inputOnlyObservedCount: 1,
+      unknownObservedCount: 0,
+      caseWikiRate: 0.9,
+    };
+
+    await withMockBadgeServer(badge, failingDetails, async ({ badgeEndpoint, detailsEndpoint }) => {
+      const result = await runPublicBadgeCheck({ badgeEndpoint, detailsEndpoint });
+      assert.equal(result.status, 1, `${result.stderr}\n${result.stdout}`);
+      const output = `${result.stderr}\n${result.stdout}`;
+      assert.match(
+        output,
+        /caseWikiContextAdoption must prove observed\+validated adoption with count conservation[\s\S]*caseWikiRate>=0\.95\./,
+      );
     });
   },
 );

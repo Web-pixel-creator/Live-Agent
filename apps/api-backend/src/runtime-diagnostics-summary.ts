@@ -1,5 +1,10 @@
 import type { SkillsCatalogSnapshot, SkillsRuntimeSummary } from "@mla/skills";
+import type { EventListItem } from "./firestore.js";
 import type { OperatorTraceSummary } from "./operator-traces.js";
+import {
+  buildRuntimeEvidenceSigningPosture,
+  type RuntimeEvidenceSignerConfig,
+} from "./runtime-evidence-signer.js";
 
 type DiagnosticsSeverity = "info" | "warn" | "critical";
 
@@ -9,6 +14,36 @@ type RuntimeSignal = {
   severity: DiagnosticsSeverity;
   message: string;
   value: string | number | boolean | null;
+};
+
+export type RuntimeDiagnosticsSloThresholds = {
+  liveFirstAudioP95Ms: number;
+  navigatorStepP95Ms: number;
+  caseWikiQueryP95Ms: number;
+};
+
+type RuntimeSloMetricKey = "liveFirstAudioP95" | "navigatorStepP95" | "caseWikiQueryP95";
+
+type RuntimeSloMetric = {
+  key: RuntimeSloMetricKey;
+  service: "realtime-gateway" | "ui-executor" | "api-backend";
+  label: string;
+  p95Ms: number | null;
+  thresholdMs: number;
+  sampleCount: number;
+  status: "pass" | "breach" | "missing";
+  source: string;
+  latestSeenAt: string | null;
+};
+
+type RuntimeDiagnosticsCaseWikiIngressSource =
+  | "preserved_input_case_wiki"
+  | "gateway_hydrated_case_wiki";
+
+const DEFAULT_RUNTIME_DIAGNOSTICS_SLO_THRESHOLDS: RuntimeDiagnosticsSloThresholds = {
+  liveFirstAudioP95Ms: 2500,
+  navigatorStepP95Ms: 25000,
+  caseWikiQueryP95Ms: 1500,
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -64,6 +99,11 @@ function toFiniteNumber(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function toPositiveInt(value: unknown, fallback: number): number {
+  const parsed = toNonNegativeInt(value);
+  return parsed !== null && parsed > 0 ? parsed : fallback;
+}
+
 function toStringList(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
@@ -81,11 +121,351 @@ function pushSignal(signals: RuntimeSignal[], signal: RuntimeSignal): void {
   signals.push(signal);
 }
 
+function computeP95(values: number[]): number | null {
+  const normalized = values
+    .filter((value) => Number.isFinite(value) && value >= 0)
+    .map((value) => Math.floor(value))
+    .sort((left, right) => left - right);
+  if (normalized.length === 0) {
+    return null;
+  }
+  const idx = Math.max(0, Math.min(normalized.length - 1, Math.floor((normalized.length - 1) * 0.95)));
+  return normalized[idx] ?? null;
+}
+
+function latestSeenAtForEvents(
+  events: readonly EventListItem[],
+  predicate: (event: EventListItem) => boolean,
+): string | null {
+  return (
+    events
+      .filter(predicate)
+      .map((event) => toNonEmptyString(event.createdAt))
+      .filter((item): item is string => item !== null)
+      .sort((left, right) => Date.parse(right) - Date.parse(left))[0] ?? null
+  );
+}
+
+function normalizeCaseWikiIngressSource(
+  value: unknown,
+): RuntimeDiagnosticsCaseWikiIngressSource | null {
+  const normalized = toNonEmptyString(value);
+  return normalized === "preserved_input_case_wiki" || normalized === "gateway_hydrated_case_wiki"
+    ? normalized
+    : null;
+}
+
+function extractEventRoutingRecord(event: EventListItem): Record<string, unknown> | null {
+  const payload = isRecord(event.payload) ? event.payload : null;
+  const output = isRecord(payload?.output) ? payload.output : null;
+  return isRecord(output?.routing) ? output.routing : null;
+}
+
+function extractEventCaseWikiIngressSource(
+  event: EventListItem,
+): RuntimeDiagnosticsCaseWikiIngressSource | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const caseWikiIngress = isRecord(metadata?.caseWikiIngress) ? metadata.caseWikiIngress : null;
+  return normalizeCaseWikiIngressSource(caseWikiIngress?.source);
+}
+
+function extractEventRoutingContextSource(event: EventListItem): string | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const routing = extractEventRoutingRecord(event);
+  return (
+    toNonEmptyString(metadata?.routingContextSource) ??
+    toNonEmptyString(routing?.contextSource) ??
+    (extractEventCaseWikiIngressSource(event) ? "case_wiki" : null)
+  );
+}
+
+function extractEventRoutingContextIngressSource(
+  event: EventListItem,
+): RuntimeDiagnosticsCaseWikiIngressSource | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const routing = extractEventRoutingRecord(event);
+  return (
+    normalizeCaseWikiIngressSource(metadata?.routingContextIngressSource) ??
+    normalizeCaseWikiIngressSource(routing?.contextIngressSource) ??
+    extractEventCaseWikiIngressSource(event)
+  );
+}
+
+function extractEventRoutingContextFocusId(event: EventListItem): string | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const routing = extractEventRoutingRecord(event);
+  return toNonEmptyString(metadata?.routingContextFocusId) ?? toNonEmptyString(routing?.contextFocusId);
+}
+
+function extractEventRoutingContextBlocker(event: EventListItem): string | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const routing = extractEventRoutingRecord(event);
+  return toNonEmptyString(metadata?.routingContextBlocker) ?? toNonEmptyString(routing?.contextBlocker);
+}
+
+function extractEventRoutingContextNextAction(event: EventListItem): string | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const routing = extractEventRoutingRecord(event);
+  return toNonEmptyString(metadata?.routingContextNextAction) ?? toNonEmptyString(routing?.contextNextAction);
+}
+
+function extractEventRoutingMode(event: EventListItem): string | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const routing = extractEventRoutingRecord(event);
+  return toNonEmptyString(metadata?.routingMode) ?? toNonEmptyString(routing?.mode);
+}
+
+function extractEventRoutingRequestedIntent(event: EventListItem): string | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const routing = extractEventRoutingRecord(event);
+  return (
+    toNonEmptyString(metadata?.routingRequestedIntent) ??
+    toNonEmptyString(routing?.requestedIntent) ??
+    toNonEmptyString(event.intent)
+  );
+}
+
+function extractEventRoutingRoutedIntent(event: EventListItem): string | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const routing = extractEventRoutingRecord(event);
+  return toNonEmptyString(metadata?.routingRoutedIntent) ?? toNonEmptyString(routing?.routedIntent);
+}
+
+function buildLatestCaseWikiRoutingContext(events: readonly EventListItem[]): Record<string, unknown> {
+  const latestCaseWikiEvent =
+    [...events]
+      .filter((event) => {
+        const contextSource = extractEventRoutingContextSource(event);
+        return contextSource === "case_wiki" || extractEventRoutingContextIngressSource(event) !== null;
+      })
+      .sort(
+        (left, right) =>
+          (Date.parse(toNonEmptyString(right.createdAt) ?? "") || 0) -
+          (Date.parse(toNonEmptyString(left.createdAt) ?? "") || 0),
+      )[0] ?? null;
+
+  return {
+    observed: latestCaseWikiEvent !== null,
+    updatedAt: latestCaseWikiEvent ? toNonEmptyString(latestCaseWikiEvent.createdAt) : null,
+    contextSource: latestCaseWikiEvent ? extractEventRoutingContextSource(latestCaseWikiEvent) : null,
+    ingressSource: latestCaseWikiEvent ? extractEventRoutingContextIngressSource(latestCaseWikiEvent) : null,
+    focusId: latestCaseWikiEvent ? extractEventRoutingContextFocusId(latestCaseWikiEvent) : null,
+    blocker: latestCaseWikiEvent ? extractEventRoutingContextBlocker(latestCaseWikiEvent) : null,
+    nextAction: latestCaseWikiEvent ? extractEventRoutingContextNextAction(latestCaseWikiEvent) : null,
+    route:
+      latestCaseWikiEvent
+        ? toNonEmptyString(latestCaseWikiEvent.route) ?? toNonEmptyString(extractEventRoutingRecord(latestCaseWikiEvent)?.route)
+        : null,
+    mode: latestCaseWikiEvent ? extractEventRoutingMode(latestCaseWikiEvent) : null,
+    requestedIntent: latestCaseWikiEvent ? extractEventRoutingRequestedIntent(latestCaseWikiEvent) : null,
+    routedIntent: latestCaseWikiEvent ? extractEventRoutingRoutedIntent(latestCaseWikiEvent) : null,
+  };
+}
+
+function normalizeLatestCaseWikiRoutingContext(
+  value: unknown,
+): Record<string, unknown> | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const observed = toBoolean(value.observed) ?? false;
+  return {
+    observed,
+    updatedAt: toNonEmptyString(value.updatedAt),
+    contextSource: toNonEmptyString(value.contextSource),
+    ingressSource: normalizeCaseWikiIngressSource(value.ingressSource),
+    focusId: toNonEmptyString(value.focusId),
+    blocker: toNonEmptyString(value.blocker),
+    nextAction: toNonEmptyString(value.nextAction),
+    route: toNonEmptyString(value.route),
+    mode: toNonEmptyString(value.mode),
+    requestedIntent: toNonEmptyString(value.requestedIntent),
+    routedIntent: toNonEmptyString(value.routedIntent),
+  };
+}
+
+function normalizeServiceMetrics(service: Record<string, unknown> | null): Record<string, unknown> | null {
+  return service && isRecord(service.metrics) ? service.metrics : null;
+}
+
+function buildSloMetric(params: {
+  key: RuntimeSloMetricKey;
+  service: RuntimeSloMetric["service"];
+  label: string;
+  values: number[];
+  thresholdMs: number;
+  source: string;
+  latestSeenAt: string | null;
+  sampleCount?: number | null;
+}): RuntimeSloMetric {
+  const p95Ms = computeP95(params.values);
+  const observedSampleCount = params.values.filter((value) => Number.isFinite(value) && value >= 0).length;
+  return {
+    key: params.key,
+    service: params.service,
+    label: params.label,
+    p95Ms,
+    thresholdMs: params.thresholdMs,
+    sampleCount: p95Ms === null ? 0 : (params.sampleCount ?? observedSampleCount),
+    status: p95Ms === null ? "missing" : p95Ms <= params.thresholdMs ? "pass" : "breach",
+    source: params.source,
+    latestSeenAt: params.latestSeenAt,
+  };
+}
+
+function getServiceTotalP95Metric(
+  service: Record<string, unknown> | null,
+  fallbackLatestSeenAt: string | null,
+): { values: number[]; sampleCount: number; source: string; latestSeenAt: string | null } {
+  const metrics = normalizeServiceMetrics(service);
+  const p95Ms = toFiniteNumber(metrics?.p95Ms);
+  if (p95Ms === null) {
+    return { values: [], sampleCount: 0, source: "missing", latestSeenAt: null };
+  }
+  const sampleCount = toNonNegativeInt(metrics?.totalCount) ?? 1;
+  return {
+    values: [p95Ms],
+    sampleCount,
+    source: `${toNonEmptyString(service?.name) ?? "service"}.metrics.p95Ms`,
+    latestSeenAt: fallbackLatestSeenAt,
+  };
+}
+
+function getServiceOperationP95Metric(
+  service: Record<string, unknown> | null,
+  operationName: string,
+): { values: number[]; sampleCount: number; source: string; latestSeenAt: string | null } {
+  const metrics = normalizeServiceMetrics(service);
+  const operations = Array.isArray(metrics?.operations)
+    ? metrics.operations.filter((item): item is Record<string, unknown> => isRecord(item))
+    : [];
+  const operation = operations.find((item) => toNonEmptyString(item.operation) === operationName) ?? null;
+  const operationLatency = operation && isRecord(operation.latencyMs) ? operation.latencyMs : null;
+  const p95Ms = toFiniteNumber(operationLatency?.p95);
+  if (p95Ms === null) {
+    return { values: [], sampleCount: 0, source: "missing", latestSeenAt: null };
+  }
+  return {
+    values: [p95Ms],
+    sampleCount: toNonNegativeInt(operation?.count) ?? 1,
+    source: `${toNonEmptyString(service?.name) ?? "service"}.metrics.operations.${operationName}.p95`,
+    latestSeenAt: toNonEmptyString(operation?.lastUpdatedAt),
+  };
+}
+
+function buildRuntimeSloSummary(params: {
+  services: Array<Record<string, unknown>>;
+  events: readonly EventListItem[];
+  thresholds: RuntimeDiagnosticsSloThresholds;
+}): Record<string, unknown> {
+  const gateway = getService(params.services, "realtime-gateway");
+  const uiExecutor = getService(params.services, "ui-executor");
+  const apiBackend = getService(params.services, "api-backend");
+
+  const liveFirstAudioEvents = params.events.filter(
+    (event) => toNonEmptyString(event.type) === "live.first_audio",
+  );
+  const liveFirstAudioValues = liveFirstAudioEvents
+    .map((event) => toNonNegativeInt(event.liveFirstAudioMs))
+    .filter((item): item is number => item !== null);
+  const liveMetricFallback = getServiceTotalP95Metric(gateway, latestSeenAtForEvents(params.events, () => true));
+  const liveMetric = buildSloMetric({
+    key: "liveFirstAudioP95",
+    service: "realtime-gateway",
+    label: "Live first audio p95",
+    values: liveFirstAudioValues.length > 0 ? liveFirstAudioValues : liveMetricFallback.values,
+    thresholdMs: params.thresholds.liveFirstAudioP95Ms,
+    source: liveFirstAudioValues.length > 0 ? "runtime_events.live.first_audio.firstAudioMs" : liveMetricFallback.source,
+    latestSeenAt:
+      liveFirstAudioValues.length > 0
+        ? latestSeenAtForEvents(liveFirstAudioEvents, () => true)
+        : liveMetricFallback.latestSeenAt,
+    sampleCount: liveFirstAudioValues.length > 0 ? liveFirstAudioValues.length : liveMetricFallback.sampleCount,
+  });
+
+  const navigatorEvents = params.events.filter((event) => {
+    const route = toNonEmptyString(event.route);
+    const source = toNonEmptyString(event.source);
+    return route === "ui-navigator-agent" || source === "ui-navigator-agent" || source === "ui-executor";
+  });
+  const navigatorValues = navigatorEvents
+    .map((event) => toNonNegativeInt(event.latencyMs))
+    .filter((item): item is number => item !== null);
+  const navigatorFallback = getServiceTotalP95Metric(uiExecutor, latestSeenAtForEvents(navigatorEvents, () => true));
+  const navigatorMetric = buildSloMetric({
+    key: "navigatorStepP95",
+    service: "ui-executor",
+    label: "Navigator step p95",
+    values: navigatorValues.length > 0 ? navigatorValues : navigatorFallback.values,
+    thresholdMs: params.thresholds.navigatorStepP95Ms,
+    source: navigatorValues.length > 0 ? "runtime_events.ui_navigator.latencyMs" : navigatorFallback.source,
+    latestSeenAt:
+      navigatorValues.length > 0
+        ? latestSeenAtForEvents(navigatorEvents, (event) => toNonNegativeInt(event.latencyMs) !== null)
+        : navigatorFallback.latestSeenAt,
+    sampleCount: navigatorValues.length > 0 ? navigatorValues.length : navigatorFallback.sampleCount,
+  });
+
+  const caseWikiMetricRaw = getServiceOperationP95Metric(apiBackend, "GET /v1/runtime/case-wiki");
+  const caseWikiMetric = buildSloMetric({
+    key: "caseWikiQueryP95",
+    service: "api-backend",
+    label: "Case Wiki query p95",
+    values: caseWikiMetricRaw.values,
+    thresholdMs: params.thresholds.caseWikiQueryP95Ms,
+    source: caseWikiMetricRaw.source,
+    latestSeenAt: caseWikiMetricRaw.latestSeenAt,
+    sampleCount: caseWikiMetricRaw.sampleCount,
+  });
+
+  const metrics = [liveMetric, navigatorMetric, caseWikiMetric];
+  const breachCount = metrics.filter((item) => item.status === "breach").length;
+  const missingCount = metrics.filter((item) => item.status === "missing").length;
+  const observedCount = metrics.length - missingCount;
+  const summary =
+    metrics
+      .map((item) => `${item.key}=${item.p95Ms === null ? "missing" : `${item.p95Ms}ms/${item.thresholdMs}ms`}`)
+      .join(" | ") || "missing";
+
+  return {
+    status: breachCount > 0 ? "breach" : observedCount > 0 ? "pass" : "missing",
+    validated: breachCount === 0,
+    summary,
+    breachCount,
+    observedCount,
+    missingCount,
+    thresholds: {
+      ...params.thresholds,
+    },
+    metrics,
+  };
+}
+
+export function resolveRuntimeDiagnosticsSloThresholds(env: NodeJS.ProcessEnv): RuntimeDiagnosticsSloThresholds {
+  return {
+    liveFirstAudioP95Ms: toPositiveInt(
+      env.RUNTIME_SLO_LIVE_FIRST_AUDIO_P95_MS,
+      DEFAULT_RUNTIME_DIAGNOSTICS_SLO_THRESHOLDS.liveFirstAudioP95Ms,
+    ),
+    navigatorStepP95Ms: toPositiveInt(
+      env.RUNTIME_SLO_NAVIGATOR_STEP_P95_MS,
+      DEFAULT_RUNTIME_DIAGNOSTICS_SLO_THRESHOLDS.navigatorStepP95Ms,
+    ),
+    caseWikiQueryP95Ms: toPositiveInt(
+      env.RUNTIME_SLO_CASE_WIKI_QUERY_P95_MS,
+      DEFAULT_RUNTIME_DIAGNOSTICS_SLO_THRESHOLDS.caseWikiQueryP95Ms,
+    ),
+  };
+}
+
 export function buildRuntimeDiagnosticsSummary(params: {
   services: Array<Record<string, unknown>>;
   skillsCatalog: SkillsCatalogSnapshot;
   skillsRuntimeSummary?: SkillsRuntimeSummary | null;
   operatorTraceSummary?: OperatorTraceSummary | null;
+  events?: readonly EventListItem[];
+  sloThresholds?: RuntimeDiagnosticsSloThresholds;
+  evidenceSigner?: RuntimeEvidenceSignerConfig | null;
 }): Record<string, unknown> {
   const generatedAt = new Date().toISOString();
   const services = params.services;
@@ -93,6 +473,12 @@ export function buildRuntimeDiagnosticsSummary(params: {
   const skillsRuntimeSummary = params.skillsRuntimeSummary ?? null;
   const operatorTraceSummary = params.operatorTraceSummary ?? null;
   const signals: RuntimeSignal[] = [];
+  const latestCaseWikiRoutingContextFromEvents = buildLatestCaseWikiRoutingContext(params.events ?? []);
+  const slo = buildRuntimeSloSummary({
+    services,
+    events: params.events ?? [],
+    thresholds: params.sloThresholds ?? DEFAULT_RUNTIME_DIAGNOSTICS_SLO_THRESHOLDS,
+  });
 
   let healthyServices = 0;
   let readyServices = 0;
@@ -148,6 +534,7 @@ export function buildRuntimeDiagnosticsSummary(params: {
   const orchestrator = getService(services, "orchestrator");
   const uiExecutor = getService(services, "ui-executor");
   const apiBackend = getService(services, "api-backend");
+  const evidenceSigning = buildRuntimeEvidenceSigningPosture(params.evidenceSigner);
 
   const gatewayTransport = gateway && isRecord(gateway.transport) ? gateway.transport : null;
   const orchestratorWorkflow = orchestrator && isRecord(orchestrator.workflow) ? orchestrator.workflow : null;
@@ -155,10 +542,16 @@ export function buildRuntimeDiagnosticsSummary(params: {
     orchestratorWorkflow && isRecord(orchestratorWorkflow.workflowState) ? orchestratorWorkflow.workflowState : null;
   const orchestratorAssistiveRouter =
     orchestratorWorkflow && isRecord(orchestratorWorkflow.assistiveRouter) ? orchestratorWorkflow.assistiveRouter : null;
+  const latestCaseWikiRoutingContext = toBoolean(latestCaseWikiRoutingContextFromEvents.observed) === true
+    ? latestCaseWikiRoutingContextFromEvents
+    : normalizeLatestCaseWikiRoutingContext(orchestratorWorkflowState?.latestCaseWikiRoutingContext) ??
+      latestCaseWikiRoutingContextFromEvents;
   const uiExecutorSandbox = uiExecutor && isRecord(uiExecutor.sandbox) ? uiExecutor.sandbox : null;
   const uiExecutorBrowserWorkers = uiExecutor && isRecord(uiExecutor.browserWorkers) ? uiExecutor.browserWorkers : null;
   const uiExecutorBrowserWorkerQueue =
     uiExecutorBrowserWorkers && isRecord(uiExecutorBrowserWorkers.queue) ? uiExecutorBrowserWorkers.queue : null;
+  const uiExecutorBrowserWorkerRecovery =
+    uiExecutorBrowserWorkers && isRecord(uiExecutorBrowserWorkers.recovery) ? uiExecutorBrowserWorkers.recovery : null;
   const apiGovernance = apiBackend && isRecord(apiBackend.governance) ? apiBackend.governance : null;
   const uiExecutorSandboxMode = uiExecutorSandbox ? toNonEmptyString(uiExecutorSandbox.mode) ?? "off" : null;
   const uiExecutorSandboxNetworkPolicy = uiExecutorSandbox
@@ -271,6 +664,16 @@ export function buildRuntimeDiagnosticsSummary(params: {
       severity: "warn",
       message: "UI executor browser worker has paused jobs waiting for operator resume.",
       value: toNonNegativeInt(uiExecutorBrowserWorkerQueue?.paused),
+    });
+  }
+
+  if (evidenceSigning.enabled && !evidenceSigning.canSign) {
+    pushSignal(signals, {
+      key: "evidence_signing_key_unavailable",
+      service: "api-backend",
+      severity: "critical",
+      message: "Runtime evidence signing is enabled but the signing key is missing or invalid.",
+      value: evidenceSigning.keyState,
     });
   }
 
@@ -400,6 +803,19 @@ export function buildRuntimeDiagnosticsSummary(params: {
     });
   }
 
+  const sloMetrics = Array.isArray(slo.metrics)
+    ? slo.metrics.filter((item): item is RuntimeSloMetric => isRecord(item) && item.status === "breach")
+    : [];
+  for (const metric of sloMetrics) {
+    pushSignal(signals, {
+      key: `runtime_slo_${metric.key}_breach`,
+      service: metric.service,
+      severity: "warn",
+      message: `Runtime latency SLO breached: ${metric.label} exceeded ${metric.thresholdMs}ms.`,
+      value: metric.p95Ms,
+    });
+  }
+
   const status =
     signals.some((item) => item.severity === "critical")
       ? "critical"
@@ -494,6 +910,7 @@ export function buildRuntimeDiagnosticsSummary(params: {
         orchestratorAssistiveRouter ? toNonEmptyString(orchestratorAssistiveRouter.promptCaching) : null,
       assistiveRouterWatchlistEnabled:
         orchestratorAssistiveRouter ? toBoolean(orchestratorAssistiveRouter.watchlistEnabled) : null,
+      latestCaseWikiRoutingContext,
     },
     uiExecutor: {
       forceSimulation: uiExecutor ? toBoolean(uiExecutor.forceSimulation) : null,
@@ -521,6 +938,16 @@ export function buildRuntimeDiagnosticsSummary(params: {
       browserWorkerFailed: uiExecutorBrowserWorkerQueue ? toNonNegativeInt(uiExecutorBrowserWorkerQueue.failed) : null,
       browserWorkerCheckpointReady:
         uiExecutorBrowserWorkerQueue ? toNonNegativeInt(uiExecutorBrowserWorkerQueue.checkpointReady) : null,
+      browserWorkerRetryCount:
+        uiExecutorBrowserWorkerRecovery ? toNonNegativeInt(uiExecutorBrowserWorkerRecovery.retryCount) : null,
+      browserWorkerResumedCheckpointCount:
+        uiExecutorBrowserWorkerRecovery
+          ? toNonNegativeInt(uiExecutorBrowserWorkerRecovery.resumedCheckpointCount)
+          : null,
+      browserWorkerStaleRefCount:
+        uiExecutorBrowserWorkerRecovery ? toNonNegativeInt(uiExecutorBrowserWorkerRecovery.staleRefCount) : null,
+      browserWorkerHealedRefCount:
+        uiExecutorBrowserWorkerRecovery ? toNonNegativeInt(uiExecutorBrowserWorkerRecovery.healedRefCount) : null,
     },
     apiBackend: {
       complianceTemplate: apiGovernance ? toNonEmptyString(apiGovernance.complianceTemplate) : null,
@@ -528,7 +955,9 @@ export function buildRuntimeDiagnosticsSummary(params: {
         apiGovernance ? toBoolean(apiGovernance.complianceTemplateFallbackApplied) : null,
       allowTenantHeaderOverride:
         apiGovernance ? toBoolean(apiGovernance.allowTenantHeaderOverride) : null,
+      evidenceSigning,
     },
+    slo,
     skillsCatalog: {
       source: skillsCatalog.source,
       warnings: skillsCatalog.warnings.length,

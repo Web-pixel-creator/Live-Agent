@@ -20,6 +20,7 @@ import {
   type OrchestratorResponse,
 } from "./contracts/index.js";
 import {
+  type ApprovalRecord,
   type ApprovalDecision,
   type ApprovalSweepResult,
   type ChannelSessionBindingRecord,
@@ -56,6 +57,7 @@ import {
   type ManagedSkillInstallationStatus,
   type ManagedSkillTrustLevel,
   type OperatorActionRecord,
+  type RunListItem,
   recordOperatorAction,
   recordApprovalDecision,
   resolveDeviceNode,
@@ -68,6 +70,7 @@ import {
   upsertManagedSkill,
   updateSessionStatus,
   type SessionMode,
+  type SessionListItem,
   type SessionStatus,
 } from "./firestore.js";
 import { AnalyticsExporter } from "./analytics-export.js";
@@ -78,17 +81,36 @@ import { buildRuntimeSurfaceInventorySnapshot } from "./runtime-surface-inventor
 import { buildRuntimeSurfaceReadinessSnapshot } from "./runtime-surface-readiness.js";
 import { buildRuntimeSessionReplayMirrorSnapshot } from "./runtime-session-replay-mirror.js";
 import { buildRuntimeCaseWiki } from "./runtime-case-wiki.js";
+import { buildRuntimeOperatorQueueSnapshot } from "./runtime-operator-queue.js";
+import {
+  buildRuntimeCaseCostSummary,
+  buildRuntimeCostSummary,
+  resolveRuntimeCostTrackerConfig,
+} from "./runtime-cost-tracker.js";
+import { resolveRuntimeEvidenceSignerConfig } from "./runtime-evidence-signer.js";
 import {
   appendRuntimeCaseWikiNote,
   normalizeRuntimeCaseWikiNoteRequest,
 } from "./runtime-case-wiki-notes.js";
+import {
+  buildLocalServicesPilotExport,
+  listLocalServicesScenarioOverrides,
+  readLocalServicesWorkspace,
+  recordLocalServicesCaseDecision,
+  recordLocalServicesSetupEvent,
+  saveLocalServicesScenarioOverrides,
+  writeLocalServicesWorkspace,
+} from "./local-services-workspace.js";
 import {
   buildRuntimeFaultProfileExecutionPlan,
   extractRuntimeFaultProfileExecutionFollowUpContext,
   normalizeRuntimeFaultProfileExecutionPhase,
   resolveRuntimeFaultProfileExecution,
 } from "./runtime-fault-profile-actions.js";
-import { buildRuntimeDiagnosticsSummary } from "./runtime-diagnostics-summary.js";
+import {
+  buildRuntimeDiagnosticsSummary,
+  resolveRuntimeDiagnosticsSloThresholds,
+} from "./runtime-diagnostics-summary.js";
 import { buildRuntimeBootstrapDoctorSnapshot } from "./runtime-bootstrap-doctor.js";
 import {
   ingestRuntimeLiveSessionEvent,
@@ -204,6 +226,215 @@ const operatorCostPer1kOutputUsd = parseNonNegativeFloat(
   process.env.OPERATOR_COST_PER_1K_OUTPUT_USD ?? null,
   0,
 );
+const runtimeCostTrackerConfig = {
+  ...resolveRuntimeCostTrackerConfig(process.env),
+  pricePer1kInputUsd: operatorCostPer1kInputUsd,
+  pricePer1kOutputUsd: operatorCostPer1kOutputUsd,
+};
+const runtimeEvidenceSignerConfig = resolveRuntimeEvidenceSignerConfig(process.env);
+
+async function loadWorkflowControlPlaneSummary(): Promise<
+  ReturnType<typeof buildRuntimeWorkflowControlPlaneSnapshot>["summary"] | null
+> {
+  try {
+    const upstream = await fetchJsonWithTimeout(`${orchestratorBaseUrl}/workflow/config`, 8000);
+    const workflowControlPlane = isRecord(upstream)
+      ? buildRuntimeWorkflowControlPlaneSnapshot(upstream)
+      : (buildUnavailableRuntimeWorkflowControlPlaneSnapshot(
+          "orchestrator workflow control plane is unavailable",
+          "/workflow/config",
+        ) as unknown as ReturnType<typeof buildRuntimeWorkflowControlPlaneSnapshot>);
+    return workflowControlPlane.summary;
+  } catch {
+    const workflowControlPlane = buildUnavailableRuntimeWorkflowControlPlaneSnapshot(
+      "orchestrator workflow control plane is unavailable",
+      "/workflow/config",
+    ) as unknown as ReturnType<typeof buildRuntimeWorkflowControlPlaneSnapshot>;
+    return workflowControlPlane.summary;
+  }
+}
+
+type RuntimeCaseWikiCollections = {
+  sessions: SessionListItem[];
+  runs: RunListItem[];
+  approvals: ApprovalRecord[];
+  recentEvents: EventListItem[];
+  workflowSummary: ReturnType<typeof buildRuntimeWorkflowControlPlaneSnapshot>["summary"] | null;
+  effectiveGovernance: Awaited<ReturnType<typeof resolveEffectiveGovernancePolicyForTenant>>;
+};
+
+function buildRuntimeCaseWikiFromCollections(params: {
+  selectedSessionId: string;
+  selectedEvents: EventListItem[];
+  collections: RuntimeCaseWikiCollections;
+}): ReturnType<typeof buildRuntimeCaseWiki> | null {
+  const caseCostSummary = buildRuntimeCaseCostSummary({
+    events: params.selectedEvents,
+    config: runtimeCostTrackerConfig,
+    sessionId: params.selectedSessionId,
+    sourceRefs: [`session:${params.selectedSessionId}`],
+  });
+
+  return buildRuntimeCaseWiki({
+    sessions: params.collections.sessions,
+    runs: params.collections.runs,
+    approvals: params.collections.approvals,
+    recentEvents: params.collections.recentEvents,
+    selectedEvents: params.selectedEvents,
+    selectedSessionId: params.selectedSessionId,
+    workflowSummary: params.collections.workflowSummary,
+    evidenceSigner: runtimeEvidenceSignerConfig,
+    costSummary: caseCostSummary,
+    compliance: {
+      templateId: params.collections.effectiveGovernance.profile.id,
+      requestedTemplateId: params.collections.effectiveGovernance.profile.requestedTemplateId,
+      fallbackApplied: params.collections.effectiveGovernance.profile.fallbackApplied,
+      source: params.collections.effectiveGovernance.source,
+      controls: params.collections.effectiveGovernance.profile.controls,
+      retention: {
+        rawMediaDays: params.collections.effectiveGovernance.profile.retentionPolicy.rawMediaDays,
+        auditLogsDays: params.collections.effectiveGovernance.profile.retentionPolicy.auditLogsDays,
+        eventsDays: params.collections.effectiveGovernance.profile.retentionPolicy.eventsDays,
+        sessionsDays: params.collections.effectiveGovernance.profile.retentionPolicy.sessionsDays,
+      },
+    },
+  });
+}
+
+async function loadRuntimeCaseWikiCollections(params: {
+  tenantId: string;
+  sessionLimit?: number;
+  runLimit?: number;
+  approvalLimit?: number;
+  recentEventLimit?: number;
+}): Promise<RuntimeCaseWikiCollections> {
+  const sessionLimit = params.sessionLimit ?? 20;
+  const runLimit = params.runLimit ?? 120;
+  const approvalLimit = params.approvalLimit ?? 120;
+  const recentEventLimit = params.recentEventLimit ?? Math.max(120, sessionLimit * 10);
+
+  const [sessions, runs, approvals, recentEvents, workflowSummary, effectiveGovernance] = await Promise.all([
+    listSessions(sessionLimit, { tenantId: params.tenantId }),
+    listRuns(runLimit),
+    listApprovals({
+      limit: approvalLimit,
+      tenantId: params.tenantId,
+    }),
+    listRecentEvents(recentEventLimit),
+    loadWorkflowControlPlaneSummary(),
+    resolveEffectiveGovernancePolicyForTenant(params.tenantId),
+  ]);
+
+  return {
+    sessions,
+    runs,
+    approvals,
+    recentEvents,
+    workflowSummary,
+    effectiveGovernance,
+  };
+}
+
+async function buildRuntimeCaseWikiSnapshot(params: {
+  tenantId: string;
+  sessionId?: string | null;
+  sessionLimit?: number;
+  eventLimit?: number;
+  runLimit?: number;
+  approvalLimit?: number;
+  recentEventLimit?: number;
+}): Promise<{ caseWiki: ReturnType<typeof buildRuntimeCaseWiki> | null; selectedSessionId: string | null }> {
+  const sessionLimit = params.sessionLimit ?? 20;
+  const eventLimit = params.eventLimit ?? 120;
+  const runLimit = params.runLimit ?? 120;
+  const approvalLimit = params.approvalLimit ?? 120;
+  const recentEventLimit = params.recentEventLimit ?? Math.max(eventLimit, sessionLimit * 10);
+  const collections = await loadRuntimeCaseWikiCollections({
+    tenantId: params.tenantId,
+    sessionLimit,
+    runLimit,
+    approvalLimit,
+    recentEventLimit,
+  });
+  const selectedSessionId = params.sessionId ?? collections.sessions[0]?.sessionId ?? null;
+
+  if (!selectedSessionId) {
+    return { caseWiki: null, selectedSessionId: null };
+  }
+
+  const selectedEvents = await listEvents({ sessionId: selectedSessionId, limit: eventLimit });
+  const caseWiki = buildRuntimeCaseWikiFromCollections({
+    selectedSessionId,
+    selectedEvents,
+    collections,
+  });
+
+  return { caseWiki, selectedSessionId };
+}
+
+async function buildRuntimeOperatorQueueForTenant(params: {
+  tenantId: string;
+  limit?: number;
+  sessionId?: string | null;
+  sessionLimit?: number;
+  eventLimit?: number;
+  runLimit?: number;
+  approvalLimit?: number;
+  recentEventLimit?: number;
+}): Promise<{
+  operatorQueue: ReturnType<typeof buildRuntimeOperatorQueueSnapshot>;
+  availableSessionIds: string[];
+  requestedSessionId: string | null;
+  requestedSessionFound: boolean;
+  hydratedSessionLimit: number;
+}> {
+  const limit = params.limit ?? 6;
+  const sessionLimit = params.sessionLimit ?? Math.max(limit * 2, 8);
+  const eventLimit = params.eventLimit ?? 40;
+  const runLimit = params.runLimit ?? Math.max(sessionLimit * 12, 120);
+  const approvalLimit = params.approvalLimit ?? Math.max(sessionLimit * 12, 120);
+  const recentEventLimit = params.recentEventLimit ?? Math.max(eventLimit * 4, sessionLimit * 12);
+  const requestedSessionId = params.sessionId ?? null;
+  const collections = await loadRuntimeCaseWikiCollections({
+    tenantId: params.tenantId,
+    sessionLimit,
+    runLimit,
+    approvalLimit,
+    recentEventLimit,
+  });
+
+  const availableSessionIds = collections.sessions.map((item) => item.sessionId);
+  const requestedSessionFound = !requestedSessionId || availableSessionIds.includes(requestedSessionId);
+  const selectedSessionIds = requestedSessionFound
+    ? requestedSessionId ? [requestedSessionId] : availableSessionIds
+    : [];
+  const selectedEventSets = await Promise.all(
+    selectedSessionIds.map((sessionId) => listEvents({ sessionId, limit: eventLimit })),
+  );
+  const caseWikis = selectedSessionIds
+    .map((selectedSessionId, index) =>
+      buildRuntimeCaseWikiFromCollections({
+        selectedSessionId,
+        selectedEvents: selectedEventSets[index] ?? [],
+        collections,
+      }),
+    )
+    .filter((item): item is NonNullable<ReturnType<typeof buildRuntimeCaseWikiFromCollections>> => Boolean(item));
+
+  return {
+    operatorQueue: buildRuntimeOperatorQueueSnapshot({
+      tenantId: params.tenantId,
+      caseWikis,
+      generatedAt: new Date().toISOString(),
+      limit,
+    }),
+    availableSessionIds,
+    requestedSessionId,
+    requestedSessionFound,
+    hydratedSessionLimit: sessionLimit,
+  };
+}
+const runtimeDiagnosticsSloThresholds = resolveRuntimeDiagnosticsSloThresholds(process.env);
 const configuredChannelAdapters = parseChannelAdapters(
   process.env.API_CHANNEL_ADAPTERS ?? "webchat,telegram,slack",
 );
@@ -1392,6 +1623,27 @@ function normalizeOperationPath(pathname: string): string {
   if (pathname.startsWith("/v1/sessions/")) {
     return "/v1/sessions/:id";
   }
+  if (pathname === "/v1/local-services/workspace") {
+    return "/v1/local-services/workspace";
+  }
+  if (pathname === "/v1/local-services/scenarios") {
+    return "/v1/local-services/scenarios";
+  }
+  if (pathname === "/v1/local-services/pilot/export") {
+    return "/v1/local-services/pilot/export";
+  }
+  if (pathname === "/v1/local-services/setup/events") {
+    return "/v1/local-services/setup/events";
+  }
+  if (pathname === "/v1/local-services/cases") {
+    return "/v1/local-services/cases";
+  }
+  if (pathname.startsWith("/v1/local-services/cases/")) {
+    if (pathname.toLowerCase().endsWith("/decision")) {
+      return "/v1/local-services/cases/:ref/decision";
+    }
+    return "/v1/local-services/cases/:ref";
+  }
   if (pathname === "/v1/runtime/diagnostics") {
     return "/v1/runtime/diagnostics";
   }
@@ -1416,12 +1668,15 @@ function normalizeOperationPath(pathname: string): string {
     if (pathname === "/v1/runtime/case-wiki") {
       return "/v1/runtime/case-wiki";
     }
-    if (pathname === "/v1/runtime/case-wiki/notes") {
+  if (pathname === "/v1/runtime/case-wiki/notes") {
       return "/v1/runtime/case-wiki/notes";
     }
     if (pathname === "/v1/runtime/auth-profiles") {
       return "/v1/runtime/auth-profiles";
     }
+  if (pathname === "/v1/operator/queue") {
+    return "/v1/operator/queue";
+  }
   if (pathname === "/v1/runtime/auth-profiles/rotate") {
     return "/v1/runtime/auth-profiles/rotate";
   }
@@ -1980,6 +2235,7 @@ async function getOperatorServiceSummary(): Promise<Array<Record<string, unknown
             totalCount: metricsSummary.totalCount ?? null,
             errorRatePct: metricsSummary.errorRatePct ?? null,
             p95Ms: isRecord(metricsSummary.latencyMs) ? metricsSummary.latencyMs.p95 ?? null : null,
+            operations: Array.isArray(metricsSummary.operations) ? metricsSummary.operations.slice(0, 50) : [],
           }
         : null,
       startupStatus,
@@ -2232,6 +2488,7 @@ function buildBrowserWorkersSummary(snapshot: unknown): Record<string, unknown> 
   const typed = isRecord(snapshot) ? snapshot : {};
   const runtime = isRecord(typed.runtime) ? typed.runtime : {};
   const queue = isRecord(typed.queue) ? typed.queue : {};
+  const recovery = isRecord(typed.recovery) ? typed.recovery : {};
   const jobs = Array.isArray(typed.jobs) ? typed.jobs.filter((item): item is Record<string, unknown> => isRecord(item)) : [];
   const recent = jobs.slice(0, 10).map((job) => ({
     jobId: toOptionalString(job.jobId),
@@ -2261,6 +2518,31 @@ function buildBrowserWorkersSummary(snapshot: unknown): Record<string, unknown> 
     latestResultRef: toOptionalString(job.replayBundle && isRecord(job.replayBundle) ? job.replayBundle.latestResultRef : null),
     latestCheckpointRef: toOptionalString(
       job.replayBundle && isRecord(job.replayBundle) ? job.replayBundle.latestCheckpointRef : null,
+    ),
+    recoveryRetryCount: toNullableInt(
+      job.replayBundle && isRecord(job.replayBundle) && isRecord(job.replayBundle.recovery)
+        ? job.replayBundle.recovery.retryCount
+        : null,
+    ),
+    recoveryStaleRefCount: toNullableInt(
+      job.replayBundle && isRecord(job.replayBundle) && isRecord(job.replayBundle.recovery)
+        ? job.replayBundle.recovery.staleRefCount
+        : null,
+    ),
+    recoveryHealedRefCount: toNullableInt(
+      job.replayBundle && isRecord(job.replayBundle) && isRecord(job.replayBundle.recovery)
+        ? job.replayBundle.recovery.healedRefCount
+        : null,
+    ),
+    resumedCheckpointCount: toNullableInt(
+      job.replayBundle && isRecord(job.replayBundle) && isRecord(job.replayBundle.recovery)
+        ? job.replayBundle.recovery.resumedCheckpointCount
+        : null,
+    ),
+    recoverySummary: toOptionalString(
+      job.replayBundle && isRecord(job.replayBundle) && isRecord(job.replayBundle.recovery)
+        ? job.replayBundle.recovery.summary
+        : null,
     ),
     screenshotRefs: Array.isArray(job.replayBundle && isRecord(job.replayBundle) ? job.replayBundle.screenshotRefs : null)
       ? (job.replayBundle as { screenshotRefs?: unknown[] }).screenshotRefs?.length ?? 0
@@ -2336,6 +2618,12 @@ function buildBrowserWorkersSummary(snapshot: unknown): Record<string, unknown> 
       backlog: toNullableInt(queue.backlog) ?? queueQueued + queuePaused,
       checkpointReady,
       oldestQueuedAgeMs: toNullableInt(queue.oldestQueuedAgeMs),
+    },
+    recovery: {
+      retryCount: toNullableInt(recovery.retryCount) ?? 0,
+      resumedCheckpointCount: toNullableInt(recovery.resumedCheckpointCount) ?? 0,
+      staleRefCount: toNullableInt(recovery.staleRefCount) ?? 0,
+      healedRefCount: toNullableInt(recovery.healedRefCount) ?? 0,
     },
     latestJobId,
     latestPausedJobId,
@@ -2901,70 +3189,11 @@ function buildAgentUsageSummary(
 }
 
 function buildCostEstimateSummary(agentUsage: Record<string, unknown>): Record<string, unknown> {
-  const inputTokens = parseNonNegativeInt(agentUsage.inputTokens) ?? 0;
-  const outputTokens = parseNonNegativeInt(agentUsage.outputTokens) ?? 0;
-  const derivedTotalTokens =
-    parseNonNegativeInt(agentUsage.derivedTotalTokens) ?? inputTokens + outputTokens;
-  const totalTokens = parseNonNegativeInt(agentUsage.totalTokens) ?? derivedTotalTokens;
-  const usageTotal = parseNonNegativeInt(agentUsage.total) ?? 0;
-  const usageSource = toOptionalString(agentUsage.source) ?? "operator_summary";
-  const usageStatus = toOptionalString(agentUsage.status) ?? (usageTotal > 0 ? "observed" : "missing");
-  const usageAuthority = toOptionalString(agentUsage.authority) ?? "missing";
-  const usageAggregationMode = toOptionalString(agentUsage.aggregationMode) ?? "high_water_by_run";
-  const usageLatest = isRecord(agentUsage.latest) ? agentUsage.latest : null;
-  const usageLatestSeenAt = toOptionalString(usageLatest?.createdAt);
-  const usageModels = Array.isArray(agentUsage.models)
-    ? agentUsage.models
-        .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
-        .map((item) => item.trim())
-    : [];
-  const sourceCounts =
-    agentUsage.sourceCounts && isRecord(agentUsage.sourceCounts) ? agentUsage.sourceCounts : null;
-  const usageUnknownSourceCount = parseNonNegativeInt(sourceCounts?.unknown) ?? 0;
-  const inputUsdRaw = (inputTokens / 1000) * operatorCostPer1kInputUsd;
-  const outputUsdRaw = (outputTokens / 1000) * operatorCostPer1kOutputUsd;
-  const totalUsdRaw = inputUsdRaw + outputUsdRaw;
-  const roundUsd = (value: number): number => {
-    if (!Number.isFinite(value) || value < 0) {
-      return 0;
-    }
-    return Math.round(value * 1000000) / 1000000;
-  };
-  const inputUsd = roundUsd(inputUsdRaw);
-  const outputUsd = roundUsd(outputUsdRaw);
-  const totalUsd = roundUsd(totalUsdRaw);
-  const pricingConfigured = operatorCostPer1kInputUsd > 0 || operatorCostPer1kOutputUsd > 0;
-  const tokenConsistency = totalTokens >= derivedTotalTokens;
-  const usdConsistency = totalUsd >= inputUsd + outputUsd - 0.000001;
-  const validated = tokenConsistency && usdConsistency && usageSource === "operator_summary";
-
-  return {
-    status: usageTotal > 0 ? "observed" : "missing",
+  return buildRuntimeCostSummary({
+    agentUsage,
+    config: runtimeCostTrackerConfig,
     source: "operator_summary",
-    summaryStatus: usageStatus,
-    summarySource: usageSource,
-    summaryAuthority: usageAuthority,
-    aggregationMode: usageAggregationMode,
-    estimationMode: pricingConfigured ? "token_rate_estimate" : "tokens_only",
-    pricingConfigured,
-    currency: "USD",
-    inputTokens,
-    outputTokens,
-    derivedTotalTokens,
-    totalTokens,
-    tokenConsistency,
-    tokenDriftTokens: Math.max(0, derivedTotalTokens - totalTokens),
-    inputUsd,
-    outputUsd,
-    totalUsd,
-    pricePer1kInputUsd: roundUsd(operatorCostPer1kInputUsd),
-    pricePer1kOutputUsd: roundUsd(operatorCostPer1kOutputUsd),
-    models: usageModels,
-    uniqueModels: usageModels.length,
-    unknownSourceCount: usageUnknownSourceCount,
-    latestSeenAt: usageLatestSeenAt,
-    validated,
-  };
+  });
 }
 
 function buildSkillsRegistryLifecycleSummary(
@@ -3743,6 +3972,135 @@ export const server = createServer(async (req, res) => {
       return;
     }
 
+    if (url.pathname === "/v1/local-services/workspace" && req.method === "GET") {
+      writeJson(res, 200, {
+        data: readLocalServicesWorkspace(requestTenant.tenantId),
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/local-services/workspace" && req.method === "PUT") {
+      const parsed = parseJsonBody(await readBody(req));
+      const snapshot = isRecord(parsed.snapshot) ? parsed.snapshot : parsed;
+      try {
+        writeJson(res, 200, {
+          data: writeLocalServicesWorkspace(requestTenant.tenantId, snapshot),
+        });
+      } catch (error) {
+        throw new ApiRequestError({
+          statusCode: 400,
+          code: "API_LOCAL_SERVICES_WORKSPACE_INVALID",
+          message: error instanceof Error ? error.message : "invalid local-services workspace snapshot",
+        });
+      }
+      return;
+    }
+
+    if (url.pathname === "/v1/local-services/scenarios" && req.method === "GET") {
+      try {
+        writeJson(res, 200, {
+          data: {
+            tenantId: requestTenant.tenantId,
+            mode: "fixed_lanes_with_overrides",
+            scenarioOverrides: listLocalServicesScenarioOverrides(requestTenant.tenantId),
+          },
+        });
+      } catch (error) {
+        throw new ApiRequestError({
+          statusCode: 400,
+          code: "API_LOCAL_SERVICES_SCENARIOS_INVALID",
+          message: error instanceof Error ? error.message : "invalid local-services scenario overrides",
+        });
+      }
+      return;
+    }
+
+    if (url.pathname === "/v1/local-services/scenarios" && req.method === "PUT") {
+      const parsed = parseJsonBody(await readBody(req));
+      try {
+        writeJson(res, 200, {
+          data: saveLocalServicesScenarioOverrides(requestTenant.tenantId, parsed.scenarios),
+        });
+      } catch (error) {
+        throw new ApiRequestError({
+          statusCode: 400,
+          code: "API_LOCAL_SERVICES_SCENARIOS_INVALID",
+          message: error instanceof Error ? error.message : "invalid local-services scenario overrides",
+        });
+      }
+      return;
+    }
+
+    if (url.pathname === "/v1/local-services/setup/events" && req.method === "POST") {
+      const parsed = parseJsonBody(await readBody(req));
+      try {
+        writeJson(res, 200, {
+          data: recordLocalServicesSetupEvent(requestTenant.tenantId, parsed.stepId, parsed.payload),
+        });
+      } catch (error) {
+        throw new ApiRequestError({
+          statusCode: 400,
+          code: "API_LOCAL_SERVICES_SETUP_EVENT_INVALID",
+          message: error instanceof Error ? error.message : "invalid local-services setup event",
+        });
+      }
+      return;
+    }
+
+    if (url.pathname === "/v1/local-services/pilot/export" && req.method === "GET") {
+      writeJson(res, 200, {
+        data: buildLocalServicesPilotExport(requestTenant.tenantId),
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/local-services/cases" && req.method === "GET") {
+      writeJson(res, 200, {
+        data: [],
+        total: 0,
+        source: "local_services_workspace_snapshot_pending",
+        tenantId: requestTenant.tenantId,
+      });
+      return;
+    }
+
+    const localServicesCaseMatch = url.pathname.match(/^\/v1\/local-services\/cases\/([^/]+)(?:\/decision)?$/);
+    if (localServicesCaseMatch && req.method === "GET") {
+      writeApiError(res, 404, {
+        code: "API_LOCAL_SERVICES_CASE_NOT_FOUND",
+        message: "local-services case lookup is not backed by persistent case storage yet",
+        details: {
+          ref: decodeURIComponent(localServicesCaseMatch[1] ?? ""),
+          source: "local_services_workspace_snapshot_pending",
+        },
+      });
+      return;
+    }
+
+    if (
+      localServicesCaseMatch &&
+      req.method === "POST" &&
+      url.pathname.toLowerCase().endsWith("/decision")
+    ) {
+      const parsed = parseJsonBody(await readBody(req));
+      try {
+        writeJson(res, 200, {
+          data: recordLocalServicesCaseDecision(
+            requestTenant.tenantId,
+            decodeURIComponent(localServicesCaseMatch[1] ?? ""),
+            parsed.decision ?? parsed,
+          ),
+        });
+      } catch (error) {
+        throw new ApiRequestError({
+          statusCode: 400,
+          code: "API_LOCAL_SERVICES_DECISION_INVALID",
+          message: error instanceof Error ? error.message : "invalid local-services case decision",
+        });
+      }
+      return;
+    }
+
     if (url.pathname === "/v1/governance/tenant" && req.method === "GET") {
       const effectiveGovernance = await resolveEffectiveGovernancePolicyForTenant(requestTenant.tenantId);
       writeJson(res, 200, {
@@ -3991,8 +4349,14 @@ export const server = createServer(async (req, res) => {
         });
         return;
       }
+      const nextRetentionPolicyBase =
+        requestedTemplateRaw &&
+        isComplianceTemplateId(requestedTemplateRaw) &&
+        requestedTemplateRaw !== current.profile.id
+          ? complianceTemplateProfiles[nextTemplate].retentionPolicy
+          : current.profile.retentionPolicy;
       const nextRetentionPolicy = applyRetentionPolicyPatch(
-        current.profile.retentionPolicy,
+        nextRetentionPolicyBase,
         retentionPatchResult.patch,
       );
       const idempotencyKey =
@@ -4408,7 +4772,11 @@ export const server = createServer(async (req, res) => {
     if (url.pathname === "/v1/runtime/diagnostics" && req.method === "GET") {
       const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
       const agentId = toOptionalString(url.searchParams.get("agentId"));
-      const services = await getOperatorServiceSummary();
+      const eventLimit = parseBoundedInt(url.searchParams.get("eventLimit"), 120, 20, 500);
+      const [services, recentEvents] = await Promise.all([
+        getOperatorServiceSummary(),
+        listRecentEvents(eventLimit),
+      ]);
       const skillsRuntimeCatalog = agentId
         ? await getSkillsRuntimeCatalogSnapshot({
             agentId: sanitizeAgentId(agentId),
@@ -4426,6 +4794,9 @@ export const server = createServer(async (req, res) => {
         services,
         skillsCatalog,
         skillsRuntimeSummary: skillsRuntimeCatalog?.runtimeSummary ?? null,
+        events: recentEvents,
+        sloThresholds: runtimeDiagnosticsSloThresholds,
+        evidenceSigner: runtimeEvidenceSignerConfig,
       });
       writeJson(res, 200, {
         data: runtimeDiagnostics,
@@ -4578,16 +4949,21 @@ export const server = createServer(async (req, res) => {
 
     if (url.pathname === "/v1/runtime/surface/readiness" && req.method === "GET") {
       const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
-      const services = await getOperatorServiceSummary();
-      const deviceNodes = await listDeviceNodes({
-        limit: operatorDeviceNodeSummaryLimit,
-        includeOffline: true,
-      });
+      const eventLimit = parseBoundedInt(url.searchParams.get("eventLimit"), 120, 20, 500);
+      const [services, deviceNodes, recentEvents] = await Promise.all([
+        getOperatorServiceSummary(),
+        listDeviceNodes({
+          limit: operatorDeviceNodeSummaryLimit,
+          includeOffline: true,
+        }),
+        listRecentEvents(eventLimit),
+      ]);
       const runtimeSurfaceReadiness = await buildRuntimeSurfaceReadinessSnapshot({
         env: process.env,
         cwd: process.cwd(),
         services,
         deviceNodes,
+        events: recentEvents,
       });
       writeJson(res, 200, {
         data: runtimeSurfaceReadiness,
@@ -4610,8 +4986,15 @@ export const server = createServer(async (req, res) => {
         500,
       );
       const requestedSessionId = toOptionalString(url.searchParams.get("sessionId"));
-      const sessions = await listSessions(sessionLimit, { tenantId: requestTenant.tenantId });
-      const selectedSessionId = requestedSessionId ?? sessions[0]?.sessionId ?? null;
+      const { caseWiki, selectedSessionId } = await buildRuntimeCaseWikiSnapshot({
+        tenantId: requestTenant.tenantId,
+        sessionId: requestedSessionId,
+        sessionLimit,
+        eventLimit,
+        runLimit,
+        approvalLimit,
+        recentEventLimit,
+      });
 
       if (!selectedSessionId) {
         writeApiError(res, 404, {
@@ -4623,46 +5006,6 @@ export const server = createServer(async (req, res) => {
         });
         return;
       }
-
-      const [runs, approvals, recentEvents, selectedEvents] = await Promise.all([
-        listRuns(runLimit),
-        listApprovals({
-          limit: approvalLimit,
-          tenantId: requestTenant.tenantId,
-        }),
-        listRecentEvents(recentEventLimit),
-        listEvents({ sessionId: selectedSessionId, limit: eventLimit }),
-      ]);
-
-      let workflowControlPlaneSummary:
-        | ReturnType<typeof buildRuntimeWorkflowControlPlaneSnapshot>["summary"]
-        | null = null;
-      try {
-        const upstream = await fetchJsonWithTimeout(`${orchestratorBaseUrl}/workflow/config`, 8000);
-        const workflowControlPlane = isRecord(upstream)
-          ? buildRuntimeWorkflowControlPlaneSnapshot(upstream)
-          : (buildUnavailableRuntimeWorkflowControlPlaneSnapshot(
-              "orchestrator workflow control plane is unavailable",
-              "/workflow/config",
-            ) as unknown as ReturnType<typeof buildRuntimeWorkflowControlPlaneSnapshot>);
-        workflowControlPlaneSummary = workflowControlPlane.summary;
-      } catch {
-        const workflowControlPlane = buildUnavailableRuntimeWorkflowControlPlaneSnapshot(
-          "orchestrator workflow control plane is unavailable",
-          "/workflow/config",
-        ) as unknown as ReturnType<typeof buildRuntimeWorkflowControlPlaneSnapshot>;
-        workflowControlPlaneSummary = workflowControlPlane.summary;
-      }
-
-      const caseWiki = buildRuntimeCaseWiki({
-        sessions,
-        runs,
-        approvals,
-        recentEvents,
-        selectedEvents,
-        selectedSessionId,
-        workflowSummary: workflowControlPlaneSummary,
-      });
 
       if (!caseWiki) {
         writeApiError(res, 404, {
@@ -4798,6 +5141,7 @@ export const server = createServer(async (req, res) => {
         selectedEvents,
         selectedSessionId,
         workflowSummary: workflowControlPlaneSummary,
+        evidenceSigner: runtimeEvidenceSignerConfig,
       });
 
       writeJson(res, 200, {
@@ -7072,6 +7416,25 @@ export const server = createServer(async (req, res) => {
       }
 
       const baseInput = isRecord(parsed.input) ? parsed.input : {};
+      let caseWikiSnapshot: ReturnType<typeof buildRuntimeCaseWiki> | null = null;
+      try {
+        const built = await buildRuntimeCaseWikiSnapshot({
+          tenantId: requestTenant.tenantId,
+          sessionId,
+          sessionLimit: 50,
+          eventLimit: 160,
+          runLimit: 200,
+          approvalLimit: 200,
+          recentEventLimit: 400,
+        });
+        caseWikiSnapshot = built.caseWiki;
+      } catch {
+        caseWikiSnapshot = null;
+      }
+      const orchestratorInput =
+        caseWikiSnapshot && !isRecord(baseInput.caseWiki)
+          ? { ...baseInput, caseWiki: caseWikiSnapshot }
+          : baseInput;
       const orchestratorRequest = createEnvelope({
         userId,
         sessionId,
@@ -7081,7 +7444,7 @@ export const server = createServer(async (req, res) => {
         payload: {
           intent,
           input: {
-            ...baseInput,
+            ...orchestratorInput,
             approvalConfirmed: true,
             approvalDecision: decision,
             approvalReason: reason,
@@ -7100,6 +7463,57 @@ export const server = createServer(async (req, res) => {
             slaSweep: sweep,
           },
         },
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/operator/queue" && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const limit = parseBoundedInt(url.searchParams.get("limit"), 6, 1, 25);
+      const sessionLimit = parseBoundedInt(url.searchParams.get("sessionLimit"), Math.max(limit * 2, 8), 1, 100);
+      const eventLimit = parseBoundedInt(url.searchParams.get("eventLimit"), 40, 10, 200);
+      const runLimit = parseBoundedInt(url.searchParams.get("runLimit"), Math.max(sessionLimit * 12, 120), 20, 500);
+      const approvalLimit = parseBoundedInt(
+        url.searchParams.get("approvalLimit"),
+        Math.max(sessionLimit * 12, 120),
+        20,
+        500,
+      );
+      const recentEventLimit = parseBoundedInt(
+        url.searchParams.get("recentEventLimit"),
+        Math.max(eventLimit * 4, sessionLimit * 12),
+        20,
+        1000,
+      );
+      const requestedSessionId = toOptionalString(url.searchParams.get("sessionId"));
+      const operatorQueueResult = await buildRuntimeOperatorQueueForTenant({
+        tenantId: requestTenant.tenantId,
+        limit,
+        sessionId: requestedSessionId,
+        sessionLimit,
+        eventLimit,
+        runLimit,
+        approvalLimit,
+        recentEventLimit,
+      });
+      if (requestedSessionId && operatorQueueResult.requestedSessionFound !== true) {
+        writeApiError(res, 404, {
+          code: "API_OPERATOR_QUEUE_SESSION_NOT_FOUND",
+          message: "requested sessionId is outside the hydrated operator queue window",
+          details: {
+            requestedSessionId,
+            hydratedSessionLimit: operatorQueueResult.hydratedSessionLimit,
+            tenantId: requestTenant.tenantId,
+          },
+        });
+        return;
+      }
+
+      writeJson(res, 200, {
+        data: operatorQueueResult.operatorQueue,
+        role,
+        tenant: requestTenant,
+        source: "repo_owned_operator_queue",
       });
       return;
     }
@@ -7200,6 +7614,17 @@ export const server = createServer(async (req, res) => {
         services,
         skillsCatalog,
         operatorTraceSummary: traces,
+        events: recentEvents,
+        sloThresholds: runtimeDiagnosticsSloThresholds,
+      });
+      const operatorQueue = await buildRuntimeOperatorQueueForTenant({
+        tenantId: requestTenant.tenantId,
+        limit: 6,
+        sessionLimit: 12,
+        eventLimit: 40,
+        runLimit: 144,
+        approvalLimit: 144,
+        recentEventLimit: 160,
       });
 
       writeJson(res, 200, {
@@ -7211,6 +7636,7 @@ export const server = createServer(async (req, res) => {
             total: activeTasks.length,
             data: activeTasks,
           },
+          operatorQueue: operatorQueue.operatorQueue,
           taskQueue,
           browserWorkers,
           approvals: {

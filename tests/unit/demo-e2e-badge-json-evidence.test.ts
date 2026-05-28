@@ -59,6 +59,25 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
     },
     summary: {
       generatedAt: "2026-02-26T00:00:00.000Z",
+      caseWiki: {
+        caseId: "case-visa-042",
+        sessionId: "session-visa-042",
+        overviewStatus: "blocked",
+        focusKind: "question",
+        focusLabel: "Passport scan is missing",
+        nextAction: "Ask the customer to upload the passport scan.",
+        sourceRefsCount: 2,
+        evidenceSignature: {
+          status: "unsigned",
+          algorithm: "ed25519-sha256",
+          canonicalization: "json-stable-v1",
+          payloadHash: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+          keyId: null,
+          signerId: "api-backend",
+          signedAt: "2026-02-26T00:00:00.000Z",
+          signaturePresent: false,
+        },
+      },
       kpis: {
         gatewayWsRoundTripMs: 37,
         transportModeValidated: true,
@@ -110,6 +129,85 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
         assistiveRouterPromptCaching: "provider_default",
         assistiveRouterWatchlistEnabled: false,
         assistiveRouterProviderMetadataValidated: true,
+        caseWikiRoutingContextValidated: true,
+        caseWikiRoutingContextSource: "case_wiki",
+        caseWikiRoutingContextIngressSource: "preserved_input_case_wiki",
+        caseWikiRoutingContextFocusId: "question:passport-scan",
+        caseWikiRoutingContextBlocker: "Do we have the passport scan?",
+        caseWikiRoutingContextNextAction: "Request passport scan",
+        caseWikiRoutingContextRoute: "live-agent",
+        caseWikiRoutingContextMode: "assistive_override",
+        caseWikiRoutingContextRequestedIntent: "conversation",
+        caseWikiRoutingContextRoutedIntent: "negotiation",
+        caseWikiGatewayHydrationValidated: true,
+        caseWikiGatewayHydrationSessionId: "session-hydration-042",
+        caseWikiGatewayHydrationNoteEventId: "event-case-wiki-note-042",
+        caseWikiGatewayHydrationQuestionId: "question:operator-note:event-case-wiki-note-042",
+        caseWikiGatewayHydrationQuestionMatched: true,
+        caseWikiGatewayHydrationNoteSourceRefSeen: true,
+        caseWikiGatewayHydrationQuestionSuggestedNextStep: "Request passport scan",
+        caseWikiGatewayHydrationContextSource: "case_wiki",
+        caseWikiGatewayHydrationIngressSource: "gateway_hydrated_case_wiki",
+        caseWikiGatewayHydrationFocusId: "question:operator-note:event-case-wiki-note-042",
+        caseWikiGatewayHydrationBlocker: "Passport scan is still missing from the case.",
+        caseWikiGatewayHydrationNextAction: "Request passport scan",
+        caseWikiGatewayHydrationRoute: "live-agent",
+        caseWikiGatewayHydrationMode: "assistive_override",
+        caseWikiGatewayHydrationRequestedIntent: "conversation",
+        caseWikiGatewayHydrationRoutedIntent: "conversation",
+        caseWikiContextAdoptionObservedCount: 21,
+        caseWikiContextAdoptionCaseWikiCount: 20,
+        caseWikiContextAdoptionInputOnlyCount: 1,
+        caseWikiContextAdoptionUnknownCount: 0,
+        caseWikiContextAdoptionRate: 0.952381,
+        caseWikiContextAdoptionValidated: true,
+        uiRefHealingFinalStatus: "completed",
+        uiRefHealingAdapterMode: "remote_http",
+        uiRefHealingHealedRefTargets: ["email", "submit_primary"],
+        uiRefHealingHealedRefCount: 2,
+        uiRefHealingStaleRefTargets: [],
+        uiRefHealingStaleRefCount: 0,
+        uiRefHealingTraceCount: 5,
+        uiRefHealingRetries: 0,
+        uiRefHealingDisabledSubmitSeen: true,
+        uiRefHealingEnabledSubmitSeen: true,
+        uiRefHealingObservationSeen: true,
+        uiRefHealingNoteSeen: true,
+        uiRefHealingValidated: true,
+        browserWorkerRecoveryFinalStatus: "completed",
+        browserWorkerRecoveryAdapterMode: "remote_http",
+        browserWorkerRecoveryCheckpointCount: 1,
+        browserWorkerRecoveryResumedCheckpointCount: 1,
+        browserWorkerRecoveryHealedRefTargets: ["email", "submit_primary"],
+        browserWorkerRecoveryHealedRefCount: 2,
+        browserWorkerRecoveryStaleRefTargets: ["email", "submit_primary"],
+        browserWorkerRecoveryStaleRefCount: 2,
+        browserWorkerRecoveryTraceCount: 7,
+        browserWorkerRecoveryRetryCount: 0,
+        browserWorkerRecoveryRuntimeRetryCount: 0,
+        browserWorkerRecoveryRuntimeResumedCheckpointCount: 1,
+        browserWorkerRecoveryRuntimeStaleRefCount: 2,
+        browserWorkerRecoveryRuntimeHealedRefCount: 2,
+        browserWorkerRecoveryCheckpointReadyCleared: true,
+        browserWorkerRecoverySummary: "healed 2 stale grounding refs; resumed 1 checkpoint.",
+        browserWorkerRecoveryValidated: true,
+        navigatorVisaFlowsTotal: 4,
+        navigatorVisaFlowsSucceeded: 4,
+        navigatorVisaFlowsSuccessRate: 1,
+        navigatorVisaFlowsPersistentSessionCount: 4,
+        navigatorVisaFlowsReplayBundleCount: 4,
+        navigatorVisaFlowsVerifiedCount: 4,
+        navigatorVisaFlowsStaleRecoveryObservedCount: 4,
+        navigatorVisaFlowsHealedRecoveryObservedCount: 4,
+        navigatorVisaFlowsResumedCheckpointCount: 4,
+        navigatorVisaFlowsCheckpointReadyClearedCount: 4,
+        navigatorVisaFlowsScenarioNames: ["booking", "reminder", "handoff", "escalation"],
+        navigatorVisaFlowsSummary: "4/4 visa flows passed; persistent=4; verified=4; staleRecovery=4; resumed=4.",
+        navigatorVisaFlowsValidated: true,
+        navigatorVisaFlowsValidationMode: "real_playwright",
+        navigatorVisaFlowsRealPlaywrightValidated: true,
+        navigatorVisaFlowsSimulatedValidated: false,
+        navigatorVisaFlowsStrictPersistentSessionValidated: true,
         operatorTurnTruncationSummaryValidated: true,
         operatorTurnTruncationExpectedEventSeen: true,
         operatorTurnTruncationTotal: 1,
@@ -222,6 +320,7 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
           status: "critical signals=3",
           signalsSummary: "total=3 | critical=1 | warn=2 | info=0",
           coverageSummary: "healthy=4/4 | ready=4/4 | runtime=4/4 | metrics=4/4 | startup=0/0",
+          sloSummary: "liveFirstAudioP95=1200ms/2500ms | navigatorStepP95=4300ms/25000ms | caseWikiQueryP95=missing",
           sandboxSummary: "mode=audit | network=allow_all | setup=present | warnings=1",
           skillsSummary: "catalog=path/1w | personas=2/2 | recipes=1/1 | runtime=off active=0 skipped=0 blocked=0",
           topSignal:
@@ -396,6 +495,13 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   const deviceNodes = evidence.deviceNodes as Record<string, unknown>;
   const agentUsage = evidence.agentUsage as Record<string, unknown>;
   const runtimeGuardrailsSignalPaths = evidence.runtimeGuardrailsSignalPaths as Record<string, unknown>;
+  const caseWikiEvidenceSignature = evidence.caseWikiEvidenceSignature as Record<string, unknown>;
+  const caseWikiRoutingContext = evidence.caseWikiRoutingContext as Record<string, unknown>;
+  const caseWikiGatewayHydration = evidence.caseWikiGatewayHydration as Record<string, unknown>;
+  const caseWikiContextAdoption = evidence.caseWikiContextAdoption as Record<string, unknown>;
+  const uiRefHealing = evidence.uiRefHealing as Record<string, unknown>;
+  const browserWorkerRecovery = evidence.browserWorkerRecovery as Record<string, unknown>;
+  const navigatorVisaFlows = evidence.navigatorVisaFlows as Record<string, unknown>;
   assert.equal(turnTruncation.status, "pass");
   assert.equal(turnDelete.status, "pass");
   assert.equal(damageControl.status, "pass");
@@ -451,6 +557,125 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.equal(agentUsage.summarySource, "gateway_runtime");
   assert.equal(agentUsage.summaryStatus, "observed");
   assert.equal(runtimeGuardrailsSignalPaths.summaryStatus, "critical signals=3");
+  assert.equal(
+    runtimeGuardrailsSignalPaths.sloSummary,
+    "liveFirstAudioP95=1200ms/2500ms | navigatorStepP95=4300ms/25000ms | caseWikiQueryP95=missing",
+  );
+  assert.equal(caseWikiEvidenceSignature.status, "warn");
+  assert.equal(caseWikiEvidenceSignature.validated, true);
+  assert.equal(caseWikiEvidenceSignature.totalArtifacts, 1);
+  assert.equal(caseWikiEvidenceSignature.signedArtifacts, 0);
+  assert.equal(caseWikiEvidenceSignature.unsignedArtifacts, 1);
+  assert.equal(caseWikiEvidenceSignature.signatureStatus, "unsigned");
+  assert.equal(caseWikiEvidenceSignature.algorithm, "ed25519-sha256");
+  assert.equal(caseWikiEvidenceSignature.canonicalization, "json-stable-v1");
+  assert.equal(caseWikiEvidenceSignature.signerId, "api-backend");
+  assert.equal(caseWikiEvidenceSignature.signaturePresent, false);
+  assert.equal(caseWikiEvidenceSignature.caseId, "case-visa-042");
+  assert.equal(caseWikiEvidenceSignature.sessionId, "session-visa-042");
+  assert.equal(caseWikiEvidenceSignature.focusKind, "question");
+  assert.equal(caseWikiEvidenceSignature.focusLabel, "Passport scan is missing");
+  assert.equal(caseWikiEvidenceSignature.nextAction, "Ask the customer to upload the passport scan.");
+  assert.equal(caseWikiEvidenceSignature.sourceRefsCount, 2);
+  assert.equal(caseWikiRoutingContext.status, "pass");
+  assert.equal(caseWikiRoutingContext.validated, true);
+  assert.equal(caseWikiRoutingContext.observed, true);
+  assert.equal(caseWikiRoutingContext.contextSource, "case_wiki");
+  assert.equal(caseWikiRoutingContext.ingressSource, "preserved_input_case_wiki");
+  assert.equal(caseWikiRoutingContext.focusId, "question:passport-scan");
+  assert.equal(caseWikiRoutingContext.blocker, "Do we have the passport scan?");
+  assert.equal(caseWikiRoutingContext.nextAction, "Request passport scan");
+  assert.equal(caseWikiRoutingContext.route, "live-agent");
+  assert.equal(caseWikiRoutingContext.mode, "assistive_override");
+  assert.equal(caseWikiRoutingContext.requestedIntent, "conversation");
+  assert.equal(caseWikiRoutingContext.routedIntent, "negotiation");
+  assert.equal(caseWikiGatewayHydration.status, "pass");
+  assert.equal(caseWikiGatewayHydration.validated, true);
+  assert.equal(caseWikiGatewayHydration.observed, true);
+  assert.equal(caseWikiGatewayHydration.sessionId, "session-hydration-042");
+  assert.equal(caseWikiGatewayHydration.noteEventId, "event-case-wiki-note-042");
+  assert.equal(caseWikiGatewayHydration.questionId, "question:operator-note:event-case-wiki-note-042");
+  assert.equal(caseWikiGatewayHydration.questionMatched, true);
+  assert.equal(caseWikiGatewayHydration.noteSourceRefSeen, true);
+  assert.equal(caseWikiGatewayHydration.questionSuggestedNextStep, "Request passport scan");
+  assert.equal(caseWikiGatewayHydration.contextSource, "case_wiki");
+  assert.equal(caseWikiGatewayHydration.ingressSource, "gateway_hydrated_case_wiki");
+  assert.equal(caseWikiGatewayHydration.focusId, "question:operator-note:event-case-wiki-note-042");
+  assert.equal(caseWikiGatewayHydration.blocker, "Passport scan is still missing from the case.");
+  assert.equal(caseWikiGatewayHydration.nextAction, "Request passport scan");
+  assert.equal(caseWikiGatewayHydration.route, "live-agent");
+  assert.equal(caseWikiGatewayHydration.mode, "assistive_override");
+  assert.equal(caseWikiGatewayHydration.requestedIntent, "conversation");
+  assert.equal(caseWikiGatewayHydration.routedIntent, "conversation");
+  assert.equal(caseWikiContextAdoption.status, "pass");
+  assert.equal(caseWikiContextAdoption.validated, true);
+  assert.equal(caseWikiContextAdoption.observed, true);
+  assert.equal(caseWikiContextAdoption.observedCount, 21);
+  assert.equal(caseWikiContextAdoption.caseWikiObservedCount, 20);
+  assert.equal(caseWikiContextAdoption.inputOnlyObservedCount, 1);
+  assert.equal(caseWikiContextAdoption.unknownObservedCount, 0);
+  assert.equal(caseWikiContextAdoption.caseWikiRate, 0.952381);
+  assert.equal(uiRefHealing.status, "pass");
+  assert.equal(uiRefHealing.validated, true);
+  assert.equal(uiRefHealing.observed, true);
+  assert.equal(uiRefHealing.finalStatus, "completed");
+  assert.equal(uiRefHealing.adapterMode, "remote_http");
+  assert.equal(uiRefHealing.healedRefCount, 2);
+  assert.deepEqual(uiRefHealing.healedRefTargets, ["email", "submit_primary"]);
+  assert.equal(uiRefHealing.staleRefCount, 0);
+  assert.deepEqual(uiRefHealing.staleRefTargets, []);
+  assert.equal(uiRefHealing.traceCount, 5);
+  assert.equal(uiRefHealing.retries, 0);
+  assert.equal(uiRefHealing.disabledSubmitSeen, true);
+  assert.equal(uiRefHealing.enabledSubmitSeen, true);
+  assert.equal(uiRefHealing.healingObservationSeen, true);
+  assert.equal(uiRefHealing.healingNoteSeen, true);
+  assert.equal(browserWorkerRecovery.status, "pass");
+  assert.equal(browserWorkerRecovery.validated, true);
+  assert.equal(browserWorkerRecovery.observed, true);
+  assert.equal(browserWorkerRecovery.finalStatus, "completed");
+  assert.equal(browserWorkerRecovery.adapterMode, "remote_http");
+  assert.equal(browserWorkerRecovery.checkpointCount, 1);
+  assert.equal(browserWorkerRecovery.resumedCheckpointCount, 1);
+  assert.equal(browserWorkerRecovery.healedRefCount, 2);
+  assert.deepEqual(browserWorkerRecovery.healedRefTargets, ["email", "submit_primary"]);
+  assert.equal(browserWorkerRecovery.staleRefCount, 2);
+  assert.deepEqual(browserWorkerRecovery.staleRefTargets, ["email", "submit_primary"]);
+  assert.equal(browserWorkerRecovery.traceCount, 7);
+  assert.equal(browserWorkerRecovery.retryCount, 0);
+  assert.equal(browserWorkerRecovery.runtimeRetryCount, 0);
+  assert.equal(browserWorkerRecovery.runtimeResumedCheckpointCount, 1);
+  assert.equal(browserWorkerRecovery.runtimeStaleRefCount, 2);
+  assert.equal(browserWorkerRecovery.runtimeHealedRefCount, 2);
+  assert.equal(browserWorkerRecovery.checkpointReadyCleared, true);
+  assert.equal(browserWorkerRecovery.summary, "healed 2 stale grounding refs; resumed 1 checkpoint.");
+  assert.equal(navigatorVisaFlows.status, "pass");
+  assert.equal(navigatorVisaFlows.validated, true);
+  assert.equal(navigatorVisaFlows.observed, true);
+  assert.equal(navigatorVisaFlows.totalFlows, 4);
+  assert.equal(navigatorVisaFlows.succeededFlows, 4);
+  assert.equal(navigatorVisaFlows.successRate, 1);
+  assert.equal(navigatorVisaFlows.persistentSessionCount, 4);
+  assert.equal(navigatorVisaFlows.replayBundleCount, 4);
+  assert.equal(navigatorVisaFlows.verifiedCount, 4);
+  assert.equal(navigatorVisaFlows.staleRecoveryObservedCount, 4);
+  assert.equal(navigatorVisaFlows.healedRecoveryObservedCount, 4);
+  assert.equal(navigatorVisaFlows.resumedCheckpointCount, 4);
+  assert.equal(navigatorVisaFlows.checkpointReadyClearedCount, 4);
+  assert.deepEqual(navigatorVisaFlows.scenarioNames, ["booking", "reminder", "handoff", "escalation"]);
+  assert.equal(
+    navigatorVisaFlows.summary,
+    "4/4 visa flows passed; persistent=4; verified=4; staleRecovery=4; resumed=4.",
+  );
+  // New execution-mode-aware evidence fields per
+  // `.kiro/specs/demo-e2e-visa-flows-execution-mode-aware-summary/design.md`
+  // "Proposed Contract". The badge evidence is purely descriptive
+  // forwarding — the gate logic lives in the policy-check / scenario
+  // assertion layers.
+  assert.equal(navigatorVisaFlows.validationMode, "real_playwright");
+  assert.equal(navigatorVisaFlows.realPlaywrightValidated, true);
+  assert.equal(navigatorVisaFlows.simulatedValidated, false);
+  assert.equal(navigatorVisaFlows.strictPersistentSessionValidated, true);
   assert.equal(runtimeGuardrailsSignalPaths.totalPaths, 3);
   assert.equal(runtimeGuardrailsSignalPaths.lifecycleSummary, "active=3");
   const runtimeGuardrailsCounts = runtimeGuardrailsSignalPaths.lifecycleCounts as Record<string, unknown>;

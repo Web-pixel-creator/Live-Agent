@@ -80,6 +80,9 @@ const state = {
   liveBootstrapError: null,
   liveTransportMode: "relay",
   liveDirectSetupSent: false,
+  liveDirectConnectedAtMs: null,
+  liveDirectFirstAudioCaptured: false,
+  liveDirectFirstOutputCaptured: false,
   liveDirectTurnId: null,
   liveDirectTurnText: "",
   liveDirectLastFunctionCallFingerprint: null,
@@ -148,6 +151,8 @@ const state = {
   operatorSessionReplayLoadedAt: null,
   operatorDiscoverySnapshot: null,
   operatorDiscoveryLoadedAt: null,
+  operatorQueueSnapshot: null,
+  operatorQueueLoadedAt: null,
   operatorCaseWikiSnapshot: null,
   operatorCaseWikiFocus: null,
   operatorCaseWikiLoadedAt: null,
@@ -166,14 +171,28 @@ const DIRECT_GEMINI_LIVE_WEBSOCKET_BASE_URL = "wss://generativelanguage.googleap
 function getHeroCopy(languageMode) {
   if (languageMode === "ru") {
     return {
-      title: "\u041f\u0430\u043d\u0435\u043b\u044c \u043c\u0443\u043b\u044c\u0442\u0438\u043c\u043e\u0434\u0430\u043b\u044c\u043d\u043e\u0433\u043e \u0430\u0433\u0435\u043d\u0442\u0430",
+      title: "AI Action Desk Legacy Dashboard",
       subtitle:
-        "\u041e\u0434\u043d\u0430 \u0447\u0438\u0441\u0442\u0430\u044f \u043f\u0430\u043d\u0435\u043b\u044c \u0434\u043b\u044f \u0434\u0438\u0430\u043b\u043e\u0433\u0430, \u0438\u0441\u0442\u043e\u0440\u0438\u0439, \u043e\u043f\u0435\u0440\u0430\u0446\u0438\u0439 \u0438 \u0443\u0437\u043b\u043e\u0432 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432.",
+        "\u0421\u043e\u0432\u043c\u0435\u0441\u0442\u0438\u043c\u044b\u0439 dashboard \u0434\u043b\u044f runtime-\u043f\u0440\u043e\u0432\u0435\u0440\u043e\u043a, evidence-\u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440\u0430 \u0438 \u0441\u0442\u0430\u0440\u044b\u0445 walkthrough.",
     };
   }
   return {
-    title: "Multimodal Agent Dashboard",
-    subtitle: "One clean workspace for live chat, stories, operations, and device nodes.",
+    title: "AI Action Desk Legacy Dashboard",
+    subtitle: "Compatibility dashboard for runtime-safe checks, evidence review, and older walkthroughs.",
+  };
+}
+
+function getLegacyCompatibilityCopy(languageMode) {
+  if (languageMode === "ru") {
+    return {
+      note:
+        "\u041e\u0441\u043d\u043e\u0432\u043d\u0430\u044f \u0440\u0430\u0431\u043e\u0447\u0430\u044f \u0437\u043e\u043d\u0430 Action Desk \u0442\u0435\u043f\u0435\u0440\u044c \u043e\u0442\u043a\u0440\u044b\u0432\u0430\u0435\u0442\u0441\u044f \u043d\u0430 /app. \u042d\u043a\u0440\u0430\u043d /legacy \u043e\u0441\u0442\u0430\u0432\u043b\u0435\u043d \u0442\u043e\u043b\u044c\u043a\u043e \u043a\u0430\u043a \u0441\u043e\u0432\u043c\u0435\u0441\u0442\u0438\u043c\u044b\u0439 fallback.",
+      cta: "\u041e\u0442\u043a\u0440\u044b\u0442\u044c Action Desk",
+    };
+  }
+  return {
+    note: "The primary Action Desk workspace now lives at /app. Keep /legacy for compatibility fallback only.",
+    cta: "Open Action Desk",
   };
 }
 
@@ -878,7 +897,7 @@ const OPERATOR_EMPTY_STATE_COPY = {
   operatorHealthStatus:
     "Live bridge evidence is waiting for first traffic. Run one negotiation turn, then refresh to validate turn-safety recovery.",
   operatorTaskQueueStatus:
-    "Queue pressure appears after live traffic. Run negotiation, then refresh to inspect backlog and SLA signals.",
+    "Compiled operator queue appears after Case Wiki hydration. Refresh summary to inspect backend-prioritized next actions.",
   operatorApprovalsStatus:
     "Approval lane is waiting for protected UI flow evidence. Run one ui_task, then refresh to load decision events.",
   operatorStartupStatus:
@@ -932,7 +951,7 @@ const OPERATOR_PRIORITY_QUEUE_ACTIONS = Object.freeze({
 });
 const OPERATOR_EVIDENCE_ROUTE_INTENTS = Object.freeze({
   operatorHealthStatus: { latest: "Bridge recovery", trace: "Bridge trace", recovery: "Negotiation restart", audit: "Incident review" },
-  operatorTaskQueueStatus: { latest: "Queue triage", trace: "Queue trace", recovery: "Backlog clear", audit: "Queue review" },
+  operatorTaskQueueStatus: { latest: "Queue priorities", trace: "Queue trace", recovery: "Queue recovery", audit: "Queue review" },
   operatorApprovalsStatus: { latest: "Approval decisions", trace: "Approval trace", recovery: "Protected retry", audit: "Approval review" },
   operatorStartupStatus: { latest: "Startup readiness", trace: "Startup trace", recovery: "Bootstrap replay", audit: "Readiness review" },
   operatorUiExecutorStatus: { latest: "Executor replay", trace: "Executor trace", recovery: "UI failover", audit: "Executor review" },
@@ -979,6 +998,7 @@ const OPERATOR_COMPACT_CARD_TITLES = Object.freeze({
 const OPERATOR_COMPACT_CARD_TITLES_BY_TITLE = Object.freeze({
   "Errors & Recovery": "Recovery",
   "Probe Telemetry": "Probes",
+  "Queue load": "Queue",
 });
 const OPERATOR_EVIDENCE_FACT_PRESETS = Object.freeze({
   operatorApprovalsStatus: {
@@ -986,8 +1006,8 @@ const OPERATOR_EVIDENCE_FACT_PRESETS = Object.freeze({
     trace: [/\bfrom tasks\b/i, /\bsla watch\/breach\b/i, /\blatest\b/i],
   },
   operatorTaskQueueStatus: {
-    latest: [/\bqueued\b/i, /\bstale\b/i, /\boldest task\b/i],
-    trace: [/\bpending approval\b/i, /\bmax age\b/i, /\boldest task\b/i],
+    latest: [/\bblocking\b/i, /\bapproval(?:_lane| lane)?\b/i, /\btop item\b/i],
+    trace: [/\bcritical\b/i, /\bstale\b/i, /\boldest item age\b/i],
   },
   operatorStartupStatus: {
     latest: [/\bblocking services\b/i, /\blast service\b/i, /\blast checked\b/i],
@@ -1286,6 +1306,7 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.caseWikiSummaryLabel": "Known now",
     "live.caseWorkspace.caseWikiBlockerLabel": "Top blocker",
     "live.caseWorkspace.caseWikiNextActionLabel": "Next action",
+    "live.caseWorkspace.caseWikiCostLabel": "Cost posture",
     "live.caseWorkspace.caseWikiProofLabel": "Top proof",
     "live.caseWorkspace.caseWikiEntityLabel": "Key entity",
     "live.caseWorkspace.caseWikiPackLabel": "Evidence pack",
@@ -2213,6 +2234,7 @@ Object.assign(LIVE_UI_COPY_OVERRIDES.ru, {
   "live.caseWorkspace.caseWikiSummaryLabel": "\u0427\u0442\u043e \u0443\u0436\u0435 \u0438\u0437\u0432\u0435\u0441\u0442\u043d\u043e",
   "live.caseWorkspace.caseWikiBlockerLabel": "\u0413\u043b\u0430\u0432\u043d\u044b\u0439 \u0431\u043b\u043e\u043a\u0435\u0440",
   "live.caseWorkspace.caseWikiNextActionLabel": "\u0421\u043b\u0435\u0434\u0443\u044e\u0449\u0435\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435",
+  "live.caseWorkspace.caseWikiCostLabel": "\u0421\u0442\u043e\u0438\u043c\u043e\u0441\u0442\u044c \u043a\u0435\u0439\u0441\u0430",
   "live.caseWorkspace.caseWikiProofLabel": "\u041a\u043b\u044e\u0447\u0435\u0432\u043e\u0435 \u0434\u043e\u043a\u0430\u0437\u0430\u0442\u0435\u043b\u044c\u0441\u0442\u0432\u043e",
   "live.caseWorkspace.caseWikiEntityLabel": "\u041a\u043b\u044e\u0447\u0435\u0432\u0430\u044f \u0441\u0443\u0449\u043d\u043e\u0441\u0442\u044c",
   "live.caseWorkspace.caseWikiPackLabel": "\u041f\u0430\u043a\u0435\u0442 \u0434\u043e\u043a\u0430\u0437\u0430\u0442\u0435\u043b\u044c\u0441\u0442\u0432",
@@ -3057,6 +3079,8 @@ const el = {
   languageModeSelect: document.getElementById("languageModeSelect"),
   heroTitle: document.getElementById("heroTitle"),
   heroSubtitle: document.getElementById("heroSubtitle"),
+  legacyCompatibilityNote: document.getElementById("legacyCompatibilityNote"),
+  openAppLink: document.getElementById("openAppLink"),
   wsUrl: document.getElementById("wsUrl"),
   apiBaseUrl: document.getElementById("apiBaseUrl"),
   userId: document.getElementById("userId"),
@@ -3145,6 +3169,7 @@ const el = {
   caseWorkspaceCaseWikiSummaryValue: document.getElementById("caseWorkspaceCaseWikiSummaryValue"),
   caseWorkspaceCaseWikiBlockerValue: document.getElementById("caseWorkspaceCaseWikiBlockerValue"),
   caseWorkspaceCaseWikiNextActionValue: document.getElementById("caseWorkspaceCaseWikiNextActionValue"),
+  caseWorkspaceCaseWikiCostValue: document.getElementById("caseWorkspaceCaseWikiCostValue"),
   caseWorkspaceCaseWikiProofTitle: document.getElementById("caseWorkspaceCaseWikiProofTitle"),
   caseWorkspaceCaseWikiProofSummary: document.getElementById("caseWorkspaceCaseWikiProofSummary"),
   caseWorkspaceCaseWikiEntityTitle: document.getElementById("caseWorkspaceCaseWikiEntityTitle"),
@@ -3762,7 +3787,12 @@ const el = {
   operatorCaseWikiFocusedRoutingCtaBtn: document.getElementById("operatorCaseWikiFocusedRoutingCtaBtn"),
   operatorCaseWikiFocusedRoutingCopyBtn: document.getElementById("operatorCaseWikiFocusedRoutingCopyBtn"),
   operatorCaseWikiFocusedRoutingExportBtn: document.getElementById("operatorCaseWikiFocusedRoutingExportBtn"),
+  operatorCaseWikiFocusedRemediationSnapshot: document.getElementById("operatorCaseWikiFocusedRemediationSnapshot"),
+  operatorCaseWikiFocusedRemediationCopyBtn: document.getElementById("operatorCaseWikiFocusedRemediationCopyBtn"),
+  operatorCaseWikiFocusedRemediationExportBtn: document.getElementById("operatorCaseWikiFocusedRemediationExportBtn"),
   operatorCaseWikiQuestionsSnapshot: document.getElementById("operatorCaseWikiQuestionsSnapshot"),
+  operatorCaseWikiComplianceSnapshot: document.getElementById("operatorCaseWikiComplianceSnapshot"),
+  operatorCaseWikiAuditSnapshot: document.getElementById("operatorCaseWikiAuditSnapshot"),
   operatorCaseWikiTimelineSnapshot: document.getElementById("operatorCaseWikiTimelineSnapshot"),
   operatorSessionOpsLastResult: document.getElementById("operatorSessionOpsLastResult"),
   operatorBrowserWorkerControlStatus: document.getElementById("operatorBrowserWorkerControlStatus"),
@@ -3848,6 +3878,7 @@ const el = {
   operatorRuntimeGuardrailsStatus: document.getElementById("operatorRuntimeGuardrailsStatus"),
   operatorRuntimeGuardrailsSignals: document.getElementById("operatorRuntimeGuardrailsSignals"),
   operatorRuntimeGuardrailsCoverage: document.getElementById("operatorRuntimeGuardrailsCoverage"),
+  operatorRuntimeGuardrailsSlo: document.getElementById("operatorRuntimeGuardrailsSlo"),
   operatorRuntimeGuardrailsSandbox: document.getElementById("operatorRuntimeGuardrailsSandbox"),
   operatorRuntimeGuardrailsSkills: document.getElementById("operatorRuntimeGuardrailsSkills"),
   operatorRuntimeGuardrailsTopSignal: document.getElementById("operatorRuntimeGuardrailsTopSignal"),
@@ -4132,6 +4163,9 @@ let deviceNodePrimaryShellAutoOpen = false;
 const tabButtons = Array.from(document.querySelectorAll(".tab-btn[data-tab-target]"));
 const tabContents = Array.from(document.querySelectorAll(".tab-content[data-tab]"));
 const DEFAULT_TAB_ID = "live-negotiator";
+const LEGACY_DEFAULT_TAB_ID = "operator";
+const LEGACY_VISIBLE_TAB_IDS = new Set(["operator", "device-nodes"]);
+const LEGACY_VISIBLE_TAB_PANEL_IDS = new Set(["operator", "device-nodes"]);
 const TAB_HASH_PREFIX = "tab=";
 const customSelectShells = new Set();
 let customSelectObserver = null;
@@ -4635,6 +4669,9 @@ function mountLiveContextDockPanels() {
 }
 
 function renderLiveContextDock() {
+  if (!shouldRenderLegacyCompatibilitySurface("live-negotiator")) {
+    return;
+  }
   const activePanel = normalizeLiveContextDockPanel(state.liveContextDockPanel);
   const buttonMap = getLiveContextDockButtonMap();
   const trayMap = getLiveContextDockTrayMap();
@@ -4913,7 +4950,7 @@ const OPERATOR_DEMO_SUMMARY_NOTE_IDS = {
 };
 const OPERATOR_SUMMARY_GUIDE_SIGNAL_PRIORITIES = Object.freeze([
   { id: "operatorHealthStatus", label: "Realtime gateway" },
-  { id: "operatorTaskQueueStatus", label: "Task queue" },
+  { id: "operatorTaskQueueStatus", label: "Operator queue" },
   { id: "operatorApprovalsStatus", label: "Approvals" },
   { id: "operatorStartupStatus", label: "Startup" },
   { id: "operatorUiExecutorStatus", label: "UI executor" },
@@ -7879,6 +7916,48 @@ function resolveCaseWorkspaceCaseWikiStatusPresentation(status, isRu) {
   }
 }
 
+function formatCaseWorkspaceCaseWikiNumber(value, digits = 2) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return "0";
+  }
+  return parsed.toFixed(digits).replace(/\.?0+$/, "");
+}
+
+function buildCaseWorkspaceCaseWikiCostValue(costSummary, isRu) {
+  if (!isRecord(costSummary)) {
+    return null;
+  }
+  const parts = [];
+  const totalUsd = Number(costSummary.totalUsd);
+  const totalTokens = Number(costSummary.totalTokens);
+  const liveMinutes = Number(costSummary.liveMinutes);
+  const uiExecutorMinutes = Number(costSummary.uiExecutorMinutes);
+  const storageMb = Number(costSummary.storageMb);
+  if (costSummary.pricingConfigured === true && Number.isFinite(totalUsd) && totalUsd > 0) {
+    parts.push(`$${formatCaseWorkspaceCaseWikiNumber(totalUsd, totalUsd >= 1 ? 2 : 4)}`);
+  }
+  if (Number.isFinite(totalTokens) && totalTokens > 0) {
+    parts.push(`${Math.floor(totalTokens)} tokens`);
+  }
+  if (Number.isFinite(liveMinutes) && liveMinutes > 0) {
+    parts.push(`live ${formatCaseWorkspaceCaseWikiNumber(liveMinutes, 1)}m`);
+  }
+  if (Number.isFinite(uiExecutorMinutes) && uiExecutorMinutes > 0) {
+    parts.push(`ui ${formatCaseWorkspaceCaseWikiNumber(uiExecutorMinutes, 1)}m`);
+  }
+  if (Number.isFinite(storageMb) && storageMb > 0) {
+    parts.push(`${formatCaseWorkspaceCaseWikiNumber(storageMb, 2)} MB`);
+  }
+  if (parts.length > 0) {
+    return parts.join(" | ");
+  }
+  if (toOptionalText(costSummary.status) === "observed") {
+    return isRu ? "\u0417\u0430\u0442\u0440\u0430\u0442\u044b \u043d\u0430\u0431\u043b\u044e\u0434\u0430\u044e\u0442\u0441\u044f, pricing \u043d\u0435 \u0437\u0430\u0434\u0430\u043d." : "Cost observed, pricing not configured.";
+  }
+  return null;
+}
+
 function buildCaseWorkspaceCaseWikiSummary(isRu) {
   const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
   const idle = {
@@ -7892,6 +7971,9 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
     nextActionValue: isRu
       ? "\u041e\u0431\u043d\u043e\u0432\u0438 Case Wiki \u0432 Operator Session Ops."
       : "Refresh Case Wiki in Operator Session Ops.",
+    costValue: isRu
+      ? "\u0421\u0442\u043e\u0438\u043c\u043e\u0441\u0442\u044c \u043a\u0435\u0439\u0441\u0430 \u043f\u043e\u044f\u0432\u0438\u0442\u0441\u044f \u043f\u043e\u0441\u043b\u0435 refresh Case Wiki."
+      : "Per-case cost appears here after Case Wiki refresh.",
     proofTitle: isRu ? "\u041f\u043e\u043a\u0430 \u043d\u0435\u0442 \u0441\u0438\u0433\u043d\u0430\u043b\u0430 \u0434\u043e\u043a\u0430\u0437\u0430\u0442\u0435\u043b\u044c\u0441\u0442\u0432\u0430." : "No compiled proof yet.",
     proofSummary: isRu
       ? "\u041e\u0431\u043d\u043e\u0432\u0438 Case Wiki, \u0447\u0442\u043e\u0431\u044b \u043f\u043e\u0434\u043d\u044f\u0442\u044c \u0441\u0430\u043c\u044b\u0439 \u0441\u0438\u043b\u044c\u043d\u044b\u0439 confirmed \u0438\u043b\u0438 missing-evidence signal."
@@ -7950,6 +8032,10 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
   const nextActionType = toOptionalText(nextAction?.type);
   const previewPack = isRecord(snapshot.previewPack) ? snapshot.previewPack : null;
   const workspacePack = isRecord(snapshot.workspacePack) ? snapshot.workspacePack : null;
+  const workspaceCostValue =
+    toOptionalText(workspacePack?.costValue) ??
+    buildCaseWorkspaceCaseWikiCostValue(workspacePack?.costSummary, isRu) ??
+    idle.costValue;
   const packValue =
     toOptionalText(workspacePack?.packValue) ??
     toOptionalText(previewPack?.packValue) ??
@@ -8147,6 +8233,7 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
     summaryValue: workspaceSummaryValue,
     blockerValue: workspaceBlockerValue,
     nextActionValue: workspaceNextActionValue,
+    costValue: workspaceCostValue,
     proofTitle: workspaceProofTitle,
     proofSummary: workspaceProofSummary,
     entityTitle: workspaceEntityTitle,
@@ -8202,10 +8289,16 @@ function renderCaseWorkspaceCaseWikiFocusRail(container, chips, emptyText) {
 function renderCaseWorkspaceCaseWikiSummary() {
   const isRu = state.languageMode === "ru";
   const caseWikiSummary = buildCaseWorkspaceCaseWikiSummary(isRu);
+  const caseWikiSnapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const caseWikiExportGate = resolveOperatorCaseWikiComplianceExportGate(caseWikiSnapshot);
+  const caseWikiExportBlocked = caseWikiExportGate.blocked === true;
+  const caseWikiExportBlockedTitle =
+    caseWikiExportGate.titleText ?? "Case Wiki export is blocked until compliance enforcement passes.";
   const caseWikiStatusLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiStatusLabel"]');
   const caseWikiSummaryLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiSummaryLabel"]');
   const caseWikiBlockerLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiBlockerLabel"]');
   const caseWikiNextActionLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiNextActionLabel"]');
+  const caseWikiCostLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiCostLabel"]');
   const caseWikiProofLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiProofLabel"]');
   const caseWikiEntityLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiEntityLabel"]');
   const caseWikiPackLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiPackLabel"]');
@@ -8233,6 +8326,9 @@ function renderCaseWorkspaceCaseWikiSummary() {
   }
   if (caseWikiNextActionLabel instanceof HTMLElement) {
     caseWikiNextActionLabel.textContent = isRu ? "\u0421\u043b\u0435\u0434\u0443\u044e\u0449\u0435\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435" : "Next action";
+  }
+  if (caseWikiCostLabel instanceof HTMLElement) {
+    caseWikiCostLabel.textContent = isRu ? "\u0421\u0442\u043e\u0438\u043c\u043e\u0441\u0442\u044c \u043a\u0435\u0439\u0441\u0430" : "Cost posture";
   }
   if (caseWikiProofLabel instanceof HTMLElement) {
     caseWikiProofLabel.textContent = isRu ? "\u041a\u043b\u044e\u0447\u0435\u0432\u043e\u0435 \u0434\u043e\u043a\u0430\u0437\u0430\u0442\u0435\u043b\u044c\u0441\u0442\u0432\u043e" : "Top proof";
@@ -8297,6 +8393,9 @@ function renderCaseWorkspaceCaseWikiSummary() {
   if (el.caseWorkspaceCaseWikiNextActionValue instanceof HTMLElement) {
     el.caseWorkspaceCaseWikiNextActionValue.textContent = caseWikiSummary.nextActionValue;
   }
+  if (el.caseWorkspaceCaseWikiCostValue instanceof HTMLElement) {
+    el.caseWorkspaceCaseWikiCostValue.textContent = caseWikiSummary.costValue;
+  }
   if (el.caseWorkspaceCaseWikiProofTitle instanceof HTMLElement) {
     el.caseWorkspaceCaseWikiProofTitle.textContent = caseWikiSummary.proofTitle;
   }
@@ -8356,38 +8455,46 @@ function renderCaseWorkspaceCaseWikiSummary() {
   const proofActionBundle = buildOperatorCaseWikiDetailActionBundle("proof", isRu);
   const questionActionBundle = buildOperatorCaseWikiDetailActionBundle("question", isRu);
   if (el.caseWorkspaceCaseWikiProofHandoffCopyBtn instanceof HTMLButtonElement) {
-    el.caseWorkspaceCaseWikiProofHandoffCopyBtn.disabled = !proofActionBundle?.handoffText;
+    el.caseWorkspaceCaseWikiProofHandoffCopyBtn.disabled = caseWikiExportBlocked || !proofActionBundle?.handoffText;
     el.caseWorkspaceCaseWikiProofHandoffCopyBtn.title =
-      proofActionBundle?.title ??
-      (isRu
-        ? "\u041d\u0435\u0442 focused proof handoff \u0434\u043b\u044f copy"
-        : "No focused proof handoff available to copy");
+      caseWikiExportBlocked
+        ? caseWikiExportBlockedTitle
+        : proofActionBundle?.title ??
+          (isRu
+            ? "\u041d\u0435\u0442 focused proof handoff \u0434\u043b\u044f copy"
+            : "No focused proof handoff available to copy");
   }
   if (el.caseWorkspaceCaseWikiProofRefsCopyBtn instanceof HTMLButtonElement) {
-    el.caseWorkspaceCaseWikiProofRefsCopyBtn.disabled = !proofActionBundle?.refsText;
+    el.caseWorkspaceCaseWikiProofRefsCopyBtn.disabled = caseWikiExportBlocked || !proofActionBundle?.refsText;
     el.caseWorkspaceCaseWikiProofRefsCopyBtn.title =
-      proofActionBundle?.refs?.length > 0
-        ? `${proofActionBundle.title} (${proofActionBundle.refs.length})`
-        : isRu
-          ? "\u041d\u0435\u0442 proof refs \u0434\u043b\u044f copy"
-          : "No proof refs available to copy";
+      caseWikiExportBlocked
+        ? caseWikiExportBlockedTitle
+        : proofActionBundle?.refs?.length > 0
+          ? `${proofActionBundle.title} (${proofActionBundle.refs.length})`
+          : isRu
+            ? "\u041d\u0435\u0442 proof refs \u0434\u043b\u044f copy"
+            : "No proof refs available to copy";
   }
   if (el.caseWorkspaceCaseWikiQuestionHandoffCopyBtn instanceof HTMLButtonElement) {
-    el.caseWorkspaceCaseWikiQuestionHandoffCopyBtn.disabled = !questionActionBundle?.handoffText;
+    el.caseWorkspaceCaseWikiQuestionHandoffCopyBtn.disabled = caseWikiExportBlocked || !questionActionBundle?.handoffText;
     el.caseWorkspaceCaseWikiQuestionHandoffCopyBtn.title =
-      questionActionBundle?.title ??
-      (isRu
-        ? "\u041d\u0435\u0442 focused question handoff \u0434\u043b\u044f copy"
-        : "No focused question handoff available to copy");
+      caseWikiExportBlocked
+        ? caseWikiExportBlockedTitle
+        : questionActionBundle?.title ??
+          (isRu
+            ? "\u041d\u0435\u0442 focused question handoff \u0434\u043b\u044f copy"
+            : "No focused question handoff available to copy");
   }
   if (el.caseWorkspaceCaseWikiQuestionRefsCopyBtn instanceof HTMLButtonElement) {
-    el.caseWorkspaceCaseWikiQuestionRefsCopyBtn.disabled = !questionActionBundle?.refsText;
+    el.caseWorkspaceCaseWikiQuestionRefsCopyBtn.disabled = caseWikiExportBlocked || !questionActionBundle?.refsText;
     el.caseWorkspaceCaseWikiQuestionRefsCopyBtn.title =
-      questionActionBundle?.refs?.length > 0
-        ? `${questionActionBundle.title} (${questionActionBundle.refs.length})`
-        : isRu
-          ? "\u041d\u0435\u0442 question refs \u0434\u043b\u044f copy"
-          : "No question refs available to copy";
+      caseWikiExportBlocked
+        ? caseWikiExportBlockedTitle
+        : questionActionBundle?.refs?.length > 0
+          ? `${questionActionBundle.title} (${questionActionBundle.refs.length})`
+          : isRu
+            ? "\u041d\u0435\u0442 question refs \u0434\u043b\u044f copy"
+            : "No question refs available to copy";
   }
   if (el.caseWorkspaceCaseWikiProofOpenOpsBtn instanceof HTMLButtonElement) {
     el.caseWorkspaceCaseWikiProofOpenOpsBtn.disabled = !proofActionBundle?.focusId;
@@ -8969,6 +9076,7 @@ function applyLanguageMode(languageMode, options = {}) {
   const persist = options.persist === true;
   const announce = options.announce === true;
   const heroCopy = getHeroCopy(normalizedMode);
+  const legacyCompatibilityCopy = getLegacyCompatibilityCopy(normalizedMode);
   const previousStoryModeConfig = getStoryComposerModeConfig(state.storyComposerMode);
   state.languageMode = normalizedMode;
   document.documentElement.lang = normalizedMode;
@@ -8983,6 +9091,12 @@ function applyLanguageMode(languageMode, options = {}) {
   }
   if (el.heroSubtitle instanceof HTMLElement) {
     el.heroSubtitle.textContent = heroCopy.subtitle;
+  }
+  if (el.legacyCompatibilityNote instanceof HTMLElement) {
+    el.legacyCompatibilityNote.textContent = legacyCompatibilityCopy.note;
+  }
+  if (el.openAppLink instanceof HTMLElement) {
+    el.openAppLink.textContent = legacyCompatibilityCopy.cta;
   }
   initFilePickerControls();
   syncAllCustomSelectControls();
@@ -9011,10 +9125,14 @@ function applyLanguageMode(languageMode, options = {}) {
 
 function resolveTabId(value) {
   const requested = typeof value === "string" ? value.trim() : "";
+  const fallbackTabId = isLegacyCompatibilityRoute() ? LEGACY_DEFAULT_TAB_ID : DEFAULT_TAB_ID;
   if (!requested) {
-    return DEFAULT_TAB_ID;
+    return fallbackTabId;
   }
-  return tabContents.some((section) => section.dataset.tab === requested) ? requested : DEFAULT_TAB_ID;
+  if (isLegacyCompatibilityRoute() && !LEGACY_VISIBLE_TAB_IDS.has(requested)) {
+    return fallbackTabId;
+  }
+  return tabContents.some((section) => section.dataset.tab === requested) ? requested : fallbackTabId;
 }
 
 function readTabIdFromHash() {
@@ -9075,7 +9193,78 @@ function readStoredTabId() {
   } catch {
     /* no-op on storage failures */
   }
-  return DEFAULT_TAB_ID;
+  return resolveTabId("");
+}
+
+function isLegacyCompatibilityRoute() {
+  if (typeof window === "undefined" || !window.location) {
+    return false;
+  }
+  const pathname = typeof window.location.pathname === "string" ? window.location.pathname : "";
+  return pathname === "/legacy" || pathname === "/legacy/";
+}
+
+function isLegacyDirectLiveProofRoute() {
+  if (!isLegacyCompatibilityRoute() || typeof window === "undefined" || !window.location) {
+    return false;
+  }
+  const params = new URLSearchParams(window.location.search);
+  return params.get("debugLive") === "true" || params.get("livePreferredMode") === "direct_live";
+}
+
+function shouldRenderLegacyCompatibilitySurface(surfaceId) {
+  if (!isLegacyCompatibilityRoute()) {
+    return true;
+  }
+  const normalizedSurfaceId = typeof surfaceId === "string" ? surfaceId.trim() : "";
+  if (normalizedSurfaceId === "live-negotiator" && isLegacyDirectLiveProofRoute()) {
+    return true;
+  }
+  return LEGACY_VISIBLE_TAB_PANEL_IDS.has(normalizedSurfaceId);
+}
+
+function openPrimaryActionDeskRoute(pathname = "/app") {
+  if (typeof window === "undefined" || !window.location) {
+    return;
+  }
+  const normalizedPathname = typeof pathname === "string" && pathname.trim().length > 0 ? pathname.trim() : "/app";
+  window.location.assign(normalizedPathname);
+}
+
+function applyLegacyCompatibilityShell() {
+  if (!isLegacyCompatibilityRoute()) {
+    return;
+  }
+  document.body.classList.add("legacy-compat-route");
+  const layoutRoot = document.querySelector(".layout");
+  if (layoutRoot instanceof HTMLElement) {
+    layoutRoot.classList.add("is-legacy-compat");
+  }
+  const dashboardNav = document.querySelector(".dashboard-nav");
+  if (dashboardNav instanceof HTMLElement) {
+    dashboardNav.setAttribute("aria-label", "Legacy compatibility sections");
+  }
+  for (const button of tabButtons) {
+    const target = button.dataset.tabTarget ?? "";
+    const isAllowed = LEGACY_VISIBLE_TAB_IDS.has(target);
+    button.hidden = !isAllowed;
+    button.toggleAttribute("inert", !isAllowed);
+    button.setAttribute("aria-hidden", isAllowed ? "false" : "true");
+  }
+  const tabPanels = document.querySelectorAll(".tab-content[data-tab]");
+  for (const panel of tabPanels) {
+    if (!(panel instanceof HTMLElement)) {
+      continue;
+    }
+    const panelId = panel.dataset.tab ?? "";
+    const isAllowed = LEGACY_VISIBLE_TAB_PANEL_IDS.has(panelId);
+    panel.hidden = !isAllowed;
+    panel.toggleAttribute("inert", !isAllowed);
+    panel.setAttribute("aria-hidden", isAllowed ? "false" : "true");
+    if (!isAllowed) {
+      panel.classList.remove("active");
+    }
+  }
 }
 
 function applyThemeMode(themeMode, options = {}) {
@@ -11272,6 +11461,12 @@ function runOperatorPriorityQueueAction(actionId, options = {}) {
     case "open_device_nodes":
       runOperatorEmptyStateAction(normalizedAction);
       return;
+    case "open_case_wiki_remediation":
+      void openOperatorCaseWikiFocusedRemediationInOperatorOps();
+      return;
+    case "copy_case_wiki_remediation_draft":
+      void copyOperatorCaseWikiFocusedRemediationBlock("draft");
+      return;
     case "open_quick_start":
       openOperatorSupportPanel(el.operatorQuickStart, el.operatorQuickStartRunNegotiationBtn);
       return;
@@ -11329,10 +11524,14 @@ function resolveOperatorPriorityQueueCompactTitle(entry) {
 
   const key = typeof entry.key === "string" ? entry.key.trim().toLowerCase() : "";
   const tone = typeof entry.tone === "string" ? entry.tone.trim().toLowerCase() : "";
+  const kicker = typeof entry.kicker === "string" ? entry.kicker.trim().toLowerCase() : "";
   const fullTitle = typeof entry.title === "string" && entry.title.trim().length > 0
     ? entry.title.trim()
     : "Operator action";
 
+  if (kicker === "compliance blocker") {
+    return "Clear export blocker";
+  }
   if (key === "hydrate_board") {
     return "Hydrate board";
   }
@@ -11497,6 +11696,380 @@ function createOperatorPriorityQueueSignalEntry(signal) {
   };
 }
 
+function normalizeOperatorPriorityQueueTone(value) {
+  const normalized = toOptionalText(value)?.toLowerCase();
+  switch (normalized) {
+    case "fail":
+    case "watch":
+    case "ok":
+    case "stale":
+      return normalized;
+    default:
+      return "neutral";
+  }
+}
+
+function buildOperatorPriorityQueueActionConfig(action, fallbackKind = undefined) {
+  if (!isRecord(action)) {
+    return null;
+  }
+  const label = toOptionalText(action.label);
+  const actionId = toOptionalText(action.actionId);
+  if (!label || !actionId) {
+    return null;
+  }
+  const config = {
+    label,
+    actionId,
+  };
+  const kind = toOptionalText(action.kind) ?? fallbackKind ?? null;
+  const shortLabel = toOptionalText(action.shortLabel);
+  const targetStatusId = toOptionalText(action.targetStatusId);
+  if (kind === "secondary") {
+    config.kind = "secondary";
+  }
+  if (shortLabel) {
+    config.shortLabel = shortLabel;
+  }
+  if (targetStatusId) {
+    config.targetStatusId = targetStatusId;
+  }
+  return config;
+}
+
+function resolveOperatorCaseWikiPriorityQueueViewAction(route, nextAction) {
+  const lane = toOptionalText(route?.lane)?.toLowerCase();
+  const nextActionType = toOptionalText(nextAction?.type)?.toLowerCase();
+  const effectiveLane =
+    lane
+    || (nextActionType === "approval_request"
+      ? "approval_queue"
+      : nextActionType === "workflow_resume"
+        ? "workflow_resume"
+        : nextActionType === "ui_task"
+          ? "ui_task"
+          : nextActionType === "document_request"
+            ? "customer_followup"
+            : nextActionType === "live_followup"
+              ? "live_followup"
+              : nextActionType === "operator_followup"
+                ? "operator_followup"
+                : "");
+  if (effectiveLane === "approval_queue") {
+    return {
+      label: "Approvals View",
+      shortLabel: "Approvals",
+      actionId: "saved_view_approvals",
+    };
+  }
+  if (effectiveLane === "workflow_resume" || effectiveLane === "ui_task") {
+    return {
+      label: "Runtime View",
+      shortLabel: "Runtime",
+      actionId: "saved_view_runtime",
+    };
+  }
+  if (
+    effectiveLane === "customer_followup"
+    || effectiveLane === "live_followup"
+    || effectiveLane === "operator_followup"
+  ) {
+    return {
+      label: "Incidents View",
+      shortLabel: "Incidents",
+      actionId: "saved_view_incidents",
+    };
+  }
+  return null;
+}
+
+function normalizeOperatorQueueCompliancePreview(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const blockingReasons = Array.isArray(value.blockingReasons)
+    ? value.blockingReasons
+      .map((reason) => toOptionalText(reason))
+      .filter(Boolean)
+    : [];
+  const artifactPosture = normalizeComplianceArtifactPosture(value.artifactPosture);
+  const remediation = normalizeComplianceRemediationSummary(value.remediation);
+  return {
+    templateId: toOptionalText(value.templateId) ?? null,
+    piiRedactionLevel: toOptionalText(value.piiRedactionLevel) ?? null,
+    expectedSignatureStatus: toOptionalText(value.expectedSignatureStatus) ?? null,
+    enforcementStatus: toOptionalText(value.enforcementStatus) ?? "warn",
+    exportReady: value.exportReady === true,
+    blockingReasons,
+    artifactPosture,
+    remediation,
+  };
+}
+
+function normalizeComplianceArtifactPosture(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  return {
+    totalArtifacts: Number.isFinite(Number(value.totalArtifacts))
+      ? Math.max(0, Math.floor(Number(value.totalArtifacts)))
+      : 0,
+    rawArtifacts: Number.isFinite(Number(value.rawArtifacts))
+      ? Math.max(0, Math.floor(Number(value.rawArtifacts)))
+      : 0,
+    redactedArtifacts: Number.isFinite(Number(value.redactedArtifacts))
+      ? Math.max(0, Math.floor(Number(value.redactedArtifacts)))
+      : 0,
+    signedArtifacts: Number.isFinite(Number(value.signedArtifacts))
+      ? Math.max(0, Math.floor(Number(value.signedArtifacts)))
+      : 0,
+    blockingArtifacts: Number.isFinite(Number(value.blockingArtifacts))
+      ? Math.max(0, Math.floor(Number(value.blockingArtifacts)))
+      : 0,
+    blockingRefs: Array.isArray(value.blockingRefs)
+      ? value.blockingRefs.map((item) => toOptionalText(item)).filter(Boolean)
+      : [],
+  };
+}
+
+function normalizeComplianceRemediationAction(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  return {
+    id: toOptionalText(value.id) ?? null,
+    kind: toOptionalText(value.kind) ?? null,
+    title: toOptionalText(value.title) ?? null,
+    summary: toOptionalText(value.summary) ?? null,
+    blockingRef: toOptionalText(value.blockingRef) ?? null,
+    requiredPosture: toOptionalText(value.requiredPosture) ?? null,
+    affects: Array.isArray(value.affects)
+      ? value.affects.map((item) => toOptionalText(item)).filter(Boolean)
+      : [],
+    operatorActionLabel: toOptionalText(value.operatorActionLabel) ?? null,
+  };
+}
+
+function normalizeComplianceRemediationSummary(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const actions = Array.isArray(value.actions)
+    ? value.actions.map((item) => normalizeComplianceRemediationAction(item)).filter(Boolean)
+    : [];
+  const primaryAction =
+    normalizeComplianceRemediationAction(value.primaryAction) ??
+    actions[0] ??
+    null;
+  return {
+    totalActions: Number.isFinite(Number(value.totalActions))
+      ? Math.max(0, Math.floor(Number(value.totalActions)))
+      : actions.length,
+    primaryAction,
+    actions,
+  };
+}
+
+function buildComplianceArtifactDetailText(artifactPosture, maxRefs = 1) {
+  if (!artifactPosture || typeof artifactPosture !== "object") {
+    return "";
+  }
+  const blockingRefs = Array.isArray(artifactPosture.blockingRefs)
+    ? artifactPosture.blockingRefs.map((item) => toOptionalText(item)).filter(Boolean)
+    : [];
+  if (blockingRefs.length === 0) {
+    return "";
+  }
+  const shown = blockingRefs.slice(0, Math.max(1, maxRefs));
+  return shown.join(", ");
+}
+
+function buildComplianceRemediationNextStepText(remediation) {
+  const primaryAction = remediation?.primaryAction;
+  if (!primaryAction || typeof primaryAction !== "object") {
+    return "";
+  }
+  const actionLabel = toOptionalText(primaryAction.operatorActionLabel) ?? toOptionalText(primaryAction.title);
+  const blockingRef = toOptionalText(primaryAction.blockingRef);
+  if (actionLabel && blockingRef) {
+    return `Next step: ${actionLabel} for ${blockingRef}.`;
+  }
+  if (actionLabel) {
+    return `Next step: ${actionLabel}.`;
+  }
+  return toOptionalText(primaryAction.summary) ?? "";
+}
+
+function resolveOperatorQueueComplianceReasonText(compliance) {
+  const normalized = normalizeOperatorQueueCompliancePreview(compliance);
+  if (!normalized || (normalized.exportReady === true && normalized.enforcementStatus === "pass")) {
+    return "";
+  }
+  const blockingArtifactDetail = buildComplianceArtifactDetailText(normalized.artifactPosture);
+  const nextStepText = buildComplianceRemediationNextStepText(normalized.remediation);
+  if (normalized.blockingReasons.includes("raw_like_source_refs_detected")) {
+    const baseReason = blockingArtifactDetail
+      ? `Raw evidence refs must be redacted before export: ${blockingArtifactDetail}.`
+      : "Raw evidence refs must be redacted before export.";
+    return nextStepText ? `${baseReason} ${nextStepText}` : baseReason;
+  }
+  if (normalized.blockingReasons.includes("case_wiki_signature_missing")) {
+    const baseReason = "Case Wiki evidence signing must pass before export.";
+    return nextStepText ? `${baseReason} ${nextStepText}` : baseReason;
+  }
+  if (normalized.exportReady === false) {
+    const baseReason = "Compiled case export is blocked until compliance enforcement passes.";
+    return nextStepText ? `${baseReason} ${nextStepText}` : baseReason;
+  }
+  if (normalized.enforcementStatus === "fail") {
+    const baseReason = "Compliance enforcement requires operator review before export.";
+    return nextStepText ? `${baseReason} ${nextStepText}` : baseReason;
+  }
+  return "";
+}
+
+function resolveOperatorQueueComplianceTitle(item, compliance) {
+  const normalized = normalizeOperatorQueueCompliancePreview(compliance);
+  const fallbackTitle = toOptionalText(item?.title) ?? "Resolve compliance blocker before export";
+  if (!normalized) {
+    return fallbackTitle;
+  }
+  const remediationTitle = toOptionalText(normalized.remediation?.primaryAction?.title);
+  if (remediationTitle) {
+    return remediationTitle;
+  }
+  if (normalized.blockingReasons.includes("raw_like_source_refs_detected")) {
+    return "Redact raw case evidence before export";
+  }
+  if (normalized.blockingReasons.includes("case_wiki_signature_missing")) {
+    return "Resolve case wiki signing before export";
+  }
+  if (normalized.exportReady === false || normalized.enforcementStatus === "fail") {
+    return "Resolve compliance blocker before export";
+  }
+  return fallbackTitle;
+}
+
+function buildOperatorPriorityQueueEntriesFromSnapshot() {
+  const snapshot = isRecord(state.operatorQueueSnapshot) ? state.operatorQueueSnapshot : null;
+  if (!snapshot) {
+    return [];
+  }
+  const items = Array.isArray(snapshot.items) ? snapshot.items.filter((item) => isRecord(item)) : [];
+  return items.map((item, index) => {
+    const title = toOptionalText(item.title);
+    const primary = buildOperatorPriorityQueueActionConfig(item.primary);
+    if (!title || !primary) {
+      return null;
+    }
+    const compliance = normalizeOperatorQueueCompliancePreview(item.compliance);
+    const complianceBlocked = Boolean(
+      compliance && (compliance.enforcementStatus === "fail" || compliance.exportReady !== true),
+    );
+    const complianceMeta = resolveOperatorQueueComplianceReasonText(compliance);
+    const baseMeta = toOptionalText(item.meta) ?? "Review the highlighted action.";
+    return {
+      key: toOptionalText(item.key) ?? toOptionalText(item.id) ?? `operator_queue_${index + 1}`,
+      tone: complianceBlocked ? "fail" : normalizeOperatorPriorityQueueTone(item.tone),
+      kicker: complianceBlocked ? "Compliance blocker" : toOptionalText(item.kicker) ?? "Queue item",
+      title: complianceBlocked ? resolveOperatorQueueComplianceTitle(item, compliance) : title,
+      meta: complianceMeta ? `${complianceMeta} ${baseMeta}` : baseMeta,
+      primary,
+      secondary: buildOperatorPriorityQueueActionConfig(item.secondary, "secondary"),
+    };
+  }).filter(Boolean);
+}
+
+function buildOperatorCaseWikiPriorityQueueEntry() {
+  const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  if (!snapshot) {
+    return null;
+  }
+  const evidencePack = resolveOperatorCaseWikiEvidencePack(snapshot);
+  const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);
+  const remediationBlock = buildOperatorCaseWikiFocusedRemediationBlock(snapshot, evidencePack, focusedItem);
+  const routingBlock = buildOperatorCaseWikiFocusedRoutingBlock(snapshot, evidencePack, focusedItem);
+  const blockingQuestion = resolveOperatorCaseWikiTopBlockingQuestion(snapshot);
+  const draft = isRecord(remediationBlock?.draft) ? remediationBlock.draft : null;
+  const route = isRecord(routingBlock?.route) ? routingBlock.route : null;
+  const nextAction = isRecord(snapshot.recommendedNextAction) ? snapshot.recommendedNextAction : null;
+
+  if (!draft && !route && !nextAction && !blockingQuestion) {
+    return null;
+  }
+
+  const focusLabel =
+    toOptionalText(remediationBlock?.focus?.label) ??
+    toOptionalText(routingBlock?.focus?.label) ??
+    toOptionalText(blockingQuestion?.question) ??
+    null;
+  const blockerText =
+    toOptionalText(blockingQuestion?.question) ??
+    toOptionalText(route?.summary) ??
+    null;
+  const nextStepText =
+    toOptionalText(draft?.summary) ??
+    toOptionalText(nextAction?.summary) ??
+    toOptionalText(nextAction?.title) ??
+    toOptionalText(blockingQuestion?.suggestedNextStep) ??
+    null;
+  const ownerText =
+    toOptionalText(draft?.owner) ??
+    toOptionalText(nextAction?.owner) ??
+    toOptionalText(blockingQuestion?.owner) ??
+    null;
+  const targetText = toOptionalText(draft?.targetLabel) ?? null;
+  const metaParts = [];
+  if (focusLabel) {
+    metaParts.push(`Focus: ${focusLabel}.`);
+  }
+  if (blockerText) {
+    metaParts.push(`Blocker: ${blockerText}.`);
+  }
+  if (nextStepText && nextStepText !== blockerText) {
+    metaParts.push(`Next: ${nextStepText}.`);
+  }
+  if (targetText) {
+    metaParts.push(`Target: ${targetText}.`);
+  }
+  if (ownerText) {
+    metaParts.push(`Owner: ${ownerText}.`);
+  }
+
+  const blocking =
+    blockingQuestion?.blocking === true ||
+    route?.blocking === true ||
+    nextAction?.blocking === true;
+  const viewAction = resolveOperatorCaseWikiPriorityQueueViewAction(route, nextAction);
+
+  return {
+    key: "case_wiki_remediation",
+    tone: blocking ? "fail" : "watch",
+    kicker: blocking ? "Case blocker" : "Case next step",
+    title:
+      toOptionalText(draft?.title) ??
+      toOptionalText(nextAction?.title) ??
+      "Review compiled case follow-up",
+    meta: metaParts.join(" ") || "Open the compiled case follow-up before scanning the wider board.",
+    primary: draft
+      ? {
+          label: "Open Remediation",
+          actionId: "open_case_wiki_remediation",
+        }
+      : viewAction ?? {
+          label: "Refresh Summary",
+          actionId: "refresh_summary",
+        },
+    secondary: draft
+      ? {
+          label: "Copy Draft",
+          actionId: "copy_case_wiki_remediation_draft",
+          kind: "secondary",
+        }
+      : null,
+  };
+}
+
 function buildOperatorPriorityQueueCompactMeta(entry) {
   if (!entry || typeof entry !== "object") {
     return "Review the highlighted action.";
@@ -11504,9 +12077,13 @@ function buildOperatorPriorityQueueCompactMeta(entry) {
 
   const key = typeof entry.key === "string" ? entry.key.trim().toLowerCase() : "";
   const tone = typeof entry.tone === "string" ? entry.tone.trim().toLowerCase() : "";
+  const kicker = typeof entry.kicker === "string" ? entry.kicker.trim().toLowerCase() : "";
   const primaryLabel = entry.primary && typeof entry.primary.label === "string" ? entry.primary.label.trim() : "";
   const normalizedPrimaryLabel = primaryLabel.toLowerCase();
 
+  if (kicker === "compliance blocker") {
+    return "Clear export blocker first.";
+  }
   if (key === "hydrate_board") {
     return "Refresh once, then follow the highlighted workspace.";
   }
@@ -11559,6 +12136,7 @@ function buildOperatorActionCenterCards() {
     (item) => item.variant === "neutral" && item.statusCode !== "summary_stale" && !isOperatorUninitializedStatusText(item.statusCode),
   );
   const okSignals = signals.filter((item) => item.variant === "ok");
+  const repoOwnedQueueEntries = buildOperatorPriorityQueueEntriesFromSnapshot();
   const cards = [];
 
   const pushCard = (card) => {
@@ -14975,6 +15553,13 @@ function syncOperatorPriorityQueue() {
         },
       });
       seenKeys.add("operatorRuntimeGuardrailsStatus");
+    }
+
+    for (const entry of repoOwnedQueueEntries) {
+      pushEntry(entry);
+    }
+    if (repoOwnedQueueEntries.length === 0) {
+      pushEntry(buildOperatorCaseWikiPriorityQueueEntry());
     }
 
     for (const signal of failSignals) {
@@ -19800,6 +20385,9 @@ function buildLiveModeStatusLabel() {
 }
 
 function renderLiveModeStatus() {
+  if (!shouldRenderLegacyCompatibilitySurface("live-negotiator")) {
+    return;
+  }
   const label = buildLiveModeStatusLabel();
   setStatusPill(el.modeStatus, label, resolveModeStatusVariant(label));
 }
@@ -20152,6 +20740,9 @@ function filterLiveConversationHistoryByIntent(history, intent) {
 }
 
 function renderConversationHistory() {
+  if (!shouldRenderLegacyCompatibilitySurface("live-negotiator")) {
+    return;
+  }
   if (!(el.conversationHistory instanceof HTMLElement)) {
     return;
   }
@@ -20457,6 +21048,9 @@ function renderLiveIntentCards() {
 }
 
 function renderLiveIntentExperience() {
+  if (!shouldRenderLegacyCompatibilitySurface("live-negotiator")) {
+    return;
+  }
   const intent = el.intent instanceof HTMLSelectElement ? el.intent.value : state.lastRequestedIntent;
   const normalizedIntent = typeof intent === "string" && intent.trim().length > 0 ? intent.trim() : "conversation";
   const isRu = state.languageMode === "ru";
@@ -20960,6 +21554,9 @@ function resolveExportStatusKind(statusText) {
   if (normalized.startsWith("audio export skipped")) {
     return "skipped";
   }
+  if (normalized.startsWith("case wiki export blocked") || normalized.startsWith("session export blocked")) {
+    return "blocked";
+  }
   if (normalized === "idle") {
     return "idle";
   }
@@ -20984,6 +21581,9 @@ function resolveExportMenuSummaryIcon(statusText) {
   if (kind === "skipped") {
     return "SKIP";
   }
+  if (kind === "blocked") {
+    return "BLOCK";
+  }
   return "DL";
 }
 
@@ -21000,6 +21600,9 @@ function resolveExportStatusStripLabel(statusText) {
   }
   if (kind === "skipped") {
     return t("export.status.skipped");
+  }
+  if (kind === "blocked") {
+    return "Export blocked";
   }
   if (kind === "idle") {
     return t("export.status.idle");
@@ -21122,6 +21725,8 @@ function setExportStatus(text) {
   const exportKind = resolveExportStatusKind(normalized);
   if (exportKind === "markdown" || exportKind === "json" || exportKind === "audio") {
     variant = "ok";
+  } else if (exportKind === "blocked") {
+    variant = "warn";
   }
   setStatusPill(el.exportStatus, stripLabel, variant);
   el.exportStatus.title = normalized;
@@ -23896,6 +24501,9 @@ function renderStoryAtlasCards() {
 }
 
 function renderStoryStudioSurface() {
+  if (!shouldRenderLegacyCompatibilitySurface("storyteller")) {
+    return;
+  }
   const copy = getStoryComposerCopy();
   const modeConfig = getStoryComposerModeConfig();
   const normalizedMode = normalizeStoryComposerMode(state.storyComposerMode);
@@ -25406,6 +26014,9 @@ function renderStoryTimelineList() {
 }
 
 function renderStoryTimeline() {
+  if (!shouldRenderLegacyCompatibilitySurface("storyteller")) {
+    return;
+  }
   const copy = getStoryTimelineCopy();
   const segments = state.storyTimelineSegments;
   const count = segments.length;
@@ -25713,6 +26324,25 @@ function toIsoNow() {
 }
 
 function syncExportControlAvailability() {
+  const caseWikiSnapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const caseWikiExportGate = resolveOperatorCaseWikiComplianceExportGate(caseWikiSnapshot);
+  const exportBlocked = caseWikiExportGate.blocked === true;
+  const exportBlockedTitle =
+    caseWikiExportGate.titleText ?? "Case Wiki export is blocked until compliance enforcement passes.";
+  if (el.exportMarkdownBtn instanceof HTMLButtonElement) {
+    el.exportMarkdownBtn.disabled = exportBlocked;
+    el.exportMarkdownBtn.setAttribute("aria-disabled", exportBlocked ? "true" : "false");
+    el.exportMarkdownBtn.title = exportBlocked
+      ? exportBlockedTitle
+      : "Download the current session as markdown.";
+  }
+  if (el.exportJsonBtn instanceof HTMLButtonElement) {
+    el.exportJsonBtn.disabled = exportBlocked;
+    el.exportJsonBtn.setAttribute("aria-disabled", exportBlocked ? "true" : "false");
+    el.exportJsonBtn.title = exportBlocked
+      ? exportBlockedTitle
+      : "Download the current session as JSON.";
+  }
   const chunks = Array.isArray(state.assistantAudioChunks) ? state.assistantAudioChunks : [];
   const totalBytes = typeof state.assistantAudioBytesTotal === "number" && Number.isFinite(state.assistantAudioBytesTotal)
     ? Math.max(0, state.assistantAudioBytesTotal)
@@ -25930,7 +26560,7 @@ function buildSessionExportOperatorSessionReplay() {
     boundaryOwner: isRecord(replay?.boundaryOwner) ? replay.boundaryOwner : null,
     approvalGate: isRecord(replay?.approvalGate) ? replay.approvalGate : null,
     workflowBoundarySummary: isRecord(replay?.workflowBoundarySummary) ? replay.workflowBoundarySummary : null,
-    latestProofPointer: isRecord(replay?.latestProofPointer) ? replay.latestProofPointer : null,
+    latestProofPointer: normalizeOperatorReplayLatestProofPointer(replay?.latestProofPointer),
     recoveryPathHint: isRecord(replay?.recoveryPathHint) ? replay.recoveryPathHint : null,
     recoveryHandoff: isRecord(replay?.recoveryHandoff) ? replay.recoveryHandoff : null,
     recoveryDrill: isRecord(replay?.recoveryDrill) ? replay.recoveryDrill : null,
@@ -25939,6 +26569,10 @@ function buildSessionExportOperatorSessionReplay() {
     latestVerifiedAt: toOptionalText(replay?.latestVerifiedAt),
     latestVerifiedRoute: toOptionalText(replay?.latestVerifiedRoute),
     latestVerifiedIntent: toOptionalText(replay?.latestVerifiedIntent),
+    latestContextSource: toOptionalText(replay?.latestContextSource),
+    latestContextIngressSource: toOptionalText(replay?.latestContextIngressSource),
+    latestVerifiedContextSource: toOptionalText(replay?.latestVerifiedContextSource),
+    latestVerifiedContextIngressSource: toOptionalText(replay?.latestVerifiedContextIngressSource),
     workflowLinked: selectedSession?.workflow?.linked === true,
     workflowStatus: toOptionalText(workflow?.workflowExecutionStatus),
     workflowStage: toOptionalText(workflow?.workflowCurrentStage),
@@ -25970,6 +26604,7 @@ function buildSessionExportOperatorCaseWiki() {
   const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);
   const focusedHandoffBlock = buildOperatorCaseWikiFocusedHandoffBlock(snapshot, evidencePack, focusedItem);
   const focusedRoutingBlock = buildOperatorCaseWikiFocusedRoutingBlock(snapshot, evidencePack, focusedItem);
+  const focusedRemediationDraft = buildOperatorCaseWikiFocusedRemediationBlock(snapshot, evidencePack, focusedItem);
   const evidencePackProofs = buildOperatorCaseWikiEvidencePackProofSummary(evidencePack);
   const evidencePackQuestions = buildOperatorCaseWikiEvidencePackQuestionSummary(evidencePack);
   const handoffPreview = buildOperatorCaseWikiHandoffPreview(snapshot, evidencePack);
@@ -25981,6 +26616,7 @@ function buildSessionExportOperatorCaseWiki() {
     sessionId: toOptionalText(snapshot?.sessionId),
     generatedAt: toOptionalText(snapshot?.generatedAt),
     overview: isRecord(snapshot?.overview) ? snapshot.overview : null,
+    compliance: isRecord(snapshot?.compliance) ? snapshot.compliance : null,
     highlights: isRecord(snapshot?.highlights) ? snapshot.highlights : null,
     evidencePack: evidencePack
       ? {
@@ -25998,6 +26634,11 @@ function buildSessionExportOperatorCaseWiki() {
     previewPack: isRecord(snapshot?.previewPack) ? snapshot.previewPack : null,
     workspacePack: isRecord(snapshot?.workspacePack) ? snapshot.workspacePack : null,
     operatorPreviewPack: isRecord(snapshot?.operatorPreviewPack) ? snapshot.operatorPreviewPack : null,
+    remediationPreview:
+      isRecord(snapshot?.operatorPreviewPack) && isRecord(snapshot.operatorPreviewPack.remediation)
+        ? snapshot.operatorPreviewPack.remediation
+        : null,
+    auditLog: Array.isArray(snapshot?.auditLog) ? snapshot.auditLog.slice(0, 8) : [],
     recommendedNextAction: isRecord(snapshot?.recommendedNextAction) ? snapshot.recommendedNextAction : null,
     topBlockingQuestion: isRecord(blockingQuestion) ? blockingQuestion : null,
     topProof: isRecord(topProof) ? topProof : null,
@@ -26009,12 +26650,14 @@ function buildSessionExportOperatorCaseWiki() {
     handoffFocus,
     focusedHandoffBlock,
     focusedRoutingBlock,
+    focusedRemediationDraft: focusedRemediationDraft,
     focusedRoutingCta: focusedRoutingBlock?.cta?.label ?? null,
     focusedRoutingCtaAction: focusedRoutingBlock?.cta?.actionId ?? null,
     counts: {
       entities: Array.isArray(snapshot?.entities) ? snapshot.entities.length : 0,
       proofs: Array.isArray(snapshot?.proofs) ? snapshot.proofs.length : 0,
       openQuestions: Array.isArray(snapshot?.openQuestions) ? snapshot.openQuestions.length : 0,
+      auditLog: Array.isArray(snapshot?.auditLog) ? snapshot.auditLog.length : 0,
       timeline: Array.isArray(snapshot?.timeline) ? snapshot.timeline.length : 0,
     },
     openQuestions: Array.isArray(snapshot?.openQuestions) ? snapshot.openQuestions.slice(0, 8) : [],
@@ -26390,6 +27033,17 @@ function closeExportMenu(options = {}) {
 }
 
 function exportSessionMarkdown() {
+  const caseWikiExportGate = resolveOperatorCaseWikiComplianceExportGate(
+    buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot),
+  );
+  if (caseWikiExportGate.blocked) {
+    denyOperatorCaseWikiComplianceExport("session_markdown_export_blocked", caseWikiExportGate, {
+      requestedAction: "session_markdown_export",
+      operationLabel: "Session markdown export",
+      exportStatus: "session export blocked",
+    });
+    return;
+  }
   const payload = buildSessionExportPayload();
   const markdown = toMarkdownExport(payload);
   const fileName = `${buildSessionExportBaseName()}.md`;
@@ -26399,6 +27053,17 @@ function exportSessionMarkdown() {
 }
 
 function exportSessionJson() {
+  const caseWikiExportGate = resolveOperatorCaseWikiComplianceExportGate(
+    buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot),
+  );
+  if (caseWikiExportGate.blocked) {
+    denyOperatorCaseWikiComplianceExport("session_json_export_blocked", caseWikiExportGate, {
+      requestedAction: "session_json_export",
+      operationLabel: "Session JSON export",
+      exportStatus: "session export blocked",
+    });
+    return;
+  }
   const payload = buildSessionExportPayload();
   const fileName = `${buildSessionExportBaseName()}.json`;
   triggerDownload(fileName, `${JSON.stringify(payload, null, 2)}\n`, "application/json;charset=utf-8");
@@ -27233,6 +27898,9 @@ function createTaskReferenceCard(label, value) {
 }
 
 function renderTaskList() {
+  if (!shouldRenderLegacyCompatibilitySurface("live-negotiator")) {
+    return;
+  }
   const records = [...state.taskRecords.values()].sort((left, right) =>
     String(right.updatedAt).localeCompare(String(left.updatedAt)),
   );
@@ -27551,6 +28219,9 @@ function setStatusPill(node, text, variant) {
 }
 
 function renderAssistantActivityStatus() {
+  if (!shouldRenderLegacyCompatibilitySurface("live-negotiator")) {
+    return;
+  }
   const resolved = resolveAssistantActivityStatus({
     connectionStatus: state.connectionStatus,
     isStreaming: state.assistantIsStreaming,
@@ -28392,6 +29063,7 @@ function buildSessionExportRuntimeGuardrailsEvidence() {
     status: toNodeText(el.operatorRuntimeGuardrailsStatus, "awaiting_refresh"),
     signalsSummary: toNodeText(el.operatorRuntimeGuardrailsSignals, "n/a"),
     coverageSummary: toNodeText(el.operatorRuntimeGuardrailsCoverage, "n/a"),
+    sloSummary: toNodeText(el.operatorRuntimeGuardrailsSlo, "n/a"),
     sandboxSummary: toNodeText(el.operatorRuntimeGuardrailsSandbox, "n/a"),
     skillsSummary: toNodeText(el.operatorRuntimeGuardrailsSkills, "n/a"),
     topSignal: toNodeText(el.operatorRuntimeGuardrailsTopSignal, "n/a"),
@@ -28835,6 +29507,41 @@ function resetOperatorSessionBoundaryWidget(reason = "no_data") {
   setStatusPill(el.operatorSessionBoundaryStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
+function buildOperatorReplayContextProvenanceText(contextSource, ingressSource, fallback = null) {
+  const context = toOptionalText(contextSource);
+  const ingress = toOptionalText(ingressSource);
+  if (!context && !ingress) {
+    return fallback;
+  }
+  if (context && ingress) {
+    return `${context} via ${ingress}`;
+  }
+  return context ?? `via ${ingress}`;
+}
+
+function buildOperatorCaseWikiRoutingContextHint(routingContext, prefix = "Latest Case Wiki ingress") {
+  const context = routingContext && typeof routingContext === "object" ? routingContext : null;
+  if (!context || context.observed !== true) {
+    return null;
+  }
+  const provenance = buildOperatorReplayContextProvenanceText(
+    toOptionalText(context.contextSource),
+    toOptionalText(context.ingressSource),
+    "case_wiki",
+  );
+  const route = toOptionalText(context.route);
+  const nextAction = toOptionalText(context.nextAction);
+  const blocker = toOptionalText(context.blocker);
+  const parts = [`${prefix}: ${provenance}${route ? ` on ${route}` : ""}.`];
+  if (nextAction) {
+    parts.push(`Next action: ${nextAction}.`);
+  }
+  if (blocker) {
+    parts.push(`Blocker: ${blocker}.`);
+  }
+  return parts.join(" ");
+}
+
 function resetOperatorBrowserWorkersWidget(reason = "no_data") {
   setText(el.operatorBrowserWorkersQueued, "0");
   setText(el.operatorBrowserWorkersRunning, "0");
@@ -28852,6 +29559,7 @@ function resetOperatorBrowserWorkersWidget(reason = "no_data") {
 function resetOperatorRuntimeGuardrailsWidget(reason = "no_data") {
   setText(el.operatorRuntimeGuardrailsSignals, "n/a");
   setText(el.operatorRuntimeGuardrailsCoverage, "n/a");
+  setText(el.operatorRuntimeGuardrailsSlo, "n/a");
   setText(el.operatorRuntimeGuardrailsSandbox, "n/a");
   setText(el.operatorRuntimeGuardrailsSkills, "n/a");
   setText(el.operatorRuntimeGuardrailsTopSignal, "n/a");
@@ -28936,7 +29644,7 @@ function resetOperatorTaskQueueWidget(reason = "no_data") {
   setText(el.operatorTaskQueueStale, "0");
   setText(el.operatorTaskQueueMaxAge, "n/a");
   setText(el.operatorTaskQueueOldest, "n/a");
-  setOperatorTaskQueueHint("No active queue pressure yet. Run one scenario and refresh.", "neutral");
+  setOperatorTaskQueueHint("No compiled operator queue yet. Refresh summary after one case run.", "neutral");
   setStatusPill(el.operatorTaskQueueStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
@@ -30301,6 +31009,10 @@ function renderOperatorWorkflowRuntimeWidget(runtimeDiagnostics) {
       : null;
   const workflowStageLabel = workflowCurrentStage ? workflowCurrentStage.replaceAll("_", " ") : null;
   const workflowRoleLabel = workflowActiveRole ? workflowActiveRole.replaceAll("_", " ") : null;
+  const latestCaseWikiRoutingContext = isRecord(orchestratorRuntime.latestCaseWikiRoutingContext)
+    ? orchestratorRuntime.latestCaseWikiRoutingContext
+    : null;
+  const latestCaseWikiRoutingHint = buildOperatorCaseWikiRoutingContextHint(latestCaseWikiRoutingContext);
 
   setText(el.operatorWorkflowRuntimeSource, formatOperatorWorkflowRuntimeSourceLine(sourceKind, sourcePath, loadedAt));
   setText(
@@ -30374,6 +31086,10 @@ function renderOperatorWorkflowRuntimeWidget(runtimeDiagnostics) {
     hint = "Workflow path reported a recent load error. Confirm the source and refresh runtime before demo.";
   }
 
+  if (latestCaseWikiRoutingHint) {
+    hint = `${hint} ${latestCaseWikiRoutingHint}`;
+  }
+
   setStatusPill(el.operatorWorkflowRuntimeStatus, statusText, statusVariant);
   setOperatorWorkflowRuntimeHint(hint, hintVariant);
 }
@@ -30408,8 +31124,11 @@ function renderOperatorRuntimeSurfaceWidget(runtimeSurfaceSnapshot) {
   const playbooks = Array.isArray(inventory.playbooks) ? inventory.playbooks.filter((item) => isRecord(item)) : [];
   const evidenceEntries = Array.isArray(inventory.evidence) ? inventory.evidence.filter((item) => isRecord(item)) : [];
   const readinessSummary = isRecord(readiness.summary) ? readiness.summary : {};
+  const workflowSummary = isRecord(readinessSummary.workflow) ? readinessSummary.workflow : {};
   const skillsSummary = isRecord(readinessSummary.skills) ? readinessSummary.skills : {};
   const evidenceSummary = isRecord(readinessSummary.evidence) ? readinessSummary.evidence : {};
+  const caseWikiIngress = isRecord(workflowSummary.caseWikiIngress) ? workflowSummary.caseWikiIngress : null;
+  const caseWikiIngressHint = buildOperatorCaseWikiRoutingContextHint(caseWikiIngress);
   const degradedReasons = Array.isArray(readiness.degradedReasons)
     ? readiness.degradedReasons
         .map((item) => toOptionalText(item))
@@ -30484,6 +31203,9 @@ function renderOperatorRuntimeSurfaceWidget(runtimeSurfaceSnapshot) {
     hint = safeToRun
       ? "Runtime surface is ready. Inventory, playbooks, and evidence posture are in sync."
       : "Runtime surface is loaded, but a hold remains before safe execution.";
+  }
+  if (caseWikiIngressHint) {
+    hint = `${hint} ${caseWikiIngressHint}`;
   }
 
   setStatusPill(el.operatorRuntimeSurfaceStatus, statusText, statusVariant);
@@ -30570,6 +31292,14 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
     toOptionalText(replay?.latestVerifiedStage) ??
     toOptionalText(proof?.workflowStage) ??
     toOptionalText(proof?.route);
+  const latestProofContextProvenance = buildOperatorReplayContextProvenanceText(
+    toOptionalText(proof?.contextSource) ?? toOptionalText(replay?.latestVerifiedContextSource),
+    toOptionalText(proof?.ingressSource) ?? toOptionalText(replay?.latestVerifiedContextIngressSource),
+  );
+  const latestTurnContextProvenance = buildOperatorReplayContextProvenanceText(
+    toOptionalText(replay?.latestContextSource),
+    toOptionalText(replay?.latestContextIngressSource),
+  );
   const recoveryLabel =
     toOptionalText(recovery?.label) ??
     boundaryNextStep ??
@@ -30716,7 +31446,7 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   setText(
     el.operatorSessionBoundaryLatestProof,
     latestProofSummary
-      ? `${latestProofSummary}${latestProofStage ? ` | ${latestProofStage}` : ""}`
+      ? `${latestProofSummary}${latestProofStage ? ` | ${latestProofStage}` : ""}${latestProofContextProvenance ? ` | ${latestProofContextProvenance}` : ""}`
       : "No verified proof pointer yet.",
   );
   setText(
@@ -30767,8 +31497,17 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   }
 
   setStatusPill(el.operatorSessionBoundaryStatus, statusText, statusVariant);
+  const ingressHintParts = [];
+  if (latestProofContextProvenance) {
+    ingressHintParts.push(`Proof ingress: ${latestProofContextProvenance}.`);
+  }
+  if (latestTurnContextProvenance && latestTurnContextProvenance !== latestProofContextProvenance) {
+    ingressHintParts.push(`Turn ingress: ${latestTurnContextProvenance}.`);
+  }
   setOperatorSessionBoundaryHint(
-    recoveryDrill?.reason ?? recoveryHandoff?.reason ?? approvalGate?.reason ?? hint,
+    [recoveryDrill?.reason ?? recoveryHandoff?.reason ?? approvalGate?.reason ?? hint, ...ingressHintParts]
+      .filter((item) => typeof item === "string" && item.trim().length > 0)
+      .join(" "),
     hintVariant,
   );
 }
@@ -31495,6 +32234,8 @@ function normalizeOperatorReplayLatestProofPointer(value) {
     verifiedAt: toOptionalText(value.verifiedAt),
     route: toOptionalText(value.route),
     intent: toOptionalText(value.intent),
+    contextSource: toOptionalText(value.contextSource),
+    ingressSource: toOptionalText(value.ingressSource),
     workflowStage: toOptionalText(value.workflowStage),
   };
 }
@@ -32242,6 +32983,12 @@ function buildOperatorSessionReplaySnapshot(value) {
         latestVerifiedAt: toOptionalText(selectedSessionRecord.replay.latestVerifiedAt),
         latestVerifiedRoute: toOptionalText(selectedSessionRecord.replay.latestVerifiedRoute),
         latestVerifiedIntent: toOptionalText(selectedSessionRecord.replay.latestVerifiedIntent),
+        latestContextSource: toOptionalText(selectedSessionRecord.replay.latestContextSource),
+        latestContextIngressSource: toOptionalText(selectedSessionRecord.replay.latestContextIngressSource),
+        latestVerifiedContextSource: toOptionalText(selectedSessionRecord.replay.latestVerifiedContextSource),
+        latestVerifiedContextIngressSource: toOptionalText(
+          selectedSessionRecord.replay.latestVerifiedContextIngressSource,
+        ),
         bySource: isRecord(selectedSessionRecord.replay.bySource) ? selectedSessionRecord.replay.bySource : {},
         byType: isRecord(selectedSessionRecord.replay.byType) ? selectedSessionRecord.replay.byType : {},
         byRoute: isRecord(selectedSessionRecord.replay.byRoute) ? selectedSessionRecord.replay.byRoute : {},
@@ -32350,6 +33097,7 @@ function buildOperatorCaseWikiSnapshot(value) {
     userId: toOptionalText(value.userId),
     generatedAt: toOptionalText(value.generatedAt),
     overview: isRecord(value.overview) ? value.overview : null,
+    compliance: isRecord(value.compliance) ? value.compliance : null,
     highlights: isRecord(value.highlights)
       ? {
           topProof: isRecord(value.highlights.topProof) ? value.highlights.topProof : null,
@@ -32435,6 +33183,8 @@ function buildOperatorCaseWikiSnapshot(value) {
           timelineValue: toOptionalText(value.workspacePack.timelineValue),
           drilldownValue: toOptionalText(value.workspacePack.drilldownValue),
           handoffValue: toOptionalText(value.workspacePack.handoffValue),
+          costValue: toOptionalText(value.workspacePack.costValue),
+          costSummary: isRecord(value.workspacePack.costSummary) ? value.workspacePack.costSummary : null,
         }
       : null,
     operatorPreviewPack: isRecord(value.operatorPreviewPack)
@@ -32442,11 +33192,15 @@ function buildOperatorCaseWikiSnapshot(value) {
           overview: isRecord(value.operatorPreviewPack.overview) ? value.operatorPreviewPack.overview : null,
           evidence: isRecord(value.operatorPreviewPack.evidence) ? value.operatorPreviewPack.evidence : null,
           questions: isRecord(value.operatorPreviewPack.questions) ? value.operatorPreviewPack.questions : null,
+          remediation: isRecord(value.operatorPreviewPack.remediation) ? value.operatorPreviewPack.remediation : null,
+          compliance: isRecord(value.operatorPreviewPack.compliance) ? value.operatorPreviewPack.compliance : null,
+          audit: isRecord(value.operatorPreviewPack.audit) ? value.operatorPreviewPack.audit : null,
           timeline: isRecord(value.operatorPreviewPack.timeline) ? value.operatorPreviewPack.timeline : null,
         }
       : null,
     entities: Array.isArray(value.entities) ? value.entities.filter((item) => isRecord(item)) : [],
     timeline: Array.isArray(value.timeline) ? value.timeline.filter((item) => isRecord(item)) : [],
+    auditLog: Array.isArray(value.auditLog) ? value.auditLog.filter((item) => isRecord(item)) : [],
     proofs: Array.isArray(value.proofs) ? value.proofs.filter((item) => isRecord(item)) : [],
     openQuestions: Array.isArray(value.openQuestions) ? value.openQuestions.filter((item) => isRecord(item)) : [],
     recommendedNextAction: isRecord(value.recommendedNextAction) ? value.recommendedNextAction : null,
@@ -33511,6 +34265,17 @@ function renderCaseWorkspaceCaseWikiDetailBadges(container, badges) {
 
 async function copyOperatorCaseWikiDetailAction(kind, action) {
   const isRu = state.languageMode === "ru";
+  const caseWikiExportGate = resolveOperatorCaseWikiComplianceExportGate(
+    buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot),
+  );
+  if (caseWikiExportGate.blocked) {
+    denyOperatorCaseWikiComplianceExport(`case_wiki_${kind}_${action}_copy_blocked`, caseWikiExportGate, {
+      requestedAction: `case_wiki_${kind}_${action}_copy`,
+      operationLabel: `Case Wiki ${kind} ${action} copy`,
+      exportStatus: "case wiki export blocked",
+    });
+    return;
+  }
   const bundle = buildOperatorCaseWikiDetailActionBundle(kind, isRu);
   const text = action === "refs" ? bundle?.refsText : bundle?.handoffText;
   if (!text) {
@@ -33568,6 +34333,15 @@ async function copyOperatorCaseWikiDetailAction(kind, action) {
 
 async function copyOperatorCaseWikiFocusedHandoffBlock(mode = "handoff") {
   const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const caseWikiExportGate = resolveOperatorCaseWikiComplianceExportGate(snapshot);
+  if (caseWikiExportGate.blocked) {
+    denyOperatorCaseWikiComplianceExport(`case_wiki_focused_handoff_${mode}_blocked`, caseWikiExportGate, {
+      requestedAction: `case_wiki_focused_handoff_${mode}`,
+      operationLabel: mode === "export" ? "Case Wiki focused handoff export" : "Case Wiki focused handoff copy",
+      exportStatus: "case wiki export blocked",
+    });
+    return;
+  }
   const evidencePack = resolveOperatorCaseWikiEvidencePack(snapshot);
   const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);
   const focusedBlock = buildOperatorCaseWikiFocusedHandoffBlock(snapshot, evidencePack, focusedItem);
@@ -33617,6 +34391,15 @@ async function copyOperatorCaseWikiFocusedHandoffBlock(mode = "handoff") {
 
 async function copyOperatorCaseWikiFocusedRoutingBlock(mode = "routing") {
   const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const caseWikiExportGate = resolveOperatorCaseWikiComplianceExportGate(snapshot);
+  if (mode === "export" && caseWikiExportGate.blocked) {
+    denyOperatorCaseWikiComplianceExport(`case_wiki_focused_routing_${mode}_blocked`, caseWikiExportGate, {
+      requestedAction: `case_wiki_focused_routing_${mode}`,
+      operationLabel: "Case Wiki focused routing export",
+      exportStatus: "case wiki export blocked",
+    });
+    return;
+  }
   const evidencePack = resolveOperatorCaseWikiEvidencePack(snapshot);
   const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);
   const routingBlock = buildOperatorCaseWikiFocusedRoutingBlock(snapshot, evidencePack, focusedItem);
@@ -33661,6 +34444,124 @@ async function copyOperatorCaseWikiFocusedRoutingBlock(mode = "routing") {
     mode === "export"
       ? `Case Wiki focused routing export copied: ${routingBlock?.focus?.label ?? "selected focus"}`
       : `Case Wiki focused routing copied: ${routingBlock?.focus?.label ?? "selected focus"}`,
+    { exposeInLiveResult: false },
+  );
+}
+
+async function copyOperatorCaseWikiFocusedRemediationBlock(mode = "draft") {
+  const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const caseWikiExportGate = resolveOperatorCaseWikiComplianceExportGate(snapshot);
+  if (mode === "export" && caseWikiExportGate.blocked) {
+    denyOperatorCaseWikiComplianceExport(`case_wiki_focused_remediation_${mode}_blocked`, caseWikiExportGate, {
+      requestedAction: `case_wiki_focused_remediation_${mode}`,
+      operationLabel: "Case Wiki focused remediation export",
+      exportStatus: "case wiki export blocked",
+    });
+    return;
+  }
+  const evidencePack = resolveOperatorCaseWikiEvidencePack(snapshot);
+  const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);
+  const remediationBlock = buildOperatorCaseWikiFocusedRemediationBlock(snapshot, evidencePack, focusedItem);
+  const text =
+    mode === "export"
+      ? remediationBlock
+        ? `${JSON.stringify(remediationBlock, null, 2)}\n`
+        : null
+      : toOptionalText(remediationBlock?.draft?.body) ?? toOptionalText(remediationBlock?.draft?.summary);
+  if (!text) {
+    setOperatorSessionOpsControlStatus("case_wiki_remediation_unavailable", "warn");
+    state.operatorSessionOpsLastResult = {
+      action: `case_wiki_focused_remediation_${mode}_skipped`,
+      reason: "focus_required",
+      requestedAt: toIsoNow(),
+    };
+    renderOperatorSessionOpsPanel();
+    appendTranscript(
+      "error",
+      "Select a Case Wiki proof/question focus before copying the remediation draft.",
+      { exposeInLiveResult: false },
+    );
+    return;
+  }
+  const copied = await copyTextToClipboard(text);
+  if (!copied) {
+    throw new Error("clipboard_unavailable");
+  }
+  const resultAction =
+    mode === "export" ? "case_wiki_focused_remediation_export_copied" : "case_wiki_focused_remediation_copied";
+  state.operatorSessionOpsLastResult = {
+    action: resultAction,
+    focus: remediationBlock?.focus?.summary ?? remediationBlock?.focus?.label ?? null,
+    remediationKind: remediationBlock?.draft?.kind ?? null,
+    targetLabel: remediationBlock?.draft?.targetLabel ?? null,
+    copiedAt: toIsoNow(),
+  };
+  setOperatorSessionOpsControlStatus(resultAction, "ok");
+  setExportStatus(
+    mode === "export" ? "case wiki focused remediation export copied" : "case wiki focused remediation copied",
+  );
+  renderOperatorSessionOpsPanel();
+  appendTranscript(
+    "system",
+    mode === "export"
+      ? `Case Wiki focused remediation export copied: ${remediationBlock?.draft?.title ?? "selected focus"}`
+      : `Case Wiki focused remediation copied: ${remediationBlock?.draft?.title ?? "selected focus"}`,
+    { exposeInLiveResult: false },
+  );
+}
+
+function openOperatorCaseWikiFocusedRemediationInOperatorOps() {
+  const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const evidencePack = resolveOperatorCaseWikiEvidencePack(snapshot);
+  const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);
+  const remediationBlock = buildOperatorCaseWikiFocusedRemediationBlock(snapshot, evidencePack, focusedItem);
+  if (!snapshot || !remediationBlock?.draft) {
+    setOperatorSessionOpsControlStatus("case_wiki_remediation_open_unavailable", "warn");
+    state.operatorSessionOpsLastResult = {
+      action: "case_wiki_priority_queue_remediation_open_skipped",
+      reason: "remediation_unavailable",
+      requestedAt: toIsoNow(),
+    };
+    renderOperatorSessionOpsPanel();
+    appendTranscript(
+      "error",
+      "Refresh Case Wiki first to open the focused remediation block from Active Queue.",
+      { exposeInLiveResult: false },
+    );
+    return;
+  }
+
+  const focusKind = toOptionalText(remediationBlock.focus?.kind);
+  const focusId = toOptionalText(remediationBlock.focus?.id);
+  if (focusKind && focusId) {
+    state.operatorCaseWikiFocus = {
+      kind: focusKind,
+      id: focusId,
+    };
+  }
+  state.operatorSessionOpsLastResult = {
+    action: "case_wiki_priority_queue_remediation_opened",
+    title: remediationBlock.draft.title ?? null,
+    focus: remediationBlock.focus?.summary ?? remediationBlock.focus?.label ?? null,
+    openedAt: toIsoNow(),
+  };
+  setOperatorSessionOpsControlStatus("case_wiki_priority_queue_remediation_opened", "ok");
+  renderOperatorSessionOpsPanel();
+  setActiveTab("operator");
+  setOperatorSavedView("runtime", { scroll: false });
+  window.setTimeout(() => {
+    openOperatorSupportPanel(el.operatorSessionOpsControl, el.operatorCaseWikiFocusedRemediationSnapshot);
+    if (el.operatorCaseWikiFocusedRemediationSnapshot instanceof HTMLElement) {
+      el.operatorCaseWikiFocusedRemediationSnapshot.tabIndex = -1;
+      scrollOperatorElementIntoView("operatorCaseWikiFocusedRemediationSnapshot");
+      scheduleDeferredFocus(() => {
+        el.operatorCaseWikiFocusedRemediationSnapshot.focus({ preventScroll: true });
+      });
+    }
+  }, 0);
+  appendTranscript(
+    "system",
+    `Case Wiki remediation opened from Active Queue: ${remediationBlock.draft.title ?? "selected focus"}`,
     { exposeInLiveResult: false },
   );
 }
@@ -33783,14 +34684,33 @@ function resolveOperatorCaseWikiSelectedRunId() {
   return toOptionalText(workflow?.workflowRunId);
 }
 
+function buildOperatorCaseWikiUnitEconomics(snapshot) {
+  const workspacePack = isRecord(snapshot?.workspacePack) ? snapshot.workspacePack : null;
+  const costSummary = isRecord(workspacePack?.costSummary) ? workspacePack.costSummary : null;
+  if (!costSummary && !toOptionalText(workspacePack?.costValue)) {
+    return null;
+  }
+  return {
+    costValue: toOptionalText(workspacePack?.costValue) ?? buildCaseWorkspaceCaseWikiCostValue(costSummary, false),
+    costSummary,
+  };
+}
+
 function buildOperatorCaseWikiOverviewPreview() {
   const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
   if (!snapshot) {
     return "No case wiki loaded yet.\n\nRefresh case wiki to compile overview, blockers, and next action from runtime evidence.";
   }
   const operatorPreviewPack = isRecord(snapshot.operatorPreviewPack) ? snapshot.operatorPreviewPack : null;
+  const unitEconomics = buildOperatorCaseWikiUnitEconomics(snapshot);
   if (isRecord(operatorPreviewPack?.overview)) {
-    return stringifyOperatorRuntimeFaultValue(operatorPreviewPack.overview, "No case wiki loaded yet.");
+    return stringifyOperatorRuntimeFaultValue(
+      {
+        ...operatorPreviewPack.overview,
+        unitEconomics,
+      },
+      "No case wiki loaded yet.",
+    );
   }
   const overview = isRecord(snapshot.overview) ? snapshot.overview : null;
   return stringifyOperatorRuntimeFaultValue(
@@ -33811,6 +34731,7 @@ function buildOperatorCaseWikiOverviewPreview() {
           }
         : null,
       recommendedNextAction: isRecord(snapshot.recommendedNextAction) ? snapshot.recommendedNextAction : null,
+      unitEconomics,
       counts: {
         entities: snapshot.entities.length,
         proofs: snapshot.proofs.length,
@@ -33921,6 +34842,78 @@ function buildOperatorCaseWikiFocusedRoutingPreviewBlock() {
   );
 }
 
+function buildOperatorCaseWikiFocusedRemediationBlock(snapshot, evidencePack, focusedItem) {
+  const operatorPreviewPack = isRecord(snapshot?.operatorPreviewPack) ? snapshot.operatorPreviewPack : null;
+  const focusId = focusedItem?.id ? toOptionalText(focusedItem.id) : null;
+  const actionPackItem =
+    focusedItem && focusId
+      ? resolveOperatorCaseWikiActionPackItem(snapshot, focusedItem.kind, focusId)
+      : null;
+  const remediationDraft = isRecord(actionPackItem?.remediationDraft)
+    ? actionPackItem.remediationDraft
+    : isRecord(operatorPreviewPack?.remediation?.draft)
+      ? operatorPreviewPack.remediation.draft
+      : null;
+  if (!isRecord(remediationDraft)) {
+    return null;
+  }
+  const sourceRefs =
+    Array.isArray(remediationDraft.sourceRefs) && remediationDraft.sourceRefs.length > 0
+      ? remediationDraft.sourceRefs.map((entry) => toOptionalText(entry)).filter(Boolean)
+      : Array.isArray(actionPackItem?.refs)
+        ? actionPackItem.refs.map((entry) => toOptionalText(entry)).filter(Boolean)
+        : Array.isArray(evidencePack?.sourceRefs)
+          ? evidencePack.sourceRefs.map((entry) => toOptionalText(entry)).filter(Boolean)
+          : [];
+  return {
+    focus: {
+      kind:
+        focusedItem?.kind ??
+        toOptionalText(operatorPreviewPack?.remediation?.focusKind) ??
+        null,
+      id:
+        focusId ??
+        toOptionalText(operatorPreviewPack?.remediation?.focusId) ??
+        null,
+      label:
+        focusedItem?.kind === "proof"
+          ? toOptionalText(focusedItem?.item?.statement)
+          : focusedItem?.kind === "question"
+            ? toOptionalText(focusedItem?.item?.question)
+            : toOptionalText(operatorPreviewPack?.remediation?.focusLabel) ?? null,
+      summary: focusedItem ? buildOperatorCaseWikiFocusSummary(focusedItem) : null,
+    },
+    draft: {
+      kind: toOptionalText(remediationDraft.kind),
+      actionType: toOptionalText(remediationDraft.actionType),
+      title: toOptionalText(remediationDraft.title),
+      targetLabel: toOptionalText(remediationDraft.targetLabel),
+      owner: toOptionalText(remediationDraft.owner),
+      dueBy: toOptionalText(remediationDraft.dueBy),
+      summary: toOptionalText(remediationDraft.summary),
+      body: toOptionalText(remediationDraft.body),
+      checklist: Array.isArray(remediationDraft.checklist)
+        ? remediationDraft.checklist.map((entry) => toOptionalText(entry)).filter(Boolean)
+        : [],
+      sourceRefs,
+    },
+  };
+}
+
+function buildOperatorCaseWikiRemediationPreview() {
+  const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  if (!snapshot) {
+    return "No focused case wiki remediation draft loaded yet.";
+  }
+  const evidencePack = resolveOperatorCaseWikiEvidencePack(snapshot);
+  const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);
+  const remediationBlock = buildOperatorCaseWikiFocusedRemediationBlock(snapshot, evidencePack, focusedItem);
+  return stringifyOperatorRuntimeFaultValue(
+    remediationBlock,
+    "No focused case wiki remediation draft loaded yet.",
+  );
+}
+
 function buildOperatorCaseWikiQuestionsPreview() {
   const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
   if (!snapshot) {
@@ -33946,6 +34939,132 @@ function buildOperatorCaseWikiQuestionsPreview() {
       items: questions,
     },
     "No case wiki questions loaded yet.",
+  );
+}
+
+function buildOperatorCaseWikiCompliancePreview() {
+  const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  if (!snapshot) {
+    return "No case wiki compliance loaded yet.";
+  }
+  const operatorPreviewPack = isRecord(snapshot.operatorPreviewPack) ? snapshot.operatorPreviewPack : null;
+  if (isRecord(operatorPreviewPack?.compliance)) {
+    return stringifyOperatorRuntimeFaultValue(
+      operatorPreviewPack.compliance,
+      "No case wiki compliance loaded yet.",
+    );
+  }
+  if (isRecord(snapshot.compliance)) {
+    return stringifyOperatorRuntimeFaultValue(snapshot.compliance, "No case wiki compliance loaded yet.");
+  }
+  return "No case wiki compliance loaded yet.";
+}
+
+function resolveOperatorCaseWikiComplianceExportGate(snapshot) {
+  const compliance = isRecord(snapshot?.compliance) ? snapshot.compliance : null;
+  const enforcement = isRecord(compliance?.enforcement) ? compliance.enforcement : null;
+  const blockingReasons = Array.isArray(enforcement?.blockingReasons)
+    ? enforcement.blockingReasons.map((item) => toOptionalText(item)).filter(Boolean)
+    : [];
+  const artifactPosture = normalizeComplianceArtifactPosture(enforcement?.artifactPosture);
+  const remediation = normalizeComplianceRemediationSummary(enforcement?.remediation);
+  const rawRefCount = Number.isFinite(Number(enforcement?.rawRefCount))
+    ? Math.max(0, Math.floor(Number(enforcement.rawRefCount)))
+    : 0;
+  const blocked = enforcement?.exportReady === false || blockingReasons.length > 0;
+  const blockingArtifactDetail = buildComplianceArtifactDetailText(artifactPosture, 2);
+  const nextStepText = buildComplianceRemediationNextStepText(remediation);
+  let reasonCode = blockingReasons[0] ?? null;
+  let reasonText = null;
+  if (blockingReasons.includes("raw_like_source_refs_detected")) {
+    reasonCode = "raw_like_source_refs_detected";
+    reasonText =
+      rawRefCount > 0
+        ? `Case Wiki export is blocked until raw evidence refs are redacted (${rawRefCount} flagged).${blockingArtifactDetail ? ` Blocking refs: ${blockingArtifactDetail}.` : ""}`
+        : `Case Wiki export is blocked until raw evidence refs are redacted.${blockingArtifactDetail ? ` Blocking refs: ${blockingArtifactDetail}.` : ""}`;
+  } else if (blockingReasons.includes("case_wiki_signature_missing")) {
+    reasonCode = "case_wiki_signature_missing";
+    reasonText = "Case Wiki export is blocked until evidence signing passes.";
+  } else if (blocked) {
+    reasonCode = reasonCode ?? "compliance_enforcement_blocked";
+    reasonText = "Case Wiki export is blocked until compliance enforcement passes.";
+  }
+  const fullReasonText =
+    blocked && nextStepText && reasonText
+      ? `${reasonText} ${nextStepText}`
+      : reasonText;
+  return {
+    blocked,
+    enforcement,
+    blockingReasons,
+    artifactPosture,
+    remediation,
+    reasonCode,
+    rawRefCount,
+    reasonText: fullReasonText,
+    nextStepText,
+    titleText: blocked
+      ? fullReasonText ?? "Case Wiki export is blocked until compliance enforcement passes."
+      : "Case Wiki export is ready.",
+  };
+}
+
+function denyOperatorCaseWikiComplianceExport(action, gate, options = {}) {
+  const reasonText =
+    toOptionalText(options.reasonText) ??
+    toOptionalText(gate?.reasonText) ??
+    "Case Wiki export is blocked until compliance enforcement passes.";
+  const operationLabel = toOptionalText(options.operationLabel);
+  state.operatorSessionOpsLastResult = {
+    action,
+    requestedAction: toOptionalText(options.requestedAction) ?? action,
+    operationLabel,
+    reason: "compliance_export_blocked",
+    reasonCode: toOptionalText(gate?.reasonCode),
+    reasonText,
+    blockingReasons: Array.isArray(gate?.blockingReasons) ? gate.blockingReasons.slice(0, 6) : [],
+    blockedAt: toIsoNow(),
+  };
+  setOperatorSessionOpsControlStatus(toOptionalText(options.statusCode) ?? "case_wiki_export_blocked", "warn");
+  if (options.updateExportStatus !== false) {
+    setExportStatus(toOptionalText(options.exportStatus) ?? "case wiki export blocked");
+  }
+  renderOperatorSessionOpsPanel();
+  appendTranscript(
+    "error",
+    operationLabel ? `${operationLabel} blocked. ${reasonText}` : reasonText,
+    { exposeInLiveResult: false },
+  );
+}
+
+function buildOperatorCaseWikiAuditPreview() {
+  const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  if (!snapshot) {
+    return "No case wiki audit loaded yet.";
+  }
+  const operatorPreviewPack = isRecord(snapshot.operatorPreviewPack) ? snapshot.operatorPreviewPack : null;
+  if (isRecord(operatorPreviewPack?.audit)) {
+    return stringifyOperatorRuntimeFaultValue(operatorPreviewPack.audit, "No case wiki audit loaded yet.");
+  }
+  const latestEntries = snapshot.auditLog.slice(0, 6).map((item) => ({
+    id: toOptionalText(item.id),
+    ts: toOptionalText(item.ts),
+    actor: toOptionalText(item.actor),
+    source: toOptionalText(item.source),
+    action: toOptionalText(item.action),
+    field: toOptionalText(item.field),
+    summary: toOptionalText(item.summary),
+    reason: toOptionalText(item.reason),
+    oldValue: toOptionalText(item.oldValue),
+    newValue: toOptionalText(item.newValue),
+    sourceRefs: Array.isArray(item.sourceRefs) ? item.sourceRefs : [],
+  }));
+  return stringifyOperatorRuntimeFaultValue(
+    {
+      totalEntries: snapshot.auditLog.length,
+      latestEntries,
+    },
+    "No case wiki audit loaded yet.",
   );
 }
 
@@ -34056,6 +35175,10 @@ function buildOperatorSessionOpsControlMeta() {
     `stepPath=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorStepPath) ? replay.selectedSession.replay.nextOperatorStepPath.map((item) => `${toOptionalText(item?.phase) ?? "unknown"}:${toOptionalText(item?.runState) ?? "blocked"}`).join(",") || "n/a" : "n/a"}`,
     `checklist=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorChecklist) ? replay.selectedSession.replay.nextOperatorChecklist.length : 0}`,
     `remainingSteps=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorRemainingSteps) ? replay.selectedSession.replay.nextOperatorRemainingSteps.length : 0}`,
+    `turnContext=${toOptionalText(replay?.selectedSession?.replay?.latestContextSource) ?? "n/a"}`,
+    `turnIngress=${toOptionalText(replay?.selectedSession?.replay?.latestContextIngressSource) ?? "n/a"}`,
+    `proofContext=${toOptionalText(replay?.selectedSession?.replay?.latestProofPointer?.contextSource) ?? toOptionalText(replay?.selectedSession?.replay?.latestVerifiedContextSource) ?? "n/a"}`,
+    `proofIngress=${toOptionalText(replay?.selectedSession?.replay?.latestProofPointer?.ingressSource) ?? toOptionalText(replay?.selectedSession?.replay?.latestVerifiedContextIngressSource) ?? "n/a"}`,
     `personas=${Math.max(0, Math.floor(Number(discovery?.totalPersonas ?? 0) || 0))}`,
     `recipes=${Math.max(0, Math.floor(Number(discovery?.totalRecipes ?? 0) || 0))}`,
     `agents=${Array.isArray(discovery?.agentIds) ? discovery.agentIds.join(",") || "none" : "none"}`,
@@ -34126,11 +35249,15 @@ function buildOperatorSessionOpsReplayPreview() {
       boundaryOwner: isRecord(replay?.boundaryOwner) ? replay.boundaryOwner : null,
       approvalGate: isRecord(replay?.approvalGate) ? replay.approvalGate : null,
       workflowBoundarySummary: isRecord(replay?.workflowBoundarySummary) ? replay.workflowBoundarySummary : null,
-      latestProofPointer: isRecord(replay?.latestProofPointer) ? replay.latestProofPointer : null,
+      latestProofPointer: normalizeOperatorReplayLatestProofPointer(replay?.latestProofPointer),
       recoveryPathHint: isRecord(replay?.recoveryPathHint) ? replay.recoveryPathHint : null,
       recoveryHandoff: isRecord(replay?.recoveryHandoff) ? replay.recoveryHandoff : null,
       recoveryDrill: isRecord(replay?.recoveryDrill) ? replay.recoveryDrill : null,
       currentHandoffState: isRecord(replay?.currentHandoffState) ? replay.currentHandoffState : null,
+      latestContextSource: toOptionalText(replay?.latestContextSource),
+      latestContextIngressSource: toOptionalText(replay?.latestContextIngressSource),
+      latestVerifiedContextSource: toOptionalText(replay?.latestVerifiedContextSource),
+      latestVerifiedContextIngressSource: toOptionalText(replay?.latestVerifiedContextIngressSource),
       workflowLinked: workflow?.linked === true,
       workflowStatus: toOptionalText(workflow?.workflowExecutionStatus),
       workflowStage: toOptionalText(workflow?.workflowCurrentStage),
@@ -34167,6 +35294,10 @@ function buildOperatorSessionOpsLastResultPreview() {
 function renderOperatorSessionOpsPanel() {
   const declaration = cloneOperatorPurposeDeclaration(state.operatorPurposeDeclaration);
   const caseWikiSnapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const caseWikiExportGate = resolveOperatorCaseWikiComplianceExportGate(caseWikiSnapshot);
+  const caseWikiExportBlocked = caseWikiExportGate.blocked === true;
+  const caseWikiExportBlockedTitle =
+    caseWikiExportGate.titleText ?? "Case Wiki export is blocked until compliance enforcement passes.";
   const caseWikiEvidencePack = resolveOperatorCaseWikiEvidencePack(caseWikiSnapshot);
   const caseWikiFocusedItem = resolveOperatorCaseWikiFocusedItem(caseWikiEvidencePack);
   const focusedHandoffBlock = buildOperatorCaseWikiFocusedHandoffBlock(
@@ -34175,6 +35306,11 @@ function renderOperatorSessionOpsPanel() {
     caseWikiFocusedItem,
   );
   const focusedRoutingBlock = buildOperatorCaseWikiFocusedRoutingBlock(
+    caseWikiSnapshot,
+    caseWikiEvidencePack,
+    caseWikiFocusedItem,
+  );
+  const focusedRemediationBlock = buildOperatorCaseWikiFocusedRemediationBlock(
     caseWikiSnapshot,
     caseWikiEvidencePack,
     caseWikiFocusedItem,
@@ -34218,6 +35354,9 @@ function renderOperatorSessionOpsPanel() {
   if (el.operatorCaseWikiFocusedRoutingSnapshot instanceof HTMLElement) {
     el.operatorCaseWikiFocusedRoutingSnapshot.textContent = buildOperatorCaseWikiFocusedRoutingPreviewBlock();
   }
+  if (el.operatorCaseWikiFocusedRemediationSnapshot instanceof HTMLElement) {
+    el.operatorCaseWikiFocusedRemediationSnapshot.textContent = buildOperatorCaseWikiRemediationPreview();
+  }
   if (el.operatorCaseWikiFocusedRoutingCtaBtn instanceof HTMLButtonElement) {
     const ctaLabel = toOptionalText(focusedRoutingBlock?.cta?.label) ?? "Run CTA";
     el.operatorCaseWikiFocusedRoutingCtaBtn.textContent = ctaLabel;
@@ -34228,6 +35367,12 @@ function renderOperatorSessionOpsPanel() {
   }
   if (el.operatorCaseWikiQuestionsSnapshot instanceof HTMLElement) {
     el.operatorCaseWikiQuestionsSnapshot.textContent = buildOperatorCaseWikiQuestionsPreview();
+  }
+  if (el.operatorCaseWikiComplianceSnapshot instanceof HTMLElement) {
+    el.operatorCaseWikiComplianceSnapshot.textContent = buildOperatorCaseWikiCompliancePreview();
+  }
+  if (el.operatorCaseWikiAuditSnapshot instanceof HTMLElement) {
+    el.operatorCaseWikiAuditSnapshot.textContent = buildOperatorCaseWikiAuditPreview();
   }
   if (el.operatorCaseWikiTimelineSnapshot instanceof HTMLElement) {
     el.operatorCaseWikiTimelineSnapshot.textContent = buildOperatorCaseWikiTimelinePreview();
@@ -34251,14 +35396,19 @@ function renderOperatorSessionOpsPanel() {
     el.operatorCaseWikiSaveBtn.disabled = !canAppendOperatorCaseWikiNote();
   }
   if (el.operatorCaseWikiFocusedHandoffCopyBtn instanceof HTMLButtonElement) {
-    el.operatorCaseWikiFocusedHandoffCopyBtn.disabled = !toOptionalText(focusedHandoffBlock?.handoff);
+    el.operatorCaseWikiFocusedHandoffCopyBtn.disabled =
+      caseWikiExportBlocked || !toOptionalText(focusedHandoffBlock?.handoff);
     el.operatorCaseWikiFocusedHandoffCopyBtn.title =
-      focusedHandoffBlock?.focus?.label ?? "Select a Case Wiki proof/question focus first";
+      caseWikiExportBlocked
+        ? caseWikiExportBlockedTitle
+        : focusedHandoffBlock?.focus?.label ?? "Select a Case Wiki proof/question focus first";
   }
   if (el.operatorCaseWikiFocusedHandoffExportBtn instanceof HTMLButtonElement) {
-    el.operatorCaseWikiFocusedHandoffExportBtn.disabled = !focusedHandoffBlock;
+    el.operatorCaseWikiFocusedHandoffExportBtn.disabled = caseWikiExportBlocked || !focusedHandoffBlock;
     el.operatorCaseWikiFocusedHandoffExportBtn.title =
-      focusedHandoffBlock?.focus?.label ?? "Select a Case Wiki proof/question focus first";
+      caseWikiExportBlocked
+        ? caseWikiExportBlockedTitle
+        : focusedHandoffBlock?.focus?.label ?? "Select a Case Wiki proof/question focus first";
   }
   if (el.operatorCaseWikiFocusedRoutingCopyBtn instanceof HTMLButtonElement) {
     el.operatorCaseWikiFocusedRoutingCopyBtn.disabled = !toOptionalText(focusedRoutingBlock?.route?.summary);
@@ -34266,10 +35416,25 @@ function renderOperatorSessionOpsPanel() {
       focusedRoutingBlock?.focus?.label ?? "Select a Case Wiki proof/question focus first";
   }
   if (el.operatorCaseWikiFocusedRoutingExportBtn instanceof HTMLButtonElement) {
-    el.operatorCaseWikiFocusedRoutingExportBtn.disabled = !focusedRoutingBlock;
+    el.operatorCaseWikiFocusedRoutingExportBtn.disabled = caseWikiExportBlocked || !focusedRoutingBlock;
     el.operatorCaseWikiFocusedRoutingExportBtn.title =
-      focusedRoutingBlock?.focus?.label ?? "Select a Case Wiki proof/question focus first";
+      caseWikiExportBlocked
+        ? caseWikiExportBlockedTitle
+        : focusedRoutingBlock?.focus?.label ?? "Select a Case Wiki proof/question focus first";
   }
+  if (el.operatorCaseWikiFocusedRemediationCopyBtn instanceof HTMLButtonElement) {
+    el.operatorCaseWikiFocusedRemediationCopyBtn.disabled = !toOptionalText(focusedRemediationBlock?.draft?.body);
+    el.operatorCaseWikiFocusedRemediationCopyBtn.title =
+      focusedRemediationBlock?.focus?.label ?? "Select a Case Wiki proof/question focus first";
+  }
+  if (el.operatorCaseWikiFocusedRemediationExportBtn instanceof HTMLButtonElement) {
+    el.operatorCaseWikiFocusedRemediationExportBtn.disabled = caseWikiExportBlocked || !focusedRemediationBlock;
+    el.operatorCaseWikiFocusedRemediationExportBtn.title =
+      caseWikiExportBlocked
+        ? caseWikiExportBlockedTitle
+        : focusedRemediationBlock?.focus?.label ?? "Select a Case Wiki proof/question focus first";
+  }
+  syncExportControlAvailability();
   renderCaseWorkspaceCaseWikiSummary();
   renderOperatorSessionBoundaryWidget(state.operatorSessionReplaySnapshot);
 }
@@ -34480,6 +35645,12 @@ async function refreshOperatorCaseWiki(options = {}) {
     const caseWikiSnapshot = buildOperatorCaseWikiSnapshot(payload?.data);
     state.operatorCaseWikiSnapshot = caseWikiSnapshot;
     state.operatorCaseWikiLoadedAt = toOptionalText(caseWikiSnapshot?.generatedAt) ?? toIsoNow();
+    try {
+      await refreshOperatorQueue({
+        silent: true,
+        sessionId: toOptionalText(caseWikiSnapshot?.sessionId) ?? requestedSessionId,
+      });
+    } catch {}
     if (updateLastResult) {
       state.operatorSessionOpsLastResult = {
         action: "case_wiki_refreshed",
@@ -34517,6 +35688,68 @@ async function refreshOperatorCaseWiki(options = {}) {
     renderOperatorSessionOpsPanel();
     if (!silent) {
       appendTranscript("error", `Case wiki refresh failed: ${String(error)}`, { exposeInLiveResult: false });
+    }
+    throw error;
+  }
+}
+
+function buildOperatorQueueSnapshot(snapshot) {
+  if (!isRecord(snapshot)) {
+    return null;
+  }
+  return {
+    schemaVersion: Number(snapshot.schemaVersion ?? 1) === 1 ? 1 : 1,
+    generatedAt: toOptionalText(snapshot.generatedAt) ?? toIsoNow(),
+    tenantId: toOptionalText(snapshot.tenantId) ?? null,
+    totalItems: Math.max(0, Math.floor(Number(snapshot.totalItems ?? 0) || 0)),
+    blockingItems: Math.max(0, Math.floor(Number(snapshot.blockingItems ?? 0) || 0)),
+    items: Array.isArray(snapshot.items) ? snapshot.items.filter((item) => isRecord(item)) : [],
+  };
+}
+
+async function refreshOperatorQueue(options = {}) {
+  const silent = options?.silent === true;
+  const requestedSessionId = toOptionalText(options?.sessionId);
+  try {
+    const queueUrl = new URL(`${state.apiBaseUrl}/v1/operator/queue`);
+    queueUrl.searchParams.set("limit", "6");
+    queueUrl.searchParams.set("sessionLimit", String(Math.max(OPERATOR_SESSION_REPLAY_LIMIT, 8)));
+    queueUrl.searchParams.set("eventLimit", String(Math.max(30, Math.min(OPERATOR_SESSION_REPLAY_EVENT_LIMIT, 80))));
+    queueUrl.searchParams.set("runLimit", String(Math.max(OPERATOR_SESSION_REPLAY_EVENT_LIMIT, 120)));
+    queueUrl.searchParams.set("approvalLimit", String(Math.max(OPERATOR_SESSION_REPLAY_EVENT_LIMIT, 120)));
+    queueUrl.searchParams.set(
+      "recentEventLimit",
+      String(Math.max(OPERATOR_SESSION_REPLAY_EVENT_LIMIT * 2, OPERATOR_SESSION_REPLAY_LIMIT * 10)),
+    );
+    if (requestedSessionId) {
+      queueUrl.searchParams.set("sessionId", requestedSessionId);
+    }
+    const response = await fetch(queueUrl.toString(), {
+      method: "GET",
+      headers: operatorHeaders(false),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      const errorText = getApiErrorMessage(payload, `operator queue failed with ${response.status}`);
+      throw new Error(String(errorText));
+    }
+    state.operatorQueueSnapshot = buildOperatorQueueSnapshot(payload?.data);
+    state.operatorQueueLoadedAt = toOptionalText(state.operatorQueueSnapshot?.generatedAt) ?? toIsoNow();
+    syncOperatorPriorityQueue();
+    if (!silent) {
+      appendTranscript(
+        "system",
+        `Operator queue refreshed: items=${Math.max(0, Math.floor(Number(state.operatorQueueSnapshot?.totalItems ?? 0) || 0))} blocking=${Math.max(0, Math.floor(Number(state.operatorQueueSnapshot?.blockingItems ?? 0) || 0))}`,
+        { exposeInLiveResult: false },
+      );
+    }
+    return state.operatorQueueSnapshot;
+  } catch (error) {
+    state.operatorQueueSnapshot = null;
+    state.operatorQueueLoadedAt = toIsoNow();
+    syncOperatorPriorityQueue();
+    if (!silent) {
+      appendTranscript("error", `Operator queue refresh failed: ${String(error)}`, { exposeInLiveResult: false });
     }
     throw error;
   }
@@ -34896,6 +36129,34 @@ function resolveOperatorRuntimeGuardrailAction(signals) {
   return resolveOperatorRuntimeGuardrailActions(signals)[0] ?? null;
 }
 
+function formatOperatorRuntimeGuardrailSloMetric(metric) {
+  if (!isRecord(metric)) {
+    return null;
+  }
+  const key = toOptionalText(metric.key) ?? "slo";
+  const p95Ms = Number(metric.p95Ms);
+  const thresholdMs = Number(metric.thresholdMs);
+  const status = toOptionalText(metric.status) ?? "missing";
+  const sampleCount = Math.max(0, Math.floor(Number(metric.sampleCount ?? 0) || 0));
+  if (!Number.isFinite(p95Ms) || p95Ms < 0) {
+    return `${key}=missing`;
+  }
+  return `${key}=${Math.floor(p95Ms)}ms/${Number.isFinite(thresholdMs) ? Math.floor(thresholdMs) : "n/a"}ms ${status} n=${sampleCount}`;
+}
+
+function buildOperatorRuntimeGuardrailSloSummary(runtimeDiagnostics) {
+  const slo = isRecord(runtimeDiagnostics?.slo) ? runtimeDiagnostics.slo : null;
+  const metrics = Array.isArray(slo?.metrics)
+    ? slo.metrics
+        .map((metric) => formatOperatorRuntimeGuardrailSloMetric(metric))
+        .filter((item) => typeof item === "string" && item.length > 0)
+    : [];
+  if (metrics.length > 0) {
+    return metrics.join(" | ");
+  }
+  return toOptionalText(slo?.summary) ?? "missing";
+}
+
 async function runOperatorRuntimeGuardrailsAction(actionOverride = null) {
   const action =
     actionOverride && typeof actionOverride === "object" ? actionOverride : state.operatorRuntimeGuardrailAction;
@@ -35001,6 +36262,13 @@ function renderOperatorRuntimeGuardrailsWidget(runtimeDiagnostics) {
   const warnSignals = activeSignals.filter((item) => item.severity === "warn");
   const infoSignals = activeSignals.filter((item) => item.severity === "info");
   const topSignal = criticalSignals[0] ?? warnSignals[0] ?? infoSignals[0] ?? activeSignals[0] ?? null;
+  const orchestratorRuntime =
+    runtimeDiagnostics.orchestrator && typeof runtimeDiagnostics.orchestrator === "object"
+      ? runtimeDiagnostics.orchestrator
+      : null;
+  const latestCaseWikiRoutingHint = buildOperatorCaseWikiRoutingContextHint(
+    isRecord(orchestratorRuntime?.latestCaseWikiRoutingContext) ? orchestratorRuntime.latestCaseWikiRoutingContext : null,
+  );
 
   const coverage =
     runtimeDiagnostics.servicesCoverage && typeof runtimeDiagnostics.servicesCoverage === "object"
@@ -35075,6 +36343,7 @@ function renderOperatorRuntimeGuardrailsWidget(runtimeDiagnostics) {
     topSignal && typeof topSignal.message === "string" && topSignal.message.trim().length > 0
       ? topSignal.message.trim()
       : "No active runtime guardrail signal.";
+  const sloSummary = buildOperatorRuntimeGuardrailSloSummary(runtimeDiagnostics);
 
   setText(
     el.operatorRuntimeGuardrailsSignals,
@@ -35084,6 +36353,7 @@ function renderOperatorRuntimeGuardrailsWidget(runtimeDiagnostics) {
     el.operatorRuntimeGuardrailsCoverage,
     `healthy=${coverageHealthy}/${coverageTotal} | ready=${coverageReady}/${coverageTotal} | runtime=${coverageRuntimeVisible}/${coverageTotal} | metrics=${coverageMetricsVisible}/${coverageTotal} | startup=${coverageStartupFailures}/${coverageStartupBlocking}`,
   );
+  setText(el.operatorRuntimeGuardrailsSlo, sloSummary);
   setText(
     el.operatorRuntimeGuardrailsSandbox,
     `mode=${sandboxMode} | network=${sandboxNetworkPolicy} | setup=${sandboxSetupStatus} | warnings=${sandboxWarnings.length}`,
@@ -35155,6 +36425,10 @@ function renderOperatorRuntimeGuardrailsWidget(runtimeDiagnostics) {
     hintVariant = "warn";
     hint =
       "Runtime guardrails are degraded or warning-bearing. Review active signals, sandbox posture, and skills/runtime warnings; keep only intentional drill states active.";
+  }
+
+  if (latestCaseWikiRoutingHint) {
+    hint = `${hint} ${latestCaseWikiRoutingHint}`;
   }
 
   setStatusPill(el.operatorRuntimeGuardrailsStatus, statusText, statusVariant);
@@ -35676,6 +36950,77 @@ function normalizeTaskQueuePressureLevel(value) {
   return "healthy";
 }
 
+const OPERATOR_QUEUE_SNAPSHOT_STALE_THRESHOLD_MS = 15 * 60 * 1000;
+
+function buildOperatorQueueSummaryFromSnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== "object") {
+    return null;
+  }
+  const items = Array.isArray(snapshot.items) ? snapshot.items.filter((item) => item && typeof item === "object") : [];
+  const totalItems = Math.max(0, Math.floor(Number(snapshot.totalItems ?? items.length) || 0));
+  const blockingItems = Math.max(0, Math.floor(Number(snapshot.blockingItems ?? 0) || 0));
+  const nowMs = Date.now();
+  let criticalCount = 0;
+  let approvalCount = 0;
+  let complianceBlockedCount = 0;
+  let staleCount = 0;
+  let oldestAgeMs = null;
+
+  for (const item of items) {
+    const priority = toOptionalText(item.priority) ?? "medium";
+    if (priority === "critical") {
+      criticalCount += 1;
+    }
+    const approvalRequired = item?.route?.approvalRequired === true
+      || toOptionalText(item?.recommendedNextAction?.type) === "approval_request";
+    if (approvalRequired) {
+      approvalCount += 1;
+    }
+    const compliance = normalizeOperatorQueueCompliancePreview(item?.compliance);
+    if (compliance && (compliance.enforcementStatus === "fail" || compliance.exportReady !== true)) {
+      complianceBlockedCount += 1;
+    }
+    const generatedAtMs = parseIsoTimestampMs(toOptionalText(item.generatedAt));
+    if (generatedAtMs === null) {
+      continue;
+    }
+    const ageMs = Math.max(0, nowMs - generatedAtMs);
+    if (oldestAgeMs === null || ageMs > oldestAgeMs) {
+      oldestAgeMs = ageMs;
+    }
+    if (ageMs >= OPERATOR_QUEUE_SNAPSHOT_STALE_THRESHOLD_MS) {
+      staleCount += 1;
+    }
+  }
+
+  let status = "healthy";
+  if (totalItems <= 0) {
+    status = "idle";
+  } else if (criticalCount > 0 || approvalCount > 0 || complianceBlockedCount > 0) {
+    status = "critical";
+  } else if (blockingItems > 0 || staleCount > 0) {
+    status = "elevated";
+  }
+
+  const topItem = items[0] ?? null;
+  const topItemCompliance = normalizeOperatorQueueCompliancePreview(topItem?.compliance);
+  return {
+    totalItems,
+    blockingItems,
+    criticalCount,
+    approvalCount,
+    complianceBlockedCount,
+    staleCount,
+    oldestAgeMs,
+    status,
+    topItemKicker: toOptionalText(topItem?.kicker),
+    topItemTitle: toOptionalText(topItem?.title),
+    topItemMeta: toOptionalText(topItem?.meta),
+    topItemPrimaryLabel: toOptionalText(topItem?.primary?.label),
+    topItemComplianceReason: resolveOperatorQueueComplianceReasonText(topItemCompliance),
+  };
+}
+
 function buildTaskQueueSummaryFromActiveTasks(activeTasks) {
   if (!Array.isArray(activeTasks)) {
     return null;
@@ -35757,7 +37102,70 @@ function buildTaskQueueSummaryFromActiveTasks(activeTasks) {
   };
 }
 
-function renderOperatorTaskQueueWidget(taskQueueSummary) {
+function renderOperatorTaskQueueWidget(taskQueueSummary, operatorQueueSnapshot = null) {
+  const operatorQueueSummary = buildOperatorQueueSummaryFromSnapshot(operatorQueueSnapshot);
+  if (operatorQueueSummary) {
+    setText(el.operatorTaskQueueTotal, String(operatorQueueSummary.totalItems));
+    setText(el.operatorTaskQueueQueued, String(operatorQueueSummary.blockingItems));
+    setText(el.operatorTaskQueueRunning, String(operatorQueueSummary.criticalCount));
+    setText(el.operatorTaskQueuePendingApproval, String(operatorQueueSummary.approvalCount));
+    setText(el.operatorTaskQueueStale, String(operatorQueueSummary.staleCount));
+    setText(
+      el.operatorTaskQueueMaxAge,
+      operatorQueueSummary.oldestAgeMs === null ? "n/a" : formatAgeMs(operatorQueueSummary.oldestAgeMs),
+    );
+    setText(
+      el.operatorTaskQueueOldest,
+      operatorQueueSummary.topItemTitle
+        ? `${operatorQueueSummary.topItemTitle}${
+          operatorQueueSummary.topItemPrimaryLabel ? ` -> ${operatorQueueSummary.topItemPrimaryLabel}` : ""
+        }`
+        : "n/a",
+    );
+
+    let statusVariant = "ok";
+    let statusText = "healthy";
+    let hintVariant = "ok";
+    let hint = "Compiled operator queue is hydrated. Follow the top backend-prioritized case action.";
+
+    if (operatorQueueSummary.totalItems <= 0 || operatorQueueSummary.status === "idle") {
+      statusVariant = "neutral";
+      statusText = "idle";
+      hintVariant = "warn";
+      hint = "No compiled operator queue items yet. Refresh summary after one live or UI case run.";
+    } else if (operatorQueueSummary.status === "critical") {
+      statusVariant = "fail";
+      statusText = "critical";
+      hintVariant = "fail";
+      hint = operatorQueueSummary.complianceBlockedCount > 0
+        ? "Compiled queue export is blocked by compliance enforcement. Clear the first queue item before handoff or export."
+        : "Approval-gated or critical compiled queue work is waiting. Start with the first queue item before scanning raw runtime backlog.";
+    } else if (operatorQueueSummary.status === "elevated") {
+      statusVariant = "neutral";
+      statusText = "elevated";
+      hintVariant = "warn";
+      hint = "Blocking compiled queue items are present. Clear the first blocker before moving to lower-priority work.";
+    }
+
+    if (operatorQueueSummary.topItemTitle) {
+      hint = `${hint} Top item: ${operatorQueueSummary.topItemTitle}.`;
+    }
+    if (operatorQueueSummary.topItemComplianceReason) {
+      hint = `${hint} ${operatorQueueSummary.topItemComplianceReason}`;
+    }
+    if (operatorQueueSummary.staleCount > 0) {
+      hint = `${hint} ${operatorQueueSummary.staleCount} item(s) are older than ${formatAgeMs(OPERATOR_QUEUE_SNAPSHOT_STALE_THRESHOLD_MS)}.`;
+    }
+
+    setStatusPill(
+      el.operatorTaskQueueStatus,
+      `${statusText} total=${operatorQueueSummary.totalItems} blocking=${operatorQueueSummary.blockingItems} approvals=${operatorQueueSummary.approvalCount}`,
+      statusVariant,
+    );
+    setOperatorTaskQueueHint(hint, hintVariant);
+    return;
+  }
+
   if (!taskQueueSummary || typeof taskQueueSummary !== "object") {
     resetOperatorTaskQueueWidget("no_data");
     return;
@@ -36316,6 +37724,12 @@ function resetDirectLiveTransportState() {
   state.liveDirectLastFunctionCallFingerprint = null;
 }
 
+function resetDirectLiveConnectionTelemetryState() {
+  state.liveDirectConnectedAtMs = null;
+  state.liveDirectFirstAudioCaptured = false;
+  state.liveDirectFirstOutputCaptured = false;
+}
+
 function canUseDirectLiveTransport(snapshot = state.liveBootstrapSnapshot) {
   return (
     isRecord(snapshot) &&
@@ -36342,12 +37756,14 @@ function buildDirectLiveSetupPayload(payloadOverride = null) {
   const model =
     toOptionalText(override.model) ??
     (snapshot ? toOptionalText(snapshot.model) : null) ??
-    "gemini-live-2.5-flash-native-audio";
+    "gemini-3.1-flash-live-preview";
+  const normalizedModel =
+    typeof model === "string" && model.startsWith("models/") ? model : `models/${model}`;
   return {
     ...override,
-    model,
+    model: normalizedModel,
     generationConfig: {
-      responseModalities: ["TEXT", "AUDIO"],
+      responseModalities: ["AUDIO"],
       ...overrideGenerationConfig,
     },
   };
@@ -36357,6 +37773,18 @@ function sendDirectLiveJson(message) {
   if (!isSocketOpen()) {
     appendTranscript("error", "Live transport is not connected");
     return false;
+  }
+  if (enableLiveDebugHooks) {
+    let snapshot = "";
+    try {
+      snapshot = JSON.stringify(message);
+    } catch {
+      snapshot = "[unserializable]";
+    }
+    if (snapshot.length > 400) {
+      snapshot = snapshot.slice(0, 400) + "…";
+    }
+    appendTranscript("system", `Direct live send: ${snapshot}`, { exposeInLiveResult: false });
   }
   state.ws.send(JSON.stringify(message));
   return true;
@@ -36518,6 +37946,8 @@ function shouldPersistDirectLiveReplayEvent(event) {
   }
   switch (toOptionalText(event.type)) {
     case "gateway.connected":
+    case "live.first_audio":
+    case "live.first_output":
     case "live.function_call":
     case "live.function_call_output.sent":
     case "live.interrupted":
@@ -36661,14 +38091,8 @@ function sendDirectLiveEnvelope(envelope) {
         return false;
       }
       return sendDirectLiveJson({
-        clientContent: {
-          turns: [
-            {
-              role: "user",
-              parts: [{ text }],
-            },
-          ],
-          turnComplete: true,
+        realtimeInput: {
+          text,
         },
       });
     }
@@ -36681,6 +38105,19 @@ function sendDirectLiveEnvelope(envelope) {
         return false;
       }
       const role = toOptionalText(item?.role) === "assistant" ? "model" : "user";
+      if (
+        role === "user" &&
+        parts.length === 1 &&
+        isRecord(parts[0]) &&
+        typeof parts[0].text === "string" &&
+        parts[0].text.trim().length > 0
+      ) {
+        return sendDirectLiveJson({
+          realtimeInput: {
+            text: parts[0].text,
+          },
+        });
+      }
       return sendDirectLiveJson({
         clientContent: {
           turns: [
@@ -36816,6 +38253,35 @@ function handleDirectLiveMessageData(data) {
   if (!normalized) {
     return;
   }
+  const connectedAtMs = Number(state.liveDirectConnectedAtMs);
+  const outputLatencyMs =
+    Number.isFinite(connectedAtMs) && connectedAtMs > 0 ? Math.max(0, Date.now() - connectedAtMs) : null;
+  if (
+    outputLatencyMs !== null &&
+    !state.liveDirectFirstOutputCaptured &&
+    ((typeof normalized.text === "string" && normalized.text.length > 0) ||
+      (typeof normalized.audioBase64 === "string" && normalized.audioBase64.length > 0))
+  ) {
+    state.liveDirectFirstOutputCaptured = true;
+    captureDirectLiveReplayEvent("live.first_output", {
+      firstOutputMs: outputLatencyMs,
+      hasAudio: typeof normalized.audioBase64 === "string" && normalized.audioBase64.length > 0,
+      hasText: typeof normalized.text === "string" && normalized.text.length > 0,
+      observedAt: new Date().toISOString(),
+    });
+  }
+  if (
+    outputLatencyMs !== null &&
+    !state.liveDirectFirstAudioCaptured &&
+    typeof normalized.audioBase64 === "string" &&
+    normalized.audioBase64.length > 0
+  ) {
+    state.liveDirectFirstAudioCaptured = true;
+    captureDirectLiveReplayEvent("live.first_audio", {
+      firstAudioMs: outputLatencyMs,
+      observedAt: new Date().toISOString(),
+    });
+  }
   if ((typeof normalized.text === "string" && normalized.text.length > 0) || typeof normalized.audioBase64 === "string") {
     if (!state.liveDirectTurnId) {
       state.liveDirectTurnId = `turn-${makeId()}`;
@@ -36896,8 +38362,101 @@ function sendEnvelope(type, payload, source = "frontend", runOrOptions = state.r
   state.ws.send(JSON.stringify(envelope));
 }
 
+const enableLiveDebugHooks =
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).get("debugLive") === "true";
+
+function registerLiveDebugHooks() {
+  if (!enableLiveDebugHooks || typeof window === "undefined") {
+    return;
+  }
+  window.__liveDebug = {
+    sendLiveText: (text) => {
+      const safeText = typeof text === "string" ? text : "";
+      if (safeText.trim().length === 0) {
+        return false;
+      }
+      sendEnvelope("live.text", { text: safeText });
+      return true;
+    },
+    sendConversationItem: (text) => {
+      const safeText = typeof text === "string" ? text : "";
+      if (safeText.trim().length === 0) {
+        return false;
+      }
+      const requestRunId = makeId();
+      state.runId = requestRunId;
+      sendEnvelope(
+        "conversation.item.create",
+        {
+          item: {
+            type: "message",
+            role: "user",
+            content: [{ type: "input_text", text: safeText }],
+          },
+          turnComplete: true,
+          sentAtMs: Date.now(),
+        },
+        "frontend",
+        requestRunId,
+      );
+      return true;
+    },
+  };
+}
+
+function resolveCaseWikiSnapshotFromInput(input) {
+  const base = isRecord(input) ? input : null;
+  if (!base) {
+    return null;
+  }
+  for (const key of ["caseWiki", "caseWikiSnapshot", "runtimeCaseWiki", "compiledCaseWiki"]) {
+    const candidate = isRecord(base[key]) ? base[key] : null;
+    if (candidate) {
+      return candidate;
+    }
+  }
+  const context = isRecord(base.context) ? base.context : null;
+  return context && isRecord(context.caseWiki) ? context.caseWiki : null;
+}
+
+function resolveCaseWikiSnapshotForInput() {
+  const snapshot = isRecord(state.operatorCaseWikiSnapshot) ? state.operatorCaseWikiSnapshot : null;
+  if (!snapshot) {
+    return null;
+  }
+  const snapshotSessionId = toOptionalText(snapshot.sessionId);
+  const currentSessionId = toOptionalText(state.sessionId);
+  if (snapshotSessionId && currentSessionId && snapshotSessionId !== currentSessionId) {
+    return null;
+  }
+  return snapshot;
+}
+
+function buildOrchestratorInput(input) {
+  const base = isRecord(input) ? input : {};
+  const existingCaseWikiSnapshot = resolveCaseWikiSnapshotFromInput(base);
+  const existingSessionId = toOptionalText(existingCaseWikiSnapshot?.sessionId);
+  const currentSessionId = toOptionalText(state.sessionId);
+  if (
+    existingCaseWikiSnapshot &&
+    (!existingSessionId || !currentSessionId || existingSessionId === currentSessionId)
+  ) {
+    return base;
+  }
+  const caseWikiSnapshot = resolveCaseWikiSnapshotForInput();
+  if (!caseWikiSnapshot) {
+    return base;
+  }
+  return {
+    ...base,
+    caseWiki: caseWikiSnapshot,
+  };
+}
+
 function dispatchIntentRequestEnvelope({ intent, input, conversation, requestMetadata, requestRunId }) {
-  sendEnvelope("orchestrator.request", { intent, input }, "frontend", {
+  const enrichedInput = buildOrchestratorInput(input);
+  sendEnvelope("orchestrator.request", { intent, input: enrichedInput }, "frontend", {
     runId: requestRunId,
     conversation,
     metadata: requestMetadata,
@@ -38871,6 +40430,21 @@ function renderOperatorSummary(summary) {
   const role = typeof summary.role === "string" ? summary.role : "unknown";
   const generatedAt = typeof summary.generatedAt === "string" ? summary.generatedAt : new Date().toISOString();
   appendEntry(el.operatorSummary, "system", "summary", `role=${role} generatedAt=${generatedAt}`);
+  const operatorQueueSnapshot = buildOperatorQueueSnapshot(summary.operatorQueue);
+  state.operatorQueueSnapshot = operatorQueueSnapshot;
+  state.operatorQueueLoadedAt = operatorQueueSnapshot
+    ? toOptionalText(operatorQueueSnapshot.generatedAt) ?? generatedAt
+    : toIsoNow();
+  syncOperatorPriorityQueue();
+  const operatorQueueSummary = buildOperatorQueueSummaryFromSnapshot(operatorQueueSnapshot);
+  if (operatorQueueSummary) {
+    appendEntry(
+      el.operatorSummary,
+      operatorQueueSummary.status === "critical" ? "error" : "system",
+      "operator_queue",
+      `total=${operatorQueueSummary.totalItems} blocking=${operatorQueueSummary.blockingItems} critical=${operatorQueueSummary.criticalCount} approval_lane=${operatorQueueSummary.approvalCount} stale=${operatorQueueSummary.staleCount}`,
+    );
+  }
 
   const activeTasks = summary.activeTasks?.data;
   const activeTotal = Number(summary.activeTasks?.total ?? 0);
@@ -38878,7 +40452,7 @@ function renderOperatorSummary(summary) {
   const taskQueueSummary = summary.taskQueue && typeof summary.taskQueue === "object"
     ? summary.taskQueue
     : buildTaskQueueSummaryFromActiveTasks(Array.isArray(activeTasks) ? activeTasks : []);
-  if (taskQueueSummary && typeof taskQueueSummary === "object") {
+  if (!operatorQueueSummary && taskQueueSummary && typeof taskQueueSummary === "object") {
     const queueTotal = Number(taskQueueSummary.total ?? activeTotal);
     const queuePendingApproval = Number(taskQueueSummary.statusCounts?.pendingApproval ?? 0);
     const queueStale = Number(taskQueueSummary.staleCount ?? 0);
@@ -39269,7 +40843,7 @@ function renderOperatorSummary(summary) {
   }
   renderOperatorCostEstimateWidget(costEstimate);
   renderOperatorApprovalsWidget(summary.approvals);
-  renderOperatorTaskQueueWidget(taskQueueSummary);
+  renderOperatorTaskQueueWidget(taskQueueSummary, operatorQueueSnapshot);
   const startupFailures = summary.startupFailures && typeof summary.startupFailures === "object"
     ? summary.startupFailures
     : null;
@@ -39345,6 +40919,15 @@ function renderOperatorSummary(summary) {
       "runtime_guardrails",
       `status=${runtimeStatus} validated=${runtimeValidated} signals=${runtimeSignals.length} critical=${runtimeCriticalSignals.length} warn=${runtimeWarnSignals.length} healthy=${coverageHealthy}/${coverageTotal} ready=${coverageReady}/${coverageTotal} runtime_visible=${coverageRuntimeVisible}/${coverageTotal} metrics_visible=${coverageMetricsVisible}/${coverageTotal} sandbox=${sandboxMode}/${sandboxSetup} catalog_warnings=${skillsCatalogWarnings} skills_blocked=${skillsRuntimeBlocked}`,
     );
+    const runtimeSlo = isRecord(runtimeDiagnostics.slo) ? runtimeDiagnostics.slo : null;
+    if (runtimeSlo) {
+      appendEntry(
+        el.operatorSummary,
+        toOptionalText(runtimeSlo.status) === "breach" ? "error" : "system",
+        "runtime_guardrails.slo",
+        buildOperatorRuntimeGuardrailSloSummary(runtimeDiagnostics),
+      );
+    }
     const runtimeTopSignal =
       runtimeCriticalSignals[0] ?? runtimeWarnSignals[0] ?? runtimeSignals[0] ?? null;
     if (runtimeTopSignal) {
@@ -39415,6 +40998,13 @@ function renderOperatorSummary(summary) {
           .filter((item) => typeof item === "string" && item.trim().length > 0)
           .map((item) => item.trim())
       : [];
+    const latestCaseWikiRoutingContext = isRecord(orchestratorRuntime.latestCaseWikiRoutingContext)
+      ? orchestratorRuntime.latestCaseWikiRoutingContext
+      : null;
+    const latestCaseWikiRoutingSummary = buildOperatorCaseWikiRoutingContextHint(
+      latestCaseWikiRoutingContext,
+      "Latest Case Wiki ingress",
+    );
     appendEntry(
       el.operatorSummary,
       assistiveEnabled && !assistiveApiKeyConfigured ? "error" : "system",
@@ -39427,6 +41017,14 @@ function renderOperatorSummary(summary) {
       "workflow_runtime.control_plane",
       `reason=${workflowOverrideReason} updated_at=${workflowOverrideUpdatedAt} last_attempt_at=${workflowLastAttemptAt} loaded_at=${workflowLoadedAt} source_path=${workflowSourcePath}`,
     );
+    if (latestCaseWikiRoutingSummary) {
+      appendEntry(
+        el.operatorSummary,
+        "system",
+        "workflow_runtime.case_wiki",
+        latestCaseWikiRoutingSummary,
+      );
+    }
   }
   renderOperatorWorkflowRuntimeWidget(runtimeDiagnostics);
 
@@ -39781,7 +41379,13 @@ async function refreshOperatorSummary(options = {}) {
       const errorText = getApiErrorMessage(payload, `operator summary failed with ${response.status}`);
       throw new Error(String(errorText));
     }
+    const summaryOperatorQueueSnapshot = buildOperatorQueueSnapshot(payload?.data?.operatorQueue);
     renderOperatorSummary(payload?.data ?? null);
+    if (!summaryOperatorQueueSnapshot) {
+      try {
+        await refreshOperatorQueue({ silent: true });
+      } catch {}
+    }
     renderDashboardWorkspace();
     await refreshDeviceNodes({ silent: true });
     try {
@@ -39791,6 +41395,9 @@ async function refreshOperatorSummary(options = {}) {
     setOperatorLastRefreshState("success");
   } catch (error) {
     const failedRefreshReason = "summary_stale";
+    state.operatorQueueSnapshot = null;
+    state.operatorQueueLoadedAt = toIsoNow();
+    syncOperatorPriorityQueue();
     resetOperatorHealthWidget(failedRefreshReason);
     resetOperatorUiExecutorWidget(failedRefreshReason);
     resetOperatorWorkflowRuntimeWidget(failedRefreshReason);
@@ -42084,6 +43691,8 @@ function connectDirectLiveTransport(snapshot) {
       }
       opened = true;
       resetDirectLiveTransportState();
+      resetDirectLiveConnectionTelemetryState();
+      state.liveDirectConnectedAtMs = Date.now();
       state.liveTransportMode = "direct_live";
       renderLiveModeStatus();
       setConnectionStatus("connected");
@@ -42097,10 +43706,19 @@ function connectDirectLiveTransport(snapshot) {
       finish(true);
     });
 
-    ws.addEventListener("close", () => {
+    ws.addEventListener("close", (event) => {
       if (!isActiveSocket()) {
         finish(false);
         return;
+      }
+      if (enableLiveDebugHooks) {
+        const closeCode = typeof event?.code === "number" ? event.code : null;
+        const closeReason = typeof event?.reason === "string" ? event.reason : "";
+        appendTranscript(
+          "system",
+          `Direct live socket closed (code=${closeCode ?? "n/a"}, reason=${closeReason || "n/a"})`,
+          { exposeInLiveResult: false },
+        );
       }
       finalizeAssistantStreamEntry();
       resetAssistantPlayback();
@@ -42120,6 +43738,7 @@ function connectDirectLiveTransport(snapshot) {
       state.pendingClientEvents.clear();
       state.ws = null;
       resetDirectLiveTransportState();
+      resetDirectLiveConnectionTelemetryState();
       if (!opened) {
         finish(false);
       }
@@ -42133,6 +43752,7 @@ function connectDirectLiveTransport(snapshot) {
       if (!opened) {
         state.ws = null;
         resetDirectLiveTransportState();
+        resetDirectLiveConnectionTelemetryState();
         finish(false);
         return;
       }
@@ -42148,14 +43768,40 @@ function connectDirectLiveTransport(snapshot) {
         surfaceInResult: hadLiveRequestInFlight,
       });
       state.pendingClientEvents.clear();
+      resetDirectLiveConnectionTelemetryState();
     });
 
-    ws.addEventListener("message", (raw) => {
+    ws.addEventListener("message", async (raw) => {
       if (!isActiveSocket()) {
         return;
       }
       try {
-        handleDirectLiveMessageData(raw.data);
+        let payload = raw.data;
+        if (payload instanceof Blob) {
+          appendTranscript("system", `Direct live frame (Blob, ${payload.size} bytes)`, {
+            exposeInLiveResult: false,
+          });
+        } else if (payload instanceof ArrayBuffer) {
+          appendTranscript("system", `Direct live frame (ArrayBuffer, ${payload.byteLength} bytes)`, {
+            exposeInLiveResult: false,
+          });
+        } else {
+          appendTranscript(
+            "system",
+            `Direct live frame (${typeof payload})`,
+            { exposeInLiveResult: false },
+          );
+        }
+        if (payload instanceof Blob) {
+          payload = await payload.text();
+        } else if (payload instanceof ArrayBuffer) {
+          payload = new TextDecoder("utf-8").decode(payload);
+        }
+        if (enableLiveDebugHooks && typeof payload === "string" && payload.length > 0) {
+          const snippet = payload.length > 300 ? payload.slice(0, 300) + "…" : payload;
+          appendTranscript("system", `Direct live payload: ${snippet}`, { exposeInLiveResult: false });
+        }
+        handleDirectLiveMessageData(payload);
       } catch (error) {
         const hadLiveRequestInFlight = hasLiveRequestInFlight();
         clearLivePendingRequest();
@@ -42174,6 +43820,7 @@ async function connectWebSocket(options = {}) {
     state.ws = null;
     state.pendingClientEvents.clear();
     resetDirectLiveTransportState();
+    resetDirectLiveConnectionTelemetryState();
     try {
       directSocket.close(1000, "switch_to_relay");
     } catch {
@@ -43081,8 +44728,10 @@ function toggleFallbackMode() {
 function bindEvents() {
   const orderedTabButtons = tabButtons.filter((button) => {
     const target = button.dataset.tabTarget ?? "";
-    return target.length > 0 && tabContents.some((section) => section.dataset.tab === target);
+    return !button.hidden && target.length > 0 && tabContents.some((section) => section.dataset.tab === target);
   });
+  const shouldBindLegacyLiveSurface = shouldRenderLegacyCompatibilitySurface("live-negotiator");
+  const shouldBindLegacyStorySurface = shouldRenderLegacyCompatibilitySurface("storyteller");
 
   const resolveTabButtonIndex = (button) => orderedTabButtons.findIndex((candidate) => candidate === button);
   const bindDashboardActionButton = (button) => {
@@ -43156,9 +44805,12 @@ function bindEvents() {
     syncOperatorMobileDockVisibility();
     syncOperatorBoardCardPresentationTitles();
     syncOperatorSignalStripSurface();
-    renderStoryModeRail();
-    renderStorySignalStrip();
+    if (shouldBindLegacyStorySurface) {
+      renderStoryModeRail();
+      renderStorySignalStrip();
+    }
   });
+  if (shouldBindLegacyLiveSurface) {
   const orderedLiveContextDockButtons = getLiveContextDockOrderedButtons();
   const focusLiveContextDockButtonByIndex = (index) => {
     if (orderedLiveContextDockButtons.length === 0) {
@@ -43633,6 +45285,7 @@ function bindEvents() {
   document.getElementById("interruptBtn").addEventListener("click", interruptAssistant);
   document.getElementById("fallbackBtn").addEventListener("click", toggleFallbackMode);
   document.getElementById("refreshTasksBtn").addEventListener("click", refreshActiveTasks);
+  }
   document.getElementById("operatorRefreshBtn").addEventListener("click", () => {
     void refreshOperatorSummary({ markUserRefresh: true });
   });
@@ -43653,16 +45306,28 @@ function bindEvents() {
   }
   if (el.operatorQuickStartRunNegotiationBtn) {
     el.operatorQuickStartRunNegotiationBtn.addEventListener("click", () => {
+      if (isLegacyCompatibilityRoute()) {
+        openPrimaryActionDeskRoute("/app/console");
+        return;
+      }
       applyIntentTemplateFromActiveTasks("negotiation", ACTIVE_TASK_NEGOTIATION_PROMPT);
     });
   }
   if (el.operatorQuickStartRunStoryBtn) {
     el.operatorQuickStartRunStoryBtn.addEventListener("click", () => {
+      if (isLegacyCompatibilityRoute()) {
+        openPrimaryActionDeskRoute("/app/simulation");
+        return;
+      }
       applyIntentTemplateFromActiveTasks("story", STORY_EMPTY_STATE_PROMPT);
     });
   }
   if (el.operatorQuickStartRunUiTaskBtn) {
     el.operatorQuickStartRunUiTaskBtn.addEventListener("click", () => {
+      if (isLegacyCompatibilityRoute()) {
+        openPrimaryActionDeskRoute("/app/console");
+        return;
+      }
       applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_UI_TASK_PROMPT);
     });
   }
@@ -43678,6 +45343,10 @@ function bindEvents() {
   }
   if (el.operatorPlaybookRunNegotiationBtn) {
     el.operatorPlaybookRunNegotiationBtn.addEventListener("click", () => {
+      if (isLegacyCompatibilityRoute()) {
+        openPrimaryActionDeskRoute("/app/console");
+        return;
+      }
       applyIntentTemplateFromActiveTasks("negotiation", ACTIVE_TASK_NEGOTIATION_PROMPT);
     });
   }
@@ -43688,6 +45357,10 @@ function bindEvents() {
   }
   if (el.operatorPlaybookRunStoryBtn) {
     el.operatorPlaybookRunStoryBtn.addEventListener("click", () => {
+      if (isLegacyCompatibilityRoute()) {
+        openPrimaryActionDeskRoute("/app/simulation");
+        return;
+      }
       applyIntentTemplateFromActiveTasks("story", STORY_EMPTY_STATE_PROMPT);
     });
   }
@@ -43698,6 +45371,10 @@ function bindEvents() {
   }
   if (el.operatorPlaybookRunUiTaskBtn) {
     el.operatorPlaybookRunUiTaskBtn.addEventListener("click", () => {
+      if (isLegacyCompatibilityRoute()) {
+        openPrimaryActionDeskRoute("/app/console");
+        return;
+      }
       applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_UI_TASK_PROMPT);
     });
   }
@@ -43935,6 +45612,20 @@ function bindEvents() {
     el.operatorCaseWikiFocusedRoutingExportBtn.addEventListener("click", () => {
       void copyOperatorCaseWikiFocusedRoutingBlock("export").catch((error) => {
         appendTranscript("error", `Case Wiki focused routing export copy failed: ${String(error)}`, { exposeInLiveResult: false });
+      });
+    });
+  }
+  if (el.operatorCaseWikiFocusedRemediationCopyBtn instanceof HTMLButtonElement) {
+    el.operatorCaseWikiFocusedRemediationCopyBtn.addEventListener("click", () => {
+      void copyOperatorCaseWikiFocusedRemediationBlock("draft").catch((error) => {
+        appendTranscript("error", `Case Wiki focused remediation copy failed: ${String(error)}`, { exposeInLiveResult: false });
+      });
+    });
+  }
+  if (el.operatorCaseWikiFocusedRemediationExportBtn instanceof HTMLButtonElement) {
+    el.operatorCaseWikiFocusedRemediationExportBtn.addEventListener("click", () => {
+      void copyOperatorCaseWikiFocusedRemediationBlock("export").catch((error) => {
+        appendTranscript("error", `Case Wiki focused remediation export copy failed: ${String(error)}`, { exposeInLiveResult: false });
       });
     });
   }
@@ -44508,12 +46199,15 @@ function bindEvents() {
       renderDeviceNodeList(Array.from(state.deviceNodes.values()));
     });
   }
-  [el.targetPrice, el.targetDelivery, el.targetSla].forEach((input) => {
-    input.addEventListener("input", evaluateConstraints);
-  });
-  if (el.intent) {
-    el.intent.addEventListener("change", setUiTaskFieldsVisibility);
+  if (shouldBindLegacyLiveSurface) {
+    [el.targetPrice, el.targetDelivery, el.targetSla].forEach((input) => {
+      input.addEventListener("input", evaluateConstraints);
+    });
+    if (el.intent) {
+      el.intent.addEventListener("change", setUiTaskFieldsVisibility);
+    }
   }
+  if (shouldBindLegacyStorySurface) {
   if (el.storyModeRail instanceof HTMLElement) {
     for (const button of Array.from(el.storyModeRail.querySelectorAll("[data-story-mode]"))) {
       if (!(button instanceof HTMLButtonElement)) {
@@ -44600,12 +46294,15 @@ function bindEvents() {
   if (el.storyTimelineGuideTemplateBtn) {
     el.storyTimelineGuideTemplateBtn.addEventListener("click", submitStoryComposerRequest);
   }
+  }
 }
 
 async function bootstrap() {
   ensureOperatorMobileDockMounted();
   const initialTabId = readTabIdFromHash() ?? readStoredTabId();
   setActiveTab(initialTabId, { syncHash: false });
+  const shouldBootstrapLegacyLiveSurface = shouldRenderLegacyCompatibilitySurface("live-negotiator");
+  const shouldBootstrapLegacyStorySurface = shouldRenderLegacyCompatibilitySurface("storyteller");
 
   enhanceSelectControls();
   observeCustomSelectControls();
@@ -44632,12 +46329,16 @@ async function bootstrap() {
   applyThemeMode(readStoredThemeMode(), { persist: false, announce: false });
   setConnectionStatus("disconnected");
   setExportStatus("idle");
-  renderLiveModeStatus();
+  if (shouldBootstrapLegacyLiveSurface) {
+    renderLiveModeStatus();
+  }
   updatePttUi();
   setStatusPill(el.constraintStatus, "Waiting for offer", "neutral");
   setFallbackAsset(false);
-  setStoryTimelineData();
-  applyStoryComposerMode(state.storyComposerMode, { force: true });
+  if (shouldBootstrapLegacyStorySurface) {
+    setStoryTimelineData();
+    applyStoryComposerMode(state.storyComposerMode, { force: true });
+  }
   clearPendingApproval();
   resetOperatorHealthWidget("no_data");
   resetOperatorDeviceNodeUpdatesWidget("no_data");
@@ -44656,12 +46357,16 @@ async function bootstrap() {
   state.operatorPurposeDeclaration = readStoredOperatorPurposeDeclaration();
   setOperatorLastRefreshState("pending");
   renderTaskList();
-  evaluateConstraints();
+  if (shouldBootstrapLegacyLiveSurface) {
+    evaluateConstraints();
+  }
   setActiveTab(readStoredTabId(), { syncHash: false });
-  mountLiveContextDockPanels();
-  setUiTaskFieldsVisibility();
-  renderLiveIntentExperience();
-  initBackgroundVideoLoopBlend();
+  if (shouldBootstrapLegacyLiveSurface) {
+    mountLiveContextDockPanels();
+    setUiTaskFieldsVisibility();
+    renderLiveIntentExperience();
+    initBackgroundVideoLoopBlend();
+  }
   state.deviceNodeListFilter = normalizeDeviceNodeListFilter(
     el.deviceNodeListFilter ? el.deviceNodeListFilter.value : state.deviceNodeListFilter,
   );
@@ -44682,6 +46387,7 @@ async function bootstrap() {
   setDeviceNodeSelectionBadge(null);
   setDeviceNodeRegistryState("idle");
   syncDeviceNodeSupportLayout();
+  applyLegacyCompatibilityShell();
   bindEvents();
   syncOperatorRoleControls();
   renderRoleDependentPanels();
@@ -44706,6 +46412,7 @@ async function bootstrap() {
   refreshDeviceNodes({ silent: true }).catch(() => {
     appendTranscript("error", "Initial device node registry fetch failed", { exposeInLiveResult: false });
   });
+  registerLiveDebugHooks();
   appendTranscript("system", "Frontend ready");
 }
 

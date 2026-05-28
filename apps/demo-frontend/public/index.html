@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Multimodal Agent Dashboard</title>
+    <title>AI Action Desk Legacy Dashboard</title>
     <link rel="stylesheet" href="/styles.css?v=20260316" />
     <link rel="stylesheet" href="/storyteller-runtime-tail.css?v=20260316" />
     <link rel="stylesheet" href="/storyteller-header-nav-authority.css?v=20260316g" />
@@ -26,7 +26,7 @@
     <main class="layout">
       <header class="hero">
         <div class="hero-headline">
-          <h1 id="heroTitle" data-i18n="hero.title">Multimodal Agent Dashboard</h1>
+          <h1 id="heroTitle" data-i18n="hero.title">AI Action Desk Legacy Dashboard</h1>
           <div class="hero-toolbar">
             <label class="hero-language-control" for="languageModeSelect">
               <span id="languageModeLabel" data-i18n="hero.languageLabel">Language</span>
@@ -35,11 +35,15 @@
                 <option value="ru">&#1056;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081;</option>
               </select>
             </label>
+            <a id="openAppLink" class="button-muted hero-open-app-link" href="/app">Open Action Desk</a>
             <button id="themeToggleBtn" type="button" class="button-muted">Switch to Light Theme</button>
           </div>
         </div>
         <p id="heroSubtitle" class="hero-sub" data-i18n="hero.subtitle">
-          One clean workspace for live chat, stories, operations, and device nodes.
+          Compatibility dashboard for runtime-safe checks, evidence review, and older walkthroughs.
+        </p>
+        <p id="legacyCompatibilityNote" class="hero-legacy-note">
+          The primary Action Desk workspace now lives at /app. Keep /legacy for compatibility fallback only.
         </p>
         <section class="dashboard-workspace-summary" aria-label="Active workspace overview">
           <div class="dashboard-workspace-head">
@@ -308,6 +312,10 @@
                       <div>
                         <dt data-i18n="live.caseWorkspace.caseWikiNextActionLabel">Next action</dt>
                         <dd id="caseWorkspaceCaseWikiNextActionValue">Refresh Case Wiki in Operator Session Ops.</dd>
+                      </div>
+                      <div>
+                        <dt data-i18n="live.caseWorkspace.caseWikiCostLabel">Cost posture</dt>
+                        <dd id="caseWorkspaceCaseWikiCostValue">Per-case cost appears here after Case Wiki refresh.</dd>
                       </div>
                       <div>
                         <dt data-i18n="live.caseWorkspace.caseWikiPackLabel">Evidence pack</dt>
@@ -2398,8 +2406,8 @@
               <p id="operatorDemoSummaryQueue" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
             </div>
             <div class="operator-demo-summary-ledger">
-              <p class="operator-demo-summary-copy">Backlog pressure, queue depth, and runtime load.</p>
-              <p id="operatorDemoSummaryQueueNote" class="operator-demo-summary-placeholder-note">Awaiting signal. Refresh after the next live or UI run.</p>
+              <p class="operator-demo-summary-copy">Compiled case priorities, blocking approvals, and backend-owned next actions.</p>
+              <p id="operatorDemoSummaryQueueNote" class="operator-demo-summary-placeholder-note">Awaiting queue hydration. Refresh after the next live or UI case run.</p>
               <p id="operatorDemoSummaryQueueKpi" class="operator-demo-summary-kpi" aria-label="Fail 0, Neutral 0, Ok 0">
                 <span class="operator-demo-summary-kpi-token operator-demo-summary-kpi-fail">F 0</span>
                 <span class="operator-demo-summary-kpi-token operator-demo-summary-kpi-neutral">N 0</span>
@@ -3215,11 +3223,33 @@
                   </div>
                   <pre id="operatorCaseWikiFocusedRoutingSnapshot" class="operator-session-ops-control-output">No focused case wiki routing loaded yet.</pre>
                 </article>
-                <article class="operator-session-ops-control-output-card">
-                  <div class="operator-session-ops-control-output-head">
-                    <h3>Case Wiki Open Questions</h3>
+              <article class="operator-session-ops-control-output-card">
+                <div class="operator-session-ops-control-output-head">
+                  <h3>Case Wiki Focused Remediation</h3>
+                  <div class="operator-session-ops-control-output-actions">
+                    <button id="operatorCaseWikiFocusedRemediationCopyBtn" type="button" class="button-muted">Copy draft</button>
+                    <button id="operatorCaseWikiFocusedRemediationExportBtn" type="button" class="button-muted">Copy export block</button>
                   </div>
+                </div>
+                <pre id="operatorCaseWikiFocusedRemediationSnapshot" class="operator-session-ops-control-output">No focused case wiki remediation draft loaded yet.</pre>
+              </article>
+              <article class="operator-session-ops-control-output-card">
+                <div class="operator-session-ops-control-output-head">
+                  <h3>Case Wiki Open Questions</h3>
+                </div>
                 <pre id="operatorCaseWikiQuestionsSnapshot" class="operator-session-ops-control-output">No case wiki questions loaded yet.</pre>
+              </article>
+              <article class="operator-session-ops-control-output-card">
+                <div class="operator-session-ops-control-output-head">
+                  <h3>Case Wiki Compliance</h3>
+                </div>
+                <pre id="operatorCaseWikiComplianceSnapshot" class="operator-session-ops-control-output">No case wiki compliance loaded yet.</pre>
+              </article>
+              <article class="operator-session-ops-control-output-card">
+                <div class="operator-session-ops-control-output-head">
+                  <h3>Case Wiki Audit</h3>
+                </div>
+                <pre id="operatorCaseWikiAuditSnapshot" class="operator-session-ops-control-output">No case wiki audit loaded yet.</pre>
               </article>
               <article class="operator-session-ops-control-output-card">
                 <div class="operator-session-ops-control-output-head">
@@ -4308,6 +4338,10 @@
               <span id="operatorRuntimeGuardrailsCoverage">pending</span>
             </p>
             <p class="operator-health-row">
+              <strong>SLOs</strong>
+              <span id="operatorRuntimeGuardrailsSlo">pending</span>
+            </p>
+            <p class="operator-health-row">
               <strong>Sandbox</strong>
               <span id="operatorRuntimeGuardrailsSandbox">pending</span>
             </p>
@@ -4721,38 +4755,38 @@
             </p>
           </article>
 <article class="operator-health-card operator-health-card-condensed operator-health-card-empty" data-operator-critical data-operator-demo-essential>
-            <h3>Task Queue Pressure</h3>
+            <h3>Operator Queue</h3>
             <p id="operatorTaskQueueStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
             <p class="operator-health-row">
-              <strong>Total Active</strong>
+              <strong>Total Items</strong>
               <span id="operatorTaskQueueTotal">0</span>
             </p>
             <p class="operator-health-row">
-              <strong>Queued</strong>
+              <strong>Blocking</strong>
               <span id="operatorTaskQueueQueued">0</span>
             </p>
             <p class="operator-health-row">
-              <strong>Running</strong>
+              <strong>Critical</strong>
               <span id="operatorTaskQueueRunning">0</span>
             </p>
             <p class="operator-health-row">
-              <strong>Pending Approval</strong>
+              <strong>Approval Lane</strong>
               <span id="operatorTaskQueuePendingApproval">0</span>
             </p>
             <p class="operator-health-row">
-              <strong>Stale</strong>
+              <strong>Stale Snapshot</strong>
               <span id="operatorTaskQueueStale">0</span>
             </p>
             <p class="operator-health-row">
-              <strong>Max Age</strong>
+              <strong>Oldest Item Age</strong>
               <span id="operatorTaskQueueMaxAge">pending</span>
             </p>
             <p class="operator-health-row">
-              <strong>Oldest Task</strong>
+              <strong>Top Item</strong>
               <span id="operatorTaskQueueOldest">pending</span>
             </p>
             <p id="operatorTaskQueueHint" class="operator-health-hint operator-health-hint-neutral">
-              No active queue pressure yet. Run one scenario and refresh.
+              No compiled operator queue yet. Refresh summary after one case run.
             </p>
           </article>
 <article class="operator-health-card operator-health-card-condensed operator-health-card-empty" data-operator-critical data-operator-demo-essential>

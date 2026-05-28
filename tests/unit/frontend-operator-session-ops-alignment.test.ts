@@ -62,7 +62,12 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     'id="operatorCaseWikiFocusedRoutingCtaBtn"',
     'id="operatorCaseWikiFocusedRoutingCopyBtn"',
     'id="operatorCaseWikiFocusedRoutingExportBtn"',
+    'id="operatorCaseWikiFocusedRemediationSnapshot"',
+    'id="operatorCaseWikiFocusedRemediationCopyBtn"',
+    'id="operatorCaseWikiFocusedRemediationExportBtn"',
     'id="operatorCaseWikiQuestionsSnapshot"',
+    'id="operatorCaseWikiComplianceSnapshot"',
+    'id="operatorCaseWikiAuditSnapshot"',
     'id="operatorCaseWikiTimelineSnapshot"',
     'id="operatorSessionOpsLastResult"',
   ];
@@ -94,6 +99,9 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "previewPack: isRecord(snapshot.previewPack) ? snapshot.previewPack : null,",
     "operatorPreviewPack: isRecord(snapshot?.operatorPreviewPack) ? snapshot.operatorPreviewPack : null,",
     "questions: isRecord(value.operatorPreviewPack.questions) ? value.operatorPreviewPack.questions : null,",
+    "remediation: isRecord(value.operatorPreviewPack.remediation) ? value.operatorPreviewPack.remediation : null,",
+    "compliance: isRecord(value.operatorPreviewPack.compliance) ? value.operatorPreviewPack.compliance : null,",
+    "audit: isRecord(value.operatorPreviewPack.audit) ? value.operatorPreviewPack.audit : null,",
     "timeline: isRecord(value.operatorPreviewPack.timeline) ? value.operatorPreviewPack.timeline : null,",
     "buildOperatorCaseWikiHandoffPreview",
     "resolveOperatorCaseWikiFocusedItem(evidencePack)",
@@ -103,14 +111,52 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "function buildOperatorCaseWikiFocusedRoutingCTA(lane, route, nextAction, focusedItem)",
     "function buildOperatorCaseWikiFocusedHandoffPreviewBlock()",
     "function buildOperatorCaseWikiFocusedRoutingPreviewBlock()",
+    "function buildOperatorCaseWikiFocusedRemediationBlock(snapshot, evidencePack, focusedItem)",
+    "function buildOperatorCaseWikiRemediationPreview()",
+    "function resolveOperatorCaseWikiComplianceExportGate(snapshot)",
+    "function denyOperatorCaseWikiComplianceExport(action, gate, options = {})",
+    "function buildComplianceArtifactDetailText(artifactPosture, maxRefs = 1)",
+    "function normalizeComplianceRemediationSummary(value) {",
+    "function buildComplianceRemediationNextStepText(remediation) {",
     "async function copyOperatorCaseWikiFocusedHandoffBlock(mode = \"handoff\")",
     "async function copyOperatorCaseWikiFocusedRoutingBlock(mode = \"routing\")",
+    "async function copyOperatorCaseWikiFocusedRemediationBlock(mode = \"draft\")",
     "function runOperatorCaseWikiFocusedRoutingCTA()",
     "buildOperatorCaseWikiFocusSummary(focusedItem)",
     "function buildOperatorCaseWikiQuestionsPreview()",
+    "function buildOperatorCaseWikiCompliancePreview()",
+    "function buildOperatorCaseWikiAuditPreview()",
     "function buildOperatorCaseWikiTimelinePreview()",
     "operatorPreviewPack?.questions",
+    "operatorPreviewPack?.remediation",
+    "operatorPreviewPack?.compliance",
+    "operatorPreviewPack?.audit",
     "operatorPreviewPack?.timeline",
+    "const caseWikiExportGate = resolveOperatorCaseWikiComplianceExportGate(caseWikiSnapshot);",
+    "const caseWikiExportBlocked = caseWikiExportGate.blocked === true;",
+    "el.operatorCaseWikiFocusedHandoffCopyBtn.disabled =",
+    "el.operatorCaseWikiFocusedHandoffExportBtn.disabled = caseWikiExportBlocked || !focusedHandoffBlock;",
+    "el.operatorCaseWikiFocusedRoutingExportBtn.disabled = caseWikiExportBlocked || !focusedRoutingBlock;",
+    "el.operatorCaseWikiFocusedRemediationExportBtn.disabled = caseWikiExportBlocked || !focusedRemediationBlock;",
+    "el.caseWorkspaceCaseWikiProofHandoffCopyBtn.disabled = caseWikiExportBlocked || !proofActionBundle?.handoffText;",
+    "el.caseWorkspaceCaseWikiProofRefsCopyBtn.disabled = caseWikiExportBlocked || !proofActionBundle?.refsText;",
+    "el.caseWorkspaceCaseWikiQuestionHandoffCopyBtn.disabled = caseWikiExportBlocked || !questionActionBundle?.handoffText;",
+    "el.caseWorkspaceCaseWikiQuestionRefsCopyBtn.disabled = caseWikiExportBlocked || !questionActionBundle?.refsText;",
+    "case_wiki_export_blocked",
+    "case wiki export blocked",
+    "session export blocked",
+    "Case Wiki export is blocked until raw evidence refs are redacted",
+    "Case Wiki export is blocked until evidence signing passes.",
+    "artifactPosture",
+    "remediation",
+    "primaryAction",
+    "operatorActionLabel",
+    "blockingRefs",
+    "Blocking refs:",
+    "Next step:",
+    "syncExportControlAvailability();",
+    "compliance: isRecord(value.compliance) ? value.compliance : null,",
+    "auditLog: Array.isArray(value.auditLog) ? value.auditLog.filter((item) => isRecord(item)) : [],",
     "function canAppendOperatorCaseWikiNote()",
     "function resetOperatorCaseWikiDraft()",
     "function normalizeOperatorReplayWorkflowBooking(value)",
@@ -118,6 +164,8 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "function normalizeOperatorReplayWorkflowFollowUp(value)",
     "function normalizeOperatorReplayCurrentHandoffState(value)",
     "function normalizeOperatorReplayLatestProofPointer(value)",
+    "contextSource: toOptionalText(value.contextSource)",
+    "ingressSource: toOptionalText(value.ingressSource)",
     "function buildOperatorDiscoverySnapshot(personas, recipes)",
     "async function refreshOperatorSessionReplay(options = {})",
     "async function refreshOperatorCaseWiki(options = {})",
@@ -157,6 +205,11 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     'operatorCaseWikiFocusedRoutingCtaBtn: document.getElementById("operatorCaseWikiFocusedRoutingCtaBtn")',
     'operatorCaseWikiFocusedRoutingCopyBtn: document.getElementById("operatorCaseWikiFocusedRoutingCopyBtn")',
     'operatorCaseWikiFocusedRoutingExportBtn: document.getElementById("operatorCaseWikiFocusedRoutingExportBtn")',
+    'operatorCaseWikiFocusedRemediationSnapshot: document.getElementById("operatorCaseWikiFocusedRemediationSnapshot")',
+    'operatorCaseWikiFocusedRemediationCopyBtn: document.getElementById("operatorCaseWikiFocusedRemediationCopyBtn")',
+    'operatorCaseWikiFocusedRemediationExportBtn: document.getElementById("operatorCaseWikiFocusedRemediationExportBtn")',
+    'operatorCaseWikiComplianceSnapshot: document.getElementById("operatorCaseWikiComplianceSnapshot")',
+    'operatorCaseWikiAuditSnapshot: document.getElementById("operatorCaseWikiAuditSnapshot")',
     "buildSessionExportOperatorSessionReplay",
     "buildSessionExportOperatorDiscovery",
     "buildSessionExportOperatorCaseWiki",
@@ -189,10 +242,18 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "nextAction=",
     "nextTarget=",
     "nextWorkspace=",
+    "turnContext=",
+    "turnIngress=",
+    "proofContext=",
+    "proofIngress=",
     "liveTransport=",
     "liveTransportSource=",
     "liveProvider=",
     "liveBootstrap=",
+    "latestContextSource",
+    "latestContextIngressSource",
+    "latestVerifiedContextSource",
+    "latestVerifiedContextIngressSource",
     "firstStep=",
     "firstStepState=",
     "firstStepMode=",
@@ -221,6 +282,8 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "caseWikiQuestions=",
     "caseWikiBlocking=",
     "caseWikiNextAction=",
+    "unitEconomics",
+    "costSummary:",
     "caseWikiProof=",
     "caseWikiEntity=",
     "evidencePack:",
@@ -233,12 +296,15 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "previewPack:",
     "workspacePack:",
     "operatorPreviewPack:",
+    "function buildOperatorCaseWikiUnitEconomics(snapshot)",
+    "const unitEconomics = buildOperatorCaseWikiUnitEconomics(snapshot);",
     "resolveOperatorCaseWikiActionPackItem(snapshot, kind, target.id)",
     "focus:",
     "handoffPreview:",
     "handoffFocus:",
     "focusedHandoffBlock:",
     "focusedRoutingBlock:",
+    "focusedRemediationDraft:",
     "focusedRoutingCta:",
     "focusedRoutingCtaAction:",
   ];
@@ -274,20 +340,25 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.match(readmeSource, /Case Wiki Evidence/i);
   assert.match(readmeSource, /Case Wiki Focused Handoff/i);
   assert.match(readmeSource, /Case Wiki Focused Routing/i);
+  assert.match(readmeSource, /Case Wiki Focused Remediation/i);
   assert.match(readmeSource, /handoffPack/i);
   assert.match(readmeSource, /detailPack/i);
   assert.match(readmeSource, /routingPack/i);
   assert.match(readmeSource, /actionPack/i);
+  assert.match(readmeSource, /remediationDraft/i);
   assert.match(readmeSource, /focusPack/i);
   assert.match(readmeSource, /previewPack/i);
   assert.match(readmeSource, /workspacePack/i);
   assert.match(readmeSource, /one-click CTA action/i);
   assert.match(readmeSource, /Case Wiki Open Questions/i);
+  assert.match(readmeSource, /Case Wiki Compliance/i);
+  assert.match(readmeSource, /Case Wiki Audit/i);
   assert.match(readmeSource, /refresh recovery follow-?up path/i);
   assert.match(readmeSource, /structured refresh state/i);
   assert.match(readmeSource, /followuptree|followup tree/i);
   assert.match(readmeSource, /compatibility block|compatibility metadata/i);
   assert.match(readmeSource, /flat `refreshEscalation\.\.\.` fields remain a transitional legacy projection/i);
+  assert.match(readmeSource, /contextingresssource|ingress provenance|preserved_input_case_wiki|gateway_hydrated_case_wiki/i);
   assertStructuredReplayRefreshContract(readmeSource);
   assert.ok(readmeSource.includes("`GET /v1/skills/personas`"), "README missing persona discovery API note");
   assert.ok(operatorGuideSource.includes("`Operator Session Ops`"), "operator guide missing session-ops panel note");
@@ -298,19 +369,24 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.match(operatorGuideSource, /Case Wiki Evidence/i);
   assert.match(operatorGuideSource, /Case Wiki Focused Handoff/i);
   assert.match(operatorGuideSource, /Case Wiki Focused Routing/i);
+  assert.match(operatorGuideSource, /Case Wiki Focused Remediation/i);
   assert.match(operatorGuideSource, /handoffPack/i);
   assert.match(operatorGuideSource, /detailPack/i);
   assert.match(operatorGuideSource, /routingPack/i);
   assert.match(operatorGuideSource, /actionPack/i);
+  assert.match(operatorGuideSource, /remediationDraft/i);
   assert.match(operatorGuideSource, /focusPack/i);
   assert.match(operatorGuideSource, /previewPack/i);
   assert.match(operatorGuideSource, /workspacePack/i);
   assert.match(operatorGuideSource, /one-click CTA action/i);
   assert.match(operatorGuideSource, /Case Wiki Open Questions/i);
+  assert.match(operatorGuideSource, /Case Wiki Compliance/i);
+  assert.match(operatorGuideSource, /Case Wiki Audit/i);
   assert.match(operatorGuideSource, /refresh recovery follow-?up path/i);
   assert.match(operatorGuideSource, /structured refresh state/i);
   assert.match(operatorGuideSource, /followuptree|followup tree/i);
   assert.match(operatorGuideSource, /compatibility block|compatibility metadata/i);
+  assert.match(operatorGuideSource, /contextingresssource|ingress provenance|preserved_input_case_wiki|gateway_hydrated_case_wiki/i);
   assert.ok(operatorGuideSource.includes("`operatorPurpose`"), "operator guide missing operator purpose note");
   assert.ok(operatorGuideSource.includes("`GET /v1/runtime/session-replay`"), "operator guide missing session replay note");
   assert.match(operatorGuideSource, /flat `refreshEscalation\.\.\.` fields remain a transitional legacy projection/i);

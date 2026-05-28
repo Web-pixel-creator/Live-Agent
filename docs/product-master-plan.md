@@ -7,6 +7,11 @@ priorities, or rollout order become unclear.
 Companion execution backlog:
 
 - `docs/product-backlog.md`
+- `docs/startup-wedge-90-day-plan.md`
+- `docs/quality-simplification-plan.md`
+- `docs/local-services-action-desk-spec.md`
+- `docs/local-services-developer-map.md`
+- `docs/local-services-agent-handoff.md`
 
 ## Source of Truth
 
@@ -29,8 +34,9 @@ Build and sell one clear product:
 
 `AI Action Desk`
 
-An agent that can talk to users, translate, understand requests, safely act in
-web systems, ask for approval when risk is present, and leave auditable proof of
+An operator-safe intake and workflow runner for immigration-heavy service
+teams. It can talk to users, translate, understand requests, safely act in web
+systems, ask for approval when risk is present, and leave auditable proof of
 what happened.
 
 This repo should not drift toward "general AI platform for everything". The
@@ -39,17 +45,17 @@ product wedge is:
 1. live multilingual interaction,
 2. browser and workflow execution,
 3. approvals and auditability,
-4. vertical playbooks for service teams.
+4. vertical playbooks for immigration teams.
 
 ## Target Customer
 
-Primary wedge:
+Primary ICP right now:
 
-1. cross-border service businesses,
-2. travel and concierge sales,
-3. relocation and visa agencies,
-4. medical tourism and clinic intake,
-5. admissions and education consultancies.
+1. small and mid-sized immigration firms,
+2. visa agencies,
+3. relocation teams with immigration-heavy intake,
+4. operator teams with 3-30 people handling high lead volume and repeated
+   follow-up.
 
 Why this wedge:
 
@@ -58,6 +64,50 @@ Why this wedge:
 3. expensive lost leads,
 4. legacy browser-based systems,
 5. high value in faster response and safer task execution.
+
+Adjacent markets such as admissions, medical tourism, or broader cross-border
+service teams are later expansion paths, not the current product center.
+
+The next practical commercial expansion candidate is documented separately in
+`docs/local-services-action-desk-spec.md`: one `AI Dispatcher for local service
+businesses`, starting with HVAC/AC repair, plumbing, cleaning, and measurement
+visits for windows, doors, ceilings, and fit-out requests.
+The developer implementation map for that expansion is
+`docs/local-services-developer-map.md`; it lists the route surfaces,
+browser-local state keys, export contracts, gate chain, served docs, and safe
+extension rules.
+The cross-agent handoff for that expansion is
+`docs/local-services-agent-handoff.md`; it captures the design-workbench review,
+backend adapter plan, UI decisions, and do-not-build boundaries for the current
+local-services product-mode work.
+The first code boundary for that adapter now lives in
+`apps/demo-frontend/app-shell/src/lib/local-services-workspace-adapter.ts`,
+which owns the shared browser-local storage key, static/browser/API/hybrid
+adapter constructors, and `/v1/local-services/*` endpoint names.
+The first repo-owned backend boundary now lives in
+`apps/api-backend/src/local-services-workspace.ts`; it is an in-memory pilot
+workspace API mounted from `apps/api-backend/src/index.ts`, not Lovable Cloud
+and not final durable production storage.
+`LiveDesk.tsx` now uses that adapter for the first action-backed records:
+scenario override save/reset, dispatch/customer operator decisions, and
+setup/test-call events. These are persistence records only; they still do not
+send outreach, dispatch masters, write CRM, activate channels, or bill.
+The fixed four-lane scenario packet now lives in
+`apps/demo-frontend/app-shell/src/lib/local-services-scenarios.ts`; it owns the
+zod schema, `DEFAULT_LOCAL_SERVICES_SCENARIOS`, and bounded
+`scenarioOverrides` merge path used by the adapter.
+The current scenario UI is `Scenario modal` /
+`local_services_scenario_modal` in `LiveDesk.tsx`: a hybrid chat-dialogue,
+structured job-card, and final handoff/approval view with JSON export/import
+for the four fixed lanes only.
+The Lovable/design-workbench `/dev` surface is an internal lab reference, not a
+repo-owned public product route. Useful patterns should be ported into `/app`
+product views, support drawers, or `/workspace-docs/*`; `App.tsx`,
+`AppSidebar.tsx`, `Topbar.tsx`, and `CommandPalette.tsx` should keep `/dev`
+out of product navigation.
+That expansion must stay one dispatcher product, not a collection of unrelated
+vertical products. Restaurants can be a secondary demo path, but should not
+displace the local-services wedge before pilot signal exists.
 
 ## Product Shape
 
@@ -70,6 +120,53 @@ The product should be explained as one system:
 
 `Creative Storyteller` should remain in the product, but it should evolve into a
 `Simulation Lab` role instead of being treated as the primary commercial wedge.
+
+## Commercial Wedge Now
+
+The market promise should stay narrow:
+
+1. `AI Intake Desk for immigration teams`
+2. three primary playbooks:
+   - lead qualification,
+   - consultation booking,
+   - missing-document follow-up,
+3. two closing actions:
+   - CRM update preparation,
+   - human escalation / handoff.
+
+If a feature does not improve one of those three playbooks or the two closing
+actions, it should not be on the critical path for the next product cycle.
+
+The primary `/app` playbook layer should turn those workflows into
+operator-ready exports before adding external connectors: `CRM payload drawer`
+for the Case Vault route, `Consultation handoff drawer` for the Presentation
+Bundle route, and explicit `Human-readable` / `JSON` modes for review.
+
+## Execution Boundaries
+
+Allowed now:
+
+1. qualification,
+2. booking,
+3. missing-document follow-up,
+4. CRM prep,
+5. human handoff,
+6. narrow operator-safe admin actions that directly support those workflows.
+
+Frozen now:
+
+1. new vertical expansion before immigration proof,
+2. provider-portfolio work that does not improve the current wedge,
+3. self-improvement loops outside controlled Simulation Lab work,
+4. general research-assistant positioning,
+5. broad browser-agent claims beyond repeatable admin flows.
+
+Prohibited now:
+
+1. legal advice as product output,
+2. final eligibility determination,
+3. autonomous filing without human review,
+4. positioning the system as a replacement for a licensed professional.
 
 ## What Stays In Focus
 
@@ -95,7 +192,11 @@ Keep these five modules as the product center:
    - compliance-friendly evidence.
 
 4. `Vertical Playbooks`
-   - productized workflows for specific industries and roles.
+   - immigration lead qualification,
+   - consultation booking,
+   - missing-document follow-up,
+   - CRM update preparation,
+   - escalation handoff.
 
 5. `Simulation Lab`
    - synthetic customer scenarios,
@@ -158,7 +259,64 @@ These areas stay in the repo but should not be the main commercial message:
 
 1. storyteller as a standalone creative toy,
 2. grounded research as a standalone main product,
-3. generic "multi-agent platform for all industries".
+3. generic "multi-agent platform for all industries",
+4. broad expansion into medical tourism, admissions, or unrelated service
+   verticals before immigration wedge proof,
+5. voice/video/demo richness as the primary reason to buy.
+
+## Regulatory Boundary
+
+The product must stay on the operations side of the legal boundary.
+
+Allowed:
+
+1. intake,
+2. triage,
+3. consultation scheduling,
+4. missing-document collection,
+5. CRM and operator handoff prep,
+6. safe admin browser actions behind approval.
+
+Not allowed as the product promise:
+
+1. legal advice,
+2. final eligibility verdicts,
+3. autonomous filing without human review,
+4. positioning the system as a replacement for a licensed professional.
+
+The safest framing is:
+
+`operator-safe AI intake and workflow runner`
+
+not:
+
+`autonomous legal agent`
+
+## Repo Lanes vs Market Promise
+
+The repo can stay broader than the commercial message, but the market promise
+must stay narrow.
+
+1. `Live Agent` is customer-facing and revenue-adjacent.
+2. `UI Navigator` is a wedge differentiator when scoped to repeatable admin
+   actions.
+3. `Approval and Audit` is the trust layer and part of the product moat.
+4. `Simulation Lab` is internal training, rehearsal, and evaluation support.
+5. `Storyteller`, broad multimodal demos, and general research stay in the repo
+   as enabling infrastructure or challenge coverage, not as the first startup
+   SKU.
+
+## Quarter Decision Rules
+
+For the current quarter:
+
+1. no new top-level product line without immigration wedge proof,
+2. no new vertical-specific workflow outside immigration-heavy intake,
+3. no platform feature belongs on the critical path unless it improves
+   qualification, booking, document chase, or CRM handoff,
+4. when a choice is unclear, prefer the path that removes operator work over the
+   path that adds technical breadth,
+5. repo breadth is allowed; market breadth is not.
 
 ## External Patterns To Adopt
 
@@ -246,6 +404,24 @@ Do not adopt now:
 
 1. a full consumer local-first pivot,
 2. a personal assistant strategy as the primary market wedge.
+
+### From MemPalace
+
+Adopt:
+
+1. raw/verbatim evidence as the bottom memory layer,
+2. a small always-available compiled layer for the active case,
+3. on-demand room/topic recall instead of stuffing every transcript into each
+   prompt,
+4. temporal facts and invalidation as a future case-history layer,
+5. specialist-agent diaries as a later operator/audit pattern.
+
+Do not adopt now:
+
+1. `AAAK` as the default memory substrate, because it is lossy and still
+   experimental,
+2. a separate local ChromaDB memory plane before the repo-owned `Case Wiki`
+   becomes canonical for live/orchestrator decisions.
 
 ## Technical Blueprint
 

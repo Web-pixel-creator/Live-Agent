@@ -15,10 +15,22 @@ test("demo-e2e defaults storyteller media mode to runtime configuration before s
 
 test("demo-e2e defaults UI executor to real playwright mode", () => {
   assert.match(source, /Set-EnvValue -Name "UI_NAVIGATOR_GEMINI_TIMEOUT_MS" -Value "60000"/);
+  assert.match(source, /\$uiExecutorSandboxSetupMarkerVersion = "demo-e2e-enforce-v1"/);
+  assert.match(source, /Initialize-DemoUiExecutorSandboxSetupMarker -Version \$uiExecutorSandboxSetupMarkerVersion/);
   assert.doesNotMatch(source, /Set-EnvValue -Name "UI_NAVIGATOR_PLANNER_MODEL" -Value "gemini-3\.1-flash-lite-preview"/);
   assert.match(source, /Set-EnvDefault -Name "UI_EXECUTOR_STRICT_PLAYWRIGHT" -Value "true"/);
   assert.match(source, /Set-EnvDefault -Name "UI_EXECUTOR_SIMULATE_IF_UNAVAILABLE" -Value "false"/);
   assert.match(source, /Set-EnvDefault -Name "UI_EXECUTOR_FORCE_SIMULATION" -Value "false"/);
+  assert.match(source, /Set-EnvValue -Name "UI_EXECUTOR_DEFAULT_URL" -Value "https:\/\/example\.com\/app"/);
+  assert.match(source, /Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_MODE" -Value "enforce"/);
+  assert.match(source, /Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_NETWORK_POLICY" -Value "allow_list"/);
+  assert.match(source, /Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_ALLOWED_ORIGINS" -Value "https:\/\/example\.com;http:\/\/localhost:3000;http:\/\/127\.0\.0\.1:3000"/);
+  assert.match(source, /Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_ALLOWED_READ_ROOTS" -Value "artifacts;apps\/demo-frontend\/public"/);
+  assert.match(source, /Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_ALLOWED_WRITE_ROOTS" -Value "artifacts"/);
+  assert.match(source, /Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_BLOCK_FILE_URLS" -Value "true"/);
+  assert.match(source, /Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_ALLOW_LOOPBACK_HOSTS" -Value "true"/);
+  assert.match(source, /Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_SETUP_MARKER_PATH" -Value \$uiExecutorSandboxSetupMarkerPath/);
+  assert.match(source, /Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_SETUP_MARKER_VERSION" -Value \$uiExecutorSandboxSetupMarkerVersion/);
   assert.match(source, /Set-EnvValue -Name "ANALYTICS_EXPORT_ENABLED" -Value "true"/);
   assert.match(source, /Set-EnvValue -Name "ANALYTICS_BIGQUERY_TABLE" -Value "analytics_event_rollups"/);
 });
@@ -27,7 +39,21 @@ test("demo-e2e restarts stale healthy ui-executor instances when runtime alignme
   assert.match(source, /function Get-DemoManagedServiceReuseMismatchReason/);
   assert.match(source, /analytics\.requestedEnabled=false/);
   assert.match(source, /strictPlaywright=false/);
+  assert.match(source, /sandbox\.mode=\$sandboxMode/);
+  assert.match(source, /sandbox\.networkPolicy=\$sandboxNetworkPolicy/);
+  assert.match(source, /sandbox\.allowedOriginsCount=\$sandboxAllowedOriginsCount/);
+  assert.match(source, /sandbox\.allowedReadRootsCount=\$sandboxAllowedReadRootsCount/);
+  assert.match(source, /sandbox\.allowedWriteRootsCount=\$sandboxAllowedWriteRootsCount/);
+  assert.match(source, /sandbox\.blockFileUrls=false/);
+  assert.match(source, /sandbox\.allowLoopbackHosts=false/);
+  assert.match(source, /sandbox\.setupMarker\.status=\$sandboxSetupStatus/);
   assert.match(source, /runtime alignment mismatch/);
+});
+
+test("demo-e2e exposes a repo-owned runtime guardrail path for loopback-only sandbox warnings", () => {
+  assert.match(source, /"ui_executor_sandbox_loopback_allowed"/);
+  assert.match(source, /targetStatusId\s*=\s*"operatorRuntimeGuardrailsStatus"/);
+  assert.match(source, /Jump to Runtime Guardrails/);
 });
 
 test("demo-e2e compacts live storyteller segment count for default Veo runs", () => {
@@ -54,6 +80,8 @@ test("demo-e2e widens timeout budget for heavy UI planner lanes", () => {
 });
 
 test("demo-e2e warms websocket gateway before measuring roundtrip KPI", () => {
+  assert.match(source, /gateway\.websocket\.roundtrip[\s\S]*Uri "http:\/\/localhost:8081\/v1\/sessions"/);
+  assert.match(source, /gateway\.websocket\.roundtrip[\s\S]*\$gatewayRoundTripSessionId = \[string\]\(Get-FieldValue -Object \$gatewayRoundTripSessionResponse -Path @\("data", "sessionId"\)\)/);
   assert.match(source, /gateway\.websocket\.roundtrip[\s\S]*\$warmupRunId = \$runId \+ "-warmup"/);
   assert.match(source, /gateway\.websocket\.roundtrip[\s\S]*Invoke-NodeJsonCommand -Args @\([\s\S]*\$warmupRunId[\s\S]*\) \| Out-Null/);
   assert.match(source, /gateway\.websocket\.roundtrip[\s\S]*\$roundTripSampleCount = 3/);

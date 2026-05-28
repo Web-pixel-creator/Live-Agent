@@ -14,6 +14,11 @@ param(
   [string]$LiveApiProtocol = $env:LIVE_API_PROTOCOL,
   [string]$LiveModelId = $env:LIVE_MODEL_ID,
   [string]$GeminiApiKey = $env:GEMINI_API_KEY,
+  [string]$RuntimeEvidenceSigningEnabled = $env:RUNTIME_EVIDENCE_SIGNING_ENABLED,
+  [string]$RuntimeEvidenceSigningPrivateKeyPem = $env:RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM,
+  [string]$RuntimeEvidenceSigningPrivateKeyBase64 = $env:RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64,
+  [string]$RuntimeEvidenceSigningKeyId = $env:RUNTIME_EVIDENCE_SIGNING_KEY_ID,
+  [string]$RuntimeEvidenceSigningSignerId = $env:RUNTIME_EVIDENCE_SIGNING_SIGNER_ID,
   [switch]$NoWait,
   [switch]$SkipHealthCheck,
   [switch]$SkipCapabilitiesCheck,
@@ -44,6 +49,23 @@ function Write-RailwayApiDeploySummary([object]$Summary) {
   $summaryJson = $Summary | ConvertTo-Json -Depth 10
   Write-Utf8NoBomFile -Path $summaryPath -Content $summaryJson
   return $summaryPath
+}
+
+function Normalize-PublicUrl([string]$Value) {
+  if ([string]::IsNullOrWhiteSpace($Value)) {
+    return $null
+  }
+
+  $trimmed = $Value.Trim().TrimEnd("/")
+  if ([string]::IsNullOrWhiteSpace($trimmed)) {
+    return $null
+  }
+
+  if ($trimmed -match "^https?://") {
+    return $trimmed
+  }
+
+  return ("https://" + $trimmed)
 }
 
 function Resolve-RailwayApiManifestTemplatePath([string]$RepoRoot) {
@@ -118,9 +140,22 @@ function Write-RailwayApiDeployFailureSummary(
   [string]$Service,
   [string]$Environment,
   [string]$EffectivePublicUrl,
+  [string]$RequestedPublicUrl = $null,
+  [string[]]$ResolvedServicePublicUrls = @(),
+  [string]$PublicUrlSource = $null,
+  [object]$RequestedPublicUrlMatchesServiceDomain = $null,
   [bool]$SkipHealthCheck,
   [bool]$SkipCapabilitiesCheck
 ) {
+  $normalizedRequestedPublicUrl = Normalize-PublicUrl $RequestedPublicUrl
+  $normalizedResolvedServicePublicUrls = @(
+    $ResolvedServicePublicUrls |
+      ForEach-Object { Normalize-PublicUrl ([string]$_) } |
+      Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+      Select-Object -Unique
+  )
+  $normalizedEffectivePublicUrl = Normalize-PublicUrl $EffectivePublicUrl
+
   $summary = [ordered]@{
     schemaVersion = 1
     generatedAt = (Get-Date).ToUniversalTime().ToString("o")
@@ -129,17 +164,22 @@ function Write-RailwayApiDeployFailureSummary(
     projectId = $ProjectId
     service = $Service
     environment = $Environment
-    effectivePublicUrl = if ([string]::IsNullOrWhiteSpace($EffectivePublicUrl)) { $null } else { $EffectivePublicUrl.Trim().TrimEnd("/") }
+    requestedPublicUrl = $normalizedRequestedPublicUrl
+    effectivePublicUrl = $normalizedEffectivePublicUrl
+    resolvedServicePublicUrl = if ($normalizedResolvedServicePublicUrls.Count -gt 0) { $normalizedResolvedServicePublicUrls[0] } else { $null }
+    resolvedServicePublicUrls = $normalizedResolvedServicePublicUrls
+    publicUrlSource = if ([string]::IsNullOrWhiteSpace($PublicUrlSource)) { $null } else { $PublicUrlSource.Trim() }
+    requestedPublicUrlMatchesServiceDomain = $RequestedPublicUrlMatchesServiceDomain
     checks = [ordered]@{
       health = [ordered]@{
         attempted = (-not $SkipHealthCheck)
         passed = $null
-        healthUrl = if ([string]::IsNullOrWhiteSpace($EffectivePublicUrl)) { $null } else { $EffectivePublicUrl.Trim().TrimEnd("/") + "/healthz" }
+        healthUrl = if ([string]::IsNullOrWhiteSpace($normalizedEffectivePublicUrl)) { $null } else { $normalizedEffectivePublicUrl + "/healthz" }
       }
       liveCapabilities = [ordered]@{
         attempted = (-not $SkipCapabilitiesCheck)
         passed = $null
-        endpoint = if ([string]::IsNullOrWhiteSpace($EffectivePublicUrl)) { $null } else { $EffectivePublicUrl.Trim().TrimEnd("/") + "/v1/runtime/live/capabilities" }
+        endpoint = if ([string]::IsNullOrWhiteSpace($normalizedEffectivePublicUrl)) { $null } else { $normalizedEffectivePublicUrl + "/v1/runtime/live/capabilities" }
       }
     }
     artifacts = [ordered]@{
@@ -184,19 +224,46 @@ function Ensure-RailwayAuthContext([string]$LogPrefix) {
   $projectToken = $env:RAILWAY_PROJECT_TOKEN
 
   function Invoke-AuthProbe {
+    $probeText = ""
+    $probeExitCode = 1
     $previousErrorActionPreference = $ErrorActionPreference
     try {
       $ErrorActionPreference = "Continue"
-      $script:authProbe = (& railway whoami 2>&1 | Out-String).Trim()
-      $script:authProbeExitCode = $LASTEXITCODE
+      $probeText = (& railway whoami 2>&1 | Out-String).Trim()
+      $probeExitCode = $LASTEXITCODE
     }
     catch {
-      $script:authProbe = [string]$_.Exception.Message
-      $script:authProbeExitCode = 1
+      $probeText = [string]$_.Exception.Message
+      $probeExitCode = 1
     }
     finally {
       $ErrorActionPreference = $previousErrorActionPreference
     }
+
+    return [pscustomobject]@{
+      Output = $probeText
+      ExitCode = $probeExitCode
+    }
+  }
+
+  function Use-ActiveRailwayCliSession([string]$Reason) {
+    $env:RAILWAY_API_TOKEN = ""
+    $env:RAILWAY_TOKEN = ""
+    Remove-Item Env:RAILWAY_AUTH_PROJECT_MODE -ErrorAction SilentlyContinue
+
+    $sessionProbe = Invoke-AuthProbe
+    if ($sessionProbe.ExitCode -eq 0) {
+      if (-not [string]::IsNullOrWhiteSpace($Reason)) {
+        Write-Host ("[" + $LogPrefix + "] " + $Reason)
+      }
+      return $true
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($sessionProbe.Output)) {
+      Write-Host $sessionProbe.Output
+    }
+
+    return $false
   }
 
   if (-not [string]::IsNullOrWhiteSpace($accountToken)) {
@@ -204,29 +271,33 @@ function Ensure-RailwayAuthContext([string]$LogPrefix) {
       Write-Warning ("[" + $LogPrefix + "] Ignoring RAILWAY_TOKEN because RAILWAY_API_TOKEN is already set.")
     }
     $env:RAILWAY_TOKEN = ""
-    Invoke-AuthProbe
-    if ($authProbeExitCode -eq 0) {
+    $authProbe = Invoke-AuthProbe
+    if ($authProbe.ExitCode -eq 0) {
       Remove-Item Env:RAILWAY_AUTH_PROJECT_MODE -ErrorAction SilentlyContinue
       return
     }
 
-    if (-not [string]::IsNullOrWhiteSpace($authProbe)) {
-      Write-Host $authProbe
+    if (-not [string]::IsNullOrWhiteSpace($authProbe.Output)) {
+      Write-Host $authProbe.Output
     }
 
     if (-not [string]::IsNullOrWhiteSpace($legacyToken) -and $legacyToken -ne $accountToken) {
       $env:RAILWAY_API_TOKEN = $legacyToken
       $env:RAILWAY_TOKEN = ""
       Write-Warning ("[" + $LogPrefix + "] railway whoami failed with RAILWAY_API_TOKEN; retrying legacy RAILWAY_TOKEN fallback.")
-      Invoke-AuthProbe
-      if ($authProbeExitCode -eq 0) {
+      $authProbe = Invoke-AuthProbe
+      if ($authProbe.ExitCode -eq 0) {
         Remove-Item Env:RAILWAY_AUTH_PROJECT_MODE -ErrorAction SilentlyContinue
         return
       }
 
-      if (-not [string]::IsNullOrWhiteSpace($authProbe)) {
-        Write-Host $authProbe
+      if (-not [string]::IsNullOrWhiteSpace($authProbe.Output)) {
+        Write-Host $authProbe.Output
       }
+    }
+
+    if (Use-ActiveRailwayCliSession -Reason "Using active Railway CLI session from 'railway login' after token auth failed.") {
+      return
     }
   }
 
@@ -235,15 +306,25 @@ function Ensure-RailwayAuthContext([string]$LogPrefix) {
     $env:RAILWAY_TOKEN = $projectToken
     $env:RAILWAY_AUTH_PROJECT_MODE = "true"
     Write-Host ("[" + $LogPrefix + "] RAILWAY_API_TOKEN is empty or failed auth; using RAILWAY_PROJECT_TOKEN as RAILWAY_TOKEN for CLI auth.")
-    Invoke-AuthProbe
-    if ($authProbeExitCode -eq 0) {
+    $authProbe = Invoke-AuthProbe
+    if ($authProbe.ExitCode -eq 0) {
       return
     }
-    if (-not [string]::IsNullOrWhiteSpace($authProbe)) {
-      Write-Host $authProbe
+    if (-not [string]::IsNullOrWhiteSpace($authProbe.Output)) {
+      Write-Host $authProbe.Output
     }
     Write-Warning ("[" + $LogPrefix + "] railway whoami failed; continuing with project-token fallback mode.")
     return
+  }
+
+  if (
+    [string]::IsNullOrWhiteSpace($accountToken) -and
+    [string]::IsNullOrWhiteSpace($legacyToken) -and
+    [string]::IsNullOrWhiteSpace($projectToken)
+  ) {
+    if (Use-ActiveRailwayCliSession -Reason "Using active Railway CLI session from 'railway login'.") {
+      return
+    }
   }
 
   Remove-Item Env:RAILWAY_AUTH_PROJECT_MODE -ErrorAction SilentlyContinue
@@ -293,14 +374,16 @@ function Get-DeploymentById([string]$DeploymentId, [string]$TargetService, [stri
   return $items | Where-Object { $_.id -eq $DeploymentId } | Select-Object -First 1
 }
 
-function Resolve-ServicePublicUrlFromStatus([object]$StatusPayload, [string]$TargetService, [string]$TargetEnvironment) {
+function Resolve-ServicePublicUrlsFromStatus([object]$StatusPayload, [string]$TargetService, [string]$TargetEnvironment) {
+  $resolved = New-Object System.Collections.Generic.List[string]
+
   if ($null -eq $StatusPayload -or -not ($StatusPayload.PSObject.Properties.Name -contains "environments")) {
-    return $null
+    return @()
   }
 
   $envEdges = $StatusPayload.environments.edges
   if ($null -eq $envEdges) {
-    return $null
+    return @()
   }
 
   foreach ($envEdge in $envEdges) {
@@ -354,18 +437,27 @@ function Resolve-ServicePublicUrlFromStatus([object]$StatusPayload, [string]$Tar
       }
 
       foreach ($domain in $domainCandidates) {
-        if ([string]::IsNullOrWhiteSpace($domain)) {
+        $normalizedDomain = Normalize-PublicUrl ([string]$domain)
+        if ([string]::IsNullOrWhiteSpace($normalizedDomain)) {
           continue
         }
-        if ($domain -match "^https?://") {
-          return $domain.TrimEnd("/")
+        if (-not $resolved.Contains($normalizedDomain)) {
+          $resolved.Add($normalizedDomain)
         }
-        return ("https://" + $domain.Trim())
       }
     }
   }
 
-  return $null
+  return @($resolved.ToArray())
+}
+
+function Resolve-ServicePublicUrlFromStatus([object]$StatusPayload, [string]$TargetService, [string]$TargetEnvironment) {
+  $resolved = @(Resolve-ServicePublicUrlsFromStatus -StatusPayload $StatusPayload -TargetService $TargetService -TargetEnvironment $TargetEnvironment)
+  if ($null -eq $resolved -or $resolved.Count -eq 0) {
+    return $null
+  }
+
+  return $resolved[0]
 }
 
 function Test-ApiHealth([string]$BaseUrl, [int]$TimeoutSec) {
@@ -414,6 +506,20 @@ if ([string]::IsNullOrWhiteSpace($Service)) {
   Fail "Provide -Service (or set RAILWAY_API_SERVICE_ID/RAILWAY_API_SERVICE)."
 }
 
+$runtimeEvidenceSigningEnabledValue = if ([string]::IsNullOrWhiteSpace($RuntimeEvidenceSigningEnabled)) {
+  ""
+} else {
+  [string]$RuntimeEvidenceSigningEnabled
+}
+
+if (
+  [string]::Equals($runtimeEvidenceSigningEnabledValue.Trim(), "true", [System.StringComparison]::OrdinalIgnoreCase) -and
+  [string]::IsNullOrWhiteSpace($RuntimeEvidenceSigningPrivateKeyPem) -and
+  [string]::IsNullOrWhiteSpace($RuntimeEvidenceSigningPrivateKeyBase64)
+) {
+  Fail "RUNTIME_EVIDENCE_SIGNING_ENABLED=true requires RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM or RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64."
+}
+
 if (-not (Test-Path $ApiPath)) {
   Fail "API path not found: $ApiPath"
 }
@@ -447,9 +553,41 @@ Set-RailwayVariableIfProvided -Name "LIVE_DIRECT_MODE_DEFAULT" -Value $LiveDirec
 Set-RailwayVariableIfProvided -Name "LIVE_API_PROTOCOL" -Value $LiveApiProtocol -TargetService $Service -TargetEnvironment $Environment
 Set-RailwayVariableIfProvided -Name "LIVE_MODEL_ID" -Value $LiveModelId -TargetService $Service -TargetEnvironment $Environment
 Set-RailwayVariableIfProvided -Name "GEMINI_API_KEY" -Value $GeminiApiKey -TargetService $Service -TargetEnvironment $Environment
+Set-RailwayVariableIfProvided -Name "RUNTIME_EVIDENCE_SIGNING_ENABLED" -Value $RuntimeEvidenceSigningEnabled -TargetService $Service -TargetEnvironment $Environment
+Set-RailwayVariableIfProvided -Name "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM" -Value $RuntimeEvidenceSigningPrivateKeyPem -TargetService $Service -TargetEnvironment $Environment
+Set-RailwayVariableIfProvided -Name "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64" -Value $RuntimeEvidenceSigningPrivateKeyBase64 -TargetService $Service -TargetEnvironment $Environment
+Set-RailwayVariableIfProvided -Name "RUNTIME_EVIDENCE_SIGNING_KEY_ID" -Value $RuntimeEvidenceSigningKeyId -TargetService $Service -TargetEnvironment $Environment
+Set-RailwayVariableIfProvided -Name "RUNTIME_EVIDENCE_SIGNING_SIGNER_ID" -Value $RuntimeEvidenceSigningSignerId -TargetService $Service -TargetEnvironment $Environment
 
 try {
   Push-Location $deployWorkspacePath
+
+  if (-not [string]::IsNullOrWhiteSpace($ProjectId) -and -not [string]::IsNullOrWhiteSpace($Service)) {
+    $workspaceLinkArgs = @("link", "-p", $ProjectId, "-s", $Service, "-e", $Environment)
+    Write-Host "[railway-api] Linking clean deploy worktree to Railway service..."
+    $workspaceLinkOutput = @()
+    $workspaceLinkExitCode = 1
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+      $ErrorActionPreference = "Continue"
+      $workspaceLinkOutput = (& railway @workspaceLinkArgs 2>&1)
+      $workspaceLinkExitCode = $LASTEXITCODE
+    }
+    finally {
+      $ErrorActionPreference = $previousErrorActionPreference
+    }
+    if ($workspaceLinkOutput) {
+      $workspaceLinkOutput | ForEach-Object { Write-Host $_ }
+    }
+    if ($workspaceLinkExitCode -ne 0) {
+      if ($env:RAILWAY_AUTH_PROJECT_MODE -eq "true") {
+        Write-Warning "[railway-api] clean worktree railway link failed; continuing with direct project/service flags in project-token fallback mode."
+      }
+      else {
+        Fail "Unable to link clean Railway API deploy worktree."
+      }
+    }
+  }
 
   $deployArgs = @("up", "-d", "-s", $Service, "-e", $Environment, "-m", $DeployMessage)
   if (-not [string]::IsNullOrWhiteSpace($ProjectId)) {
@@ -474,13 +612,14 @@ try {
   }
 
   if ([string]::IsNullOrWhiteSpace($deploymentId)) {
-    Write-RailwayApiDeployFailureSummary -FailureStatus "deployment_id_unresolved" -DeploymentId $null -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $ApiPublicUrl -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
+    Write-RailwayApiDeployFailureSummary -FailureStatus "deployment_id_unresolved" -DeploymentId $null -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $ApiPublicUrl -RequestedPublicUrl $ApiPublicUrl -PublicUrlSource "requested" -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
     Fail "Deployment created but deployment ID could not be resolved."
   }
 
   Write-Host "[railway-api] Deployment ID: $deploymentId"
 
   if ($NoWait) {
+    $normalizedRequestedPublicUrl = Normalize-PublicUrl $ApiPublicUrl
     $noWaitSummary = [ordered]@{
       schemaVersion = 1
       generatedAt = (Get-Date).ToUniversalTime().ToString("o")
@@ -489,17 +628,22 @@ try {
       projectId = $ProjectId
       service = $Service
       environment = $Environment
-      effectivePublicUrl = $ApiPublicUrl
+      requestedPublicUrl = $normalizedRequestedPublicUrl
+      effectivePublicUrl = $normalizedRequestedPublicUrl
+      resolvedServicePublicUrl = $null
+      resolvedServicePublicUrls = @()
+      publicUrlSource = if ([string]::IsNullOrWhiteSpace($normalizedRequestedPublicUrl)) { $null } else { "requested" }
+      requestedPublicUrlMatchesServiceDomain = $null
       checks = [ordered]@{
         health = [ordered]@{
           attempted = (-not $SkipHealthCheck)
           skipped = [bool]$SkipHealthCheck
-          healthUrl = if ([string]::IsNullOrWhiteSpace($ApiPublicUrl)) { $null } else { $ApiPublicUrl.TrimEnd("/") + "/healthz" }
+          healthUrl = if ([string]::IsNullOrWhiteSpace($normalizedRequestedPublicUrl)) { $null } else { $normalizedRequestedPublicUrl + "/healthz" }
         }
         liveCapabilities = [ordered]@{
           attempted = (-not $SkipCapabilitiesCheck)
           skipped = [bool]$SkipCapabilitiesCheck
-          endpoint = if ([string]::IsNullOrWhiteSpace($ApiPublicUrl)) { $null } else { $ApiPublicUrl.TrimEnd("/") + "/v1/runtime/live/capabilities" }
+          endpoint = if ([string]::IsNullOrWhiteSpace($normalizedRequestedPublicUrl)) { $null } else { $normalizedRequestedPublicUrl + "/v1/runtime/live/capabilities" }
         }
       }
       artifacts = [ordered]@{
@@ -531,18 +675,37 @@ try {
         catch {
         }
 
-        $effectivePublicUrl = if (-not [string]::IsNullOrWhiteSpace($ApiPublicUrl)) {
-          $ApiPublicUrl.Trim().TrimEnd("/")
+        $requestedPublicUrl = Normalize-PublicUrl $ApiPublicUrl
+        $resolvedServicePublicUrls = @(Resolve-ServicePublicUrlsFromStatus -StatusPayload $status -TargetService $Service -TargetEnvironment $Environment)
+        $resolvedServicePublicUrl = if ($resolvedServicePublicUrls.Count -gt 0) { $resolvedServicePublicUrls[0] } else { $null }
+        $requestedPublicUrlMatchesServiceDomain = $null
+        if (-not [string]::IsNullOrWhiteSpace($requestedPublicUrl) -and $resolvedServicePublicUrls.Count -gt 0) {
+          $requestedPublicUrlMatchesServiceDomain = $resolvedServicePublicUrls -contains $requestedPublicUrl
+        }
+        $publicUrlSource = $null
+        if (-not [string]::IsNullOrWhiteSpace($requestedPublicUrl)) {
+          if ($resolvedServicePublicUrls.Count -eq 0 -or $requestedPublicUrlMatchesServiceDomain -eq $true) {
+            $effectivePublicUrl = $requestedPublicUrl
+            $publicUrlSource = "requested"
+          }
+          else {
+            $effectivePublicUrl = $resolvedServicePublicUrl
+            $publicUrlSource = "resolved_service_domain"
+            Write-Warning ("[railway-api] Requested ApiPublicUrl does not match the resolved target service domains. Requested=" + $requestedPublicUrl + "; resolved=" + ($resolvedServicePublicUrls -join ", "))
+          }
         }
         else {
-          Resolve-ServicePublicUrlFromStatus -StatusPayload $status -TargetService $Service -TargetEnvironment $Environment
+          $effectivePublicUrl = $resolvedServicePublicUrl
+          if (-not [string]::IsNullOrWhiteSpace($effectivePublicUrl)) {
+            $publicUrlSource = "resolved_service_domain"
+          }
         }
 
         $healthPassed = $null
         if (-not $SkipHealthCheck) {
           $healthPassed = Test-ApiHealth -BaseUrl $effectivePublicUrl -TimeoutSec $HealthCheckTimeoutSec
           if (-not $healthPassed) {
-            Write-RailwayApiDeployFailureSummary -FailureStatus "healthcheck_failed" -DeploymentId $deploymentId -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $effectivePublicUrl -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
+            Write-RailwayApiDeployFailureSummary -FailureStatus "healthcheck_failed" -DeploymentId $deploymentId -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $effectivePublicUrl -RequestedPublicUrl $requestedPublicUrl -ResolvedServicePublicUrls $resolvedServicePublicUrls -PublicUrlSource $publicUrlSource -RequestedPublicUrlMatchesServiceDomain $requestedPublicUrlMatchesServiceDomain -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
             Fail ("API health check failed: " + $effectivePublicUrl.TrimEnd("/") + "/healthz")
           }
           Write-Host ("[railway-api] Health check passed: " + $effectivePublicUrl.TrimEnd("/") + "/healthz")
@@ -552,7 +715,7 @@ try {
         if (-not $SkipCapabilitiesCheck) {
           $liveCapabilities = Get-ApiLiveCapabilities -BaseUrl $effectivePublicUrl -TimeoutSec $HealthCheckTimeoutSec
           if ($null -eq $liveCapabilities) {
-            Write-RailwayApiDeployFailureSummary -FailureStatus "live_capabilities_failed" -DeploymentId $deploymentId -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $effectivePublicUrl -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
+            Write-RailwayApiDeployFailureSummary -FailureStatus "live_capabilities_failed" -DeploymentId $deploymentId -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $effectivePublicUrl -RequestedPublicUrl $requestedPublicUrl -ResolvedServicePublicUrls $resolvedServicePublicUrls -PublicUrlSource $publicUrlSource -RequestedPublicUrlMatchesServiceDomain $requestedPublicUrlMatchesServiceDomain -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
             Fail ("API live capabilities route check failed: " + $effectivePublicUrl.TrimEnd("/") + "/v1/runtime/live/capabilities")
           }
           Write-Host ("[railway-api] Live capabilities route passed: " + $effectivePublicUrl.TrimEnd("/") + "/v1/runtime/live/capabilities")
@@ -566,7 +729,12 @@ try {
           projectId = $ProjectId
           service = $Service
           environment = $Environment
+          requestedPublicUrl = $requestedPublicUrl
           effectivePublicUrl = $effectivePublicUrl
+          resolvedServicePublicUrl = $resolvedServicePublicUrl
+          resolvedServicePublicUrls = $resolvedServicePublicUrls
+          publicUrlSource = $publicUrlSource
+          requestedPublicUrlMatchesServiceDomain = $requestedPublicUrlMatchesServiceDomain
           checks = [ordered]@{
             health = [ordered]@{
               attempted = (-not $SkipHealthCheck)
@@ -597,7 +765,7 @@ try {
         exit 0
       }
       if ($pending -notcontains $state) {
-        Write-RailwayApiDeployFailureSummary -FailureStatus $state.ToLowerInvariant() -DeploymentId $deploymentId -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $ApiPublicUrl -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
+        Write-RailwayApiDeployFailureSummary -FailureStatus $state.ToLowerInvariant() -DeploymentId $deploymentId -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $ApiPublicUrl -RequestedPublicUrl $ApiPublicUrl -PublicUrlSource "requested" -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
         Fail "API deployment finished with non-success status: $state (deploymentId=$deploymentId)"
       }
     }
@@ -607,7 +775,7 @@ try {
     }
   }
 
-  Write-RailwayApiDeployFailureSummary -FailureStatus "timeout" -DeploymentId $deploymentId -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $ApiPublicUrl -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
+  Write-RailwayApiDeployFailureSummary -FailureStatus "timeout" -DeploymentId $deploymentId -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $ApiPublicUrl -RequestedPublicUrl $ApiPublicUrl -PublicUrlSource "requested" -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
   Fail "Timed out waiting for API deployment completion (deploymentId=$deploymentId)."
 }
 finally {

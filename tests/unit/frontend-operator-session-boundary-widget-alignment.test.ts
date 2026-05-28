@@ -71,6 +71,7 @@ test("operator console exposes compact session boundary widget", () => {
     'operatorSessionBoundaryHint: document.getElementById("operatorSessionBoundaryHint")',
     "setOperatorSessionBoundaryHint",
     "resetOperatorSessionBoundaryWidget",
+    "buildOperatorReplayContextProvenanceText",
     "renderOperatorSessionBoundaryWidget",
     "openOperatorSessionBoundaryTarget",
     "buildOperatorReplayRefreshRecoveryFollowupSummary",
@@ -99,6 +100,10 @@ test("operator console exposes compact session boundary widget", () => {
     "primaryStepRefreshView.refreshDisposition",
     "liveTransportDetail",
     "replay?.liveTransport",
+    "latestProofContextProvenance",
+    "latestTurnContextProvenance",
+    "Proof ingress:",
+    "Turn ingress:",
     "firstStepRefreshFollowupCount=",
     "firstStepRefreshFollowupHead=",
     "firstStepRefreshLegacyFallback=",
@@ -120,6 +125,7 @@ test("operator console exposes compact session boundary widget", () => {
   assert.match(readmeSource, /followuptree|followup tree/i);
   assert.match(readmeSource, /compatibility block|compatibility metadata/i);
   assert.match(readmeSource, /flat `refreshEscalation\.\.\.` fields remain a transitional legacy projection/i);
+  assert.match(readmeSource, /case wiki.*ingress provenance|preserved_input_case_wiki|gateway_hydrated_case_wiki/i);
   assertStructuredReplayRefreshContract(readmeSource);
   assert.ok(operatorGuideSource.includes("`Session Boundary`"), "operator guide missing Session Boundary card note");
   assert.match(operatorGuideSource, /refresh recovery follow-?up path/i);
@@ -127,11 +133,13 @@ test("operator console exposes compact session boundary widget", () => {
   assert.match(operatorGuideSource, /followuptree|followup tree/i);
   assert.match(operatorGuideSource, /compatibility block|compatibility metadata/i);
   assert.match(operatorGuideSource, /flat `refreshEscalation\.\.\.` fields remain a transitional legacy projection/i);
+  assert.match(operatorGuideSource, /case wiki.*ingress provenance|preserved_input_case_wiki|gateway_hydrated_case_wiki/i);
   assertStructuredReplayRefreshContract(operatorGuideSource);
   assert.match(architectureSource, /refresh recovery follow-?up path/i);
   assert.match(architectureSource, /structured refresh state/i);
   assert.match(architectureSource, /followuptree|followup tree/i);
   assert.match(architectureSource, /compatibility block|compatibility metadata/i);
   assert.match(architectureSource, /flat `refreshEscalation\.\.\.` projection remains transitional/i);
+  assert.match(architectureSource, /case wiki.*ingress provenance|preserved_input_case_wiki|gateway_hydrated_case_wiki/i);
   assertStructuredReplayRefreshContract(architectureSource);
 });

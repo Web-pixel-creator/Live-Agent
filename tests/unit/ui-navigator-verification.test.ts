@@ -323,6 +323,7 @@ test("ui navigator surfaces stable ref grounding metadata from remote executor",
           refMapCount: 2,
           actionableRefIds: ["email", "submit_primary"],
           staleRefTargets: [],
+          healedRefTargets: [],
         },
       }),
     );

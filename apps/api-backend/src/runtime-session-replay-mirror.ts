@@ -5,6 +5,8 @@ import type {
   SessionListItem,
 } from "./firestore.js";
 import type { RuntimeWorkflowControlPlaneSummary } from "./runtime-workflow-control-plane.js";
+import type { EvidenceSignature } from "@mla/contracts";
+import { signEvidencePayload, type RuntimeEvidenceSignerConfig } from "./runtime-evidence-signer.js";
 
 export type RuntimeSessionReplayState = "empty" | "active" | "awaiting_approval" | "verified";
 
@@ -718,12 +720,17 @@ export type RuntimeSessionReplayCompactEntry = {
   replayState: RuntimeSessionReplayState;
 };
 
+type RuntimeSessionReplayCaseWikiIngressSource =
+  | "preserved_input_case_wiki"
+  | "gateway_hydrated_case_wiki";
+
 export type RuntimeSessionReplaySnapshot = {
   generatedAt: string;
   source: "repo_owned_runtime_session_replay";
   mirrorVersion: 1;
   selectedSessionId: string | null;
   workflowAvailable: boolean;
+  evidenceSignature?: EvidenceSignature;
   summary: {
     totalSessions: number;
     activeSessions: number;
@@ -795,6 +802,11 @@ export type RuntimeSessionReplaySnapshot = {
         fallbackReason: string | null;
         capturedAt: string | null;
         evidenceSource: "session_events" | "frontend_runtime" | "unknown" | null;
+        firstAudioMs: number | null;
+        firstAudioCapturedAt: string | null;
+        firstOutputMs: number | null;
+        firstOutputCapturedAt: string | null;
+        fallbackEventCount: number;
       } | null;
       resumeReady: boolean;
       resumeBlockedBy: string | null;
@@ -868,6 +880,8 @@ export type RuntimeSessionReplaySnapshot = {
         verifiedAt: string | null;
         route: string | null;
         intent: string | null;
+        contextSource: string | null;
+        ingressSource: RuntimeSessionReplayCaseWikiIngressSource | null;
         workflowStage: string | null;
       } | null;
       recoveryPathHint: {
@@ -913,6 +927,10 @@ export type RuntimeSessionReplaySnapshot = {
       latestVerifiedAt: string | null;
       latestVerifiedRoute: string | null;
       latestVerifiedIntent: string | null;
+      latestContextSource: string | null;
+      latestContextIngressSource: RuntimeSessionReplayCaseWikiIngressSource | null;
+      latestVerifiedContextSource: string | null;
+      latestVerifiedContextIngressSource: RuntimeSessionReplayCaseWikiIngressSource | null;
       bySource: Record<string, number>;
       byType: Record<string, number>;
       byRoute: Record<string, number>;
@@ -943,6 +961,10 @@ type SessionEventInsight = {
   latestVerifiedAt: string | null;
   latestVerifiedRoute: string | null;
   latestVerifiedIntent: string | null;
+  latestContextSource: string | null;
+  latestContextIngressSource: RuntimeSessionReplayCaseWikiIngressSource | null;
+  latestVerifiedContextSource: string | null;
+  latestVerifiedContextIngressSource: RuntimeSessionReplayCaseWikiIngressSource | null;
   bySource: Record<string, number>;
   byType: Record<string, number>;
   byRoute: Record<string, number>;
@@ -951,6 +973,10 @@ type SessionEventInsight = {
 type RuntimeSessionReplayLiveTransport = NonNullable<
   RuntimeSessionReplaySnapshot["selectedSession"]["replay"]["liveTransport"]
 >;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
 function toNonEmptyString(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -976,6 +1002,14 @@ function toNonNegativeInt(value: unknown): number {
   return Math.floor(parsed);
 }
 
+function toOptionalNonNegativeInt(value: unknown): number | null {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null;
+  }
+  return Math.floor(parsed);
+}
+
 function incrementCounter(record: Record<string, number>, key: string | null): void {
   const normalized = toNonEmptyString(key) ?? "unknown";
   record[normalized] = (record[normalized] ?? 0) + 1;
@@ -991,6 +1025,51 @@ function sortEventsDesc(items: EventListItem[]): EventListItem[] {
 
 function maxTimestampMs(values: Array<string | null | undefined>): number {
   return values.reduce((max, value) => Math.max(max, toEpochMs(value)), 0);
+}
+
+function normalizeCaseWikiIngressSource(
+  value: unknown,
+): RuntimeSessionReplayCaseWikiIngressSource | null {
+  const normalized = toNonEmptyString(value);
+  return normalized === "preserved_input_case_wiki" || normalized === "gateway_hydrated_case_wiki"
+    ? normalized
+    : null;
+}
+
+function extractEventRoutingRecord(event: EventListItem): Record<string, unknown> | null {
+  const payload = isRecord(event.payload) ? event.payload : null;
+  const output = isRecord(payload?.output) ? payload.output : null;
+  return isRecord(output?.routing) ? output.routing : null;
+}
+
+function extractEventCaseWikiIngressSource(
+  event: EventListItem,
+): RuntimeSessionReplayCaseWikiIngressSource | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const caseWikiIngress = isRecord(metadata?.caseWikiIngress) ? metadata.caseWikiIngress : null;
+  return normalizeCaseWikiIngressSource(caseWikiIngress?.source);
+}
+
+function extractEventRoutingContextSource(event: EventListItem): string | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const routing = extractEventRoutingRecord(event);
+  return (
+    toNonEmptyString(metadata?.routingContextSource) ??
+    toNonEmptyString(routing?.contextSource) ??
+    (extractEventCaseWikiIngressSource(event) ? "case_wiki" : null)
+  );
+}
+
+function extractEventRoutingContextIngressSource(
+  event: EventListItem,
+): RuntimeSessionReplayCaseWikiIngressSource | null {
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  const routing = extractEventRoutingRecord(event);
+  return (
+    normalizeCaseWikiIngressSource(metadata?.routingContextIngressSource) ??
+    normalizeCaseWikiIngressSource(routing?.contextIngressSource) ??
+    extractEventCaseWikiIngressSource(event)
+  );
 }
 
 function buildSessionEventInsight(events: EventListItem[]): SessionEventInsight {
@@ -1065,6 +1144,14 @@ function buildSessionEventInsight(events: EventListItem[]): SessionEventInsight 
     latestVerifiedAt: latestVerifiedEvent ? latestVerifiedEvent.createdAt : null,
     latestVerifiedRoute: latestVerifiedEvent ? toNonEmptyString(latestVerifiedEvent.route) : null,
     latestVerifiedIntent: latestVerifiedEvent ? toNonEmptyString(latestVerifiedEvent.intent) : null,
+    latestContextSource: latestEvent ? extractEventRoutingContextSource(latestEvent) : null,
+    latestContextIngressSource: latestEvent ? extractEventRoutingContextIngressSource(latestEvent) : null,
+    latestVerifiedContextSource: latestVerifiedEvent
+      ? extractEventRoutingContextSource(latestVerifiedEvent)
+      : null,
+    latestVerifiedContextIngressSource: latestVerifiedEvent
+      ? extractEventRoutingContextIngressSource(latestVerifiedEvent)
+      : null,
     bySource,
     byType,
     byRoute,
@@ -1170,6 +1257,8 @@ function buildLatestProofPointer(params: {
     verifiedAt: params.eventInsight.latestVerifiedAt,
     route: params.eventInsight.latestVerifiedRoute,
     intent: params.eventInsight.latestVerifiedIntent,
+    contextSource: params.eventInsight.latestVerifiedContextSource,
+    ingressSource: params.eventInsight.latestVerifiedContextIngressSource,
     workflowStage: params.workflowSummary?.workflowCurrentStage ?? null,
   };
 }
@@ -4069,18 +4158,46 @@ function buildSessionLiveTransport(
   events: EventListItem[],
   eventInsight: SessionEventInsight,
 ): RuntimeSessionReplayLiveTransport | null {
-  const latestDirectLiveEvent = sortEventsDesc(events).find((item) => item.source === "direct_live") ?? null;
+  const directLiveEvents = sortEventsDesc(events).filter((item) => item.source === "direct_live");
+  const latestDirectLiveEvent = directLiveEvents[0] ?? null;
   if (!latestDirectLiveEvent && (eventInsight.bySource.direct_live ?? 0) < 1) {
     return null;
   }
+  const latestModeEvent =
+    directLiveEvents.find((item) => toNonEmptyString(item.liveTransportMode) !== null) ?? latestDirectLiveEvent;
+  const latestProviderEvent =
+    directLiveEvents.find((item) => toNonEmptyString(item.liveTransportProvider) !== null) ?? latestDirectLiveEvent;
+  const latestModelEvent =
+    directLiveEvents.find((item) => toNonEmptyString(item.liveTransportModel) !== null) ?? latestDirectLiveEvent;
+  const latestBootstrapEvent =
+    directLiveEvents.find((item) => toNonEmptyString(item.liveTransportBootstrapState) !== null) ?? latestDirectLiveEvent;
+  const latestFallbackEvent =
+    directLiveEvents.find(
+      (item) =>
+        toNonEmptyString(item.liveTransportFallbackReason) !== null ||
+        toNonEmptyString(item.liveTransportMode) === "relay",
+    ) ?? null;
+  const latestFirstAudioEvent =
+    directLiveEvents.find((item) => toOptionalNonNegativeInt(item.liveFirstAudioMs) !== null) ?? null;
+  const latestFirstOutputEvent =
+    directLiveEvents.find((item) => toOptionalNonNegativeInt(item.liveFirstOutputMs) !== null) ?? null;
+  const fallbackEventCount = directLiveEvents.filter(
+    (item) =>
+      toNonEmptyString(item.liveTransportFallbackReason) !== null || toNonEmptyString(item.liveTransportMode) === "relay",
+  ).length;
   return {
-    activeMode: latestDirectLiveEvent?.liveTransportMode === "relay" ? "relay" : "direct_live",
-    provider: latestDirectLiveEvent?.liveTransportProvider ?? null,
-    model: latestDirectLiveEvent?.liveTransportModel ?? null,
-    bootstrapState: latestDirectLiveEvent?.liveTransportBootstrapState ?? null,
-    fallbackReason: latestDirectLiveEvent?.liveTransportFallbackReason ?? null,
+    activeMode: latestModeEvent?.liveTransportMode === "relay" ? "relay" : "direct_live",
+    provider: latestProviderEvent?.liveTransportProvider ?? null,
+    model: latestModelEvent?.liveTransportModel ?? null,
+    bootstrapState: latestBootstrapEvent?.liveTransportBootstrapState ?? null,
+    fallbackReason: latestFallbackEvent?.liveTransportFallbackReason ?? null,
     capturedAt: latestDirectLiveEvent?.createdAt ?? eventInsight.latestEventAt,
     evidenceSource: "session_events",
+    firstAudioMs: toOptionalNonNegativeInt(latestFirstAudioEvent?.liveFirstAudioMs),
+    firstAudioCapturedAt: latestFirstAudioEvent?.createdAt ?? null,
+    firstOutputMs: toOptionalNonNegativeInt(latestFirstOutputEvent?.liveFirstOutputMs),
+    firstOutputCapturedAt: latestFirstOutputEvent?.createdAt ?? null,
+    fallbackEventCount,
   };
 }
 
@@ -5519,6 +5636,7 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
   selectedEvents: EventListItem[];
   selectedSessionId?: string | null;
   workflowSummary?: RuntimeWorkflowControlPlaneSummary | null;
+  evidenceSigner?: RuntimeEvidenceSignerConfig | null;
 }): RuntimeSessionReplaySnapshot {
   const sessions = sortByUpdatedAtDesc(params.sessions);
   const selectedSessionId = toNonEmptyString(params.selectedSessionId) ?? sessions[0]?.sessionId ?? null;
@@ -5653,8 +5771,9 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
     selectedSessionFound: selectedSession !== null,
   });
 
-  return {
-    generatedAt: new Date().toISOString(),
+  const generatedAt = new Date().toISOString();
+  const unsignedSnapshot: Omit<RuntimeSessionReplaySnapshot, "evidenceSignature"> = {
+    generatedAt,
     source: "repo_owned_runtime_session_replay",
     mirrorVersion: 1,
     selectedSessionId,
@@ -5741,10 +5860,25 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
         latestVerifiedAt: selectedEventInsight.latestVerifiedAt,
         latestVerifiedRoute: selectedEventInsight.latestVerifiedRoute,
         latestVerifiedIntent: selectedEventInsight.latestVerifiedIntent,
+        latestContextSource: selectedEventInsight.latestContextSource,
+        latestContextIngressSource: selectedEventInsight.latestContextIngressSource,
+        latestVerifiedContextSource: selectedEventInsight.latestVerifiedContextSource,
+        latestVerifiedContextIngressSource: selectedEventInsight.latestVerifiedContextIngressSource,
         bySource: selectedEventInsight.bySource,
         byType: selectedEventInsight.byType,
         byRoute: selectedEventInsight.byRoute,
       },
     },
+  };
+
+  return {
+    ...unsignedSnapshot,
+    evidenceSignature: signEvidencePayload(unsignedSnapshot, {
+      enabled: params.evidenceSigner?.enabled ?? false,
+      privateKeyPem: params.evidenceSigner?.privateKeyPem ?? null,
+      keyId: params.evidenceSigner?.keyId ?? null,
+      signerId: params.evidenceSigner?.signerId ?? "api-backend",
+      signedAt: params.evidenceSigner?.signedAt ?? generatedAt,
+    }),
   };
 }

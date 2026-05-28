@@ -4,7 +4,15 @@ param(
   [string]$OutputJsonPath = "artifacts/release-evidence/report.json",
   [string]$OutputMarkdownPath = "artifacts/release-evidence/report.md",
   [string]$OutputManifestJsonPath = "artifacts/release-evidence/manifest.json",
-  [string]$OutputManifestMarkdownPath = "artifacts/release-evidence/manifest.md"
+  [string]$OutputManifestMarkdownPath = "artifacts/release-evidence/manifest.md",
+  [string]$OutputRuntimeProofJsonPath = "",
+  [string]$OutputRuntimeProofMarkdownPath = "",
+  [string]$OutputActionDeskKpiJsonPath = "",
+  [string]$OutputActionDeskKpiMarkdownPath = "",
+  [string]$OutputConsultationBookingProofJsonPath = "",
+  [string]$OutputConsultationBookingProofMarkdownPath = "",
+  [string]$RuntimeSurfaceSnapshotPath = "artifacts/runtime/runtime-surface-snapshot.json",
+  [int]$HostedDirectLiveProofMaxAgeHours = 24
 )
 
 $ErrorActionPreference = "Stop"
@@ -58,6 +66,35 @@ function Get-StatusValueOrDefault {
   return $raw
 }
 
+function Get-AggregateEvidenceStatus {
+  param(
+    [Parameter(Mandatory = $false)]
+    [AllowNull()]
+    [object[]]$Statuses
+  )
+
+  $normalized = @()
+  foreach ($status in @($Statuses)) {
+    $normalized += Get-StatusValueOrDefault -Value $status -DefaultValue "unavailable"
+  }
+
+  if ($normalized.Count -eq 0) {
+    return "unavailable"
+  }
+
+  $passCount = @($normalized | Where-Object { $_ -eq "pass" }).Count
+  if ($passCount -eq $normalized.Count) {
+    return "pass"
+  }
+
+  $observedCount = @($normalized | Where-Object { $_ -ne "unavailable" }).Count
+  if ($observedCount -eq 0) {
+    return "unavailable"
+  }
+
+  return "fail"
+}
+
 function Convert-ToNonNegativeIntOrDefault {
   param(
     [Parameter(Mandatory = $false)]
@@ -80,6 +117,91 @@ function Convert-ToNonNegativeIntOrDefault {
   }
 
   return $parsed
+}
+
+function Convert-ToNullableDateTimeOffset {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  $raw = [string]$Value
+  if ([string]::IsNullOrWhiteSpace($raw)) {
+    return $null
+  }
+
+  $parsed = [DateTimeOffset]::MinValue
+  if (-not [DateTimeOffset]::TryParse($raw, [ref]$parsed)) {
+    return $null
+  }
+
+  return $parsed.ToUniversalTime()
+}
+
+function New-HostedDirectLiveProofFreshnessSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$GeneratedAt,
+    [Parameter(Mandatory = $true)]
+    [DateTimeOffset]$ReferenceTimeUtc,
+    [Parameter(Mandatory = $true)]
+    [int]$MaxAgeHours
+  )
+
+  $default = [ordered]@{
+    generatedAt      = $null
+    generatedAtIsIso = $false
+    ageMinutes       = $null
+    maxAgeHours      = $(if ($MaxAgeHours -gt 0) { $MaxAgeHours } else { $null })
+    status           = "unavailable"
+    summary          = "unavailable"
+  }
+
+  if ($MaxAgeHours -lt 1) {
+    $default.status = "disabled"
+    $default.summary = "disabled"
+    return $default
+  }
+
+  $parsedGeneratedAt = Convert-ToNullableDateTimeOffset -Value $GeneratedAt
+  if ($null -eq $parsedGeneratedAt) {
+    $default.status = "fail"
+    $default.summary = "generatedAt missing or invalid"
+    return $default
+  }
+
+  $age = $ReferenceTimeUtc - $parsedGeneratedAt
+  if ($age.TotalMinutes -lt -5) {
+    return [ordered]@{
+      generatedAt      = $parsedGeneratedAt.ToString("o")
+      generatedAtIsIso = $true
+      ageMinutes       = $null
+      maxAgeHours      = $MaxAgeHours
+      status           = "fail"
+      summary          = "generatedAt is in the future"
+    }
+  }
+
+  $ageMinutes = [int][Math]::Floor([Math]::Max($age.TotalMinutes, 0))
+  if ($age.TotalHours -gt $MaxAgeHours) {
+    return [ordered]@{
+      generatedAt      = $parsedGeneratedAt.ToString("o")
+      generatedAtIsIso = $true
+      ageMinutes       = $ageMinutes
+      maxAgeHours      = $MaxAgeHours
+      status           = "fail"
+      summary          = ("stale: age=" + $ageMinutes + "m exceeds max=" + ($MaxAgeHours * 60) + "m")
+    }
+  }
+
+  return [ordered]@{
+    generatedAt      = $parsedGeneratedAt.ToString("o")
+    generatedAtIsIso = $true
+    ageMinutes       = $ageMinutes
+    maxAgeHours      = $MaxAgeHours
+    status           = "pass"
+    summary          = ("fresh: age=" + $ageMinutes + "m within max=" + ($MaxAgeHours * 60) + "m")
+  }
 }
 
 function New-RuntimeGuardrailsPrimaryPath {
@@ -149,6 +271,162 @@ function New-ProviderUsagePrimaryEntry {
   }
 }
 
+function New-ActionDeskWorkflowKpiReport {
+  param(
+    [Parameter(Mandatory = $true)]
+    [object]$Report,
+    [Parameter(Mandatory = $true)]
+    [string]$GeneratedAt,
+    [Parameter(Mandatory = $true)]
+    [string]$BadgeDetailsPath,
+    [Parameter(Mandatory = $true)]
+    [string]$ReleaseEvidenceReportJsonPath,
+    [Parameter(Mandatory = $true)]
+    [string]$ReleaseEvidenceManifestJsonPath,
+    [Parameter(Mandatory = $true)]
+    [string]$RuntimeProofReportJsonPath,
+    [Parameter(Mandatory = $true)]
+    [string]$NavigatorVisaFlowsPath
+  )
+
+  $scenarioNames = @()
+  foreach ($scenarioName in @($Report.navigatorVisaFlows.scenarioNames)) {
+    $normalizedScenarioName = ([string]$scenarioName).Trim().ToLowerInvariant()
+    if (-not [string]::IsNullOrWhiteSpace($normalizedScenarioName)) {
+      $scenarioNames += $normalizedScenarioName
+    }
+  }
+
+  $leadQualificationReady =
+    $Report.caseWikiRoutingContext.status -eq "pass" -and
+    $Report.caseWikiRoutingContext.observed -eq $true -and
+    [string]$Report.caseWikiRoutingContext.contextSource -eq "case_wiki" -and
+    -not [string]::IsNullOrWhiteSpace([string]$Report.caseWikiRoutingContext.nextAction)
+
+  $consultationBookingProof = $Report.consultationBookingProof
+  $consultationBookingProofStatus = Get-StatusValueOrDefault -Value $consultationBookingProof.status -DefaultValue "unavailable"
+  $consultationBookingReady = $consultationBookingProofStatus -eq "proof_ready"
+  $consultationBookingStagedReady = $consultationBookingProof.stagedReady -eq $true
+  $consultationBookingCalendarWritebackObserved = $consultationBookingProof.calendarConnector.writebackObserved -eq $true
+  $consultationBookingApprovedArtifactObserved = $consultationBookingProof.calendarConnector.approvedBookingArtifactObserved -eq $true
+  $consultationBookingScenarioObserved = $consultationBookingProof.repoOwnedWorkflow.bookingScenarioObserved -eq $true
+  $consultationBookingNextGap = if (@($consultationBookingProof.nextGaps).Count -gt 0) {
+    @($consultationBookingProof.nextGaps) -join ", "
+  } else {
+    "Add Calendar-backed booking proof or an approved booking artifact before claiming this outcome."
+  }
+
+  $missingDocumentFollowUpReady =
+    $Report.navigatorVisaFlows.status -eq "pass" -and
+    ($scenarioNames -contains "reminder") -and
+    $Report.caseWikiGatewayHydration.observed -eq $true -and
+    -not [string]::IsNullOrWhiteSpace([string]$Report.caseWikiGatewayHydration.blocker)
+
+  $crmHandoffReady =
+    $Report.navigatorVisaFlows.status -eq "pass" -and
+    ($scenarioNames -contains "handoff") -and
+    ($scenarioNames -contains "escalation") -and
+    $Report.browserWorkerRecovery.status -eq "pass"
+
+  $workflows = @(
+    [ordered]@{
+      id              = "lead_qualification"
+      label           = "Lead qualification"
+      status          = $(if ($leadQualificationReady) { "proof_ready" } else { "needs_evidence" })
+      buyerOutcome    = "Lead has a compiled Case Wiki focus, blocker, and next operator action."
+      proofSignal     = "caseWikiRoutingContext"
+      evidenceRefs    = @("release-evidence/report.json#caseWikiRoutingContext")
+      nextGap         = $(if ($leadQualificationReady) { $null } else { "Publish a passing Case Wiki routing context with a non-empty next action." })
+    },
+    [ordered]@{
+      id              = "consultation_booking"
+      label           = "Consultation booking"
+      status          = $(if ($consultationBookingReady) { "proof_ready" } else { "needs_connector" })
+      buyerOutcome    = "Consultation slot is prepared or booked with approval-safe evidence."
+      proofSignal     = "consultationBookingProof"
+      evidenceRefs    = @("release-evidence/consultation-booking-proof.json", "configs/skills.catalog.json#consultation-booking")
+      nextGap         = $(if ($consultationBookingReady) { $null } else { $consultationBookingNextGap })
+    },
+    [ordered]@{
+      id              = "missing_document_follow_up"
+      label           = "Missing-document follow-up"
+      status          = $(if ($missingDocumentFollowUpReady) { "proof_ready" } else { "needs_evidence" })
+      buyerOutcome    = "Missing-document follow-up is prepared, verified, and replay-backed."
+      proofSignal     = "navigatorVisaFlows.reminder"
+      evidenceRefs    = @("demo-e2e/navigator-visa-flows.json#reminder", "release-evidence/report.json#caseWikiGatewayHydration")
+      nextGap         = $(if ($missingDocumentFollowUpReady) { $null } else { "Restore reminder flow proof plus Case Wiki blocker hydration." })
+    },
+    [ordered]@{
+      id              = "crm_handoff"
+      label           = "CRM prep and human handoff"
+      status          = $(if ($crmHandoffReady) { "proof_ready" } else { "needs_evidence" })
+      buyerOutcome    = "CRM/human handoff is prepared behind a protected approval boundary."
+      proofSignal     = "navigatorVisaFlows.handoff_escalation"
+      evidenceRefs    = @("demo-e2e/navigator-visa-flows.json#handoff", "demo-e2e/navigator-visa-flows.json#escalation")
+      nextGap         = $(if ($crmHandoffReady) { $null } else { "Restore handoff/escalation browser-worker proof and approval boundary evidence." })
+    }
+  )
+
+  $proofReadyCount = @($workflows | Where-Object { $_.status -eq "proof_ready" }).Count
+  $needsConnectorCount = @($workflows | Where-Object { $_.status -eq "needs_connector" }).Count
+  $needsEvidenceCount = @($workflows | Where-Object { $_.status -eq "needs_evidence" }).Count
+  $status = if ($proofReadyCount -eq $workflows.Count) {
+    "pilot_ready"
+  } elseif ($proofReadyCount -ge 3) {
+    "partial"
+  } else {
+    "needs_evidence"
+  }
+
+  return [ordered]@{
+    schemaVersion = "1.0"
+    generatedAt   = $GeneratedAt
+    product       = "AI Action Desk for immigration teams"
+    status        = $status
+    summary       = [ordered]@{
+      totalWorkflows       = $workflows.Count
+      proofReadyWorkflows  = $proofReadyCount
+      needsConnectorCount  = $needsConnectorCount
+      needsEvidenceCount   = $needsEvidenceCount
+      headline             = ("workflow_proof=" + $proofReadyCount + "/" + $workflows.Count + "; connector_gaps=" + $needsConnectorCount + "; evidence_gaps=" + $needsEvidenceCount)
+    }
+    metrics       = [ordered]@{
+      leadQualificationProofReady      = $leadQualificationReady
+      consultationBookingProofReady    = $consultationBookingReady
+      consultationBookingProofStatus   = $consultationBookingProofStatus
+      consultationBookingStagedReady   = $consultationBookingStagedReady
+      consultationBookingCalendarWritebackObserved = $consultationBookingCalendarWritebackObserved
+      consultationBookingApprovedArtifactObserved = $consultationBookingApprovedArtifactObserved
+      consultationBookingScenarioObserved = $consultationBookingScenarioObserved
+      missingDocumentFollowUpProofReady = $missingDocumentFollowUpReady
+      crmHandoffProofReady             = $crmHandoffReady
+      navigatorVisaFlowSuccessRate     = $Report.navigatorVisaFlows.successRate
+      navigatorVisaVerifiedCount       = $Report.navigatorVisaFlows.verifiedCount
+      caseWikiAdoptionRate             = $Report.caseWikiContextAdoption.caseWikiRate
+      operatorMinutesSaved             = [ordered]@{
+        observed         = $false
+        valueMinutes     = $null
+        status           = "needs_pilot_baseline"
+        baselineRequired = $true
+        summary          = "Requires pilot before/after baseline; this report only claims repo-owned proof coverage."
+      }
+    }
+    workflows     = $workflows
+    pilotGaps     = (@(
+      $(if (-not $consultationBookingReady) { "calendar_booking_connector_proof" } else { $null }),
+      "real_crm_writeback_with_approval",
+      "pilot_baseline_for_operator_minutes_saved"
+    ) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+    source        = [ordered]@{
+      badgeDetailsPath                = $BadgeDetailsPath
+      releaseEvidenceReportJsonPath   = $ReleaseEvidenceReportJsonPath
+      releaseEvidenceManifestJsonPath = $ReleaseEvidenceManifestJsonPath
+      runtimeProofReportJsonPath      = $RuntimeProofReportJsonPath
+      navigatorVisaFlowsPath          = $NavigatorVisaFlowsPath
+    }
+  }
+}
+
 function New-LiveTransportSnapshot {
   param(
     [Parameter(Mandatory = $false)]
@@ -204,6 +482,749 @@ function New-LiveTransportSnapshot {
       connectedEventType = $(if ($null -eq $session) { $null } else { Get-StatusValueOrDefault -Value $session.connectedEventType -DefaultValue "" })
     }
     summary   = Get-StatusValueOrDefault -Value $Value.summary -DefaultValue "unavailable"
+  }
+}
+
+function New-CaseWikiEvidenceSignatureSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return [ordered]@{
+      source            = $null
+      status            = "unavailable"
+      validated         = $false
+      totalArtifacts    = 0
+      signedArtifacts   = 0
+      unsignedArtifacts = 0
+      signatureStatus   = $null
+      algorithm         = $null
+      canonicalization  = $null
+      payloadHash       = $null
+      keyId             = $null
+      signerId          = $null
+      signedAt          = $null
+      signedAtIsIso     = $false
+      signaturePresent  = $null
+      caseId            = $null
+      sessionId         = $null
+      overviewStatus    = $null
+      focusKind         = $null
+      focusLabel        = $null
+      nextAction        = $null
+      sourceRefsCount   = 0
+    }
+  }
+
+  $signedAt = Get-StatusValueOrDefault -Value $Value.signedAt -DefaultValue ""
+  $signedAtIsIso = $false
+  if (-not [string]::IsNullOrWhiteSpace($signedAt)) {
+    $parsedSignedAt = [DateTimeOffset]::MinValue
+    $signedAtIsIso = [DateTimeOffset]::TryParse($signedAt, [ref]$parsedSignedAt)
+  }
+  $validated = ($Value.validated -eq $true)
+  $signatureStatus = $(if ([string]::IsNullOrWhiteSpace([string]$Value.signatureStatus)) { $null } else { [string]$Value.signatureStatus })
+  $status = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
+  if ($validated -and $status -eq "pass" -and $signatureStatus -eq "unsigned") {
+    $status = "warn"
+  }
+
+  return [ordered]@{
+    source            = $(if ([string]::IsNullOrWhiteSpace([string]$Value.source)) { "badge_details" } else { [string]$Value.source })
+    status            = $status
+    validated         = $validated
+    totalArtifacts    = Convert-ToNonNegativeIntOrDefault -Value $Value.totalArtifacts -DefaultValue 0
+    signedArtifacts   = Convert-ToNonNegativeIntOrDefault -Value $Value.signedArtifacts -DefaultValue 0
+    unsignedArtifacts = Convert-ToNonNegativeIntOrDefault -Value $Value.unsignedArtifacts -DefaultValue 0
+    signatureStatus   = $signatureStatus
+    algorithm         = $(if ([string]::IsNullOrWhiteSpace([string]$Value.algorithm)) { $null } else { [string]$Value.algorithm })
+    canonicalization  = $(if ([string]::IsNullOrWhiteSpace([string]$Value.canonicalization)) { $null } else { [string]$Value.canonicalization })
+    payloadHash       = $(if ([string]::IsNullOrWhiteSpace([string]$Value.payloadHash)) { $null } else { [string]$Value.payloadHash })
+    keyId             = $(if ([string]::IsNullOrWhiteSpace([string]$Value.keyId)) { $null } else { [string]$Value.keyId })
+    signerId          = $(if ([string]::IsNullOrWhiteSpace([string]$Value.signerId)) { $null } else { [string]$Value.signerId })
+    signedAt          = $(if ([string]::IsNullOrWhiteSpace($signedAt)) { $null } else { $signedAt })
+    signedAtIsIso     = $signedAtIsIso
+    signaturePresent  = $(if ($null -eq $Value.signaturePresent) { $null } else { $Value.signaturePresent -eq $true })
+    caseId            = $(if ([string]::IsNullOrWhiteSpace([string]$Value.caseId)) { $null } else { [string]$Value.caseId })
+    sessionId         = $(if ([string]::IsNullOrWhiteSpace([string]$Value.sessionId)) { $null } else { [string]$Value.sessionId })
+    overviewStatus    = $(if ([string]::IsNullOrWhiteSpace([string]$Value.overviewStatus)) { $null } else { [string]$Value.overviewStatus })
+    focusKind         = $(if ([string]::IsNullOrWhiteSpace([string]$Value.focusKind)) { $null } else { [string]$Value.focusKind })
+    focusLabel        = $(if ([string]::IsNullOrWhiteSpace([string]$Value.focusLabel)) { $null } else { [string]$Value.focusLabel })
+    nextAction        = $(if ([string]::IsNullOrWhiteSpace([string]$Value.nextAction)) { $null } else { [string]$Value.nextAction })
+    sourceRefsCount   = Convert-ToNonNegativeIntOrDefault -Value $Value.sourceRefsCount -DefaultValue 0
+  }
+}
+
+function New-CaseWikiComplianceSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return [ordered]@{
+      status               = "unavailable"
+      validated            = $false
+      observed             = $false
+      tenantId             = $null
+      templateId           = $null
+      requestedTemplateId  = $null
+      source               = $null
+      fallbackApplied      = $null
+      controls             = [ordered]@{
+        piiRedactionLevel   = $null
+        crossTenantAdminOnly = $null
+        approvalSlaEnforced = $null
+        auditTrailRequired  = $null
+      }
+      retention            = [ordered]@{
+        rawMediaDays  = 0
+        auditLogsDays = 0
+        eventsDays    = 0
+        sessionsDays  = 0
+      }
+      evidenceSigning      = [ordered]@{
+        enabled                 = $null
+        expectedSignatureStatus = $null
+        keyState                = $null
+        signerId                = $null
+        keyId                   = $null
+      }
+      observedSignatureStatus = $null
+      signatureMatch       = $null
+      summary              = $null
+    }
+  }
+
+  $snapshot = [ordered]@{
+    status               = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
+    validated            = ($Value.validated -eq $true)
+    observed             = ($Value.observed -eq $true)
+    tenantId             = $(if ([string]::IsNullOrWhiteSpace([string]$Value.tenantId)) { $null } else { [string]$Value.tenantId })
+    templateId           = $(if ([string]::IsNullOrWhiteSpace([string]$Value.templateId)) { $null } else { [string]$Value.templateId })
+    requestedTemplateId  = $(if ([string]::IsNullOrWhiteSpace([string]$Value.requestedTemplateId)) { $null } else { [string]$Value.requestedTemplateId })
+    source               = $(if ([string]::IsNullOrWhiteSpace([string]$Value.source)) { $null } else { [string]$Value.source })
+    fallbackApplied      = $(if ($null -eq $Value.fallbackApplied) { $null } else { $Value.fallbackApplied -eq $true })
+    controls             = [ordered]@{
+      piiRedactionLevel   = $(if ($null -eq $Value.controls) { $null } else { Get-StatusValueOrDefault -Value $Value.controls.piiRedactionLevel -DefaultValue "" })
+      crossTenantAdminOnly = $(if ($null -eq $Value.controls -or $null -eq $Value.controls.crossTenantAdminOnly) { $null } else { $Value.controls.crossTenantAdminOnly -eq $true })
+      approvalSlaEnforced = $(if ($null -eq $Value.controls -or $null -eq $Value.controls.approvalSlaEnforced) { $null } else { $Value.controls.approvalSlaEnforced -eq $true })
+      auditTrailRequired  = $(if ($null -eq $Value.controls -or $null -eq $Value.controls.auditTrailRequired) { $null } else { $Value.controls.auditTrailRequired -eq $true })
+    }
+    retention            = [ordered]@{
+      rawMediaDays  = $(if ($null -eq $Value.retention) { 0 } else { Convert-ToNonNegativeIntOrDefault -Value $Value.retention.rawMediaDays -DefaultValue 0 })
+      auditLogsDays = $(if ($null -eq $Value.retention) { 0 } else { Convert-ToNonNegativeIntOrDefault -Value $Value.retention.auditLogsDays -DefaultValue 0 })
+      eventsDays    = $(if ($null -eq $Value.retention) { 0 } else { Convert-ToNonNegativeIntOrDefault -Value $Value.retention.eventsDays -DefaultValue 0 })
+      sessionsDays  = $(if ($null -eq $Value.retention) { 0 } else { Convert-ToNonNegativeIntOrDefault -Value $Value.retention.sessionsDays -DefaultValue 0 })
+    }
+    evidenceSigning      = [ordered]@{
+      enabled                 = $(if ($null -eq $Value.evidenceSigning -or $null -eq $Value.evidenceSigning.enabled) { $null } else { $Value.evidenceSigning.enabled -eq $true })
+      expectedSignatureStatus = $(if ($null -eq $Value.evidenceSigning) { $null } else { Get-StatusValueOrDefault -Value $Value.evidenceSigning.expectedSignatureStatus -DefaultValue "" })
+      keyState                = $(if ($null -eq $Value.evidenceSigning) { $null } else { Get-StatusValueOrDefault -Value $Value.evidenceSigning.keyState -DefaultValue "" })
+      signerId                = $(if ($null -eq $Value.evidenceSigning) { $null } else { Get-StatusValueOrDefault -Value $Value.evidenceSigning.signerId -DefaultValue "" })
+      keyId                   = $(if ($null -eq $Value.evidenceSigning) { $null } else { Get-StatusValueOrDefault -Value $Value.evidenceSigning.keyId -DefaultValue "" })
+    }
+    observedSignatureStatus = $(if ([string]::IsNullOrWhiteSpace([string]$Value.observedSignatureStatus)) { $null } else { [string]$Value.observedSignatureStatus })
+    signatureMatch       = $(if ($null -eq $Value.signatureMatch) { $null } else { $Value.signatureMatch -eq $true })
+    summary              = $(if ([string]::IsNullOrWhiteSpace([string]$Value.summary)) { $null } else { [string]$Value.summary })
+  }
+
+  if ([string]::IsNullOrWhiteSpace([string]$snapshot.summary)) {
+    $summaryParts = @()
+    if (-not [string]::IsNullOrWhiteSpace([string]$snapshot.templateId)) {
+      $summaryParts += ("template=" + [string]$snapshot.templateId)
+    }
+    if (
+      -not [string]::IsNullOrWhiteSpace([string]$snapshot.requestedTemplateId) -and
+      [string]$snapshot.requestedTemplateId -ne [string]$snapshot.templateId
+    ) {
+      $summaryParts += ("requested=" + [string]$snapshot.requestedTemplateId)
+    }
+    if ([string]$snapshot.source -eq "tenant_override") {
+      $summaryParts += "tenant_override"
+    } elseif ([string]$snapshot.source -eq "template_default") {
+      $summaryParts += "template_default"
+    } elseif (-not [string]::IsNullOrWhiteSpace([string]$snapshot.source)) {
+      $summaryParts += [string]$snapshot.source
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$snapshot.controls.piiRedactionLevel)) {
+      $summaryParts += ("pii=" + [string]$snapshot.controls.piiRedactionLevel)
+    }
+    if ($snapshot.retention.rawMediaDays -gt 0) {
+      $summaryParts += ("rawMedia=" + [string]$snapshot.retention.rawMediaDays + "d")
+    }
+    if ($null -ne $snapshot.controls.auditTrailRequired) {
+      $summaryParts += ("audit=" + $(if ($snapshot.controls.auditTrailRequired) { "required" } else { "optional" }))
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$snapshot.evidenceSigning.expectedSignatureStatus)) {
+      $summaryParts += ("signing=" + [string]$snapshot.evidenceSigning.expectedSignatureStatus)
+    }
+    if ($summaryParts.Count -gt 0) {
+      $snapshot.summary = ($summaryParts -join " | ")
+    }
+  }
+
+  return $snapshot
+}
+
+function New-HostedCaseWikiEvidenceSignatureValue {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return $null
+  }
+
+  $caseWiki = if ($null -ne $Value.caseWiki) { $Value.caseWiki } else { $null }
+  if ($null -eq $caseWiki) {
+    return $null
+  }
+
+  $evidenceSignature = if ($null -ne $caseWiki.evidenceSignature) { $caseWiki.evidenceSignature } else { $null }
+  if ($null -eq $evidenceSignature) {
+    return $null
+  }
+
+  $signatureStatus = Get-StatusValueOrDefault -Value $evidenceSignature.status -DefaultValue ""
+  $signaturePresent = if ($null -eq $evidenceSignature.signaturePresent) { $null } else { $evidenceSignature.signaturePresent -eq $true }
+  $signedArtifacts = if ($signatureStatus -eq "signed" -and $signaturePresent -eq $true) { 1 } else { 0 }
+  $unsignedArtifacts = if ($signatureStatus -eq "unsigned") { 1 } else { 0 }
+  $totalArtifacts = if ($signedArtifacts -gt 0 -or $unsignedArtifacts -gt 0 -or -not [string]::IsNullOrWhiteSpace($signatureStatus)) { 1 } else { 0 }
+  $status = if ($signatureStatus -eq "signed" -and $signaturePresent -eq $true) { "pass" } elseif ($signatureStatus -eq "unsigned") { "warn" } else { "unavailable" }
+
+  return [ordered]@{
+    source            = "hosted_direct_live_proof"
+    status            = $status
+    validated         = ($status -ne "unavailable")
+    totalArtifacts    = $totalArtifacts
+    signedArtifacts   = $signedArtifacts
+    unsignedArtifacts = $unsignedArtifacts
+    signatureStatus   = $(if ([string]::IsNullOrWhiteSpace($signatureStatus)) { $null } else { $signatureStatus })
+    algorithm         = $(if ([string]::IsNullOrWhiteSpace([string]$evidenceSignature.algorithm)) { $null } else { [string]$evidenceSignature.algorithm })
+    canonicalization  = $(if ([string]::IsNullOrWhiteSpace([string]$evidenceSignature.canonicalization)) { $null } else { [string]$evidenceSignature.canonicalization })
+    payloadHash       = $(if ([string]::IsNullOrWhiteSpace([string]$evidenceSignature.payloadHash)) { $null } else { [string]$evidenceSignature.payloadHash })
+    keyId             = $(if ([string]::IsNullOrWhiteSpace([string]$evidenceSignature.keyId)) { $null } else { [string]$evidenceSignature.keyId })
+    signerId          = $(if ([string]::IsNullOrWhiteSpace([string]$evidenceSignature.signerId)) { $null } else { [string]$evidenceSignature.signerId })
+    signedAt          = $(if ([string]::IsNullOrWhiteSpace([string]$evidenceSignature.signedAt)) { $null } else { [string]$evidenceSignature.signedAt })
+    signaturePresent  = $signaturePresent
+    caseId            = $(if ([string]::IsNullOrWhiteSpace([string]$caseWiki.caseId)) { $null } else { [string]$caseWiki.caseId })
+    sessionId         = $(if ([string]::IsNullOrWhiteSpace([string]$caseWiki.sessionId)) { $null } else { [string]$caseWiki.sessionId })
+    overviewStatus    = $(if ([string]::IsNullOrWhiteSpace([string]$caseWiki.overviewStatus)) { $null } else { [string]$caseWiki.overviewStatus })
+    focusKind         = $(if ([string]::IsNullOrWhiteSpace([string]$caseWiki.focusKind)) { $null } else { [string]$caseWiki.focusKind })
+    focusLabel        = $(if ([string]::IsNullOrWhiteSpace([string]$caseWiki.focusLabel)) { $null } else { [string]$caseWiki.focusLabel })
+    nextAction        = $(if ([string]::IsNullOrWhiteSpace([string]$caseWiki.recommendedNextAction)) { $null } else { [string]$caseWiki.recommendedNextAction })
+    sourceRefsCount   = Convert-ToNonNegativeIntOrDefault -Value $caseWiki.sourceRefsCount -DefaultValue 0
+  }
+}
+
+function Resolve-CaseWikiEvidenceSignatureSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$BadgeSnapshot,
+    [Parameter(Mandatory = $false)]
+    [object]$HostedDirectLiveProofSnapshot,
+    [Parameter(Mandatory = $false)]
+    [object]$HostedSnapshot
+  )
+
+  $fallbackSnapshot = if ($null -eq $BadgeSnapshot) {
+    New-CaseWikiEvidenceSignatureSnapshot -Value $null
+  } else {
+    $BadgeSnapshot
+  }
+
+  if ($null -eq $HostedDirectLiveProofSnapshot -or $null -eq $HostedSnapshot) {
+    return $fallbackSnapshot
+  }
+
+  $hostedStatus = Get-StatusValueOrDefault -Value $HostedDirectLiveProofSnapshot.status -DefaultValue "unavailable"
+  $hostedExpectedSignatureStatus = Get-StatusValueOrDefault -Value $HostedDirectLiveProofSnapshot.caseWikiExpectedSignatureStatus -DefaultValue ""
+  $hostedObservedSignatureStatus = Get-StatusValueOrDefault -Value $HostedDirectLiveProofSnapshot.caseWikiSignatureStatus -DefaultValue ""
+  $hostedObservedSignaturePresent = ($HostedDirectLiveProofSnapshot.caseWikiSignaturePresent -eq $true)
+
+  if (
+    $hostedStatus -eq "pass" -and
+    $HostedDirectLiveProofSnapshot.observed -eq $true -and
+    $hostedExpectedSignatureStatus -eq "signed" -and
+    $hostedObservedSignatureStatus -eq "signed" -and
+    $hostedObservedSignaturePresent
+  ) {
+    return $HostedSnapshot
+  }
+
+  return $fallbackSnapshot
+}
+
+function New-CaseWikiRoutingContextSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return [ordered]@{
+      status          = "unavailable"
+      validated       = $false
+      observed        = $false
+      contextSource   = $null
+      ingressSource   = $null
+      focusId         = $null
+      blocker         = $null
+      nextAction      = $null
+      route           = $null
+      mode            = $null
+      requestedIntent = $null
+      routedIntent    = $null
+    }
+  }
+
+  return [ordered]@{
+    status          = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
+    validated       = ($Value.validated -eq $true)
+    observed        = ($Value.observed -eq $true)
+    contextSource   = $(if ([string]::IsNullOrWhiteSpace([string]$Value.contextSource)) { $null } else { [string]$Value.contextSource })
+    ingressSource   = $(if ([string]::IsNullOrWhiteSpace([string]$Value.ingressSource)) { $null } else { [string]$Value.ingressSource })
+    focusId         = $(if ([string]::IsNullOrWhiteSpace([string]$Value.focusId)) { $null } else { [string]$Value.focusId })
+    blocker         = $(if ([string]::IsNullOrWhiteSpace([string]$Value.blocker)) { $null } else { [string]$Value.blocker })
+    nextAction      = $(if ([string]::IsNullOrWhiteSpace([string]$Value.nextAction)) { $null } else { [string]$Value.nextAction })
+    route           = $(if ([string]::IsNullOrWhiteSpace([string]$Value.route)) { $null } else { [string]$Value.route })
+    mode            = $(if ([string]::IsNullOrWhiteSpace([string]$Value.mode)) { $null } else { [string]$Value.mode })
+    requestedIntent = $(if ([string]::IsNullOrWhiteSpace([string]$Value.requestedIntent)) { $null } else { [string]$Value.requestedIntent })
+    routedIntent    = $(if ([string]::IsNullOrWhiteSpace([string]$Value.routedIntent)) { $null } else { [string]$Value.routedIntent })
+  }
+}
+
+function New-CaseWikiGatewayHydrationSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return [ordered]@{
+      status                    = "unavailable"
+      validated                 = $false
+      observed                  = $false
+      sessionId                 = $null
+      noteEventId               = $null
+      questionId                = $null
+      questionMatched           = $null
+      noteSourceRefSeen         = $null
+      questionSuggestedNextStep = $null
+      contextSource             = $null
+      ingressSource             = $null
+      focusId                   = $null
+      blocker                   = $null
+      nextAction                = $null
+      route                     = $null
+      mode                      = $null
+      requestedIntent           = $null
+      routedIntent              = $null
+    }
+  }
+
+  return [ordered]@{
+    status                    = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
+    validated                 = ($Value.validated -eq $true)
+    observed                  = ($Value.observed -eq $true)
+    sessionId                 = $(if ([string]::IsNullOrWhiteSpace([string]$Value.sessionId)) { $null } else { [string]$Value.sessionId })
+    noteEventId               = $(if ([string]::IsNullOrWhiteSpace([string]$Value.noteEventId)) { $null } else { [string]$Value.noteEventId })
+    questionId                = $(if ([string]::IsNullOrWhiteSpace([string]$Value.questionId)) { $null } else { [string]$Value.questionId })
+    questionMatched           = $(if ($null -eq $Value.questionMatched) { $null } else { $Value.questionMatched -eq $true })
+    noteSourceRefSeen         = $(if ($null -eq $Value.noteSourceRefSeen) { $null } else { $Value.noteSourceRefSeen -eq $true })
+    questionSuggestedNextStep = $(if ([string]::IsNullOrWhiteSpace([string]$Value.questionSuggestedNextStep)) { $null } else { [string]$Value.questionSuggestedNextStep })
+    contextSource             = $(if ([string]::IsNullOrWhiteSpace([string]$Value.contextSource)) { $null } else { [string]$Value.contextSource })
+    ingressSource             = $(if ([string]::IsNullOrWhiteSpace([string]$Value.ingressSource)) { $null } else { [string]$Value.ingressSource })
+    focusId                   = $(if ([string]::IsNullOrWhiteSpace([string]$Value.focusId)) { $null } else { [string]$Value.focusId })
+    blocker                   = $(if ([string]::IsNullOrWhiteSpace([string]$Value.blocker)) { $null } else { [string]$Value.blocker })
+    nextAction                = $(if ([string]::IsNullOrWhiteSpace([string]$Value.nextAction)) { $null } else { [string]$Value.nextAction })
+    route                     = $(if ([string]::IsNullOrWhiteSpace([string]$Value.route)) { $null } else { [string]$Value.route })
+    mode                      = $(if ([string]::IsNullOrWhiteSpace([string]$Value.mode)) { $null } else { [string]$Value.mode })
+    requestedIntent           = $(if ([string]::IsNullOrWhiteSpace([string]$Value.requestedIntent)) { $null } else { [string]$Value.requestedIntent })
+    routedIntent              = $(if ([string]::IsNullOrWhiteSpace([string]$Value.routedIntent)) { $null } else { [string]$Value.routedIntent })
+  }
+}
+
+function New-CaseWikiContextAdoptionSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return [ordered]@{
+      status                = "unavailable"
+      validated             = $false
+      observed              = $false
+      observedCount         = 0
+      caseWikiObservedCount = 0
+      inputOnlyObservedCount = 0
+      unknownObservedCount  = 0
+      caseWikiRate          = $null
+    }
+  }
+
+  $caseWikiRate = $null
+  if ($null -ne $Value.caseWikiRate -and -not [string]::IsNullOrWhiteSpace([string]$Value.caseWikiRate)) {
+    $caseWikiRate = [double]$Value.caseWikiRate
+  }
+
+  return [ordered]@{
+    status                 = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
+    validated              = ($Value.validated -eq $true)
+    observed               = ($Value.observed -eq $true)
+    observedCount          = Convert-ToNonNegativeIntOrDefault -Value $Value.observedCount -DefaultValue 0
+    caseWikiObservedCount  = Convert-ToNonNegativeIntOrDefault -Value $Value.caseWikiObservedCount -DefaultValue 0
+    inputOnlyObservedCount = Convert-ToNonNegativeIntOrDefault -Value $Value.inputOnlyObservedCount -DefaultValue 0
+    unknownObservedCount   = Convert-ToNonNegativeIntOrDefault -Value $Value.unknownObservedCount -DefaultValue 0
+    caseWikiRate           = $caseWikiRate
+  }
+}
+
+function New-CaseWikiRuntimeSurfaceIngressSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return [ordered]@{
+      status        = "unavailable"
+      observed      = $false
+      updatedAt     = $null
+      contextSource = $null
+      ingressSource = $null
+      focusId       = $null
+      blocker       = $null
+      nextAction    = $null
+      route         = $null
+      summary       = "unavailable"
+    }
+  }
+
+  $observed = ($Value.observed -eq $true)
+  $updatedAt = $(if ([string]::IsNullOrWhiteSpace([string]$Value.updatedAt)) { $null } else { [string]$Value.updatedAt })
+  $contextSource = $(if ([string]::IsNullOrWhiteSpace([string]$Value.contextSource)) { $null } else { [string]$Value.contextSource })
+  $ingressSource = $(if ([string]::IsNullOrWhiteSpace([string]$Value.ingressSource)) { $null } else { [string]$Value.ingressSource })
+  $focusId = $(if ([string]::IsNullOrWhiteSpace([string]$Value.focusId)) { $null } else { [string]$Value.focusId })
+  $blocker = $(if ([string]::IsNullOrWhiteSpace([string]$Value.blocker)) { $null } else { [string]$Value.blocker })
+  $nextAction = $(if ([string]::IsNullOrWhiteSpace([string]$Value.nextAction)) { $null } else { [string]$Value.nextAction })
+  $route = $(if ([string]::IsNullOrWhiteSpace([string]$Value.route)) { $null } else { [string]$Value.route })
+
+  $hasAnySignal = $observed -or
+    -not [string]::IsNullOrWhiteSpace($updatedAt) -or
+    -not [string]::IsNullOrWhiteSpace($contextSource) -or
+    -not [string]::IsNullOrWhiteSpace($ingressSource) -or
+    -not [string]::IsNullOrWhiteSpace($focusId) -or
+    -not [string]::IsNullOrWhiteSpace($blocker) -or
+    -not [string]::IsNullOrWhiteSpace($nextAction) -or
+    -not [string]::IsNullOrWhiteSpace($route)
+
+  $status = "unavailable"
+  if ($hasAnySignal) {
+    if ($observed -and -not [string]::IsNullOrWhiteSpace($contextSource) -and -not [string]::IsNullOrWhiteSpace($ingressSource)) {
+      $status = "pass"
+    } else {
+      $status = "fail"
+    }
+  }
+
+  $summary = switch ($status) {
+    "pass" {
+      "context_source=" + $contextSource + "; ingress_source=" + $ingressSource + "; focus_id=" + $(if ([string]::IsNullOrWhiteSpace($focusId)) { "n/a" } else { $focusId }) + "; route=" + $(if ([string]::IsNullOrWhiteSpace($route)) { "n/a" } else { $route })
+    }
+    "fail" {
+      "runtime surface case wiki ingress is incomplete"
+    }
+    default {
+      "unavailable"
+    }
+  }
+
+  return [ordered]@{
+    status        = $status
+    observed      = $observed
+    updatedAt     = $updatedAt
+    contextSource = $contextSource
+    ingressSource = $ingressSource
+    focusId       = $focusId
+    blocker       = $blocker
+    nextAction    = $nextAction
+    route         = $route
+    summary       = $summary
+  }
+}
+
+function New-UiRefHealingSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return [ordered]@{
+      status                 = "unavailable"
+      validated              = $false
+      observed               = $false
+      finalStatus            = $null
+      adapterMode            = $null
+      healedRefCount         = 0
+      healedRefTargets       = @()
+      staleRefCount          = 0
+      staleRefTargets        = @()
+      traceCount             = 0
+      retries                = 0
+      disabledSubmitSeen     = $null
+      enabledSubmitSeen      = $null
+      healingObservationSeen = $null
+      healingNoteSeen        = $null
+    }
+  }
+
+  return [ordered]@{
+    status                 = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
+    validated              = ($Value.validated -eq $true)
+    observed               = ($Value.observed -eq $true)
+    finalStatus            = $(if ([string]::IsNullOrWhiteSpace([string]$Value.finalStatus)) { $null } else { [string]$Value.finalStatus })
+    adapterMode            = $(if ([string]::IsNullOrWhiteSpace([string]$Value.adapterMode)) { $null } else { [string]$Value.adapterMode })
+    healedRefCount         = Convert-ToNonNegativeIntOrDefault -Value $Value.healedRefCount -DefaultValue 0
+    healedRefTargets       = @($Value.healedRefTargets | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | ForEach-Object { [string]$_ })
+    staleRefCount          = Convert-ToNonNegativeIntOrDefault -Value $Value.staleRefCount -DefaultValue 0
+    staleRefTargets        = @($Value.staleRefTargets | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | ForEach-Object { [string]$_ })
+    traceCount             = Convert-ToNonNegativeIntOrDefault -Value $Value.traceCount -DefaultValue 0
+    retries                = Convert-ToNonNegativeIntOrDefault -Value $Value.retries -DefaultValue 0
+    disabledSubmitSeen     = $(if ($null -eq $Value.disabledSubmitSeen) { $null } else { $Value.disabledSubmitSeen -eq $true })
+    enabledSubmitSeen      = $(if ($null -eq $Value.enabledSubmitSeen) { $null } else { $Value.enabledSubmitSeen -eq $true })
+    healingObservationSeen = $(if ($null -eq $Value.healingObservationSeen) { $null } else { $Value.healingObservationSeen -eq $true })
+    healingNoteSeen        = $(if ($null -eq $Value.healingNoteSeen) { $null } else { $Value.healingNoteSeen -eq $true })
+  }
+}
+
+function New-BrowserWorkerRecoverySnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return [ordered]@{
+      status                         = "unavailable"
+      validated                      = $false
+      observed                       = $false
+      finalStatus                    = $null
+      adapterMode                    = $null
+      checkpointCount                = 0
+      resumedCheckpointCount         = 0
+      healedRefCount                 = 0
+      healedRefTargets               = @()
+      staleRefCount                  = 0
+      staleRefTargets                = @()
+      traceCount                     = 0
+      retryCount                     = 0
+      runtimeRetryCount              = 0
+      runtimeResumedCheckpointCount  = 0
+      runtimeStaleRefCount           = 0
+      runtimeHealedRefCount          = 0
+      checkpointReadyCleared         = $null
+      summary                        = $null
+    }
+  }
+
+  return [ordered]@{
+    status                         = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
+    validated                      = ($Value.validated -eq $true)
+    observed                       = ($Value.observed -eq $true)
+    finalStatus                    = $(if ([string]::IsNullOrWhiteSpace([string]$Value.finalStatus)) { $null } else { [string]$Value.finalStatus })
+    adapterMode                    = $(if ([string]::IsNullOrWhiteSpace([string]$Value.adapterMode)) { $null } else { [string]$Value.adapterMode })
+    checkpointCount                = Convert-ToNonNegativeIntOrDefault -Value $Value.checkpointCount -DefaultValue 0
+    resumedCheckpointCount         = Convert-ToNonNegativeIntOrDefault -Value $Value.resumedCheckpointCount -DefaultValue 0
+    healedRefCount                 = Convert-ToNonNegativeIntOrDefault -Value $Value.healedRefCount -DefaultValue 0
+    healedRefTargets               = @($Value.healedRefTargets | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | ForEach-Object { [string]$_ })
+    staleRefCount                  = Convert-ToNonNegativeIntOrDefault -Value $Value.staleRefCount -DefaultValue 0
+    staleRefTargets                = @($Value.staleRefTargets | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | ForEach-Object { [string]$_ })
+    traceCount                     = Convert-ToNonNegativeIntOrDefault -Value $Value.traceCount -DefaultValue 0
+    retryCount                     = Convert-ToNonNegativeIntOrDefault -Value $Value.retryCount -DefaultValue 0
+    runtimeRetryCount              = Convert-ToNonNegativeIntOrDefault -Value $Value.runtimeRetryCount -DefaultValue 0
+    runtimeResumedCheckpointCount  = Convert-ToNonNegativeIntOrDefault -Value $Value.runtimeResumedCheckpointCount -DefaultValue 0
+    runtimeStaleRefCount           = Convert-ToNonNegativeIntOrDefault -Value $Value.runtimeStaleRefCount -DefaultValue 0
+    runtimeHealedRefCount          = Convert-ToNonNegativeIntOrDefault -Value $Value.runtimeHealedRefCount -DefaultValue 0
+    checkpointReadyCleared         = $(if ($null -eq $Value.checkpointReadyCleared) { $null } else { $Value.checkpointReadyCleared -eq $true })
+    summary                        = $(if ([string]::IsNullOrWhiteSpace([string]$Value.summary)) { $null } else { [string]$Value.summary })
+  }
+}
+
+function New-NavigatorVisaFlowsSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return [ordered]@{
+      status                       = "unavailable"
+      validated                    = $false
+      observed                     = $false
+      totalFlows                   = 0
+      succeededFlows               = 0
+      successRate                  = $null
+      persistentSessionCount       = 0
+      replayBundleCount            = 0
+      verifiedCount                = 0
+      staleRecoveryObservedCount   = 0
+      healedRecoveryObservedCount  = 0
+      resumedCheckpointCount       = 0
+      checkpointReadyClearedCount  = 0
+      scenarioNames                = @()
+      summary                      = $null
+    }
+  }
+
+  $successRate = $null
+  if ($null -ne $Value.successRate -and -not [string]::IsNullOrWhiteSpace([string]$Value.successRate)) {
+    $successRate = [double]$Value.successRate
+  }
+
+  return [ordered]@{
+    status                       = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
+    validated                    = ($Value.validated -eq $true)
+    observed                     = ($Value.observed -eq $true)
+    totalFlows                   = Convert-ToNonNegativeIntOrDefault -Value $Value.totalFlows -DefaultValue 0
+    succeededFlows               = Convert-ToNonNegativeIntOrDefault -Value $Value.succeededFlows -DefaultValue 0
+    successRate                  = $successRate
+    persistentSessionCount       = Convert-ToNonNegativeIntOrDefault -Value $Value.persistentSessionCount -DefaultValue 0
+    replayBundleCount            = Convert-ToNonNegativeIntOrDefault -Value $Value.replayBundleCount -DefaultValue 0
+    verifiedCount                = Convert-ToNonNegativeIntOrDefault -Value $Value.verifiedCount -DefaultValue 0
+    staleRecoveryObservedCount   = Convert-ToNonNegativeIntOrDefault -Value $Value.staleRecoveryObservedCount -DefaultValue 0
+    healedRecoveryObservedCount  = Convert-ToNonNegativeIntOrDefault -Value $Value.healedRecoveryObservedCount -DefaultValue 0
+    resumedCheckpointCount       = Convert-ToNonNegativeIntOrDefault -Value $Value.resumedCheckpointCount -DefaultValue 0
+    checkpointReadyClearedCount  = Convert-ToNonNegativeIntOrDefault -Value $Value.checkpointReadyClearedCount -DefaultValue 0
+    scenarioNames                = @($Value.scenarioNames | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | ForEach-Object { [string]$_ })
+    summary                      = $(if ([string]::IsNullOrWhiteSpace([string]$Value.summary)) { $null } else { [string]$Value.summary })
+  }
+}
+
+function New-HostedDirectLiveProofSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value,
+    [Parameter(Mandatory = $true)]
+    [DateTimeOffset]$ReferenceTimeUtc,
+    [Parameter(Mandatory = $true)]
+    [int]$MaxAgeHours
+  )
+
+  if ($null -eq $Value) {
+    return [ordered]@{
+      status                   = "unavailable"
+      observed                 = $false
+      apiPublicUrl             = $null
+      apiPublicUrlSource       = $null
+      frontendPublicUrl        = $null
+      requestedSessionId       = $null
+      sessionId                = $null
+      generatedAt              = $null
+      generatedAtIsIso         = $false
+      freshnessStatus          = "unavailable"
+      freshnessSummary         = "unavailable"
+      freshnessAgeMinutes      = $null
+      freshnessMaxAgeHours     = $(if ($MaxAgeHours -gt 0) { $MaxAgeHours } else { $null })
+      runtimePreferredMode     = $null
+      runtimeActiveMode        = $null
+      replayActiveMode         = $null
+      replayEvidenceSource     = $null
+      firstAudioMs             = $null
+      firstOutputMs            = $null
+      fallbackEventCount       = 0
+      fallbackReason           = $null
+      runtimeEvidenceExpectedSignatureStatus = $null
+      runtimeEvidenceKeyState  = $null
+      caseWikiExpectedSignatureStatus = $null
+      caseWikiExpectedSignatureSource = $null
+      caseWikiSignatureStatus  = $null
+      caseWikiSignaturePresent = $null
+      latencyObserved          = $false
+      summary                  = "unavailable"
+    }
+  }
+
+  $runtimeStatus = if ($null -ne $Value.runtimeStatus) { $Value.runtimeStatus } else { $null }
+  $replay = if ($null -ne $Value.replay) { $Value.replay } else { $null }
+  $replayLiveTransport = if ($null -ne $replay -and $null -ne $replay.liveTransport) { $replay.liveTransport } else { $null }
+  $caseWiki = if ($null -ne $Value.caseWiki) { $Value.caseWiki } else { $null }
+  $runtimeDiagnostics = if ($null -ne $Value.runtimeDiagnostics) { $Value.runtimeDiagnostics } else { $null }
+  $runtimeDiagnosticsApiBackendEvidenceSigning =
+    if ($null -ne $runtimeDiagnostics -and $null -ne $runtimeDiagnostics.apiBackendEvidenceSigning) {
+      $runtimeDiagnostics.apiBackendEvidenceSigning
+    } else {
+      $null
+    }
+  $caseWikiEvidenceSignatureExpectation =
+    if ($null -ne $Value.caseWikiEvidenceSignatureExpectation) { $Value.caseWikiEvidenceSignatureExpectation } else { $null }
+  $caseWikiEvidenceSignature =
+    if ($null -ne $caseWiki -and $null -ne $caseWiki.evidenceSignature) { $caseWiki.evidenceSignature } else { $null }
+  $freshness = New-HostedDirectLiveProofFreshnessSnapshot -GeneratedAt $Value.generatedAt -ReferenceTimeUtc $ReferenceTimeUtc -MaxAgeHours $MaxAgeHours
+  $status = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
+  $summary = Get-StatusValueOrDefault -Value $Value.summary -DefaultValue "unavailable"
+
+  $firstAudioMs = if ($null -eq $replayLiveTransport) { $null } else { Convert-ToNonNegativeIntOrDefault -Value $replayLiveTransport.firstAudioMs -DefaultValue -1 }
+  if ($firstAudioMs -lt 0) {
+    $firstAudioMs = $null
+  }
+  $firstOutputMs = if ($null -eq $replayLiveTransport) { $null } else { Convert-ToNonNegativeIntOrDefault -Value $replayLiveTransport.firstOutputMs -DefaultValue -1 }
+  if ($firstOutputMs -lt 0) {
+    $firstOutputMs = $null
+  }
+
+  if ($freshness.status -eq "fail") {
+    $status = "fail"
+    if ([string]::IsNullOrWhiteSpace($summary) -or $summary -eq "unavailable") {
+      $summary = $freshness.summary
+    } else {
+      $summary = ($summary + " | " + $freshness.summary)
+    }
+  }
+
+  return [ordered]@{
+    status                   = $status
+    observed                 = (
+      (Get-StatusValueOrDefault -Value $replayLiveTransport.activeMode -DefaultValue "") -eq "direct_live" -and
+      (Get-StatusValueOrDefault -Value $replayLiveTransport.evidenceSource -DefaultValue "") -eq "session_events"
+    )
+    apiPublicUrl             = $(if ([string]::IsNullOrWhiteSpace([string]$Value.apiPublicUrl)) { $null } else { [string]$Value.apiPublicUrl })
+    apiPublicUrlSource       = $(if ([string]::IsNullOrWhiteSpace([string]$Value.apiPublicUrlSource)) { $null } else { [string]$Value.apiPublicUrlSource })
+    frontendPublicUrl        = $(if ([string]::IsNullOrWhiteSpace([string]$Value.frontendPublicUrl)) { $null } else { [string]$Value.frontendPublicUrl })
+    requestedSessionId       = $(if ([string]::IsNullOrWhiteSpace([string]$Value.requestedSessionId)) { $null } else { [string]$Value.requestedSessionId })
+    sessionId                = $(if ([string]::IsNullOrWhiteSpace([string]$Value.sessionId)) { $null } else { [string]$Value.sessionId })
+    generatedAt              = $freshness.generatedAt
+    generatedAtIsIso         = $freshness.generatedAtIsIso
+    freshnessStatus          = $freshness.status
+    freshnessSummary         = $freshness.summary
+    freshnessAgeMinutes      = $freshness.ageMinutes
+    freshnessMaxAgeHours     = $freshness.maxAgeHours
+    runtimePreferredMode     = $(if ($null -eq $runtimeStatus) { $null } else { Get-StatusValueOrDefault -Value $runtimeStatus.preferredMode -DefaultValue "" })
+    runtimeActiveMode        = $(if ($null -eq $runtimeStatus) { $null } else { Get-StatusValueOrDefault -Value $runtimeStatus.activeMode -DefaultValue "" })
+    replayActiveMode         = $(if ($null -eq $replayLiveTransport) { $null } else { Get-StatusValueOrDefault -Value $replayLiveTransport.activeMode -DefaultValue "" })
+    replayEvidenceSource     = $(if ($null -eq $replayLiveTransport) { $null } else { Get-StatusValueOrDefault -Value $replayLiveTransport.evidenceSource -DefaultValue "" })
+    firstAudioMs             = $firstAudioMs
+    firstOutputMs            = $firstOutputMs
+    fallbackEventCount       = $(if ($null -eq $replayLiveTransport) { 0 } else { Convert-ToNonNegativeIntOrDefault -Value $replayLiveTransport.fallbackEventCount -DefaultValue 0 })
+    fallbackReason           = $(if ($null -eq $replayLiveTransport) { $null } else { Get-StatusValueOrDefault -Value $replayLiveTransport.fallbackReason -DefaultValue "" })
+    runtimeEvidenceExpectedSignatureStatus =
+      $(if ($null -eq $runtimeDiagnosticsApiBackendEvidenceSigning) { $null } else { Get-StatusValueOrDefault -Value $runtimeDiagnosticsApiBackendEvidenceSigning.expectedSignatureStatus -DefaultValue "" })
+    runtimeEvidenceKeyState  =
+      $(if ($null -eq $runtimeDiagnosticsApiBackendEvidenceSigning) { $null } else { Get-StatusValueOrDefault -Value $runtimeDiagnosticsApiBackendEvidenceSigning.keyState -DefaultValue "" })
+    caseWikiExpectedSignatureStatus =
+      $(if ($null -eq $caseWikiEvidenceSignatureExpectation) { $null } else { Get-StatusValueOrDefault -Value $caseWikiEvidenceSignatureExpectation.expectedStatus -DefaultValue "" })
+    caseWikiExpectedSignatureSource =
+      $(if ($null -eq $caseWikiEvidenceSignatureExpectation) { $null } else { Get-StatusValueOrDefault -Value $caseWikiEvidenceSignatureExpectation.source -DefaultValue "" })
+    caseWikiSignatureStatus  = $(if ($null -eq $caseWikiEvidenceSignature) { $null } else { Get-StatusValueOrDefault -Value $caseWikiEvidenceSignature.status -DefaultValue "" })
+    caseWikiSignaturePresent = $(if ($null -eq $caseWikiEvidenceSignature -or $null -eq $caseWikiEvidenceSignature.signaturePresent) { $null } else { $caseWikiEvidenceSignature.signaturePresent -eq $true })
+    latencyObserved          = ($null -ne $firstAudioMs) -or ($null -ne $firstOutputMs)
+    summary                  = $summary
   }
 }
 
@@ -266,17 +1287,241 @@ function Read-JsonIfExists {
   }
 }
 
+function Test-TextFileContains {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Path,
+    [Parameter(Mandatory = $true)]
+    [string]$Pattern
+  )
+
+  if (-not (Test-Path $Path)) {
+    return $false
+  }
+
+  return ((Get-Content $Path -Raw) -match $Pattern)
+}
+
+function New-ConsultationBookingProofReport {
+  param(
+    [Parameter(Mandatory = $true)]
+    [object]$Report,
+    [Parameter(Mandatory = $true)]
+    [string]$GeneratedAt,
+    [Parameter(Mandatory = $true)]
+    [string]$RepoRootPath,
+    [Parameter(Mandatory = $true)]
+    [string]$NavigatorVisaFlowsPath
+  )
+
+  $skillsCatalogPath = Join-Path $RepoRootPath "configs/skills.catalog.json"
+  $consultationBookingPlaybookPath = Join-Path $RepoRootPath "skills/bundled/consultation-booking/SKILL.md"
+  $calendarAssistantPath = Join-Path $RepoRootPath "skills/workspace/calendar-assistant/SKILL.md"
+  $managedSkillUpsertSamplePath = Join-Path $RepoRootPath "skills/workspace/calendar-assistant/managed-skill-upsert.sample.json"
+  $managedSkillSigningInputSamplePath = Join-Path $RepoRootPath "skills/workspace/calendar-assistant/managed-skill-signing-input.sample.json"
+
+  $skillsCatalog = Read-JsonIfExists -Path $skillsCatalogPath
+  $managedSkillUpsertSample = Read-JsonIfExists -Path $managedSkillUpsertSamplePath
+  $managedSkillSigningInputSample = Read-JsonIfExists -Path $managedSkillSigningInputSamplePath
+  $consultationBookingApprovedArtifactPath = Join-Path (Split-Path -Parent $NavigatorVisaFlowsPath) "consultation-booking-approved.json"
+  $consultationBookingApprovedArtifact = Read-JsonIfExists -Path $consultationBookingApprovedArtifactPath
+
+  $consultationBookingPersona = $null
+  $consultationBookingRecipe = $null
+  if ($skillsCatalog.parsed -eq $true) {
+    $consultationBookingPersona = @($skillsCatalog.value.personas) |
+      Where-Object { [string]$_.id -eq "consultation-booking" } |
+      Select-Object -First 1
+    $consultationBookingRecipe = @($skillsCatalog.value.recipes) |
+      Where-Object { [string]$_.id -eq "consultation-booking-flow" } |
+      Select-Object -First 1
+  }
+
+  $managedSkillPermissions = @()
+  if ($managedSkillUpsertSample.parsed -eq $true -and $null -ne $managedSkillUpsertSample.value.pluginManifest) {
+    foreach ($permission in @($managedSkillUpsertSample.value.pluginManifest.permissions)) {
+      if (-not [string]::IsNullOrWhiteSpace([string]$permission)) {
+        $managedSkillPermissions += [string]$permission
+      }
+    }
+  }
+
+  $scenarioNames = @()
+  foreach ($scenarioName in @($Report.navigatorVisaFlows.scenarioNames)) {
+    $normalizedScenarioName = ([string]$scenarioName).Trim().ToLowerInvariant()
+    if (-not [string]::IsNullOrWhiteSpace($normalizedScenarioName)) {
+      $scenarioNames += $normalizedScenarioName
+    }
+  }
+
+  $personaPresent = $null -ne $consultationBookingPersona
+  $recipePresent = $null -ne $consultationBookingRecipe
+  $playbookPresent = Test-Path $consultationBookingPlaybookPath
+  $playbookHasApprovalBoundary =
+    (Test-TextFileContains -Path $consultationBookingPlaybookPath -Pattern "Approval Boundary") -and
+    (Test-TextFileContains -Path $consultationBookingPlaybookPath -Pattern "approval before")
+  $playbookHasSuccessMetrics =
+    (Test-TextFileContains -Path $consultationBookingPlaybookPath -Pattern "Success Metrics") -and
+    (Test-TextFileContains -Path $consultationBookingPlaybookPath -Pattern "Two viable time slots")
+  $calendarSkillPresent = Test-Path $calendarAssistantPath
+  $calendarSkillHasApprovalBoundary =
+    (Test-TextFileContains -Path $calendarAssistantPath -Pattern "approval before action") -or
+    (Test-TextFileContains -Path $calendarAssistantPath -Pattern "ask for approval")
+  $managedSkillSamplePresent = $managedSkillUpsertSample.present -eq $true -and $managedSkillUpsertSample.parsed -eq $true
+  $signingInputSamplePresent = $managedSkillSigningInputSample.present -eq $true -and $managedSkillSigningInputSample.parsed -eq $true
+  $permissionsIncludeUiExecute = $managedSkillPermissions -contains "ui.execute"
+  $permissionsIncludeOperatorActions = $managedSkillPermissions -contains "operator.actions"
+  $bookingScenarioObserved = ($scenarioNames -contains "booking") -or ($scenarioNames -contains "consultation")
+  $stagedReminderContextObserved = $Report.navigatorVisaFlows.status -eq "pass" -and ($scenarioNames -contains "reminder")
+  $calendarWritebackObserved = $false
+  $approvedBookingArtifactObserved =
+    $consultationBookingApprovedArtifact.present -eq $true -and
+    $consultationBookingApprovedArtifact.parsed -eq $true -and
+    [string]$consultationBookingApprovedArtifact.value.artifactType -eq "consultation_booking_approved" -and
+    [string]$consultationBookingApprovedArtifact.value.workflow -eq "consultation_booking" -and
+    [string]$consultationBookingApprovedArtifact.value.scenarioName -eq "booking" -and
+    [string]$consultationBookingApprovedArtifact.value.status -eq "approved" -and
+    [string]$consultationBookingApprovedArtifact.value.approvalStatus -eq "approved" -and
+    $consultationBookingApprovedArtifact.value.approvalBoundaryRespected -eq $true -and
+    $consultationBookingApprovedArtifact.value.bookingFlowValidated -eq $true
+  $connectorProofObserved = $calendarWritebackObserved -or $approvedBookingArtifactObserved
+
+  $repoOwnedWorkflowConfigured =
+    $personaPresent -and
+    $recipePresent -and
+    $playbookPresent -and
+    $playbookHasApprovalBoundary -and
+    $playbookHasSuccessMetrics
+  $calendarConnectorConfigured =
+    $calendarSkillPresent -and
+    $calendarSkillHasApprovalBoundary -and
+    $managedSkillSamplePresent -and
+    $signingInputSamplePresent -and
+    $permissionsIncludeUiExecute -and
+    $permissionsIncludeOperatorActions
+  $proofReady = $repoOwnedWorkflowConfigured -and $calendarConnectorConfigured -and $bookingScenarioObserved -and $connectorProofObserved
+  $stagedReady = $repoOwnedWorkflowConfigured -and $calendarConnectorConfigured -and $stagedReminderContextObserved
+  $status = if ($proofReady) {
+    "proof_ready"
+  } elseif ($stagedReady) {
+    "staged_ready"
+  } elseif (-not $repoOwnedWorkflowConfigured) {
+    "needs_evidence"
+  } else {
+    "needs_connector"
+  }
+
+  $nextGaps = @()
+  if (-not $bookingScenarioObserved) {
+    $nextGaps += "add_booking_navigator_flow_fixture"
+  }
+  if (-not $connectorProofObserved) {
+    $nextGaps += "calendar_writeback_or_approved_booking_artifact"
+  }
+  if (-not $calendarConnectorConfigured) {
+    $nextGaps += "managed_calendar_skill_connector_proof"
+  }
+  if (-not $repoOwnedWorkflowConfigured) {
+    $nextGaps += "consultation_booking_playbook_alignment"
+  }
+
+  return [ordered]@{
+    schemaVersion     = "1.0"
+    generatedAt       = $GeneratedAt
+    product           = "AI Action Desk for immigration teams"
+    status            = $status
+    stagedReady       = $stagedReady
+    proofReady        = $proofReady
+    summary           = ("status=" + $status + "; stagedReady=" + [string]$stagedReady + "; bookingScenarioObserved=" + [string]$bookingScenarioObserved + "; calendarWritebackObserved=" + [string]$calendarWritebackObserved + "; approvedBookingArtifactObserved=" + [string]$approvedBookingArtifactObserved)
+    repoOwnedWorkflow = [ordered]@{
+      personaPresent                = $personaPresent
+      personaId                     = $(if ($personaPresent) { [string]$consultationBookingPersona.id } else { $null })
+      recipePresent                 = $recipePresent
+      recipeId                      = $(if ($recipePresent) { [string]$consultationBookingRecipe.id } else { $null })
+      playbookPresent               = $playbookPresent
+      playbookHasApprovalBoundary   = $playbookHasApprovalBoundary
+      playbookHasSuccessMetrics     = $playbookHasSuccessMetrics
+      bookingScenarioObserved       = $bookingScenarioObserved
+      stagedReminderContextObserved = $stagedReminderContextObserved
+      scenarioNames                 = $scenarioNames
+    }
+    calendarConnector = [ordered]@{
+      calendarSkillPresent              = $calendarSkillPresent
+      calendarSkillHasApprovalBoundary  = $calendarSkillHasApprovalBoundary
+      managedSkillSamplePresent         = $managedSkillSamplePresent
+      signingInputSamplePresent         = $signingInputSamplePresent
+      managedSkillPermissions           = $managedSkillPermissions
+      permissionsIncludeUiExecute       = $permissionsIncludeUiExecute
+      permissionsIncludeOperatorActions = $permissionsIncludeOperatorActions
+      connectorProofObserved            = $connectorProofObserved
+      writebackObserved                 = $calendarWritebackObserved
+      writebackEvidencePath             = $null
+      approvedBookingArtifactObserved   = $approvedBookingArtifactObserved
+      approvedBookingArtifactPath       = $(if ($approvedBookingArtifactObserved) { $consultationBookingApprovedArtifactPath } else { $null })
+    }
+    nextGaps         = $nextGaps
+    source           = [ordered]@{
+      skillsCatalogPath                   = "configs/skills.catalog.json"
+      consultationBookingPlaybookPath     = "skills/bundled/consultation-booking/SKILL.md"
+      calendarAssistantPath               = "skills/workspace/calendar-assistant/SKILL.md"
+      managedSkillUpsertSamplePath        = "skills/workspace/calendar-assistant/managed-skill-upsert.sample.json"
+      managedSkillSigningInputSamplePath  = "skills/workspace/calendar-assistant/managed-skill-signing-input.sample.json"
+      consultationBookingApprovedArtifactPath = $consultationBookingApprovedArtifactPath
+      navigatorVisaFlowsPath              = $NavigatorVisaFlowsPath
+    }
+  }
+}
+
 $resolvedBadgeDetailsPath = [System.IO.Path]::GetFullPath($BadgeDetailsPath)
 $resolvedOutputJsonPath = [System.IO.Path]::GetFullPath($OutputJsonPath)
 $resolvedOutputMarkdownPath = [System.IO.Path]::GetFullPath($OutputMarkdownPath)
 $resolvedOutputManifestJsonPath = [System.IO.Path]::GetFullPath($OutputManifestJsonPath)
 $resolvedOutputManifestMarkdownPath = [System.IO.Path]::GetFullPath($OutputManifestMarkdownPath)
+$resolvedOutputRuntimeProofJsonPath = if ([string]::IsNullOrWhiteSpace($OutputRuntimeProofJsonPath)) {
+  [System.IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $resolvedOutputJsonPath) "runtime-proof-report.json"))
+} else {
+  [System.IO.Path]::GetFullPath($OutputRuntimeProofJsonPath)
+}
+$resolvedOutputRuntimeProofMarkdownPath = if ([string]::IsNullOrWhiteSpace($OutputRuntimeProofMarkdownPath)) {
+  [System.IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $resolvedOutputMarkdownPath) "runtime-proof-report.md"))
+} else {
+  [System.IO.Path]::GetFullPath($OutputRuntimeProofMarkdownPath)
+}
+$resolvedOutputActionDeskKpiJsonPath = if ([string]::IsNullOrWhiteSpace($OutputActionDeskKpiJsonPath)) {
+  [System.IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $resolvedOutputJsonPath) "action-desk-kpi-report.json"))
+} else {
+  [System.IO.Path]::GetFullPath($OutputActionDeskKpiJsonPath)
+}
+$resolvedOutputActionDeskKpiMarkdownPath = if ([string]::IsNullOrWhiteSpace($OutputActionDeskKpiMarkdownPath)) {
+  [System.IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $resolvedOutputMarkdownPath) "action-desk-kpi-report.md"))
+} else {
+  [System.IO.Path]::GetFullPath($OutputActionDeskKpiMarkdownPath)
+}
+$resolvedOutputConsultationBookingProofJsonPath = if ([string]::IsNullOrWhiteSpace($OutputConsultationBookingProofJsonPath)) {
+  [System.IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $resolvedOutputJsonPath) "consultation-booking-proof.json"))
+} else {
+  [System.IO.Path]::GetFullPath($OutputConsultationBookingProofJsonPath)
+}
+$resolvedOutputConsultationBookingProofMarkdownPath = if ([string]::IsNullOrWhiteSpace($OutputConsultationBookingProofMarkdownPath)) {
+  [System.IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $resolvedOutputMarkdownPath) "consultation-booking-proof.md"))
+} else {
+  [System.IO.Path]::GetFullPath($OutputConsultationBookingProofMarkdownPath)
+}
+$resolvedRuntimeSurfaceSnapshotPath = [System.IO.Path]::GetFullPath($RuntimeSurfaceSnapshotPath)
+$resolvedRepoRootPath = [System.IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot))
+$reportGeneratedAtUtc = [DateTimeOffset]::UtcNow
+$reportGeneratedAt = $reportGeneratedAtUtc.ToString("o")
 
 $resolvedDemoSummaryPath = [System.IO.Path]::GetFullPath("artifacts/demo-e2e/summary.json")
 $resolvedDemoPolicyPath = [System.IO.Path]::GetFullPath("artifacts/demo-e2e/policy-check.json")
 $resolvedDemoBadgePath = [System.IO.Path]::GetFullPath("artifacts/demo-e2e/badge.json")
+$resolvedNavigatorVisaFlowsPath = [System.IO.Path]::GetFullPath("artifacts/demo-e2e/navigator-visa-flows.json")
+$resolvedConsultationBookingApprovedArtifactPath = [System.IO.Path]::GetFullPath("artifacts/demo-e2e/consultation-booking-approved.json")
 $resolvedPerfSummaryPath = [System.IO.Path]::GetFullPath("artifacts/perf-load/summary.json")
 $resolvedPerfPolicyPath = [System.IO.Path]::GetFullPath("artifacts/perf-load/policy-check.json")
+$resolvedDirectLiveProofJsonPath = [System.IO.Path]::GetFullPath("artifacts/deploy/direct-live-proof.json")
+$resolvedDirectLiveProofMarkdownPath = [System.IO.Path]::GetFullPath("artifacts/deploy/direct-live-proof.md")
+$resolvedDirectLiveProofPngPath = [System.IO.Path]::GetFullPath("artifacts/deploy/direct-live-proof.png")
 $resolvedSourceRunManifestPath = [System.IO.Path]::GetFullPath("artifacts/release-artifact-revalidation/source-run.json")
 $resolvedGcpCloudRunSummaryPath = [System.IO.Path]::GetFullPath("artifacts/deploy/gcp-cloud-run-summary.json")
 $resolvedGcpFirestoreSummaryPath = [System.IO.Path]::GetFullPath("artifacts/deploy/gcp-firestore-summary.json")
@@ -287,6 +1532,8 @@ $resolvedVideoShotListPath = [System.IO.Path]::GetFullPath("artifacts/release-ev
 $resolvedVideoScriptPath = [System.IO.Path]::GetFullPath("artifacts/release-evidence/video-script-4min.md")
 $resolvedScreenChecklistPath = [System.IO.Path]::GetFullPath("artifacts/release-evidence/screen-checklist.md")
 $resolvedBonusArticleDraftPath = [System.IO.Path]::GetFullPath("artifacts/release-evidence/bonus-article-draft.md")
+$runtimeSurfaceSnapshotRead = Read-JsonIfExists -Path $resolvedRuntimeSurfaceSnapshotPath
+$runtimeSurfaceSnapshot = if ($runtimeSurfaceSnapshotRead.present -and $runtimeSurfaceSnapshotRead.parsed) { $runtimeSurfaceSnapshotRead.value } else { $null }
 $gcpRuntimeProofRead = Read-JsonIfExists -Path $resolvedGcpRuntimeProofPath
 $gcpRuntimeProof = if ($gcpRuntimeProofRead.present -and $gcpRuntimeProofRead.parsed) { $gcpRuntimeProofRead.value } else { $null }
 $submissionRefreshStatusRead = Read-JsonIfExists -Path $resolvedSubmissionRefreshStatusPath
@@ -319,12 +1566,16 @@ $submissionSafeSummaryGate = if ($null -ne $gcpRuntimeProof -and $null -ne $gcpR
 
 $report = [ordered]@{
   schemaVersion = "1.0"
-  generatedAt   = [datetime]::UtcNow.ToString("o")
+  generatedAt   = $reportGeneratedAt
   source        = [ordered]@{
-    badgeDetailsPath    = $resolvedBadgeDetailsPath
-    badgeDetailsPresent = $false
-    badgeDetailsParsed  = $false
-    parseError          = $null
+    badgeDetailsPath                  = $resolvedBadgeDetailsPath
+    badgeDetailsPresent               = $false
+    badgeDetailsParsed                = $false
+    parseError                        = $null
+    runtimeSurfaceSnapshotPath        = $resolvedRuntimeSurfaceSnapshotPath
+    runtimeSurfaceSnapshotPresent     = $runtimeSurfaceSnapshotRead.present
+    runtimeSurfaceSnapshotParsed      = $runtimeSurfaceSnapshotRead.parsed
+    runtimeSurfaceSnapshotParseError  = $runtimeSurfaceSnapshotRead.parseError
   }
   statuses      = [ordered]@{
     turnTruncationStatus      = "unavailable"
@@ -337,7 +1588,17 @@ $report = [ordered]@{
     agentUsageStatus          = "unavailable"
     runtimeGuardrailsSignalPathsStatus = "unavailable"
     liveTransportStatus       = "unavailable"
+    hostedDirectLiveProofStatus = "unavailable"
     providerUsageStatus       = "unavailable"
+    caseWikiEvidenceSignatureStatus = "unavailable"
+    caseWikiComplianceStatus = "unavailable"
+    caseWikiRoutingContextStatus = "unavailable"
+    caseWikiRuntimeSurfaceIngressStatus = "unavailable"
+    caseWikiGatewayHydrationStatus = "unavailable"
+    caseWikiContextAdoptionStatus = "unavailable"
+    uiRefHealingStatus       = "unavailable"
+    browserWorkerRecoveryStatus = "unavailable"
+    navigatorVisaFlowsStatus = "unavailable"
     deviceNodeUpdatesStatus   = "unavailable"
   }
   deviceNodeUpdates = [ordered]@{
@@ -374,6 +1635,204 @@ $report = [ordered]@{
     }
     summary   = "unavailable"
   }
+  hostedDirectLiveProof = [ordered]@{
+    status                   = "unavailable"
+    observed                 = $false
+    apiPublicUrl             = $null
+    apiPublicUrlSource       = $null
+    frontendPublicUrl        = $null
+    requestedSessionId       = $null
+    sessionId                = $null
+    generatedAt              = $null
+    generatedAtIsIso         = $false
+    freshnessStatus          = "unavailable"
+    freshnessSummary         = "unavailable"
+    freshnessAgeMinutes      = $null
+    freshnessMaxAgeHours     = $(if ($HostedDirectLiveProofMaxAgeHours -gt 0) { $HostedDirectLiveProofMaxAgeHours } else { $null })
+    runtimePreferredMode     = $null
+    runtimeActiveMode        = $null
+    replayActiveMode         = $null
+    replayEvidenceSource     = $null
+    firstAudioMs             = $null
+    firstOutputMs            = $null
+    fallbackEventCount       = 0
+    fallbackReason           = $null
+    runtimeEvidenceExpectedSignatureStatus = $null
+    runtimeEvidenceKeyState  = $null
+    caseWikiExpectedSignatureStatus = $null
+    caseWikiExpectedSignatureSource = $null
+    caseWikiSignatureStatus  = $null
+    caseWikiSignaturePresent = $null
+    latencyObserved          = $false
+    summary                  = "unavailable"
+  }
+  caseWikiEvidenceSignature = [ordered]@{
+    source            = $null
+    status            = "unavailable"
+    validated         = $false
+    totalArtifacts    = 0
+    signedArtifacts   = 0
+    unsignedArtifacts = 0
+    signatureStatus   = $null
+    algorithm         = $null
+    canonicalization  = $null
+    payloadHash       = $null
+    keyId             = $null
+    signerId          = $null
+    signedAt          = $null
+    signedAtIsIso     = $false
+    signaturePresent  = $null
+    caseId            = $null
+    sessionId         = $null
+    overviewStatus    = $null
+    focusKind         = $null
+    focusLabel        = $null
+    nextAction        = $null
+    sourceRefsCount   = 0
+  }
+  caseWikiCompliance = [ordered]@{
+    status               = "unavailable"
+    validated            = $false
+    observed             = $false
+    tenantId             = $null
+    templateId           = $null
+    requestedTemplateId  = $null
+    source               = $null
+    fallbackApplied      = $null
+    controls             = [ordered]@{
+      piiRedactionLevel   = $null
+      crossTenantAdminOnly = $null
+      approvalSlaEnforced = $null
+      auditTrailRequired  = $null
+    }
+    retention            = [ordered]@{
+      rawMediaDays  = 0
+      auditLogsDays = 0
+      eventsDays    = 0
+      sessionsDays  = 0
+    }
+    evidenceSigning      = [ordered]@{
+      enabled                 = $null
+      expectedSignatureStatus = $null
+      keyState                = $null
+      signerId                = $null
+      keyId                   = $null
+    }
+    observedSignatureStatus = $null
+    signatureMatch       = $null
+    summary              = $null
+  }
+  caseWikiRoutingContext = [ordered]@{
+    status          = "unavailable"
+    validated       = $false
+    observed        = $false
+    contextSource   = $null
+    ingressSource   = $null
+    focusId         = $null
+    blocker         = $null
+    nextAction      = $null
+    route           = $null
+    mode            = $null
+    requestedIntent = $null
+    routedIntent    = $null
+  }
+  caseWikiRuntimeSurfaceIngress = [ordered]@{
+    status        = "unavailable"
+    observed      = $false
+    updatedAt     = $null
+    contextSource = $null
+    ingressSource = $null
+    focusId       = $null
+    blocker       = $null
+    nextAction    = $null
+    route         = $null
+    summary       = "unavailable"
+  }
+  caseWikiGatewayHydration = [ordered]@{
+    status                    = "unavailable"
+    validated                 = $false
+    observed                  = $false
+    sessionId                 = $null
+    noteEventId               = $null
+    questionId                = $null
+    questionMatched           = $null
+    noteSourceRefSeen         = $null
+    questionSuggestedNextStep = $null
+    contextSource             = $null
+    ingressSource             = $null
+    focusId                   = $null
+    blocker                   = $null
+    nextAction                = $null
+    route                     = $null
+    mode                      = $null
+    requestedIntent           = $null
+    routedIntent              = $null
+  }
+  caseWikiContextAdoption = [ordered]@{
+    status                 = "unavailable"
+    validated              = $false
+    observed               = $false
+    observedCount          = 0
+    caseWikiObservedCount  = 0
+    inputOnlyObservedCount = 0
+    unknownObservedCount   = 0
+    caseWikiRate           = $null
+  }
+  uiRefHealing = [ordered]@{
+    status                 = "unavailable"
+    validated              = $false
+    observed               = $false
+    finalStatus            = $null
+    adapterMode            = $null
+    healedRefCount         = 0
+    healedRefTargets       = @()
+    staleRefCount          = 0
+    staleRefTargets        = @()
+    traceCount             = 0
+    retries                = 0
+    disabledSubmitSeen     = $null
+    enabledSubmitSeen      = $null
+    healingObservationSeen = $null
+    healingNoteSeen        = $null
+  }
+  browserWorkerRecovery = [ordered]@{
+    status                        = "unavailable"
+    validated                     = $false
+    observed                      = $false
+    finalStatus                   = $null
+    adapterMode                   = $null
+    checkpointCount               = 0
+    resumedCheckpointCount        = 0
+    healedRefCount                = 0
+    healedRefTargets              = @()
+    staleRefCount                 = 0
+    staleRefTargets               = @()
+    traceCount                    = 0
+    retryCount                    = 0
+    runtimeRetryCount             = 0
+    runtimeResumedCheckpointCount = 0
+    runtimeStaleRefCount          = 0
+    runtimeHealedRefCount         = 0
+    checkpointReadyCleared        = $null
+    summary                       = $null
+  }
+  navigatorVisaFlows = [ordered]@{
+    status                      = "unavailable"
+    validated                   = $false
+    observed                    = $false
+    totalFlows                  = 0
+    succeededFlows              = 0
+    successRate                 = $null
+    persistentSessionCount      = 0
+    replayBundleCount           = 0
+    verifiedCount               = 0
+    staleRecoveryObservedCount  = 0
+    healedRecoveryObservedCount = 0
+    resumedCheckpointCount      = 0
+    checkpointReadyClearedCount = 0
+    scenarioNames               = @()
+    summary                     = $null
+  }
   providerUsage = [ordered]@{
     status                  = "unavailable"
     validated               = $false
@@ -406,6 +1865,25 @@ $report = [ordered]@{
     screenChecklistPath = $resolvedScreenChecklistPath
     bonusArticleDraftPath = $resolvedBonusArticleDraftPath
   }
+}
+
+$hostedCaseWikiEvidenceSignatureSnapshot = $null
+
+$hostedDirectLiveProofRead = Read-JsonIfExists -Path $resolvedDirectLiveProofJsonPath
+if ($hostedDirectLiveProofRead.present -and $hostedDirectLiveProofRead.parsed) {
+  $report.hostedDirectLiveProof = New-HostedDirectLiveProofSnapshot `
+    -Value $hostedDirectLiveProofRead.value `
+    -ReferenceTimeUtc $reportGeneratedAtUtc `
+    -MaxAgeHours $HostedDirectLiveProofMaxAgeHours
+  $report.statuses.hostedDirectLiveProofStatus = Get-StatusValueOrDefault -Value $report.hostedDirectLiveProof.status -DefaultValue "unavailable"
+  $hostedCaseWikiEvidenceSignatureValue = New-HostedCaseWikiEvidenceSignatureValue -Value $hostedDirectLiveProofRead.value
+  if ($null -ne $hostedCaseWikiEvidenceSignatureValue) {
+    $hostedCaseWikiEvidenceSignatureSnapshot = New-CaseWikiEvidenceSignatureSnapshot -Value $hostedCaseWikiEvidenceSignatureValue
+  }
+} elseif ($hostedDirectLiveProofRead.present) {
+  $report.hostedDirectLiveProof.status = "fail"
+  $report.hostedDirectLiveProof.summary = Get-StatusValueOrDefault -Value $hostedDirectLiveProofRead.parseError -DefaultValue "invalid hosted direct-live proof artifact"
+  $report.statuses.hostedDirectLiveProofStatus = "fail"
 }
 
 if (Test-Path $resolvedBadgeDetailsPath) {
@@ -483,6 +1961,38 @@ if (Test-Path $resolvedBadgeDetailsPath) {
       $report.liveTransport = New-LiveTransportSnapshot -Value $badgeDetails.liveTransport
       $report.statuses.liveTransportStatus = Get-StatusValueOrDefault -Value $report.liveTransport.status -DefaultValue "unavailable"
     }
+    if ($null -ne $badgeDetails.evidence.caseWikiEvidenceSignature) {
+      $report.caseWikiEvidenceSignature = New-CaseWikiEvidenceSignatureSnapshot -Value $badgeDetails.evidence.caseWikiEvidenceSignature
+      $report.statuses.caseWikiEvidenceSignatureStatus = Get-StatusValueOrDefault -Value $report.caseWikiEvidenceSignature.status -DefaultValue "unavailable"
+    }
+    if ($null -ne $badgeDetails.evidence.caseWikiCompliance) {
+      $report.caseWikiCompliance = New-CaseWikiComplianceSnapshot -Value $badgeDetails.evidence.caseWikiCompliance
+      $report.statuses.caseWikiComplianceStatus = Get-StatusValueOrDefault -Value $report.caseWikiCompliance.status -DefaultValue "unavailable"
+    }
+    if ($null -ne $badgeDetails.evidence.caseWikiRoutingContext) {
+      $report.caseWikiRoutingContext = New-CaseWikiRoutingContextSnapshot -Value $badgeDetails.evidence.caseWikiRoutingContext
+      $report.statuses.caseWikiRoutingContextStatus = Get-StatusValueOrDefault -Value $report.caseWikiRoutingContext.status -DefaultValue "unavailable"
+    }
+    if ($null -ne $badgeDetails.evidence.caseWikiGatewayHydration) {
+      $report.caseWikiGatewayHydration = New-CaseWikiGatewayHydrationSnapshot -Value $badgeDetails.evidence.caseWikiGatewayHydration
+      $report.statuses.caseWikiGatewayHydrationStatus = Get-StatusValueOrDefault -Value $report.caseWikiGatewayHydration.status -DefaultValue "unavailable"
+    }
+    if ($null -ne $badgeDetails.evidence.caseWikiContextAdoption) {
+      $report.caseWikiContextAdoption = New-CaseWikiContextAdoptionSnapshot -Value $badgeDetails.evidence.caseWikiContextAdoption
+      $report.statuses.caseWikiContextAdoptionStatus = Get-StatusValueOrDefault -Value $report.caseWikiContextAdoption.status -DefaultValue "unavailable"
+    }
+    if ($null -ne $badgeDetails.evidence.uiRefHealing) {
+      $report.uiRefHealing = New-UiRefHealingSnapshot -Value $badgeDetails.evidence.uiRefHealing
+      $report.statuses.uiRefHealingStatus = Get-StatusValueOrDefault -Value $report.uiRefHealing.status -DefaultValue "unavailable"
+    }
+    if ($null -ne $badgeDetails.evidence.browserWorkerRecovery) {
+      $report.browserWorkerRecovery = New-BrowserWorkerRecoverySnapshot -Value $badgeDetails.evidence.browserWorkerRecovery
+      $report.statuses.browserWorkerRecoveryStatus = Get-StatusValueOrDefault -Value $report.browserWorkerRecovery.status -DefaultValue "unavailable"
+    }
+    if ($null -ne $badgeDetails.evidence.navigatorVisaFlows) {
+      $report.navigatorVisaFlows = New-NavigatorVisaFlowsSnapshot -Value $badgeDetails.evidence.navigatorVisaFlows
+      $report.statuses.navigatorVisaFlowsStatus = Get-StatusValueOrDefault -Value $report.navigatorVisaFlows.status -DefaultValue "unavailable"
+    }
     if ($null -ne $badgeDetails.providerUsage) {
       $report.providerUsage.status = Get-StatusValueOrDefault -Value $badgeDetails.providerUsage.status -DefaultValue "unavailable"
       $report.statuses.providerUsageStatus = $report.providerUsage.status
@@ -500,8 +2010,482 @@ if (Test-Path $resolvedBadgeDetailsPath) {
   }
 }
 
+$runtimeSurfaceCaseWikiIngressValue = $null
+if ($null -ne $runtimeSurfaceSnapshot -and $null -ne $runtimeSurfaceSnapshot.readiness) {
+  $runtimeSurfaceReadinessSummary = if ($null -ne $runtimeSurfaceSnapshot.readiness.summary) {
+    $runtimeSurfaceSnapshot.readiness.summary
+  } else {
+    $null
+  }
+  $runtimeSurfaceWorkflowSummary = if ($null -ne $runtimeSurfaceReadinessSummary -and $null -ne $runtimeSurfaceReadinessSummary.workflow) {
+    $runtimeSurfaceReadinessSummary.workflow
+  } else {
+    $null
+  }
+  if ($null -ne $runtimeSurfaceWorkflowSummary -and $null -ne $runtimeSurfaceWorkflowSummary.caseWikiIngress) {
+    $runtimeSurfaceCaseWikiIngressValue = $runtimeSurfaceWorkflowSummary.caseWikiIngress
+  }
+}
+
+if ($runtimeSurfaceSnapshotRead.present -and -not $runtimeSurfaceSnapshotRead.parsed) {
+  $report.caseWikiRuntimeSurfaceIngress = [ordered]@{
+    status        = "fail"
+    observed      = $false
+    updatedAt     = $null
+    contextSource = $null
+    ingressSource = $null
+    focusId       = $null
+    blocker       = $null
+    nextAction    = $null
+    route         = $null
+    summary       = "runtime surface snapshot parse failed"
+  }
+} elseif ($runtimeSurfaceSnapshotRead.present -and $runtimeSurfaceSnapshotRead.parsed -and $null -eq $runtimeSurfaceCaseWikiIngressValue) {
+  $report.caseWikiRuntimeSurfaceIngress = [ordered]@{
+    status        = "fail"
+    observed      = $false
+    updatedAt     = $null
+    contextSource = $null
+    ingressSource = $null
+    focusId       = $null
+    blocker       = $null
+    nextAction    = $null
+    route         = $null
+    summary       = "runtime surface snapshot is missing readiness.summary.workflow.caseWikiIngress"
+  }
+} else {
+  $report.caseWikiRuntimeSurfaceIngress = New-CaseWikiRuntimeSurfaceIngressSnapshot -Value $runtimeSurfaceCaseWikiIngressValue
+}
+$report.statuses.caseWikiRuntimeSurfaceIngressStatus = Get-StatusValueOrDefault -Value $report.caseWikiRuntimeSurfaceIngress.status -DefaultValue "unavailable"
+
+$report.caseWikiEvidenceSignature = Resolve-CaseWikiEvidenceSignatureSnapshot `
+  -BadgeSnapshot $report.caseWikiEvidenceSignature `
+  -HostedDirectLiveProofSnapshot $report.hostedDirectLiveProof `
+  -HostedSnapshot $hostedCaseWikiEvidenceSignatureSnapshot
+$report.statuses.caseWikiEvidenceSignatureStatus = Get-StatusValueOrDefault -Value $report.caseWikiEvidenceSignature.status -DefaultValue "unavailable"
+if ($report.caseWikiCompliance.observed -eq $true) {
+  $hostedComplianceExpectedSignatureStatus = Get-StatusValueOrDefault -Value $report.hostedDirectLiveProof.caseWikiExpectedSignatureStatus -DefaultValue ""
+  $hostedComplianceKeyState = Get-StatusValueOrDefault -Value $report.hostedDirectLiveProof.runtimeEvidenceKeyState -DefaultValue ""
+  if (
+    $report.hostedDirectLiveProof.status -eq "pass" -and
+    $report.hostedDirectLiveProof.freshnessStatus -eq "pass" -and
+    $hostedComplianceExpectedSignatureStatus -in @("signed", "unsigned")
+  ) {
+    $report.caseWikiCompliance.evidenceSigning.expectedSignatureStatus = $hostedComplianceExpectedSignatureStatus
+    if (-not [string]::IsNullOrWhiteSpace($hostedComplianceKeyState)) {
+      $report.caseWikiCompliance.evidenceSigning.keyState = $hostedComplianceKeyState
+    }
+    $report.caseWikiCompliance.evidenceSigning.enabled = ($hostedComplianceExpectedSignatureStatus -eq "signed")
+    $report.caseWikiCompliance.observedSignatureStatus = $report.caseWikiEvidenceSignature.signatureStatus
+    $report.caseWikiCompliance.signatureMatch =
+      (-not [string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.signatureStatus)) -and
+      ($report.caseWikiEvidenceSignature.signatureStatus -eq $report.caseWikiCompliance.evidenceSigning.expectedSignatureStatus)
+    if ($report.caseWikiCompliance.validated -eq $true) {
+      $report.caseWikiCompliance.status = $(if ($report.caseWikiCompliance.signatureMatch -eq $true) { "pass" } else { "fail" })
+      $report.statuses.caseWikiComplianceStatus = $report.caseWikiCompliance.status
+    }
+    $report.caseWikiCompliance.summary =
+      "template=" + [string]$report.caseWikiCompliance.templateId +
+      $(if (
+          -not [string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.requestedTemplateId) -and
+          [string]$report.caseWikiCompliance.requestedTemplateId -ne [string]$report.caseWikiCompliance.templateId
+        ) {
+          " | requested=" + [string]$report.caseWikiCompliance.requestedTemplateId
+        } else {
+          ""
+        }) +
+      " | " + $(if ([string]$report.caseWikiCompliance.source -eq "tenant_override") { "tenant_override" } elseif ([string]$report.caseWikiCompliance.source -eq "template_default") { "template_default" } else { [string]$report.caseWikiCompliance.source }) +
+      " | pii=" + [string]$report.caseWikiCompliance.controls.piiRedactionLevel +
+      " | rawMedia=" + [string]$report.caseWikiCompliance.retention.rawMediaDays + "d" +
+      " | audit=" + $(if ($report.caseWikiCompliance.controls.auditTrailRequired) { "required" } else { "optional" }) +
+      " | signing=" + [string]$report.caseWikiCompliance.evidenceSigning.expectedSignatureStatus
+  }
+}
+
+$report["consultationBookingProof"] = New-ConsultationBookingProofReport `
+  -Report $report `
+  -GeneratedAt $report.generatedAt `
+  -RepoRootPath $resolvedRepoRootPath `
+  -NavigatorVisaFlowsPath $resolvedNavigatorVisaFlowsPath
+
+$report["actionDeskWorkflowKpi"] = New-ActionDeskWorkflowKpiReport `
+  -Report $report `
+  -GeneratedAt $report.generatedAt `
+  -BadgeDetailsPath $resolvedBadgeDetailsPath `
+  -ReleaseEvidenceReportJsonPath $resolvedOutputJsonPath `
+  -ReleaseEvidenceManifestJsonPath $resolvedOutputManifestJsonPath `
+  -RuntimeProofReportJsonPath $resolvedOutputRuntimeProofJsonPath `
+  -NavigatorVisaFlowsPath $resolvedNavigatorVisaFlowsPath
+
+$consultationBookingProofJson = $report.consultationBookingProof | ConvertTo-Json -Depth 10
+Write-Utf8NoBomFile -Path $resolvedOutputConsultationBookingProofJsonPath -Content $consultationBookingProofJson
+
+$consultationBookingNextGaps = @($report.consultationBookingProof.nextGaps)
+$consultationBookingProofMarkdown = @(
+  "# Consultation Booking Proof Report",
+  "",
+  "- Product: $($report.consultationBookingProof.product)",
+  "- Generated at: $($report.consultationBookingProof.generatedAt)",
+  "- Status: $($report.consultationBookingProof.status)",
+  "- Staged ready: $($report.consultationBookingProof.stagedReady)",
+  "- Proof ready: $($report.consultationBookingProof.proofReady)",
+  "- Summary: $($report.consultationBookingProof.summary)",
+  "",
+  "## Repo-Owned Workflow",
+  "",
+  "| Signal | Value |",
+  "|---|---|",
+  "| personaPresent | $($report.consultationBookingProof.repoOwnedWorkflow.personaPresent) |",
+  "| recipePresent | $($report.consultationBookingProof.repoOwnedWorkflow.recipePresent) |",
+  "| playbookPresent | $($report.consultationBookingProof.repoOwnedWorkflow.playbookPresent) |",
+  "| playbookHasApprovalBoundary | $($report.consultationBookingProof.repoOwnedWorkflow.playbookHasApprovalBoundary) |",
+  "| playbookHasSuccessMetrics | $($report.consultationBookingProof.repoOwnedWorkflow.playbookHasSuccessMetrics) |",
+  "| bookingScenarioObserved | $($report.consultationBookingProof.repoOwnedWorkflow.bookingScenarioObserved) |",
+  "| stagedReminderContextObserved | $($report.consultationBookingProof.repoOwnedWorkflow.stagedReminderContextObserved) |",
+  "| scenarioNames | $(if (@($report.consultationBookingProof.repoOwnedWorkflow.scenarioNames).Count -eq 0) { "(none)" } else { (@($report.consultationBookingProof.repoOwnedWorkflow.scenarioNames) -join ", ") }) |",
+  "",
+  "## Calendar Connector",
+  "",
+  "| Signal | Value |",
+  "|---|---|",
+  "| calendarSkillPresent | $($report.consultationBookingProof.calendarConnector.calendarSkillPresent) |",
+  "| calendarSkillHasApprovalBoundary | $($report.consultationBookingProof.calendarConnector.calendarSkillHasApprovalBoundary) |",
+  "| managedSkillSamplePresent | $($report.consultationBookingProof.calendarConnector.managedSkillSamplePresent) |",
+  "| signingInputSamplePresent | $($report.consultationBookingProof.calendarConnector.signingInputSamplePresent) |",
+  "| managedSkillPermissions | $(if (@($report.consultationBookingProof.calendarConnector.managedSkillPermissions).Count -eq 0) { "(none)" } else { (@($report.consultationBookingProof.calendarConnector.managedSkillPermissions) -join ", ") }) |",
+  "| permissionsIncludeUiExecute | $($report.consultationBookingProof.calendarConnector.permissionsIncludeUiExecute) |",
+  "| permissionsIncludeOperatorActions | $($report.consultationBookingProof.calendarConnector.permissionsIncludeOperatorActions) |",
+  "| connectorProofObserved | $($report.consultationBookingProof.calendarConnector.connectorProofObserved) |",
+  "| writebackObserved | $($report.consultationBookingProof.calendarConnector.writebackObserved) |",
+  "| writebackEvidencePath | $(if ([string]::IsNullOrWhiteSpace([string]$report.consultationBookingProof.calendarConnector.writebackEvidencePath)) { "n/a" } else { [string]$report.consultationBookingProof.calendarConnector.writebackEvidencePath }) |",
+  "| approvedBookingArtifactObserved | $($report.consultationBookingProof.calendarConnector.approvedBookingArtifactObserved) |",
+  "| approvedBookingArtifactPath | $(if ([string]::IsNullOrWhiteSpace([string]$report.consultationBookingProof.calendarConnector.approvedBookingArtifactPath)) { "n/a" } else { [string]$report.consultationBookingProof.calendarConnector.approvedBookingArtifactPath }) |",
+  "",
+  "## Next Gaps",
+  ""
+)
+if ($consultationBookingNextGaps.Count -eq 0) {
+  $consultationBookingProofMarkdown += "- none"
+} else {
+  foreach ($gap in $consultationBookingNextGaps) {
+    $consultationBookingProofMarkdown += "- $gap"
+  }
+}
+Write-Utf8NoBomFile -Path $resolvedOutputConsultationBookingProofMarkdownPath -Content ($consultationBookingProofMarkdown -join "`n")
+
 $json = $report | ConvertTo-Json -Depth 10
 Write-Utf8NoBomFile -Path $resolvedOutputJsonPath -Content $json
+
+$actionDeskKpiJson = $report.actionDeskWorkflowKpi | ConvertTo-Json -Depth 10
+Write-Utf8NoBomFile -Path $resolvedOutputActionDeskKpiJsonPath -Content $actionDeskKpiJson
+
+$actionDeskWorkflowRows = @()
+foreach ($workflow in @($report.actionDeskWorkflowKpi.workflows)) {
+  $workflowNextGap = if ([string]::IsNullOrWhiteSpace([string]$workflow.nextGap)) { "none" } else { [string]$workflow.nextGap }
+  $actionDeskWorkflowRows += "| $($workflow.id) | $($workflow.status) | $($workflow.proofSignal) | $workflowNextGap |"
+}
+$actionDeskPilotGaps = @($report.actionDeskWorkflowKpi.pilotGaps)
+$actionDeskKpiMarkdown = @(
+  "# Action Desk Workflow KPI Report",
+  "",
+  "- Product: $($report.actionDeskWorkflowKpi.product)",
+  "- Generated at: $($report.actionDeskWorkflowKpi.generatedAt)",
+  "- Status: $($report.actionDeskWorkflowKpi.status)",
+  "- Summary: $($report.actionDeskWorkflowKpi.summary.headline)",
+  "",
+  "## Workflow Evidence",
+  "",
+  "| Workflow | Status | Proof signal | Next gap |",
+  "|---|---|---|---|"
+)
+$actionDeskKpiMarkdown += $actionDeskWorkflowRows
+$actionDeskKpiMarkdown += @(
+  "",
+  "## Buyer Metrics",
+  "",
+  "| Metric | Value |",
+  "|---|---|",
+  "| leadQualificationProofReady | $($report.actionDeskWorkflowKpi.metrics.leadQualificationProofReady) |",
+  "| consultationBookingProofReady | $($report.actionDeskWorkflowKpi.metrics.consultationBookingProofReady) |",
+  "| consultationBookingProofStatus | $($report.actionDeskWorkflowKpi.metrics.consultationBookingProofStatus) |",
+  "| consultationBookingStagedReady | $($report.actionDeskWorkflowKpi.metrics.consultationBookingStagedReady) |",
+  "| consultationBookingCalendarWritebackObserved | $($report.actionDeskWorkflowKpi.metrics.consultationBookingCalendarWritebackObserved) |",
+  "| consultationBookingApprovedArtifactObserved | $($report.actionDeskWorkflowKpi.metrics.consultationBookingApprovedArtifactObserved) |",
+  "| consultationBookingScenarioObserved | $($report.actionDeskWorkflowKpi.metrics.consultationBookingScenarioObserved) |",
+  "| missingDocumentFollowUpProofReady | $($report.actionDeskWorkflowKpi.metrics.missingDocumentFollowUpProofReady) |",
+  "| crmHandoffProofReady | $($report.actionDeskWorkflowKpi.metrics.crmHandoffProofReady) |",
+  "| navigatorVisaFlowSuccessRate | $(if ($null -eq $report.actionDeskWorkflowKpi.metrics.navigatorVisaFlowSuccessRate) { "n/a" } else { [string]$report.actionDeskWorkflowKpi.metrics.navigatorVisaFlowSuccessRate }) |",
+  "| navigatorVisaVerifiedCount | $($report.actionDeskWorkflowKpi.metrics.navigatorVisaVerifiedCount) |",
+  "| caseWikiAdoptionRate | $(if ($null -eq $report.actionDeskWorkflowKpi.metrics.caseWikiAdoptionRate) { "n/a" } else { [string]$report.actionDeskWorkflowKpi.metrics.caseWikiAdoptionRate }) |",
+  "| operatorMinutesSaved | $($report.actionDeskWorkflowKpi.metrics.operatorMinutesSaved.status) |",
+  "",
+  "## Pilot Gaps",
+  ""
+)
+if ($actionDeskPilotGaps.Count -eq 0) {
+  $actionDeskKpiMarkdown += "- none"
+} else {
+  foreach ($gap in $actionDeskPilotGaps) {
+    $actionDeskKpiMarkdown += "- $gap"
+  }
+}
+Write-Utf8NoBomFile -Path $resolvedOutputActionDeskKpiMarkdownPath -Content ($actionDeskKpiMarkdown -join "`n")
+
+$runtimeProofDirectLiveStatus = Get-AggregateEvidenceStatus -Statuses @(
+  $report.statuses.hostedDirectLiveProofStatus
+)
+$runtimeProofCaseWikiStatus = Get-AggregateEvidenceStatus -Statuses @(
+  $report.statuses.caseWikiEvidenceSignatureStatus,
+  $report.statuses.caseWikiComplianceStatus,
+  $report.statuses.caseWikiRoutingContextStatus,
+  $report.statuses.caseWikiGatewayHydrationStatus,
+  $report.statuses.caseWikiContextAdoptionStatus
+)
+$runtimeProofNavigatorStatus = Get-AggregateEvidenceStatus -Statuses @(
+  $report.statuses.uiRefHealingStatus,
+  $report.statuses.browserWorkerRecoveryStatus,
+  $report.statuses.navigatorVisaFlowsStatus
+)
+$runtimeProofOverallStatus = Get-AggregateEvidenceStatus -Statuses @(
+  $runtimeProofDirectLiveStatus,
+  $runtimeProofCaseWikiStatus,
+  $runtimeProofNavigatorStatus
+)
+
+$runtimeProofBlockers = @()
+if ($runtimeProofDirectLiveStatus -ne "pass") {
+  $runtimeProofBlockers += [ordered]@{
+    lane   = "direct_live"
+    status = $runtimeProofDirectLiveStatus
+    reason = $(if (-not [string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.freshnessSummary) -and $report.hostedDirectLiveProof.freshnessSummary -ne "unavailable") {
+        [string]$report.hostedDirectLiveProof.freshnessSummary
+      } elseif (-not [string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.summary) -and $report.hostedDirectLiveProof.summary -ne "unavailable") {
+        [string]$report.hostedDirectLiveProof.summary
+      } else {
+        "hosted direct-live proof is not in a passing state"
+      })
+  }
+}
+if ($runtimeProofCaseWikiStatus -ne "pass") {
+  $runtimeProofBlockers += [ordered]@{
+    lane   = "case_wiki"
+    status = $runtimeProofCaseWikiStatus
+    reason = $(if ($report.caseWikiCompliance.observed -eq $true -and $report.caseWikiCompliance.signatureMatch -eq $false) {
+        "compiled memory compliance/signing proof is inconsistent; expected_signature_status=" + [string]$report.caseWikiCompliance.evidenceSigning.expectedSignatureStatus + "; observed_signature_status=" + [string]$report.caseWikiCompliance.observedSignatureStatus
+      } elseif (-not [string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.blocker)) {
+        "compiled memory routing proof is incomplete; blocker=" + [string]$report.caseWikiRoutingContext.blocker
+      } elseif ($report.caseWikiCompliance.observed -eq $true) {
+        "compiled memory compliance proof is incomplete; template=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.templateId)) { "n/a" } else { [string]$report.caseWikiCompliance.templateId }) + "; source=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.source)) { "n/a" } else { [string]$report.caseWikiCompliance.source })
+      } elseif (-not [string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.signatureStatus)) {
+        "compiled memory proof is incomplete; signature_status=" + [string]$report.caseWikiEvidenceSignature.signatureStatus
+      } else {
+        "compiled memory compliance, routing, or signing proof is missing"
+      })
+  }
+}
+if ($runtimeProofNavigatorStatus -ne "pass") {
+  $runtimeProofBlockers += [ordered]@{
+    lane   = "navigator"
+    status = $runtimeProofNavigatorStatus
+    reason = $(if (-not [string]::IsNullOrWhiteSpace([string]$report.navigatorVisaFlows.summary)) {
+        [string]$report.navigatorVisaFlows.summary
+      } elseif (-not [string]::IsNullOrWhiteSpace([string]$report.browserWorkerRecovery.summary)) {
+        [string]$report.browserWorkerRecovery.summary
+      } else {
+        "persistent navigator proof is incomplete"
+      })
+  }
+}
+
+$runtimeProof = [ordered]@{
+  schemaVersion      = "1.0"
+  generatedAt        = $report.generatedAt
+  status             = $runtimeProofOverallStatus
+  readyForOperatorDemo = ($runtimeProofOverallStatus -eq "pass")
+  source             = [ordered]@{
+    badgeDetailsPath               = $resolvedBadgeDetailsPath
+    runtimeSurfaceSnapshotPath     = $resolvedRuntimeSurfaceSnapshotPath
+    releaseEvidenceReportJsonPath  = $resolvedOutputJsonPath
+    releaseEvidenceReportMarkdownPath = $resolvedOutputMarkdownPath
+    releaseEvidenceManifestJsonPath = $resolvedOutputManifestJsonPath
+    releaseEvidenceManifestMarkdownPath = $resolvedOutputManifestMarkdownPath
+  }
+  summary            = [ordered]@{
+    totalLanes    = 3
+    passedLanes   = @(@($runtimeProofDirectLiveStatus, $runtimeProofCaseWikiStatus, $runtimeProofNavigatorStatus) | Where-Object { $_ -eq "pass" }).Count
+    blockerCount  = $runtimeProofBlockers.Count
+    overallSummary = ("direct_live=" + $runtimeProofDirectLiveStatus + "; case_wiki=" + $runtimeProofCaseWikiStatus + "; navigator=" + $runtimeProofNavigatorStatus + "; blockers=" + $runtimeProofBlockers.Count)
+    laneStatuses  = [ordered]@{
+      directLive = $runtimeProofDirectLiveStatus
+      caseWiki   = $runtimeProofCaseWikiStatus
+      navigator  = $runtimeProofNavigatorStatus
+    }
+  }
+  lanes              = [ordered]@{
+    directLive = [ordered]@{
+      status               = $runtimeProofDirectLiveStatus
+      hostedProofStatus    = $report.hostedDirectLiveProof.status
+      observed             = $report.hostedDirectLiveProof.observed
+      freshnessStatus      = $report.hostedDirectLiveProof.freshnessStatus
+      freshnessSummary     = $report.hostedDirectLiveProof.freshnessSummary
+      runtimePreferredMode = $report.hostedDirectLiveProof.runtimePreferredMode
+      runtimeActiveMode    = $report.hostedDirectLiveProof.runtimeActiveMode
+      replayActiveMode     = $report.hostedDirectLiveProof.replayActiveMode
+      replayEvidenceSource = $report.hostedDirectLiveProof.replayEvidenceSource
+      firstAudioMs         = $report.hostedDirectLiveProof.firstAudioMs
+      firstOutputMs        = $report.hostedDirectLiveProof.firstOutputMs
+      fallbackEventCount   = $report.hostedDirectLiveProof.fallbackEventCount
+      fallbackReason       = $report.hostedDirectLiveProof.fallbackReason
+      localRuntimeMode     = $report.liveTransport.runtime.activeMode
+      localSessionMode     = $report.liveTransport.session.activeMode
+      summary              = ("hosted=" + $report.hostedDirectLiveProof.status + "; replay_mode=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.replayActiveMode)) { "n/a" } else { [string]$report.hostedDirectLiveProof.replayActiveMode }) + "; first_audio_ms=" + $(if ($null -eq $report.hostedDirectLiveProof.firstAudioMs) { "n/a" } else { [string]$report.hostedDirectLiveProof.firstAudioMs }) + "; fallback_events=" + [string]$report.hostedDirectLiveProof.fallbackEventCount + "; freshness=" + $report.hostedDirectLiveProof.freshnessStatus)
+    }
+    caseWiki = [ordered]@{
+      status               = $runtimeProofCaseWikiStatus
+      signatureStatus      = $report.caseWikiEvidenceSignature.status
+      signatureSource      = $report.caseWikiEvidenceSignature.source
+      signatureKind        = $report.caseWikiEvidenceSignature.signatureStatus
+      signedArtifacts      = $report.caseWikiEvidenceSignature.signedArtifacts
+      totalArtifacts       = $report.caseWikiEvidenceSignature.totalArtifacts
+      complianceStatus     = $report.caseWikiCompliance.status
+      templateId           = $report.caseWikiCompliance.templateId
+      complianceSource     = $report.caseWikiCompliance.source
+      piiRedactionLevel    = $report.caseWikiCompliance.controls.piiRedactionLevel
+      rawMediaDays         = $report.caseWikiCompliance.retention.rawMediaDays
+      expectedSignatureStatus = $report.caseWikiCompliance.evidenceSigning.expectedSignatureStatus
+      observedSignatureStatus = $report.caseWikiCompliance.observedSignatureStatus
+      signatureMatch       = $report.caseWikiCompliance.signatureMatch
+      routingStatus        = $report.caseWikiRoutingContext.status
+      contextSource        = $report.caseWikiRoutingContext.contextSource
+      routingIngressSource = $report.caseWikiRoutingContext.ingressSource
+      runtimeSurfaceIngressStatus = $report.caseWikiRuntimeSurfaceIngress.status
+      runtimeSurfaceContextSource = $report.caseWikiRuntimeSurfaceIngress.contextSource
+      runtimeSurfaceIngressSource = $report.caseWikiRuntimeSurfaceIngress.ingressSource
+      runtimeSurfaceFocusId = $report.caseWikiRuntimeSurfaceIngress.focusId
+      runtimeSurfaceRoute   = $report.caseWikiRuntimeSurfaceIngress.route
+      focusId              = $report.caseWikiRoutingContext.focusId
+      blocker              = $report.caseWikiRoutingContext.blocker
+      nextAction           = $report.caseWikiRoutingContext.nextAction
+      gatewayHydrationStatus = $report.caseWikiGatewayHydration.status
+      gatewayHydrationIngressSource = $report.caseWikiGatewayHydration.ingressSource
+      contextAdoptionStatus = $report.caseWikiContextAdoption.status
+      caseWikiRate         = $report.caseWikiContextAdoption.caseWikiRate
+      summary              = ("signature=" + $report.caseWikiEvidenceSignature.status + "; compliance=" + $report.caseWikiCompliance.status + "; template=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.templateId)) { "n/a" } else { [string]$report.caseWikiCompliance.templateId }) + "; context_source=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.contextSource)) { "n/a" } else { [string]$report.caseWikiRoutingContext.contextSource }) + "; routing_ingress=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.ingressSource)) { "n/a" } else { [string]$report.caseWikiRoutingContext.ingressSource }) + "; runtime_surface_ingress=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRuntimeSurfaceIngress.ingressSource)) { "n/a" } else { [string]$report.caseWikiRuntimeSurfaceIngress.ingressSource }) + "; gateway_ingress=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.ingressSource)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.ingressSource }) + "; blocker=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.blocker)) { "n/a" } else { [string]$report.caseWikiRoutingContext.blocker }) + "; next_action=" + $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.nextAction)) { "n/a" } else { [string]$report.caseWikiRoutingContext.nextAction }) + "; case_wiki_rate=" + $(if ($null -eq $report.caseWikiContextAdoption.caseWikiRate) { "n/a" } else { [string]$report.caseWikiContextAdoption.caseWikiRate }))
+    }
+    navigator = [ordered]@{
+      status                    = $runtimeProofNavigatorStatus
+      uiRefHealingStatus        = $report.uiRefHealing.status
+      browserWorkerRecoveryStatus = $report.browserWorkerRecovery.status
+      visaFlowsStatus           = $report.navigatorVisaFlows.status
+      adapterMode               = $report.browserWorkerRecovery.adapterMode
+      totalFlows                = $report.navigatorVisaFlows.totalFlows
+      succeededFlows            = $report.navigatorVisaFlows.succeededFlows
+      successRate               = $report.navigatorVisaFlows.successRate
+      persistentSessionCount    = $report.navigatorVisaFlows.persistentSessionCount
+      replayBundleCount         = $report.navigatorVisaFlows.replayBundleCount
+      verifiedCount             = $report.navigatorVisaFlows.verifiedCount
+      staleRecoveryObservedCount = $report.navigatorVisaFlows.staleRecoveryObservedCount
+      healedRecoveryObservedCount = $report.navigatorVisaFlows.healedRecoveryObservedCount
+      resumedCheckpointCount    = $report.navigatorVisaFlows.resumedCheckpointCount
+      scenarioNames             = @($report.navigatorVisaFlows.scenarioNames)
+      summary                   = ("flows=" + [string]$report.navigatorVisaFlows.succeededFlows + "/" + [string]$report.navigatorVisaFlows.totalFlows + "; persistent=" + [string]$report.navigatorVisaFlows.persistentSessionCount + "; verified=" + [string]$report.navigatorVisaFlows.verifiedCount + "; stale_recovery=" + [string]$report.navigatorVisaFlows.staleRecoveryObservedCount + "; resumed=" + [string]$report.navigatorVisaFlows.resumedCheckpointCount)
+    }
+  }
+  blockers           = @($runtimeProofBlockers)
+}
+
+$runtimeProofJson = $runtimeProof | ConvertTo-Json -Depth 10
+Write-Utf8NoBomFile -Path $resolvedOutputRuntimeProofJsonPath -Content $runtimeProofJson
+
+$runtimeProofMarkdown = @(
+  "# Runtime Proof Report",
+  "",
+  "- Generated at: $($runtimeProof.generatedAt)",
+  "- Overall status: $($runtimeProof.status)",
+  "- Ready for operator demo: $($runtimeProof.readyForOperatorDemo)",
+  "- Badge details path: $($runtimeProof.source.badgeDetailsPath)",
+  "- Runtime surface snapshot path: $($runtimeProof.source.runtimeSurfaceSnapshotPath)",
+  "- Release evidence report JSON: $($runtimeProof.source.releaseEvidenceReportJsonPath)",
+  "",
+  "| Lane | Status | Summary |",
+  "|---|---|---|",
+  "| direct_live | $($runtimeProof.lanes.directLive.status) | $($runtimeProof.lanes.directLive.summary) |",
+  "| case_wiki | $($runtimeProof.lanes.caseWiki.status) | $($runtimeProof.lanes.caseWiki.summary) |",
+  "| navigator | $($runtimeProof.lanes.navigator.status) | $($runtimeProof.lanes.navigator.summary) |",
+  "",
+  "## Direct Live Proof",
+  "",
+  "- status: $($runtimeProof.lanes.directLive.status)",
+  "- hostedProofStatus: $($runtimeProof.lanes.directLive.hostedProofStatus)",
+  "- observed: $($runtimeProof.lanes.directLive.observed)",
+  "- freshnessStatus: $($runtimeProof.lanes.directLive.freshnessStatus)",
+  "- freshnessSummary: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.directLive.freshnessSummary)) { "n/a" } else { [string]$runtimeProof.lanes.directLive.freshnessSummary })",
+  "- runtimePreferredMode: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.directLive.runtimePreferredMode)) { "n/a" } else { [string]$runtimeProof.lanes.directLive.runtimePreferredMode })",
+  "- runtimeActiveMode: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.directLive.runtimeActiveMode)) { "n/a" } else { [string]$runtimeProof.lanes.directLive.runtimeActiveMode })",
+  "- replayActiveMode: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.directLive.replayActiveMode)) { "n/a" } else { [string]$runtimeProof.lanes.directLive.replayActiveMode })",
+  "- replayEvidenceSource: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.directLive.replayEvidenceSource)) { "n/a" } else { [string]$runtimeProof.lanes.directLive.replayEvidenceSource })",
+  "- firstAudioMs: $(if ($null -eq $runtimeProof.lanes.directLive.firstAudioMs) { "n/a" } else { [string]$runtimeProof.lanes.directLive.firstAudioMs })",
+  "- firstOutputMs: $(if ($null -eq $runtimeProof.lanes.directLive.firstOutputMs) { "n/a" } else { [string]$runtimeProof.lanes.directLive.firstOutputMs })",
+  "- fallbackEventCount: $($runtimeProof.lanes.directLive.fallbackEventCount)",
+  "- fallbackReason: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.directLive.fallbackReason)) { "n/a" } else { [string]$runtimeProof.lanes.directLive.fallbackReason })",
+  "- localRuntimeMode: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.directLive.localRuntimeMode)) { "n/a" } else { [string]$runtimeProof.lanes.directLive.localRuntimeMode })",
+  "- localSessionMode: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.directLive.localSessionMode)) { "n/a" } else { [string]$runtimeProof.lanes.directLive.localSessionMode })",
+  "",
+  "## Case Wiki Proof",
+  "",
+"- status: $($runtimeProof.lanes.caseWiki.status)",
+"- signatureStatus: $($runtimeProof.lanes.caseWiki.signatureStatus)",
+"- signatureSource: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.signatureSource)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.signatureSource })",
+"- signatureKind: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.signatureKind)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.signatureKind })",
+  "- signedArtifacts: $($runtimeProof.lanes.caseWiki.signedArtifacts)",
+  "- totalArtifacts: $($runtimeProof.lanes.caseWiki.totalArtifacts)",
+"- routingStatus: $($runtimeProof.lanes.caseWiki.routingStatus)",
+"- gatewayHydrationStatus: $($runtimeProof.lanes.caseWiki.gatewayHydrationStatus)",
+"- contextAdoptionStatus: $($runtimeProof.lanes.caseWiki.contextAdoptionStatus)",
+"- contextSource: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.contextSource)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.contextSource })",
+"- routingIngressSource: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.routingIngressSource)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.routingIngressSource })",
+"- runtimeSurfaceIngressStatus: $($runtimeProof.lanes.caseWiki.runtimeSurfaceIngressStatus)",
+"- runtimeSurfaceContextSource: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.runtimeSurfaceContextSource)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.runtimeSurfaceContextSource })",
+"- runtimeSurfaceIngressSource: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.runtimeSurfaceIngressSource)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.runtimeSurfaceIngressSource })",
+"- runtimeSurfaceFocusId: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.runtimeSurfaceFocusId)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.runtimeSurfaceFocusId })",
+"- runtimeSurfaceRoute: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.runtimeSurfaceRoute)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.runtimeSurfaceRoute })",
+"- gatewayHydrationIngressSource: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.gatewayHydrationIngressSource)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.gatewayHydrationIngressSource })",
+"- focusId: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.focusId)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.focusId })",
+  "- blocker: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.blocker)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.blocker })",
+  "- nextAction: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.caseWiki.nextAction)) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.nextAction })",
+  "- caseWikiRate: $(if ($null -eq $runtimeProof.lanes.caseWiki.caseWikiRate) { "n/a" } else { [string]$runtimeProof.lanes.caseWiki.caseWikiRate })",
+  "",
+  "## Navigator Proof",
+  "",
+  "- status: $($runtimeProof.lanes.navigator.status)",
+  "- uiRefHealingStatus: $($runtimeProof.lanes.navigator.uiRefHealingStatus)",
+  "- browserWorkerRecoveryStatus: $($runtimeProof.lanes.navigator.browserWorkerRecoveryStatus)",
+  "- visaFlowsStatus: $($runtimeProof.lanes.navigator.visaFlowsStatus)",
+  "- adapterMode: $(if ([string]::IsNullOrWhiteSpace([string]$runtimeProof.lanes.navigator.adapterMode)) { "n/a" } else { [string]$runtimeProof.lanes.navigator.adapterMode })",
+  "- totalFlows: $($runtimeProof.lanes.navigator.totalFlows)",
+  "- succeededFlows: $($runtimeProof.lanes.navigator.succeededFlows)",
+  "- successRate: $(if ($null -eq $runtimeProof.lanes.navigator.successRate) { "n/a" } else { [string]$runtimeProof.lanes.navigator.successRate })",
+  "- persistentSessionCount: $($runtimeProof.lanes.navigator.persistentSessionCount)",
+  "- replayBundleCount: $($runtimeProof.lanes.navigator.replayBundleCount)",
+  "- verifiedCount: $($runtimeProof.lanes.navigator.verifiedCount)",
+  "- staleRecoveryObservedCount: $($runtimeProof.lanes.navigator.staleRecoveryObservedCount)",
+  "- healedRecoveryObservedCount: $($runtimeProof.lanes.navigator.healedRecoveryObservedCount)",
+  "- resumedCheckpointCount: $($runtimeProof.lanes.navigator.resumedCheckpointCount)",
+  "- scenarioNames: $(if (@($runtimeProof.lanes.navigator.scenarioNames).Count -eq 0) { "(none)" } else { (@($runtimeProof.lanes.navigator.scenarioNames) -join ", ") })",
+  "",
+  "## Blockers",
+  ""
+)
+
+if (@($runtimeProof.blockers).Count -gt 0) {
+  foreach ($blocker in @($runtimeProof.blockers)) {
+    $runtimeProofMarkdown += "- $([string]$blocker.lane): $([string]$blocker.reason) [$([string]$blocker.status)]"
+  }
+} else {
+  $runtimeProofMarkdown += "- none"
+}
+
+Write-Utf8NoBomFile -Path $resolvedOutputRuntimeProofMarkdownPath -Content ($runtimeProofMarkdown -join "`n")
 
 $providerEntriesMarkdown = if (@($report.providerUsage.entries).Count -gt 0) {
   (@($report.providerUsage.entries | ForEach-Object {
@@ -519,6 +2503,10 @@ $markdown = @(
   "- Badge details present: $($report.source.badgeDetailsPresent)",
   "- Badge details parsed: $($report.source.badgeDetailsParsed)",
   $(if (-not [string]::IsNullOrWhiteSpace([string]$report.source.parseError)) { "- Parse error: $($report.source.parseError)" } else { "- Parse error: none" }),
+  "- Runtime surface snapshot path: $($report.source.runtimeSurfaceSnapshotPath)",
+  "- Runtime surface snapshot present: $($report.source.runtimeSurfaceSnapshotPresent)",
+  "- Runtime surface snapshot parsed: $($report.source.runtimeSurfaceSnapshotParsed)",
+  $(if (-not [string]::IsNullOrWhiteSpace([string]$report.source.runtimeSurfaceSnapshotParseError)) { "- Runtime surface snapshot parse error: $($report.source.runtimeSurfaceSnapshotParseError)" } else { "- Runtime surface snapshot parse error: none" }),
   "",
   "| Evidence Lane | Status |",
   "|---|---|",
@@ -532,6 +2520,16 @@ $markdown = @(
   "| agentUsage | $($report.statuses.agentUsageStatus) |",
   "| runtimeGuardrailsSignalPaths | $($report.statuses.runtimeGuardrailsSignalPathsStatus) |",
   "| liveTransport | $($report.statuses.liveTransportStatus) |",
+  "| hostedDirectLiveProof | $($report.statuses.hostedDirectLiveProofStatus) |",
+  "| caseWikiEvidenceSignature | $($report.statuses.caseWikiEvidenceSignatureStatus) |",
+  "| caseWikiCompliance | $($report.statuses.caseWikiComplianceStatus) |",
+  "| caseWikiRoutingContext | $($report.statuses.caseWikiRoutingContextStatus) |",
+  "| caseWikiRuntimeSurfaceIngress | $($report.statuses.caseWikiRuntimeSurfaceIngressStatus) |",
+  "| caseWikiGatewayHydration | $($report.statuses.caseWikiGatewayHydrationStatus) |",
+  "| caseWikiContextAdoption | $($report.statuses.caseWikiContextAdoptionStatus) |",
+  "| uiRefHealing | $($report.statuses.uiRefHealingStatus) |",
+  "| browserWorkerRecovery | $($report.statuses.browserWorkerRecoveryStatus) |",
+  "| navigatorVisaFlows | $($report.statuses.navigatorVisaFlowsStatus) |",
   "| providerUsage | $($report.statuses.providerUsageStatus) |",
   "| deviceNodeUpdates | $($report.statuses.deviceNodeUpdatesStatus) |",
   "",
@@ -568,6 +2566,229 @@ $markdown = @(
   "- evidenceSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.liveTransport.session.evidenceSource)) { "n/a" } else { [string]$report.liveTransport.session.evidenceSource })",
   "- connectedEventType: $(if ([string]::IsNullOrWhiteSpace([string]$report.liveTransport.session.connectedEventType)) { "n/a" } else { [string]$report.liveTransport.session.connectedEventType })",
   "- summary: $($report.liveTransport.summary)",
+  "",
+  "## Hosted Direct-Live Proof Snapshot",
+  "",
+  "- status: $($report.hostedDirectLiveProof.status)",
+  "- observed: $($report.hostedDirectLiveProof.observed)",
+  "- frontendPublicUrl: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.frontendPublicUrl)) { "n/a" } else { [string]$report.hostedDirectLiveProof.frontendPublicUrl })",
+  "- apiPublicUrl: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.apiPublicUrl)) { "n/a" } else { [string]$report.hostedDirectLiveProof.apiPublicUrl })",
+  "- apiPublicUrlSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.apiPublicUrlSource)) { "n/a" } else { [string]$report.hostedDirectLiveProof.apiPublicUrlSource })",
+  "- requestedSessionId: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.requestedSessionId)) { "n/a" } else { [string]$report.hostedDirectLiveProof.requestedSessionId })",
+  "- sessionId: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.sessionId)) { "n/a" } else { [string]$report.hostedDirectLiveProof.sessionId })",
+  "- generatedAt: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.generatedAt)) { "n/a" } else { [string]$report.hostedDirectLiveProof.generatedAt })",
+  "- generatedAtIsIso: $($report.hostedDirectLiveProof.generatedAtIsIso)",
+  "- freshnessStatus: $($report.hostedDirectLiveProof.freshnessStatus)",
+  "- freshnessSummary: $($report.hostedDirectLiveProof.freshnessSummary)",
+  "- freshnessAgeMinutes: $(if ($null -eq $report.hostedDirectLiveProof.freshnessAgeMinutes) { "n/a" } else { [string]$report.hostedDirectLiveProof.freshnessAgeMinutes })",
+  "- freshnessMaxAgeHours: $(if ($null -eq $report.hostedDirectLiveProof.freshnessMaxAgeHours) { "n/a" } else { [string]$report.hostedDirectLiveProof.freshnessMaxAgeHours })",
+  "- runtimePreferredMode: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.runtimePreferredMode)) { "n/a" } else { [string]$report.hostedDirectLiveProof.runtimePreferredMode })",
+  "- runtimeActiveMode: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.runtimeActiveMode)) { "n/a" } else { [string]$report.hostedDirectLiveProof.runtimeActiveMode })",
+  "- replayActiveMode: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.replayActiveMode)) { "n/a" } else { [string]$report.hostedDirectLiveProof.replayActiveMode })",
+  "- replayEvidenceSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.replayEvidenceSource)) { "n/a" } else { [string]$report.hostedDirectLiveProof.replayEvidenceSource })",
+  "- firstAudioMs: $(if ($null -eq $report.hostedDirectLiveProof.firstAudioMs) { "n/a" } else { [string]$report.hostedDirectLiveProof.firstAudioMs })",
+  "- firstOutputMs: $(if ($null -eq $report.hostedDirectLiveProof.firstOutputMs) { "n/a" } else { [string]$report.hostedDirectLiveProof.firstOutputMs })",
+  "- fallbackEventCount: $($report.hostedDirectLiveProof.fallbackEventCount)",
+  "- fallbackReason: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.fallbackReason)) { "n/a" } else { [string]$report.hostedDirectLiveProof.fallbackReason })",
+  "- runtimeEvidenceExpectedSignatureStatus: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.runtimeEvidenceExpectedSignatureStatus)) { "n/a" } else { [string]$report.hostedDirectLiveProof.runtimeEvidenceExpectedSignatureStatus })",
+  "- runtimeEvidenceKeyState: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.runtimeEvidenceKeyState)) { "n/a" } else { [string]$report.hostedDirectLiveProof.runtimeEvidenceKeyState })",
+  "- caseWikiExpectedSignatureStatus: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.caseWikiExpectedSignatureStatus)) { "n/a" } else { [string]$report.hostedDirectLiveProof.caseWikiExpectedSignatureStatus })",
+  "- caseWikiExpectedSignatureSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.caseWikiExpectedSignatureSource)) { "n/a" } else { [string]$report.hostedDirectLiveProof.caseWikiExpectedSignatureSource })",
+  "- caseWikiSignatureStatus: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.caseWikiSignatureStatus)) { "n/a" } else { [string]$report.hostedDirectLiveProof.caseWikiSignatureStatus })",
+  "- caseWikiSignaturePresent: $(if ($null -eq $report.hostedDirectLiveProof.caseWikiSignaturePresent) { "n/a" } else { [string]$report.hostedDirectLiveProof.caseWikiSignaturePresent })",
+  "- latencyObserved: $($report.hostedDirectLiveProof.latencyObserved)",
+  "- summary: $($report.hostedDirectLiveProof.summary)",
+  "",
+  "## Case Wiki Evidence Signature Snapshot",
+  "",
+  "- status: $($report.caseWikiEvidenceSignature.status)",
+  "- source: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.source)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.source })",
+  "- validated: $($report.caseWikiEvidenceSignature.validated)",
+  "- totalArtifacts: $($report.caseWikiEvidenceSignature.totalArtifacts)",
+  "- signedArtifacts: $($report.caseWikiEvidenceSignature.signedArtifacts)",
+  "- unsignedArtifacts: $($report.caseWikiEvidenceSignature.unsignedArtifacts)",
+  "- signatureStatus: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.signatureStatus)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.signatureStatus })",
+  "- algorithm: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.algorithm)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.algorithm })",
+  "- canonicalization: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.canonicalization)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.canonicalization })",
+  "- signerId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.signerId)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.signerId })",
+  "- keyId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.keyId)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.keyId })",
+  "- signedAt: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.signedAt)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.signedAt })",
+  "- signedAtIsIso: $($report.caseWikiEvidenceSignature.signedAtIsIso)",
+  "- signaturePresent: $(if ($null -eq $report.caseWikiEvidenceSignature.signaturePresent) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.signaturePresent })",
+  "- caseId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.caseId)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.caseId })",
+  "- sessionId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.sessionId)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.sessionId })",
+  "- overviewStatus: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.overviewStatus)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.overviewStatus })",
+  "- focusKind: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.focusKind)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.focusKind })",
+  "- focusLabel: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.focusLabel)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.focusLabel })",
+  "- nextAction: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.nextAction)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.nextAction })",
+  "- sourceRefsCount: $($report.caseWikiEvidenceSignature.sourceRefsCount)",
+  "- payloadHash: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.payloadHash)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.payloadHash })",
+  "",
+  "## Case Wiki Compliance Snapshot",
+  "",
+  "- status: $($report.caseWikiCompliance.status)",
+  "- validated: $($report.caseWikiCompliance.validated)",
+  "- observed: $($report.caseWikiCompliance.observed)",
+  "- tenantId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.tenantId)) { "n/a" } else { [string]$report.caseWikiCompliance.tenantId })",
+  "- templateId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.templateId)) { "n/a" } else { [string]$report.caseWikiCompliance.templateId })",
+  "- requestedTemplateId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.requestedTemplateId)) { "n/a" } else { [string]$report.caseWikiCompliance.requestedTemplateId })",
+  "- source: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.source)) { "n/a" } else { [string]$report.caseWikiCompliance.source })",
+  "- fallbackApplied: $(if ($null -eq $report.caseWikiCompliance.fallbackApplied) { "n/a" } else { [string]$report.caseWikiCompliance.fallbackApplied })",
+  "- piiRedactionLevel: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.controls.piiRedactionLevel)) { "n/a" } else { [string]$report.caseWikiCompliance.controls.piiRedactionLevel })",
+  "- crossTenantAdminOnly: $(if ($null -eq $report.caseWikiCompliance.controls.crossTenantAdminOnly) { "n/a" } else { [string]$report.caseWikiCompliance.controls.crossTenantAdminOnly })",
+  "- approvalSlaEnforced: $(if ($null -eq $report.caseWikiCompliance.controls.approvalSlaEnforced) { "n/a" } else { [string]$report.caseWikiCompliance.controls.approvalSlaEnforced })",
+  "- auditTrailRequired: $(if ($null -eq $report.caseWikiCompliance.controls.auditTrailRequired) { "n/a" } else { [string]$report.caseWikiCompliance.controls.auditTrailRequired })",
+  "- rawMediaDays: $($report.caseWikiCompliance.retention.rawMediaDays)",
+  "- auditLogsDays: $($report.caseWikiCompliance.retention.auditLogsDays)",
+  "- eventsDays: $($report.caseWikiCompliance.retention.eventsDays)",
+  "- sessionsDays: $($report.caseWikiCompliance.retention.sessionsDays)",
+  "- evidenceSigningEnabled: $(if ($null -eq $report.caseWikiCompliance.evidenceSigning.enabled) { "n/a" } else { [string]$report.caseWikiCompliance.evidenceSigning.enabled })",
+  "- expectedSignatureStatus: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.evidenceSigning.expectedSignatureStatus)) { "n/a" } else { [string]$report.caseWikiCompliance.evidenceSigning.expectedSignatureStatus })",
+  "- keyState: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.evidenceSigning.keyState)) { "n/a" } else { [string]$report.caseWikiCompliance.evidenceSigning.keyState })",
+  "- signerId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.evidenceSigning.signerId)) { "n/a" } else { [string]$report.caseWikiCompliance.evidenceSigning.signerId })",
+  "- keyId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.evidenceSigning.keyId)) { "n/a" } else { [string]$report.caseWikiCompliance.evidenceSigning.keyId })",
+  "- observedSignatureStatus: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.observedSignatureStatus)) { "n/a" } else { [string]$report.caseWikiCompliance.observedSignatureStatus })",
+  "- signatureMatch: $(if ($null -eq $report.caseWikiCompliance.signatureMatch) { "n/a" } else { [string]$report.caseWikiCompliance.signatureMatch })",
+  "- summary: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiCompliance.summary)) { "n/a" } else { [string]$report.caseWikiCompliance.summary })",
+  "",
+  "## Case Wiki Routing Context Snapshot",
+  "",
+  "- status: $($report.caseWikiRoutingContext.status)",
+  "- validated: $($report.caseWikiRoutingContext.validated)",
+  "- observed: $($report.caseWikiRoutingContext.observed)",
+  "- contextSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.contextSource)) { "n/a" } else { [string]$report.caseWikiRoutingContext.contextSource })",
+  "- ingressSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.ingressSource)) { "n/a" } else { [string]$report.caseWikiRoutingContext.ingressSource })",
+  "- focusId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.focusId)) { "n/a" } else { [string]$report.caseWikiRoutingContext.focusId })",
+  "- blocker: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.blocker)) { "n/a" } else { [string]$report.caseWikiRoutingContext.blocker })",
+  "- nextAction: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.nextAction)) { "n/a" } else { [string]$report.caseWikiRoutingContext.nextAction })",
+  "- route: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.route)) { "n/a" } else { [string]$report.caseWikiRoutingContext.route })",
+  "- mode: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.mode)) { "n/a" } else { [string]$report.caseWikiRoutingContext.mode })",
+  "- requestedIntent: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.requestedIntent)) { "n/a" } else { [string]$report.caseWikiRoutingContext.requestedIntent })",
+  "- routedIntent: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.routedIntent)) { "n/a" } else { [string]$report.caseWikiRoutingContext.routedIntent })",
+  "",
+  "## Case Wiki Runtime Surface Ingress Snapshot",
+  "",
+  "- status: $($report.caseWikiRuntimeSurfaceIngress.status)",
+  "- observed: $($report.caseWikiRuntimeSurfaceIngress.observed)",
+  "- updatedAt: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRuntimeSurfaceIngress.updatedAt)) { "n/a" } else { [string]$report.caseWikiRuntimeSurfaceIngress.updatedAt })",
+  "- contextSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRuntimeSurfaceIngress.contextSource)) { "n/a" } else { [string]$report.caseWikiRuntimeSurfaceIngress.contextSource })",
+  "- ingressSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRuntimeSurfaceIngress.ingressSource)) { "n/a" } else { [string]$report.caseWikiRuntimeSurfaceIngress.ingressSource })",
+  "- focusId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRuntimeSurfaceIngress.focusId)) { "n/a" } else { [string]$report.caseWikiRuntimeSurfaceIngress.focusId })",
+  "- blocker: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRuntimeSurfaceIngress.blocker)) { "n/a" } else { [string]$report.caseWikiRuntimeSurfaceIngress.blocker })",
+  "- nextAction: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRuntimeSurfaceIngress.nextAction)) { "n/a" } else { [string]$report.caseWikiRuntimeSurfaceIngress.nextAction })",
+  "- route: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRuntimeSurfaceIngress.route)) { "n/a" } else { [string]$report.caseWikiRuntimeSurfaceIngress.route })",
+  "- summary: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRuntimeSurfaceIngress.summary)) { "n/a" } else { [string]$report.caseWikiRuntimeSurfaceIngress.summary })",
+  "",
+  "## Case Wiki Gateway Hydration Snapshot",
+  "",
+  "- status: $($report.caseWikiGatewayHydration.status)",
+  "- validated: $($report.caseWikiGatewayHydration.validated)",
+  "- observed: $($report.caseWikiGatewayHydration.observed)",
+  "- sessionId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.sessionId)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.sessionId })",
+  "- noteEventId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.noteEventId)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.noteEventId })",
+  "- questionId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.questionId)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.questionId })",
+  "- questionMatched: $(if ($null -eq $report.caseWikiGatewayHydration.questionMatched) { "n/a" } else { [string]$report.caseWikiGatewayHydration.questionMatched })",
+  "- noteSourceRefSeen: $(if ($null -eq $report.caseWikiGatewayHydration.noteSourceRefSeen) { "n/a" } else { [string]$report.caseWikiGatewayHydration.noteSourceRefSeen })",
+"- questionSuggestedNextStep: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.questionSuggestedNextStep)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.questionSuggestedNextStep })",
+"- contextSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.contextSource)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.contextSource })",
+"- ingressSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.ingressSource)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.ingressSource })",
+"- focusId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.focusId)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.focusId })",
+  "- blocker: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.blocker)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.blocker })",
+  "- nextAction: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.nextAction)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.nextAction })",
+  "- route: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.route)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.route })",
+  "- mode: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.mode)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.mode })",
+  "- requestedIntent: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.requestedIntent)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.requestedIntent })",
+  "- routedIntent: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.routedIntent)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.routedIntent })",
+  "",
+  "## Case Wiki Context Adoption Snapshot",
+  "",
+  "- status: $($report.caseWikiContextAdoption.status)",
+  "- validated: $($report.caseWikiContextAdoption.validated)",
+  "- observed: $($report.caseWikiContextAdoption.observed)",
+  "- observedCount: $($report.caseWikiContextAdoption.observedCount)",
+  "- caseWikiObservedCount: $($report.caseWikiContextAdoption.caseWikiObservedCount)",
+  "- inputOnlyObservedCount: $($report.caseWikiContextAdoption.inputOnlyObservedCount)",
+  "- unknownObservedCount: $($report.caseWikiContextAdoption.unknownObservedCount)",
+  "- caseWikiRate: $(if ($null -eq $report.caseWikiContextAdoption.caseWikiRate) { "n/a" } else { [string]$report.caseWikiContextAdoption.caseWikiRate })",
+  "",
+  "## UI Ref Healing Snapshot",
+  "",
+  "- status: $($report.uiRefHealing.status)",
+  "- validated: $($report.uiRefHealing.validated)",
+  "- observed: $($report.uiRefHealing.observed)",
+  "- finalStatus: $(if ([string]::IsNullOrWhiteSpace([string]$report.uiRefHealing.finalStatus)) { "n/a" } else { [string]$report.uiRefHealing.finalStatus })",
+  "- adapterMode: $(if ([string]::IsNullOrWhiteSpace([string]$report.uiRefHealing.adapterMode)) { "n/a" } else { [string]$report.uiRefHealing.adapterMode })",
+  "- healedRefCount: $($report.uiRefHealing.healedRefCount)",
+  "- healedRefTargets: $(if (@($report.uiRefHealing.healedRefTargets).Count -eq 0) { "(none)" } else { (@($report.uiRefHealing.healedRefTargets) -join ", ") })",
+  "- staleRefCount: $($report.uiRefHealing.staleRefCount)",
+  "- staleRefTargets: $(if (@($report.uiRefHealing.staleRefTargets).Count -eq 0) { "(none)" } else { (@($report.uiRefHealing.staleRefTargets) -join ", ") })",
+  "- traceCount: $($report.uiRefHealing.traceCount)",
+  "- retries: $($report.uiRefHealing.retries)",
+  "- disabledSubmitSeen: $(if ($null -eq $report.uiRefHealing.disabledSubmitSeen) { "n/a" } else { [string]$report.uiRefHealing.disabledSubmitSeen })",
+  "- enabledSubmitSeen: $(if ($null -eq $report.uiRefHealing.enabledSubmitSeen) { "n/a" } else { [string]$report.uiRefHealing.enabledSubmitSeen })",
+  "- healingObservationSeen: $(if ($null -eq $report.uiRefHealing.healingObservationSeen) { "n/a" } else { [string]$report.uiRefHealing.healingObservationSeen })",
+  "- healingNoteSeen: $(if ($null -eq $report.uiRefHealing.healingNoteSeen) { "n/a" } else { [string]$report.uiRefHealing.healingNoteSeen })",
+  "",
+  "## Browser Worker Recovery Snapshot",
+  "",
+  "- status: $($report.browserWorkerRecovery.status)",
+  "- validated: $($report.browserWorkerRecovery.validated)",
+  "- observed: $($report.browserWorkerRecovery.observed)",
+  "- finalStatus: $(if ([string]::IsNullOrWhiteSpace([string]$report.browserWorkerRecovery.finalStatus)) { "n/a" } else { [string]$report.browserWorkerRecovery.finalStatus })",
+  "- adapterMode: $(if ([string]::IsNullOrWhiteSpace([string]$report.browserWorkerRecovery.adapterMode)) { "n/a" } else { [string]$report.browserWorkerRecovery.adapterMode })",
+  "- checkpointCount: $($report.browserWorkerRecovery.checkpointCount)",
+  "- resumedCheckpointCount: $($report.browserWorkerRecovery.resumedCheckpointCount)",
+  "- healedRefCount: $($report.browserWorkerRecovery.healedRefCount)",
+  "- healedRefTargets: $(if (@($report.browserWorkerRecovery.healedRefTargets).Count -eq 0) { "(none)" } else { (@($report.browserWorkerRecovery.healedRefTargets) -join ", ") })",
+  "- staleRefCount: $($report.browserWorkerRecovery.staleRefCount)",
+  "- staleRefTargets: $(if (@($report.browserWorkerRecovery.staleRefTargets).Count -eq 0) { "(none)" } else { (@($report.browserWorkerRecovery.staleRefTargets) -join ", ") })",
+  "- traceCount: $($report.browserWorkerRecovery.traceCount)",
+  "- retryCount: $($report.browserWorkerRecovery.retryCount)",
+  "- runtimeRetryCount: $($report.browserWorkerRecovery.runtimeRetryCount)",
+  "- runtimeResumedCheckpointCount: $($report.browserWorkerRecovery.runtimeResumedCheckpointCount)",
+  "- runtimeStaleRefCount: $($report.browserWorkerRecovery.runtimeStaleRefCount)",
+  "- runtimeHealedRefCount: $($report.browserWorkerRecovery.runtimeHealedRefCount)",
+  "- checkpointReadyCleared: $(if ($null -eq $report.browserWorkerRecovery.checkpointReadyCleared) { "n/a" } else { [string]$report.browserWorkerRecovery.checkpointReadyCleared })",
+  "- summary: $(if ([string]::IsNullOrWhiteSpace([string]$report.browserWorkerRecovery.summary)) { "n/a" } else { [string]$report.browserWorkerRecovery.summary })",
+  "",
+  "## Navigator Visa Flows Snapshot",
+  "",
+  "- status: $($report.navigatorVisaFlows.status)",
+  "- validated: $($report.navigatorVisaFlows.validated)",
+  "- observed: $($report.navigatorVisaFlows.observed)",
+  "- totalFlows: $($report.navigatorVisaFlows.totalFlows)",
+  "- succeededFlows: $($report.navigatorVisaFlows.succeededFlows)",
+  "- successRate: $(if ($null -eq $report.navigatorVisaFlows.successRate) { "n/a" } else { [string]$report.navigatorVisaFlows.successRate })",
+  "- persistentSessionCount: $($report.navigatorVisaFlows.persistentSessionCount)",
+  "- replayBundleCount: $($report.navigatorVisaFlows.replayBundleCount)",
+  "- verifiedCount: $($report.navigatorVisaFlows.verifiedCount)",
+  "- staleRecoveryObservedCount: $($report.navigatorVisaFlows.staleRecoveryObservedCount)",
+  "- healedRecoveryObservedCount: $($report.navigatorVisaFlows.healedRecoveryObservedCount)",
+  "- resumedCheckpointCount: $($report.navigatorVisaFlows.resumedCheckpointCount)",
+  "- checkpointReadyClearedCount: $($report.navigatorVisaFlows.checkpointReadyClearedCount)",
+  "- scenarioNames: $(if (@($report.navigatorVisaFlows.scenarioNames).Count -eq 0) { "(none)" } else { (@($report.navigatorVisaFlows.scenarioNames) -join ", ") })",
+  "- summary: $(if ([string]::IsNullOrWhiteSpace([string]$report.navigatorVisaFlows.summary)) { "n/a" } else { [string]$report.navigatorVisaFlows.summary })",
+  "",
+  "## Consultation Booking Proof",
+  "",
+  "- status: $($report.consultationBookingProof.status)",
+  "- stagedReady: $($report.consultationBookingProof.stagedReady)",
+  "- proofReady: $($report.consultationBookingProof.proofReady)",
+  "- bookingScenarioObserved: $($report.consultationBookingProof.repoOwnedWorkflow.bookingScenarioObserved)",
+  "- stagedReminderContextObserved: $($report.consultationBookingProof.repoOwnedWorkflow.stagedReminderContextObserved)",
+  "- calendarWritebackObserved: $($report.consultationBookingProof.calendarConnector.writebackObserved)",
+  "- approvedBookingArtifactObserved: $($report.consultationBookingProof.calendarConnector.approvedBookingArtifactObserved)",
+  "- nextGaps: $(if (@($report.consultationBookingProof.nextGaps).Count -eq 0) { "(none)" } else { (@($report.consultationBookingProof.nextGaps) -join ", ") })",
+  "",
+  "## Action Desk Workflow KPI",
+  "",
+  "- status: $($report.actionDeskWorkflowKpi.status)",
+  "- summary: $($report.actionDeskWorkflowKpi.summary.headline)",
+  "- proofReadyWorkflows: $($report.actionDeskWorkflowKpi.summary.proofReadyWorkflows)/$($report.actionDeskWorkflowKpi.summary.totalWorkflows)",
+  "- needsConnectorCount: $($report.actionDeskWorkflowKpi.summary.needsConnectorCount)",
+  "- needsEvidenceCount: $($report.actionDeskWorkflowKpi.summary.needsEvidenceCount)",
+  "- operatorMinutesSaved: $($report.actionDeskWorkflowKpi.metrics.operatorMinutesSaved.status)",
+  "- pilotGaps: $(if (@($report.actionDeskWorkflowKpi.pilotGaps).Count -eq 0) { "(none)" } else { (@($report.actionDeskWorkflowKpi.pilotGaps) -join ", ") })",
   "",
   "## Secondary Provider Usage",
   "",
@@ -609,10 +2830,22 @@ $artifactEntries = @(
   (New-ArtifactEntry -Id "demo.policy" -Category "demo" -Label "Demo policy-check JSON" -Path $resolvedDemoPolicyPath -Required $true -Present (Test-Path $resolvedDemoPolicyPath)),
   (New-ArtifactEntry -Id "demo.badge" -Category "demo" -Label "Demo badge JSON" -Path $resolvedDemoBadgePath -Required $true -Present (Test-Path $resolvedDemoBadgePath)),
   (New-ArtifactEntry -Id "demo.badgeDetails" -Category "demo" -Label "Demo badge-details JSON" -Path $resolvedBadgeDetailsPath -Required $true -Present (Test-Path $resolvedBadgeDetailsPath)),
+  (New-ArtifactEntry -Id "demo.navigatorVisaFlows" -Category "demo" -Label "Demo navigator visa flows JSON" -Path $resolvedNavigatorVisaFlowsPath -Required $false -Present (Test-Path $resolvedNavigatorVisaFlowsPath)),
+  (New-ArtifactEntry -Id "demo.consultationBookingApproved" -Category "demo" -Label "Demo consultation booking approved artifact JSON" -Path $resolvedConsultationBookingApprovedArtifactPath -Required $false -Present (Test-Path $resolvedConsultationBookingApprovedArtifactPath)),
+  (New-ArtifactEntry -Id "runtime.runtimeSurfaceSnapshot" -Category "runtime" -Label "Runtime surface snapshot JSON" -Path $resolvedRuntimeSurfaceSnapshotPath -Required $false -Present (Test-Path $resolvedRuntimeSurfaceSnapshotPath)),
   (New-ArtifactEntry -Id "perf.summary" -Category "perf" -Label "Perf summary JSON" -Path $resolvedPerfSummaryPath -Required $false -Present (Test-Path $resolvedPerfSummaryPath)),
   (New-ArtifactEntry -Id "perf.policy" -Category "perf" -Label "Perf policy-check JSON" -Path $resolvedPerfPolicyPath -Required $false -Present (Test-Path $resolvedPerfPolicyPath)),
+  (New-ArtifactEntry -Id "deploy.directLiveProofJson" -Category "deploy" -Label "Hosted direct-live proof JSON" -Path $resolvedDirectLiveProofJsonPath -Required $false -Present (Test-Path $resolvedDirectLiveProofJsonPath)),
+  (New-ArtifactEntry -Id "deploy.directLiveProofMarkdown" -Category "deploy" -Label "Hosted direct-live proof Markdown" -Path $resolvedDirectLiveProofMarkdownPath -Required $false -Present (Test-Path $resolvedDirectLiveProofMarkdownPath)),
+  (New-ArtifactEntry -Id "deploy.directLiveProofScreenshot" -Category "deploy" -Label "Hosted direct-live proof screenshot" -Path $resolvedDirectLiveProofPngPath -Required $false -Present (Test-Path $resolvedDirectLiveProofPngPath)),
   (New-ArtifactEntry -Id "release.reportJson" -Category "release_evidence" -Label "Release evidence report JSON" -Path $resolvedOutputJsonPath -Required $true -Present (Test-Path $resolvedOutputJsonPath)),
   (New-ArtifactEntry -Id "release.reportMarkdown" -Category "release_evidence" -Label "Release evidence report Markdown" -Path $resolvedOutputMarkdownPath -Required $true -Present (Test-Path $resolvedOutputMarkdownPath)),
+  (New-ArtifactEntry -Id "release.runtimeProofReportJson" -Category "release_evidence" -Label "Runtime proof report JSON" -Path $resolvedOutputRuntimeProofJsonPath -Required $true -Present (Test-Path $resolvedOutputRuntimeProofJsonPath)),
+  (New-ArtifactEntry -Id "release.runtimeProofReportMarkdown" -Category "release_evidence" -Label "Runtime proof report Markdown" -Path $resolvedOutputRuntimeProofMarkdownPath -Required $true -Present (Test-Path $resolvedOutputRuntimeProofMarkdownPath)),
+  (New-ArtifactEntry -Id "release.actionDeskKpiReportJson" -Category "release_evidence" -Label "Action Desk KPI report JSON" -Path $resolvedOutputActionDeskKpiJsonPath -Required $true -Present (Test-Path $resolvedOutputActionDeskKpiJsonPath)),
+  (New-ArtifactEntry -Id "release.actionDeskKpiReportMarkdown" -Category "release_evidence" -Label "Action Desk KPI report Markdown" -Path $resolvedOutputActionDeskKpiMarkdownPath -Required $true -Present (Test-Path $resolvedOutputActionDeskKpiMarkdownPath)),
+  (New-ArtifactEntry -Id "release.consultationBookingProofJson" -Category "release_evidence" -Label "Consultation booking proof JSON" -Path $resolvedOutputConsultationBookingProofJsonPath -Required $true -Present (Test-Path $resolvedOutputConsultationBookingProofJsonPath)),
+  (New-ArtifactEntry -Id "release.consultationBookingProofMarkdown" -Category "release_evidence" -Label "Consultation booking proof Markdown" -Path $resolvedOutputConsultationBookingProofMarkdownPath -Required $true -Present (Test-Path $resolvedOutputConsultationBookingProofMarkdownPath)),
   (New-ArtifactEntry -Id "release.manifestJson" -Category "release_evidence" -Label "Release evidence manifest JSON" -Path $resolvedOutputManifestJsonPath -Required $true -Present $true),
   (New-ArtifactEntry -Id "release.manifestMarkdown" -Category "release_evidence" -Label "Release evidence manifest Markdown" -Path $resolvedOutputManifestMarkdownPath -Required $true -Present $true),
   (New-ArtifactEntry -Id "release.submissionRefreshStatusJson" -Category "release_evidence" -Label "Submission refresh status JSON" -Path $resolvedSubmissionRefreshStatusPath -Required $false -Present (Test-Path $resolvedSubmissionRefreshStatusPath)),
@@ -625,9 +2858,16 @@ $manifest = [ordered]@{
   schemaVersion = "1.0"
   generatedAt   = [datetime]::UtcNow.ToString("o")
   source        = [ordered]@{
-    badgeDetailsPath   = $resolvedBadgeDetailsPath
-    reportJsonPath     = $resolvedOutputJsonPath
-    reportMarkdownPath = $resolvedOutputMarkdownPath
+    badgeDetailsPath          = $resolvedBadgeDetailsPath
+    runtimeSurfaceSnapshotPath = $resolvedRuntimeSurfaceSnapshotPath
+    reportJsonPath            = $resolvedOutputJsonPath
+    reportMarkdownPath        = $resolvedOutputMarkdownPath
+    runtimeProofReportJsonPath = $resolvedOutputRuntimeProofJsonPath
+    runtimeProofReportMarkdownPath = $resolvedOutputRuntimeProofMarkdownPath
+    actionDeskKpiReportJsonPath = $resolvedOutputActionDeskKpiJsonPath
+    actionDeskKpiReportMarkdownPath = $resolvedOutputActionDeskKpiMarkdownPath
+    consultationBookingProofJsonPath = $resolvedOutputConsultationBookingProofJsonPath
+    consultationBookingProofMarkdownPath = $resolvedOutputConsultationBookingProofMarkdownPath
   }
   inventory     = [ordered]@{
     total           = $artifactEntries.Count
@@ -635,6 +2875,220 @@ $manifest = [ordered]@{
     missingRequired = $missingRequiredArtifacts.Count
   }
   criticalEvidenceStatuses = $report.statuses
+  runtimeProof = [ordered]@{
+    status               = $runtimeProof.status
+    readyForOperatorDemo = $runtimeProof.readyForOperatorDemo
+    passedLanes          = $runtimeProof.summary.passedLanes
+    totalLanes           = $runtimeProof.summary.totalLanes
+    blockerCount         = $runtimeProof.summary.blockerCount
+    overallSummary       = $runtimeProof.summary.overallSummary
+    directLiveStatus     = $runtimeProof.summary.laneStatuses.directLive
+    caseWikiStatus       = $runtimeProof.summary.laneStatuses.caseWiki
+    navigatorStatus      = $runtimeProof.summary.laneStatuses.navigator
+  }
+  actionDeskWorkflowKpi = [ordered]@{
+    status               = $report.actionDeskWorkflowKpi.status
+    totalWorkflows       = $report.actionDeskWorkflowKpi.summary.totalWorkflows
+    proofReadyWorkflows  = $report.actionDeskWorkflowKpi.summary.proofReadyWorkflows
+    needsConnectorCount  = $report.actionDeskWorkflowKpi.summary.needsConnectorCount
+    needsEvidenceCount   = $report.actionDeskWorkflowKpi.summary.needsEvidenceCount
+    headline             = $report.actionDeskWorkflowKpi.summary.headline
+    leadQualificationProofReady = $report.actionDeskWorkflowKpi.metrics.leadQualificationProofReady
+    consultationBookingProofReady = $report.actionDeskWorkflowKpi.metrics.consultationBookingProofReady
+    consultationBookingProofStatus = $report.actionDeskWorkflowKpi.metrics.consultationBookingProofStatus
+    consultationBookingStagedReady = $report.actionDeskWorkflowKpi.metrics.consultationBookingStagedReady
+    consultationBookingCalendarWritebackObserved = $report.actionDeskWorkflowKpi.metrics.consultationBookingCalendarWritebackObserved
+    consultationBookingApprovedArtifactObserved = $report.actionDeskWorkflowKpi.metrics.consultationBookingApprovedArtifactObserved
+    consultationBookingScenarioObserved = $report.actionDeskWorkflowKpi.metrics.consultationBookingScenarioObserved
+    missingDocumentFollowUpProofReady = $report.actionDeskWorkflowKpi.metrics.missingDocumentFollowUpProofReady
+    crmHandoffProofReady = $report.actionDeskWorkflowKpi.metrics.crmHandoffProofReady
+    navigatorVisaFlowSuccessRate = $report.actionDeskWorkflowKpi.metrics.navigatorVisaFlowSuccessRate
+    caseWikiAdoptionRate = $report.actionDeskWorkflowKpi.metrics.caseWikiAdoptionRate
+    operatorMinutesSavedStatus = $report.actionDeskWorkflowKpi.metrics.operatorMinutesSaved.status
+    pilotGaps            = @($report.actionDeskWorkflowKpi.pilotGaps)
+  }
+  consultationBookingProof = [ordered]@{
+    status                          = $report.consultationBookingProof.status
+    stagedReady                     = $report.consultationBookingProof.stagedReady
+    proofReady                      = $report.consultationBookingProof.proofReady
+    bookingScenarioObserved         = $report.consultationBookingProof.repoOwnedWorkflow.bookingScenarioObserved
+    stagedReminderContextObserved   = $report.consultationBookingProof.repoOwnedWorkflow.stagedReminderContextObserved
+    calendarSkillPresent            = $report.consultationBookingProof.calendarConnector.calendarSkillPresent
+    managedSkillSamplePresent       = $report.consultationBookingProof.calendarConnector.managedSkillSamplePresent
+    connectorProofObserved          = $report.consultationBookingProof.calendarConnector.connectorProofObserved
+    calendarWritebackObserved       = $report.consultationBookingProof.calendarConnector.writebackObserved
+    approvedBookingArtifactObserved = $report.consultationBookingProof.calendarConnector.approvedBookingArtifactObserved
+    nextGaps                        = @($report.consultationBookingProof.nextGaps)
+  }
+  hostedDirectLiveProof = [ordered]@{
+    status                  = $report.hostedDirectLiveProof.status
+    observed                = $report.hostedDirectLiveProof.observed
+    generatedAt             = $report.hostedDirectLiveProof.generatedAt
+    generatedAtIsIso        = $report.hostedDirectLiveProof.generatedAtIsIso
+    freshnessStatus         = $report.hostedDirectLiveProof.freshnessStatus
+    freshnessSummary        = $report.hostedDirectLiveProof.freshnessSummary
+    freshnessAgeMinutes     = $report.hostedDirectLiveProof.freshnessAgeMinutes
+    freshnessMaxAgeHours    = $report.hostedDirectLiveProof.freshnessMaxAgeHours
+    apiPublicUrlSource      = $report.hostedDirectLiveProof.apiPublicUrlSource
+    replayEvidenceSource    = $report.hostedDirectLiveProof.replayEvidenceSource
+    firstAudioMs            = $report.hostedDirectLiveProof.firstAudioMs
+    firstOutputMs           = $report.hostedDirectLiveProof.firstOutputMs
+    fallbackEventCount      = $report.hostedDirectLiveProof.fallbackEventCount
+    runtimeEvidenceExpectedSignatureStatus = $report.hostedDirectLiveProof.runtimeEvidenceExpectedSignatureStatus
+    runtimeEvidenceKeyState = $report.hostedDirectLiveProof.runtimeEvidenceKeyState
+    caseWikiExpectedSignatureStatus = $report.hostedDirectLiveProof.caseWikiExpectedSignatureStatus
+    caseWikiExpectedSignatureSource = $report.hostedDirectLiveProof.caseWikiExpectedSignatureSource
+    caseWikiSignatureStatus = $report.hostedDirectLiveProof.caseWikiSignatureStatus
+    latencyObserved         = $report.hostedDirectLiveProof.latencyObserved
+  }
+  caseWikiEvidenceSignature = [ordered]@{
+    source            = $report.caseWikiEvidenceSignature.source
+    status            = $report.caseWikiEvidenceSignature.status
+    validated         = $report.caseWikiEvidenceSignature.validated
+    totalArtifacts    = $report.caseWikiEvidenceSignature.totalArtifacts
+    signedArtifacts   = $report.caseWikiEvidenceSignature.signedArtifacts
+    unsignedArtifacts = $report.caseWikiEvidenceSignature.unsignedArtifacts
+    signatureStatus   = $report.caseWikiEvidenceSignature.signatureStatus
+    signerId          = $report.caseWikiEvidenceSignature.signerId
+    signedAt          = $report.caseWikiEvidenceSignature.signedAt
+  }
+  caseWikiCompliance = [ordered]@{
+    status               = $report.caseWikiCompliance.status
+    validated            = $report.caseWikiCompliance.validated
+    observed             = $report.caseWikiCompliance.observed
+    tenantId             = $report.caseWikiCompliance.tenantId
+    templateId           = $report.caseWikiCompliance.templateId
+    requestedTemplateId  = $report.caseWikiCompliance.requestedTemplateId
+    source               = $report.caseWikiCompliance.source
+    fallbackApplied      = $report.caseWikiCompliance.fallbackApplied
+    piiRedactionLevel    = $report.caseWikiCompliance.controls.piiRedactionLevel
+    crossTenantAdminOnly = $report.caseWikiCompliance.controls.crossTenantAdminOnly
+    approvalSlaEnforced  = $report.caseWikiCompliance.controls.approvalSlaEnforced
+    auditTrailRequired   = $report.caseWikiCompliance.controls.auditTrailRequired
+    rawMediaDays         = $report.caseWikiCompliance.retention.rawMediaDays
+    auditLogsDays        = $report.caseWikiCompliance.retention.auditLogsDays
+    eventsDays           = $report.caseWikiCompliance.retention.eventsDays
+    sessionsDays         = $report.caseWikiCompliance.retention.sessionsDays
+    evidenceSigningEnabled = $report.caseWikiCompliance.evidenceSigning.enabled
+    expectedSignatureStatus = $report.caseWikiCompliance.evidenceSigning.expectedSignatureStatus
+    keyState             = $report.caseWikiCompliance.evidenceSigning.keyState
+    signerId             = $report.caseWikiCompliance.evidenceSigning.signerId
+    keyId                = $report.caseWikiCompliance.evidenceSigning.keyId
+    observedSignatureStatus = $report.caseWikiCompliance.observedSignatureStatus
+    signatureMatch       = $report.caseWikiCompliance.signatureMatch
+    summary              = $report.caseWikiCompliance.summary
+  }
+  caseWikiRoutingContext = [ordered]@{
+    status          = $report.caseWikiRoutingContext.status
+    validated       = $report.caseWikiRoutingContext.validated
+    observed        = $report.caseWikiRoutingContext.observed
+    contextSource   = $report.caseWikiRoutingContext.contextSource
+    ingressSource   = $report.caseWikiRoutingContext.ingressSource
+    focusId         = $report.caseWikiRoutingContext.focusId
+    blocker         = $report.caseWikiRoutingContext.blocker
+    nextAction      = $report.caseWikiRoutingContext.nextAction
+    route           = $report.caseWikiRoutingContext.route
+    mode            = $report.caseWikiRoutingContext.mode
+    requestedIntent = $report.caseWikiRoutingContext.requestedIntent
+    routedIntent    = $report.caseWikiRoutingContext.routedIntent
+  }
+  caseWikiRuntimeSurfaceIngress = [ordered]@{
+    status        = $report.caseWikiRuntimeSurfaceIngress.status
+    observed      = $report.caseWikiRuntimeSurfaceIngress.observed
+    updatedAt     = $report.caseWikiRuntimeSurfaceIngress.updatedAt
+    contextSource = $report.caseWikiRuntimeSurfaceIngress.contextSource
+    ingressSource = $report.caseWikiRuntimeSurfaceIngress.ingressSource
+    focusId       = $report.caseWikiRuntimeSurfaceIngress.focusId
+    blocker       = $report.caseWikiRuntimeSurfaceIngress.blocker
+    nextAction    = $report.caseWikiRuntimeSurfaceIngress.nextAction
+    route         = $report.caseWikiRuntimeSurfaceIngress.route
+    summary       = $report.caseWikiRuntimeSurfaceIngress.summary
+  }
+  caseWikiGatewayHydration = [ordered]@{
+    status                    = $report.caseWikiGatewayHydration.status
+    validated                 = $report.caseWikiGatewayHydration.validated
+    observed                  = $report.caseWikiGatewayHydration.observed
+    sessionId                 = $report.caseWikiGatewayHydration.sessionId
+    noteEventId               = $report.caseWikiGatewayHydration.noteEventId
+    questionId                = $report.caseWikiGatewayHydration.questionId
+    questionMatched           = $report.caseWikiGatewayHydration.questionMatched
+    noteSourceRefSeen         = $report.caseWikiGatewayHydration.noteSourceRefSeen
+    questionSuggestedNextStep = $report.caseWikiGatewayHydration.questionSuggestedNextStep
+    contextSource             = $report.caseWikiGatewayHydration.contextSource
+    ingressSource             = $report.caseWikiGatewayHydration.ingressSource
+    focusId                   = $report.caseWikiGatewayHydration.focusId
+    blocker                   = $report.caseWikiGatewayHydration.blocker
+    nextAction                = $report.caseWikiGatewayHydration.nextAction
+    route                     = $report.caseWikiGatewayHydration.route
+    mode                      = $report.caseWikiGatewayHydration.mode
+    requestedIntent           = $report.caseWikiGatewayHydration.requestedIntent
+    routedIntent              = $report.caseWikiGatewayHydration.routedIntent
+  }
+  caseWikiContextAdoption = [ordered]@{
+    status                 = $report.caseWikiContextAdoption.status
+    validated              = $report.caseWikiContextAdoption.validated
+    observed               = $report.caseWikiContextAdoption.observed
+    observedCount          = $report.caseWikiContextAdoption.observedCount
+    caseWikiObservedCount  = $report.caseWikiContextAdoption.caseWikiObservedCount
+    inputOnlyObservedCount = $report.caseWikiContextAdoption.inputOnlyObservedCount
+    unknownObservedCount   = $report.caseWikiContextAdoption.unknownObservedCount
+    caseWikiRate           = $report.caseWikiContextAdoption.caseWikiRate
+  }
+  uiRefHealing = [ordered]@{
+    status                 = $report.uiRefHealing.status
+    validated              = $report.uiRefHealing.validated
+    observed               = $report.uiRefHealing.observed
+    finalStatus            = $report.uiRefHealing.finalStatus
+    adapterMode            = $report.uiRefHealing.adapterMode
+    healedRefCount         = $report.uiRefHealing.healedRefCount
+    healedRefTargets       = @($report.uiRefHealing.healedRefTargets)
+    staleRefCount          = $report.uiRefHealing.staleRefCount
+    staleRefTargets        = @($report.uiRefHealing.staleRefTargets)
+    traceCount             = $report.uiRefHealing.traceCount
+    retries                = $report.uiRefHealing.retries
+    disabledSubmitSeen     = $report.uiRefHealing.disabledSubmitSeen
+    enabledSubmitSeen      = $report.uiRefHealing.enabledSubmitSeen
+    healingObservationSeen = $report.uiRefHealing.healingObservationSeen
+    healingNoteSeen        = $report.uiRefHealing.healingNoteSeen
+  }
+  browserWorkerRecovery = [ordered]@{
+    status                        = $report.browserWorkerRecovery.status
+    validated                     = $report.browserWorkerRecovery.validated
+    observed                      = $report.browserWorkerRecovery.observed
+    finalStatus                   = $report.browserWorkerRecovery.finalStatus
+    adapterMode                   = $report.browserWorkerRecovery.adapterMode
+    checkpointCount               = $report.browserWorkerRecovery.checkpointCount
+    resumedCheckpointCount        = $report.browserWorkerRecovery.resumedCheckpointCount
+    healedRefCount                = $report.browserWorkerRecovery.healedRefCount
+    healedRefTargets              = @($report.browserWorkerRecovery.healedRefTargets)
+    staleRefCount                 = $report.browserWorkerRecovery.staleRefCount
+    staleRefTargets               = @($report.browserWorkerRecovery.staleRefTargets)
+    traceCount                    = $report.browserWorkerRecovery.traceCount
+    retryCount                    = $report.browserWorkerRecovery.retryCount
+    runtimeRetryCount             = $report.browserWorkerRecovery.runtimeRetryCount
+    runtimeResumedCheckpointCount = $report.browserWorkerRecovery.runtimeResumedCheckpointCount
+    runtimeStaleRefCount          = $report.browserWorkerRecovery.runtimeStaleRefCount
+    runtimeHealedRefCount         = $report.browserWorkerRecovery.runtimeHealedRefCount
+    checkpointReadyCleared        = $report.browserWorkerRecovery.checkpointReadyCleared
+    summary                       = $report.browserWorkerRecovery.summary
+  }
+  navigatorVisaFlows = [ordered]@{
+    status                      = $report.navigatorVisaFlows.status
+    validated                   = $report.navigatorVisaFlows.validated
+    observed                    = $report.navigatorVisaFlows.observed
+    totalFlows                  = $report.navigatorVisaFlows.totalFlows
+    succeededFlows              = $report.navigatorVisaFlows.succeededFlows
+    successRate                 = $report.navigatorVisaFlows.successRate
+    persistentSessionCount      = $report.navigatorVisaFlows.persistentSessionCount
+    replayBundleCount           = $report.navigatorVisaFlows.replayBundleCount
+    verifiedCount               = $report.navigatorVisaFlows.verifiedCount
+    staleRecoveryObservedCount  = $report.navigatorVisaFlows.staleRecoveryObservedCount
+    healedRecoveryObservedCount = $report.navigatorVisaFlows.healedRecoveryObservedCount
+    resumedCheckpointCount      = $report.navigatorVisaFlows.resumedCheckpointCount
+    checkpointReadyClearedCount = $report.navigatorVisaFlows.checkpointReadyClearedCount
+    scenarioNames               = @($report.navigatorVisaFlows.scenarioNames)
+    summary                     = $report.navigatorVisaFlows.summary
+  }
   artifacts     = $artifactEntries
   submissionAssets = @(
     [ordered]@{
@@ -696,8 +3150,270 @@ $manifestMarkdown = @(
   "| agentUsage | $($report.statuses.agentUsageStatus) |",
   "| runtimeGuardrailsSignalPaths | $($report.statuses.runtimeGuardrailsSignalPathsStatus) |",
   "| liveTransport | $($report.statuses.liveTransportStatus) |",
+  "| hostedDirectLiveProof | $($report.statuses.hostedDirectLiveProofStatus) |",
+  "| caseWikiEvidenceSignature | $($report.statuses.caseWikiEvidenceSignatureStatus) |",
+  "| caseWikiCompliance | $($report.statuses.caseWikiComplianceStatus) |",
+  "| caseWikiRoutingContext | $($report.statuses.caseWikiRoutingContextStatus) |",
+  "| caseWikiRuntimeSurfaceIngress | $($report.statuses.caseWikiRuntimeSurfaceIngressStatus) |",
+  "| caseWikiGatewayHydration | $($report.statuses.caseWikiGatewayHydrationStatus) |",
+  "| caseWikiContextAdoption | $($report.statuses.caseWikiContextAdoptionStatus) |",
+  "| uiRefHealing | $($report.statuses.uiRefHealingStatus) |",
+  "| browserWorkerRecovery | $($report.statuses.browserWorkerRecoveryStatus) |",
+  "| navigatorVisaFlows | $($report.statuses.navigatorVisaFlowsStatus) |",
   "| providerUsage | $($report.statuses.providerUsageStatus) |",
   "| deviceNodeUpdates | $($report.statuses.deviceNodeUpdatesStatus) |",
+  "",
+  "## Runtime Proof Report",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.runtimeProof.status) |",
+  "| readyForOperatorDemo | $($manifest.runtimeProof.readyForOperatorDemo) |",
+  "| passedLanes | $($manifest.runtimeProof.passedLanes) |",
+  "| totalLanes | $($manifest.runtimeProof.totalLanes) |",
+  "| blockerCount | $($manifest.runtimeProof.blockerCount) |",
+  "| directLiveStatus | $($manifest.runtimeProof.directLiveStatus) |",
+  "| caseWikiStatus | $($manifest.runtimeProof.caseWikiStatus) |",
+  "| navigatorStatus | $($manifest.runtimeProof.navigatorStatus) |",
+  "| overallSummary | $($manifest.runtimeProof.overallSummary) |",
+  "",
+  "## Action Desk Workflow KPI",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.actionDeskWorkflowKpi.status) |",
+  "| totalWorkflows | $($manifest.actionDeskWorkflowKpi.totalWorkflows) |",
+  "| proofReadyWorkflows | $($manifest.actionDeskWorkflowKpi.proofReadyWorkflows) |",
+  "| needsConnectorCount | $($manifest.actionDeskWorkflowKpi.needsConnectorCount) |",
+  "| needsEvidenceCount | $($manifest.actionDeskWorkflowKpi.needsEvidenceCount) |",
+  "| leadQualificationProofReady | $($manifest.actionDeskWorkflowKpi.leadQualificationProofReady) |",
+  "| consultationBookingProofReady | $($manifest.actionDeskWorkflowKpi.consultationBookingProofReady) |",
+  "| consultationBookingProofStatus | $($manifest.actionDeskWorkflowKpi.consultationBookingProofStatus) |",
+  "| consultationBookingStagedReady | $($manifest.actionDeskWorkflowKpi.consultationBookingStagedReady) |",
+  "| consultationBookingCalendarWritebackObserved | $($manifest.actionDeskWorkflowKpi.consultationBookingCalendarWritebackObserved) |",
+  "| consultationBookingApprovedArtifactObserved | $($manifest.actionDeskWorkflowKpi.consultationBookingApprovedArtifactObserved) |",
+  "| consultationBookingScenarioObserved | $($manifest.actionDeskWorkflowKpi.consultationBookingScenarioObserved) |",
+  "| missingDocumentFollowUpProofReady | $($manifest.actionDeskWorkflowKpi.missingDocumentFollowUpProofReady) |",
+  "| crmHandoffProofReady | $($manifest.actionDeskWorkflowKpi.crmHandoffProofReady) |",
+  "| navigatorVisaFlowSuccessRate | $(if ($null -eq $manifest.actionDeskWorkflowKpi.navigatorVisaFlowSuccessRate) { "n/a" } else { [string]$manifest.actionDeskWorkflowKpi.navigatorVisaFlowSuccessRate }) |",
+  "| caseWikiAdoptionRate | $(if ($null -eq $manifest.actionDeskWorkflowKpi.caseWikiAdoptionRate) { "n/a" } else { [string]$manifest.actionDeskWorkflowKpi.caseWikiAdoptionRate }) |",
+  "| operatorMinutesSavedStatus | $($manifest.actionDeskWorkflowKpi.operatorMinutesSavedStatus) |",
+  "| pilotGaps | $(if (@($manifest.actionDeskWorkflowKpi.pilotGaps).Count -eq 0) { "(none)" } else { (@($manifest.actionDeskWorkflowKpi.pilotGaps) -join ", ") }) |",
+  "",
+  "## Consultation Booking Proof",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.consultationBookingProof.status) |",
+  "| stagedReady | $($manifest.consultationBookingProof.stagedReady) |",
+  "| proofReady | $($manifest.consultationBookingProof.proofReady) |",
+  "| bookingScenarioObserved | $($manifest.consultationBookingProof.bookingScenarioObserved) |",
+  "| stagedReminderContextObserved | $($manifest.consultationBookingProof.stagedReminderContextObserved) |",
+  "| calendarSkillPresent | $($manifest.consultationBookingProof.calendarSkillPresent) |",
+  "| managedSkillSamplePresent | $($manifest.consultationBookingProof.managedSkillSamplePresent) |",
+  "| connectorProofObserved | $($manifest.consultationBookingProof.connectorProofObserved) |",
+  "| calendarWritebackObserved | $($manifest.consultationBookingProof.calendarWritebackObserved) |",
+  "| approvedBookingArtifactObserved | $($manifest.consultationBookingProof.approvedBookingArtifactObserved) |",
+  "| nextGaps | $(if (@($manifest.consultationBookingProof.nextGaps).Count -eq 0) { "(none)" } else { (@($manifest.consultationBookingProof.nextGaps) -join ", ") }) |",
+  "",
+  "## Case Wiki Evidence Signature",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| source | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiEvidenceSignature.source)) { "n/a" } else { [string]$manifest.caseWikiEvidenceSignature.source }) |",
+  "| status | $($manifest.caseWikiEvidenceSignature.status) |",
+  "| validated | $($manifest.caseWikiEvidenceSignature.validated) |",
+  "| totalArtifacts | $($manifest.caseWikiEvidenceSignature.totalArtifacts) |",
+  "| signedArtifacts | $($manifest.caseWikiEvidenceSignature.signedArtifacts) |",
+  "| unsignedArtifacts | $($manifest.caseWikiEvidenceSignature.unsignedArtifacts) |",
+  "| signatureStatus | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiEvidenceSignature.signatureStatus)) { "n/a" } else { [string]$manifest.caseWikiEvidenceSignature.signatureStatus }) |",
+  "| signerId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiEvidenceSignature.signerId)) { "n/a" } else { [string]$manifest.caseWikiEvidenceSignature.signerId }) |",
+  "| signedAt | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiEvidenceSignature.signedAt)) { "n/a" } else { [string]$manifest.caseWikiEvidenceSignature.signedAt }) |",
+  "",
+  "## Case Wiki Compliance",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.caseWikiCompliance.status) |",
+  "| validated | $($manifest.caseWikiCompliance.validated) |",
+  "| observed | $($manifest.caseWikiCompliance.observed) |",
+  "| tenantId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiCompliance.tenantId)) { "n/a" } else { [string]$manifest.caseWikiCompliance.tenantId }) |",
+  "| templateId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiCompliance.templateId)) { "n/a" } else { [string]$manifest.caseWikiCompliance.templateId }) |",
+  "| requestedTemplateId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiCompliance.requestedTemplateId)) { "n/a" } else { [string]$manifest.caseWikiCompliance.requestedTemplateId }) |",
+  "| source | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiCompliance.source)) { "n/a" } else { [string]$manifest.caseWikiCompliance.source }) |",
+  "| fallbackApplied | $(if ($null -eq $manifest.caseWikiCompliance.fallbackApplied) { "n/a" } else { [string]$manifest.caseWikiCompliance.fallbackApplied }) |",
+  "| piiRedactionLevel | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiCompliance.piiRedactionLevel)) { "n/a" } else { [string]$manifest.caseWikiCompliance.piiRedactionLevel }) |",
+  "| crossTenantAdminOnly | $(if ($null -eq $manifest.caseWikiCompliance.crossTenantAdminOnly) { "n/a" } else { [string]$manifest.caseWikiCompliance.crossTenantAdminOnly }) |",
+  "| approvalSlaEnforced | $(if ($null -eq $manifest.caseWikiCompliance.approvalSlaEnforced) { "n/a" } else { [string]$manifest.caseWikiCompliance.approvalSlaEnforced }) |",
+  "| auditTrailRequired | $(if ($null -eq $manifest.caseWikiCompliance.auditTrailRequired) { "n/a" } else { [string]$manifest.caseWikiCompliance.auditTrailRequired }) |",
+  "| rawMediaDays | $($manifest.caseWikiCompliance.rawMediaDays) |",
+  "| auditLogsDays | $($manifest.caseWikiCompliance.auditLogsDays) |",
+  "| eventsDays | $($manifest.caseWikiCompliance.eventsDays) |",
+  "| sessionsDays | $($manifest.caseWikiCompliance.sessionsDays) |",
+  "| evidenceSigningEnabled | $(if ($null -eq $manifest.caseWikiCompliance.evidenceSigningEnabled) { "n/a" } else { [string]$manifest.caseWikiCompliance.evidenceSigningEnabled }) |",
+  "| expectedSignatureStatus | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiCompliance.expectedSignatureStatus)) { "n/a" } else { [string]$manifest.caseWikiCompliance.expectedSignatureStatus }) |",
+  "| keyState | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiCompliance.keyState)) { "n/a" } else { [string]$manifest.caseWikiCompliance.keyState }) |",
+  "| signerId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiCompliance.signerId)) { "n/a" } else { [string]$manifest.caseWikiCompliance.signerId }) |",
+  "| keyId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiCompliance.keyId)) { "n/a" } else { [string]$manifest.caseWikiCompliance.keyId }) |",
+  "| observedSignatureStatus | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiCompliance.observedSignatureStatus)) { "n/a" } else { [string]$manifest.caseWikiCompliance.observedSignatureStatus }) |",
+  "| signatureMatch | $(if ($null -eq $manifest.caseWikiCompliance.signatureMatch) { "n/a" } else { [string]$manifest.caseWikiCompliance.signatureMatch }) |",
+  "| summary | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiCompliance.summary)) { "n/a" } else { [string]$manifest.caseWikiCompliance.summary }) |",
+  "",
+  "## Hosted Direct-Live Proof",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.hostedDirectLiveProof.status) |",
+  "| observed | $($manifest.hostedDirectLiveProof.observed) |",
+  "| generatedAt | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.hostedDirectLiveProof.generatedAt)) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.generatedAt }) |",
+  "| generatedAtIsIso | $($manifest.hostedDirectLiveProof.generatedAtIsIso) |",
+  "| freshnessStatus | $($manifest.hostedDirectLiveProof.freshnessStatus) |",
+  "| freshnessSummary | $($manifest.hostedDirectLiveProof.freshnessSummary) |",
+  "| freshnessAgeMinutes | $(if ($null -eq $manifest.hostedDirectLiveProof.freshnessAgeMinutes) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.freshnessAgeMinutes }) |",
+  "| freshnessMaxAgeHours | $(if ($null -eq $manifest.hostedDirectLiveProof.freshnessMaxAgeHours) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.freshnessMaxAgeHours }) |",
+  "| apiPublicUrlSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.hostedDirectLiveProof.apiPublicUrlSource)) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.apiPublicUrlSource }) |",
+  "| replayEvidenceSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.hostedDirectLiveProof.replayEvidenceSource)) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.replayEvidenceSource }) |",
+  "| firstAudioMs | $(if ($null -eq $manifest.hostedDirectLiveProof.firstAudioMs) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.firstAudioMs }) |",
+  "| firstOutputMs | $(if ($null -eq $manifest.hostedDirectLiveProof.firstOutputMs) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.firstOutputMs }) |",
+  "| fallbackEventCount | $($manifest.hostedDirectLiveProof.fallbackEventCount) |",
+  "| runtimeEvidenceExpectedSignatureStatus | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.hostedDirectLiveProof.runtimeEvidenceExpectedSignatureStatus)) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.runtimeEvidenceExpectedSignatureStatus }) |",
+  "| runtimeEvidenceKeyState | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.hostedDirectLiveProof.runtimeEvidenceKeyState)) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.runtimeEvidenceKeyState }) |",
+  "| caseWikiExpectedSignatureStatus | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.hostedDirectLiveProof.caseWikiExpectedSignatureStatus)) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.caseWikiExpectedSignatureStatus }) |",
+  "| caseWikiExpectedSignatureSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.hostedDirectLiveProof.caseWikiExpectedSignatureSource)) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.caseWikiExpectedSignatureSource }) |",
+  "| caseWikiSignatureStatus | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.hostedDirectLiveProof.caseWikiSignatureStatus)) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.caseWikiSignatureStatus }) |",
+  "| latencyObserved | $($manifest.hostedDirectLiveProof.latencyObserved) |",
+  "",
+  "## Case Wiki Routing Context",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+"| status | $($manifest.caseWikiRoutingContext.status) |",
+"| validated | $($manifest.caseWikiRoutingContext.validated) |",
+"| observed | $($manifest.caseWikiRoutingContext.observed) |",
+"| contextSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.contextSource)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.contextSource }) |",
+"| ingressSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.ingressSource)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.ingressSource }) |",
+"| focusId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.focusId)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.focusId }) |",
+  "| blocker | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.blocker)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.blocker }) |",
+  "| nextAction | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.nextAction)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.nextAction }) |",
+  "| route | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.route)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.route }) |",
+  "| mode | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.mode)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.mode }) |",
+  "| requestedIntent | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.requestedIntent)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.requestedIntent }) |",
+  "| routedIntent | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.routedIntent)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.routedIntent }) |",
+  "",
+  "## Case Wiki Runtime Surface Ingress",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.caseWikiRuntimeSurfaceIngress.status) |",
+  "| observed | $($manifest.caseWikiRuntimeSurfaceIngress.observed) |",
+  "| updatedAt | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRuntimeSurfaceIngress.updatedAt)) { "n/a" } else { [string]$manifest.caseWikiRuntimeSurfaceIngress.updatedAt }) |",
+  "| contextSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRuntimeSurfaceIngress.contextSource)) { "n/a" } else { [string]$manifest.caseWikiRuntimeSurfaceIngress.contextSource }) |",
+  "| ingressSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRuntimeSurfaceIngress.ingressSource)) { "n/a" } else { [string]$manifest.caseWikiRuntimeSurfaceIngress.ingressSource }) |",
+  "| focusId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRuntimeSurfaceIngress.focusId)) { "n/a" } else { [string]$manifest.caseWikiRuntimeSurfaceIngress.focusId }) |",
+  "| blocker | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRuntimeSurfaceIngress.blocker)) { "n/a" } else { [string]$manifest.caseWikiRuntimeSurfaceIngress.blocker }) |",
+  "| nextAction | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRuntimeSurfaceIngress.nextAction)) { "n/a" } else { [string]$manifest.caseWikiRuntimeSurfaceIngress.nextAction }) |",
+  "| route | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRuntimeSurfaceIngress.route)) { "n/a" } else { [string]$manifest.caseWikiRuntimeSurfaceIngress.route }) |",
+  "| summary | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRuntimeSurfaceIngress.summary)) { "n/a" } else { [string]$manifest.caseWikiRuntimeSurfaceIngress.summary }) |",
+  "",
+  "## Case Wiki Gateway Hydration",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.caseWikiGatewayHydration.status) |",
+  "| validated | $($manifest.caseWikiGatewayHydration.validated) |",
+  "| observed | $($manifest.caseWikiGatewayHydration.observed) |",
+  "| sessionId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.sessionId)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.sessionId }) |",
+  "| noteEventId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.noteEventId)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.noteEventId }) |",
+  "| questionId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.questionId)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.questionId }) |",
+  "| questionMatched | $(if ($null -eq $manifest.caseWikiGatewayHydration.questionMatched) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.questionMatched }) |",
+  "| noteSourceRefSeen | $(if ($null -eq $manifest.caseWikiGatewayHydration.noteSourceRefSeen) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.noteSourceRefSeen }) |",
+"| questionSuggestedNextStep | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.questionSuggestedNextStep)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.questionSuggestedNextStep }) |",
+"| contextSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.contextSource)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.contextSource }) |",
+"| ingressSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.ingressSource)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.ingressSource }) |",
+"| focusId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.focusId)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.focusId }) |",
+  "| blocker | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.blocker)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.blocker }) |",
+  "| nextAction | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.nextAction)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.nextAction }) |",
+  "| route | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.route)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.route }) |",
+  "| mode | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.mode)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.mode }) |",
+  "| requestedIntent | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.requestedIntent)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.requestedIntent }) |",
+  "| routedIntent | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.routedIntent)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.routedIntent }) |",
+  "",
+  "## Case Wiki Context Adoption",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.caseWikiContextAdoption.status) |",
+  "| validated | $($manifest.caseWikiContextAdoption.validated) |",
+  "| observed | $($manifest.caseWikiContextAdoption.observed) |",
+  "| observedCount | $($manifest.caseWikiContextAdoption.observedCount) |",
+  "| caseWikiObservedCount | $($manifest.caseWikiContextAdoption.caseWikiObservedCount) |",
+  "| inputOnlyObservedCount | $($manifest.caseWikiContextAdoption.inputOnlyObservedCount) |",
+  "| unknownObservedCount | $($manifest.caseWikiContextAdoption.unknownObservedCount) |",
+  "| caseWikiRate | $(if ($null -eq $manifest.caseWikiContextAdoption.caseWikiRate) { "n/a" } else { [string]$manifest.caseWikiContextAdoption.caseWikiRate }) |",
+  "",
+  "## UI Ref Healing",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.uiRefHealing.status) |",
+  "| validated | $($manifest.uiRefHealing.validated) |",
+  "| observed | $($manifest.uiRefHealing.observed) |",
+  "| finalStatus | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.uiRefHealing.finalStatus)) { "n/a" } else { [string]$manifest.uiRefHealing.finalStatus }) |",
+  "| adapterMode | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.uiRefHealing.adapterMode)) { "n/a" } else { [string]$manifest.uiRefHealing.adapterMode }) |",
+  "| healedRefCount | $($manifest.uiRefHealing.healedRefCount) |",
+  "| healedRefTargets | $(if (@($manifest.uiRefHealing.healedRefTargets).Count -eq 0) { "(none)" } else { (@($manifest.uiRefHealing.healedRefTargets) -join ", ") }) |",
+  "| staleRefCount | $($manifest.uiRefHealing.staleRefCount) |",
+  "| staleRefTargets | $(if (@($manifest.uiRefHealing.staleRefTargets).Count -eq 0) { "(none)" } else { (@($manifest.uiRefHealing.staleRefTargets) -join ", ") }) |",
+  "| traceCount | $($manifest.uiRefHealing.traceCount) |",
+  "| retries | $($manifest.uiRefHealing.retries) |",
+  "| disabledSubmitSeen | $(if ($null -eq $manifest.uiRefHealing.disabledSubmitSeen) { "n/a" } else { [string]$manifest.uiRefHealing.disabledSubmitSeen }) |",
+  "| enabledSubmitSeen | $(if ($null -eq $manifest.uiRefHealing.enabledSubmitSeen) { "n/a" } else { [string]$manifest.uiRefHealing.enabledSubmitSeen }) |",
+  "| healingObservationSeen | $(if ($null -eq $manifest.uiRefHealing.healingObservationSeen) { "n/a" } else { [string]$manifest.uiRefHealing.healingObservationSeen }) |",
+  "| healingNoteSeen | $(if ($null -eq $manifest.uiRefHealing.healingNoteSeen) { "n/a" } else { [string]$manifest.uiRefHealing.healingNoteSeen }) |",
+  "",
+  "## Browser Worker Recovery",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.browserWorkerRecovery.status) |",
+  "| validated | $($manifest.browserWorkerRecovery.validated) |",
+  "| observed | $($manifest.browserWorkerRecovery.observed) |",
+  "| finalStatus | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.browserWorkerRecovery.finalStatus)) { "n/a" } else { [string]$manifest.browserWorkerRecovery.finalStatus }) |",
+  "| adapterMode | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.browserWorkerRecovery.adapterMode)) { "n/a" } else { [string]$manifest.browserWorkerRecovery.adapterMode }) |",
+  "| checkpointCount | $($manifest.browserWorkerRecovery.checkpointCount) |",
+  "| resumedCheckpointCount | $($manifest.browserWorkerRecovery.resumedCheckpointCount) |",
+  "| healedRefCount | $($manifest.browserWorkerRecovery.healedRefCount) |",
+  "| healedRefTargets | $(if (@($manifest.browserWorkerRecovery.healedRefTargets).Count -eq 0) { "(none)" } else { (@($manifest.browserWorkerRecovery.healedRefTargets) -join ", ") }) |",
+  "| staleRefCount | $($manifest.browserWorkerRecovery.staleRefCount) |",
+  "| staleRefTargets | $(if (@($manifest.browserWorkerRecovery.staleRefTargets).Count -eq 0) { "(none)" } else { (@($manifest.browserWorkerRecovery.staleRefTargets) -join ", ") }) |",
+  "| traceCount | $($manifest.browserWorkerRecovery.traceCount) |",
+  "| retryCount | $($manifest.browserWorkerRecovery.retryCount) |",
+  "| runtimeRetryCount | $($manifest.browserWorkerRecovery.runtimeRetryCount) |",
+  "| runtimeResumedCheckpointCount | $($manifest.browserWorkerRecovery.runtimeResumedCheckpointCount) |",
+  "| runtimeStaleRefCount | $($manifest.browserWorkerRecovery.runtimeStaleRefCount) |",
+  "| runtimeHealedRefCount | $($manifest.browserWorkerRecovery.runtimeHealedRefCount) |",
+  "| checkpointReadyCleared | $(if ($null -eq $manifest.browserWorkerRecovery.checkpointReadyCleared) { "n/a" } else { [string]$manifest.browserWorkerRecovery.checkpointReadyCleared }) |",
+  "| summary | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.browserWorkerRecovery.summary)) { "n/a" } else { [string]$manifest.browserWorkerRecovery.summary }) |",
+  "",
+  "## Navigator Visa Flows",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.navigatorVisaFlows.status) |",
+  "| validated | $($manifest.navigatorVisaFlows.validated) |",
+  "| observed | $($manifest.navigatorVisaFlows.observed) |",
+  "| totalFlows | $($manifest.navigatorVisaFlows.totalFlows) |",
+  "| succeededFlows | $($manifest.navigatorVisaFlows.succeededFlows) |",
+  "| successRate | $(if ($null -eq $manifest.navigatorVisaFlows.successRate) { "n/a" } else { [string]$manifest.navigatorVisaFlows.successRate }) |",
+  "| persistentSessionCount | $($manifest.navigatorVisaFlows.persistentSessionCount) |",
+  "| replayBundleCount | $($manifest.navigatorVisaFlows.replayBundleCount) |",
+  "| verifiedCount | $($manifest.navigatorVisaFlows.verifiedCount) |",
+  "| staleRecoveryObservedCount | $($manifest.navigatorVisaFlows.staleRecoveryObservedCount) |",
+  "| healedRecoveryObservedCount | $($manifest.navigatorVisaFlows.healedRecoveryObservedCount) |",
+  "| resumedCheckpointCount | $($manifest.navigatorVisaFlows.resumedCheckpointCount) |",
+  "| checkpointReadyClearedCount | $($manifest.navigatorVisaFlows.checkpointReadyClearedCount) |",
+  "| scenarioNames | $(if (@($manifest.navigatorVisaFlows.scenarioNames).Count -eq 0) { "(none)" } else { (@($manifest.navigatorVisaFlows.scenarioNames) -join ", ") }) |",
+  "| summary | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.navigatorVisaFlows.summary)) { "n/a" } else { [string]$manifest.navigatorVisaFlows.summary }) |",
   "",
   "## Artifact Inventory",
   "",
@@ -731,5 +3447,11 @@ Write-Utf8NoBomFile -Path $resolvedOutputManifestMarkdownPath -Content ($manifes
 
 Write-Host ("[release-evidence-report] JSON: " + $resolvedOutputJsonPath)
 Write-Host ("[release-evidence-report] Markdown: " + $resolvedOutputMarkdownPath)
+Write-Host ("[release-evidence-report] Runtime Proof JSON: " + $resolvedOutputRuntimeProofJsonPath)
+Write-Host ("[release-evidence-report] Runtime Proof Markdown: " + $resolvedOutputRuntimeProofMarkdownPath)
+Write-Host ("[release-evidence-report] Action Desk KPI JSON: " + $resolvedOutputActionDeskKpiJsonPath)
+Write-Host ("[release-evidence-report] Action Desk KPI Markdown: " + $resolvedOutputActionDeskKpiMarkdownPath)
+Write-Host ("[release-evidence-report] Consultation Booking Proof JSON: " + $resolvedOutputConsultationBookingProofJsonPath)
+Write-Host ("[release-evidence-report] Consultation Booking Proof Markdown: " + $resolvedOutputConsultationBookingProofMarkdownPath)
 Write-Host ("[release-evidence-report] Manifest JSON: " + $resolvedOutputManifestJsonPath)
 Write-Host ("[release-evidence-report] Manifest Markdown: " + $resolvedOutputManifestMarkdownPath)

@@ -675,6 +675,25 @@ $badgeEvidenceRuntimeGuardrailsSignalPathsStatus = $null
 $badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus = $null
 $badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths = $null
 $badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath = $null
+$badgeEvidenceCaseWikiRoutingContextStatus = "unavailable"
+$badgeEvidenceCaseWikiRoutingContextValidated = $false
+$badgeEvidenceCaseWikiRoutingContextObserved = $false
+$badgeEvidenceCaseWikiRoutingContextSource = $null
+$badgeEvidenceCaseWikiRoutingContextFocusId = $null
+$badgeEvidenceCaseWikiRoutingContextBlocker = $null
+$badgeEvidenceCaseWikiRoutingContextNextAction = $null
+$badgeEvidenceCaseWikiRoutingContextRoute = $null
+$badgeEvidenceCaseWikiRoutingContextMode = $null
+$badgeEvidenceCaseWikiRoutingContextRequestedIntent = $null
+$badgeEvidenceCaseWikiRoutingContextRoutedIntent = $null
+$badgeEvidenceCaseWikiContextAdoptionStatus = "unavailable"
+$badgeEvidenceCaseWikiContextAdoptionValidated = $false
+$badgeEvidenceCaseWikiContextAdoptionObserved = $false
+$badgeEvidenceCaseWikiContextAdoptionObservedCount = 0
+$badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount = 0
+$badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount = 0
+$badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount = 0
+$badgeEvidenceCaseWikiContextAdoptionCaseWikiRate = $null
 $badgeEvidenceProviderUsageStatus = "unavailable"
 $badgeEvidenceProviderUsageValidated = $false
 $badgeEvidenceProviderUsageActiveSecondaryProviders = 0
@@ -696,6 +715,15 @@ $railwayDeploySummaryRootDescriptorSkipped = $null
 $railwayDeploySummaryRootDescriptorExpectedUiUrl = $null
 $railwayDeploySummaryPublicBadgeAttempted = $null
 $railwayDeploySummaryPublicBadgeSkipped = $null
+$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus = "unavailable"
+$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved = $false
+$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource = $null
+$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource = $null
+$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId = $null
+$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker = $null
+$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction = $null
+$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute = $null
+$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = $null
 $repoPublishSummaryVerificationScript = $null
 $repoPublishSummaryReleaseEvidenceValidated = $false
 $repoPublishSummaryRailwayDeployEnabled = $false
@@ -718,6 +746,15 @@ $repoPublishSummaryArtifactRailwayDeploySummary = $null
 $repoPublishSummaryArtifactReleaseEvidenceReportJson = $null
 $repoPublishSummaryArtifactReleaseEvidenceManifestJson = $null
 $repoPublishSummaryArtifactBadgeDetailsJson = $null
+$repoPublishSummaryCaseWikiRuntimeSurfaceIngressStatus = "unavailable"
+$repoPublishSummaryCaseWikiRuntimeSurfaceIngressObserved = $false
+$repoPublishSummaryCaseWikiRuntimeSurfaceIngressContextSource = $null
+$repoPublishSummaryCaseWikiRuntimeSurfaceIngressIngressSource = $null
+$repoPublishSummaryCaseWikiRuntimeSurfaceIngressFocusId = $null
+$repoPublishSummaryCaseWikiRuntimeSurfaceIngressBlocker = $null
+$repoPublishSummaryCaseWikiRuntimeSurfaceIngressNextAction = $null
+$repoPublishSummaryCaseWikiRuntimeSurfaceIngressRoute = $null
+$repoPublishSummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = $null
 $badgeEvidenceOperatorTurnTruncationStatus = $null
 $badgeEvidenceOperatorTurnDeleteStatus = $null
 if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.operatorTurnTruncation) {
@@ -793,7 +830,75 @@ if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.runti
     $badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath = $releaseEvidenceReport.runtimeGuardrailsSignalPaths.primaryPath
   }
 }
+if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.caseWikiRoutingContext) {
+  $badgeEvidenceCaseWikiRoutingContextValidated = ($releaseEvidenceReport.caseWikiRoutingContext.validated -eq $true)
+  $badgeEvidenceCaseWikiRoutingContextObserved = ($releaseEvidenceReport.caseWikiRoutingContext.observed -eq $true)
+  if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.contextSource)) {
+    $badgeEvidenceCaseWikiRoutingContextSource = [string]$releaseEvidenceReport.caseWikiRoutingContext.contextSource
+  }
+  if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.focusId)) {
+    $badgeEvidenceCaseWikiRoutingContextFocusId = [string]$releaseEvidenceReport.caseWikiRoutingContext.focusId
+  }
+  if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.blocker)) {
+    $badgeEvidenceCaseWikiRoutingContextBlocker = [string]$releaseEvidenceReport.caseWikiRoutingContext.blocker
+  }
+  if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.nextAction)) {
+    $badgeEvidenceCaseWikiRoutingContextNextAction = [string]$releaseEvidenceReport.caseWikiRoutingContext.nextAction
+  }
+  if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.route)) {
+    $badgeEvidenceCaseWikiRoutingContextRoute = [string]$releaseEvidenceReport.caseWikiRoutingContext.route
+  }
+  if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.mode)) {
+    $badgeEvidenceCaseWikiRoutingContextMode = [string]$releaseEvidenceReport.caseWikiRoutingContext.mode
+  }
+  if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.requestedIntent)) {
+    $badgeEvidenceCaseWikiRoutingContextRequestedIntent = [string]$releaseEvidenceReport.caseWikiRoutingContext.requestedIntent
+  }
+  if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.routedIntent)) {
+    $badgeEvidenceCaseWikiRoutingContextRoutedIntent = [string]$releaseEvidenceReport.caseWikiRoutingContext.routedIntent
+  }
+}
+if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.caseWikiContextAdoption) {
+  $badgeEvidenceCaseWikiContextAdoptionValidated = ($releaseEvidenceReport.caseWikiContextAdoption.validated -eq $true)
+  $badgeEvidenceCaseWikiContextAdoptionObserved = ($releaseEvidenceReport.caseWikiContextAdoption.observed -eq $true)
+  if ($null -ne $releaseEvidenceReport.caseWikiContextAdoption.observedCount) {
+    $parsedObservedCount = 0
+    if ([int]::TryParse([string]$releaseEvidenceReport.caseWikiContextAdoption.observedCount, [ref]$parsedObservedCount) -and $parsedObservedCount -ge 0) {
+      $badgeEvidenceCaseWikiContextAdoptionObservedCount = $parsedObservedCount
+    }
+  }
+  if ($null -ne $releaseEvidenceReport.caseWikiContextAdoption.caseWikiObservedCount) {
+    $parsedCaseWikiObservedCount = 0
+    if ([int]::TryParse([string]$releaseEvidenceReport.caseWikiContextAdoption.caseWikiObservedCount, [ref]$parsedCaseWikiObservedCount) -and $parsedCaseWikiObservedCount -ge 0) {
+      $badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount = $parsedCaseWikiObservedCount
+    }
+  }
+  if ($null -ne $releaseEvidenceReport.caseWikiContextAdoption.inputOnlyObservedCount) {
+    $parsedInputOnlyObservedCount = 0
+    if ([int]::TryParse([string]$releaseEvidenceReport.caseWikiContextAdoption.inputOnlyObservedCount, [ref]$parsedInputOnlyObservedCount) -and $parsedInputOnlyObservedCount -ge 0) {
+      $badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount = $parsedInputOnlyObservedCount
+    }
+  }
+  if ($null -ne $releaseEvidenceReport.caseWikiContextAdoption.unknownObservedCount) {
+    $parsedUnknownObservedCount = 0
+    if ([int]::TryParse([string]$releaseEvidenceReport.caseWikiContextAdoption.unknownObservedCount, [ref]$parsedUnknownObservedCount) -and $parsedUnknownObservedCount -ge 0) {
+      $badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount = $parsedUnknownObservedCount
+    }
+  }
+  if ($null -ne $releaseEvidenceReport.caseWikiContextAdoption.caseWikiRate) {
+    $parsedCaseWikiRate = 0.0
+    if ([double]::TryParse([string]$releaseEvidenceReport.caseWikiContextAdoption.caseWikiRate, [System.Globalization.NumberStyles]::Float, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$parsedCaseWikiRate)) {
+      $badgeEvidenceCaseWikiContextAdoptionCaseWikiRate = $parsedCaseWikiRate
+    }
+  }
+}
 if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.statuses) {
+  if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.caseWikiRoutingContextStatus)) {
+    $badgeEvidenceCaseWikiRoutingContextStatus = [string]$releaseEvidenceReport.statuses.caseWikiRoutingContextStatus
+  }
+  if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.caseWikiContextAdoptionStatus)) {
+    $badgeEvidenceCaseWikiContextAdoptionStatus = [string]$releaseEvidenceReport.statuses.caseWikiContextAdoptionStatus
+  }
   if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.providerUsageStatus)) {
     $badgeEvidenceProviderUsageStatus = [string]$releaseEvidenceReport.statuses.providerUsageStatus
   }
@@ -863,6 +968,33 @@ if ($null -ne $railwayDeploySummary) {
       $railwayDeploySummaryBadgeDetailsEndpoint = [string]$railwayDeploySummary.checks.publicBadge.badgeDetailsEndpoint
     }
   }
+  if ($null -ne $railwayDeploySummary.caseWikiRuntimeSurfaceIngress) {
+    if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.status)) {
+      $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.status
+    }
+    $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved = ($railwayDeploySummary.caseWikiRuntimeSurfaceIngress.observed -eq $true)
+    if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.contextSource)) {
+      $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.contextSource
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.ingressSource)) {
+      $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.ingressSource
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.focusId)) {
+      $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.focusId
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.blocker)) {
+      $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.blocker
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.nextAction)) {
+      $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.nextAction
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.route)) {
+      $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.route
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.updatedAt)) {
+      $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.updatedAt
+    }
+  }
 }
 if ($null -ne $repoPublishSummary) {
   if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.branch)) {
@@ -918,6 +1050,33 @@ if ($null -ne $repoPublishSummary) {
       $repoPublishSummaryArtifactBadgeDetailsJson = [string]$repoPublishSummary.artifacts.badgeDetailsJson
     }
   }
+  if ($null -ne $repoPublishSummary.caseWikiRuntimeSurfaceIngress) {
+    if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.status)) {
+      $repoPublishSummaryCaseWikiRuntimeSurfaceIngressStatus = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.status
+    }
+    $repoPublishSummaryCaseWikiRuntimeSurfaceIngressObserved = ($repoPublishSummary.caseWikiRuntimeSurfaceIngress.observed -eq $true)
+    if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.contextSource)) {
+      $repoPublishSummaryCaseWikiRuntimeSurfaceIngressContextSource = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.contextSource
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.ingressSource)) {
+      $repoPublishSummaryCaseWikiRuntimeSurfaceIngressIngressSource = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.ingressSource
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.focusId)) {
+      $repoPublishSummaryCaseWikiRuntimeSurfaceIngressFocusId = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.focusId
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.blocker)) {
+      $repoPublishSummaryCaseWikiRuntimeSurfaceIngressBlocker = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.blocker
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.nextAction)) {
+      $repoPublishSummaryCaseWikiRuntimeSurfaceIngressNextAction = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.nextAction
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.route)) {
+      $repoPublishSummaryCaseWikiRuntimeSurfaceIngressRoute = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.route
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.updatedAt)) {
+      $repoPublishSummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.updatedAt
+    }
+  }
 }
 
 $gateEvidenceSnapshot = [ordered]@{
@@ -940,6 +1099,15 @@ $gateEvidenceSnapshot = [ordered]@{
   railwayDeploySummaryRootDescriptorExpectedUiUrl = $railwayDeploySummaryRootDescriptorExpectedUiUrl
   railwayDeploySummaryPublicBadgeAttempted    = $railwayDeploySummaryPublicBadgeAttempted
   railwayDeploySummaryPublicBadgeSkipped      = $railwayDeploySummaryPublicBadgeSkipped
+  railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus
+  railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved
+  railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource
+  railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource
+  railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId
+  railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker
+  railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction
+  railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute
+  railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt
   repoPublishSummaryPresent                   = [bool]$repoPublishSummaryPresent
   repoPublishSummaryBranch                    = $repoPublishSummaryBranch
   repoPublishSummaryRemoteName                = $repoPublishSummaryRemoteName
@@ -963,6 +1131,15 @@ $gateEvidenceSnapshot = [ordered]@{
   repoPublishSummaryArtifactReleaseEvidenceReportJson = $repoPublishSummaryArtifactReleaseEvidenceReportJson
   repoPublishSummaryArtifactReleaseEvidenceManifestJson = $repoPublishSummaryArtifactReleaseEvidenceManifestJson
   repoPublishSummaryArtifactBadgeDetailsJson  = $repoPublishSummaryArtifactBadgeDetailsJson
+  repoPublishSummaryCaseWikiRuntimeSurfaceIngressStatus = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressStatus
+  repoPublishSummaryCaseWikiRuntimeSurfaceIngressObserved = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressObserved
+  repoPublishSummaryCaseWikiRuntimeSurfaceIngressContextSource = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressContextSource
+  repoPublishSummaryCaseWikiRuntimeSurfaceIngressIngressSource = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressIngressSource
+  repoPublishSummaryCaseWikiRuntimeSurfaceIngressFocusId = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressFocusId
+  repoPublishSummaryCaseWikiRuntimeSurfaceIngressBlocker = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressBlocker
+  repoPublishSummaryCaseWikiRuntimeSurfaceIngressNextAction = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressNextAction
+  repoPublishSummaryCaseWikiRuntimeSurfaceIngressRoute = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressRoute
+  repoPublishSummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressUpdatedAt
   operatorTurnTruncationSummaryValidated      = $operatorTurnTruncationSummaryValidated
   operatorTurnDeleteSummaryValidated          = $operatorTurnDeleteSummaryValidated
   operatorDamageControlSummaryValidated       = $operatorDamageControlSummaryValidated
@@ -982,6 +1159,25 @@ $gateEvidenceSnapshot = [ordered]@{
   badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus = $badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus
   badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths = $badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths
   badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath = $badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath
+  badgeEvidenceCaseWikiRoutingContextStatus   = $badgeEvidenceCaseWikiRoutingContextStatus
+  badgeEvidenceCaseWikiRoutingContextValidated = $badgeEvidenceCaseWikiRoutingContextValidated
+  badgeEvidenceCaseWikiRoutingContextObserved = $badgeEvidenceCaseWikiRoutingContextObserved
+  badgeEvidenceCaseWikiRoutingContextSource   = $badgeEvidenceCaseWikiRoutingContextSource
+  badgeEvidenceCaseWikiRoutingContextFocusId  = $badgeEvidenceCaseWikiRoutingContextFocusId
+  badgeEvidenceCaseWikiRoutingContextBlocker  = $badgeEvidenceCaseWikiRoutingContextBlocker
+  badgeEvidenceCaseWikiRoutingContextNextAction = $badgeEvidenceCaseWikiRoutingContextNextAction
+  badgeEvidenceCaseWikiRoutingContextRoute    = $badgeEvidenceCaseWikiRoutingContextRoute
+  badgeEvidenceCaseWikiRoutingContextMode     = $badgeEvidenceCaseWikiRoutingContextMode
+  badgeEvidenceCaseWikiRoutingContextRequestedIntent = $badgeEvidenceCaseWikiRoutingContextRequestedIntent
+  badgeEvidenceCaseWikiRoutingContextRoutedIntent = $badgeEvidenceCaseWikiRoutingContextRoutedIntent
+  badgeEvidenceCaseWikiContextAdoptionStatus = $badgeEvidenceCaseWikiContextAdoptionStatus
+  badgeEvidenceCaseWikiContextAdoptionValidated = $badgeEvidenceCaseWikiContextAdoptionValidated
+  badgeEvidenceCaseWikiContextAdoptionObserved = $badgeEvidenceCaseWikiContextAdoptionObserved
+  badgeEvidenceCaseWikiContextAdoptionObservedCount = $badgeEvidenceCaseWikiContextAdoptionObservedCount
+  badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount = $badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount
+  badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount = $badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount
+  badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount = $badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount
+  badgeEvidenceCaseWikiContextAdoptionCaseWikiRate = $badgeEvidenceCaseWikiContextAdoptionCaseWikiRate
   badgeEvidenceProviderUsageStatus            = $badgeEvidenceProviderUsageStatus
   badgeEvidenceProviderUsageValidated         = $badgeEvidenceProviderUsageValidated
   badgeEvidenceProviderUsageActiveSecondaryProviders = $badgeEvidenceProviderUsageActiveSecondaryProviders
@@ -1123,6 +1319,25 @@ Write-Host ("- evidence snapshot (runtime guardrails signal paths status): " + $
 Write-Host ("- evidence snapshot (runtime guardrails signal paths summary status): " + $badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus)
 Write-Host ("- evidence snapshot (runtime guardrails signal paths total paths): " + $badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths)
 Write-Host ("- evidence snapshot (runtime guardrails signal paths primary path title): " + $(if ($null -ne $badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath) { [string]$badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath.title } else { "(none)" }))
+Write-Host ("- evidence snapshot (case wiki routing context status): " + $badgeEvidenceCaseWikiRoutingContextStatus)
+Write-Host ("- evidence snapshot (case wiki routing context validated): " + $badgeEvidenceCaseWikiRoutingContextValidated)
+Write-Host ("- evidence snapshot (case wiki routing context observed): " + $badgeEvidenceCaseWikiRoutingContextObserved)
+Write-Host ("- evidence snapshot (case wiki routing context source): " + $(if (-not [string]::IsNullOrWhiteSpace([string]$badgeEvidenceCaseWikiRoutingContextSource)) { $badgeEvidenceCaseWikiRoutingContextSource } else { "(none)" }))
+Write-Host ("- evidence snapshot (case wiki routing context focus id): " + $(if (-not [string]::IsNullOrWhiteSpace([string]$badgeEvidenceCaseWikiRoutingContextFocusId)) { $badgeEvidenceCaseWikiRoutingContextFocusId } else { "(none)" }))
+Write-Host ("- evidence snapshot (case wiki routing context blocker): " + $(if (-not [string]::IsNullOrWhiteSpace([string]$badgeEvidenceCaseWikiRoutingContextBlocker)) { $badgeEvidenceCaseWikiRoutingContextBlocker } else { "(none)" }))
+Write-Host ("- evidence snapshot (case wiki routing context next action): " + $(if (-not [string]::IsNullOrWhiteSpace([string]$badgeEvidenceCaseWikiRoutingContextNextAction)) { $badgeEvidenceCaseWikiRoutingContextNextAction } else { "(none)" }))
+Write-Host ("- evidence snapshot (case wiki routing context route): " + $(if (-not [string]::IsNullOrWhiteSpace([string]$badgeEvidenceCaseWikiRoutingContextRoute)) { $badgeEvidenceCaseWikiRoutingContextRoute } else { "(none)" }))
+Write-Host ("- evidence snapshot (case wiki routing context mode): " + $(if (-not [string]::IsNullOrWhiteSpace([string]$badgeEvidenceCaseWikiRoutingContextMode)) { $badgeEvidenceCaseWikiRoutingContextMode } else { "(none)" }))
+Write-Host ("- evidence snapshot (case wiki routing context requested intent): " + $(if (-not [string]::IsNullOrWhiteSpace([string]$badgeEvidenceCaseWikiRoutingContextRequestedIntent)) { $badgeEvidenceCaseWikiRoutingContextRequestedIntent } else { "(none)" }))
+Write-Host ("- evidence snapshot (case wiki routing context routed intent): " + $(if (-not [string]::IsNullOrWhiteSpace([string]$badgeEvidenceCaseWikiRoutingContextRoutedIntent)) { $badgeEvidenceCaseWikiRoutingContextRoutedIntent } else { "(none)" }))
+Write-Host ("- evidence snapshot (case wiki context adoption status): " + $badgeEvidenceCaseWikiContextAdoptionStatus)
+Write-Host ("- evidence snapshot (case wiki context adoption validated): " + $badgeEvidenceCaseWikiContextAdoptionValidated)
+Write-Host ("- evidence snapshot (case wiki context adoption observed): " + $badgeEvidenceCaseWikiContextAdoptionObserved)
+Write-Host ("- evidence snapshot (case wiki context adoption observed count): " + $badgeEvidenceCaseWikiContextAdoptionObservedCount)
+Write-Host ("- evidence snapshot (case wiki context adoption case-wiki observed count): " + $badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount)
+Write-Host ("- evidence snapshot (case wiki context adoption input-only observed count): " + $badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount)
+Write-Host ("- evidence snapshot (case wiki context adoption unknown observed count): " + $badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount)
+Write-Host ("- evidence snapshot (case wiki context adoption case-wiki rate): " + $(if ($null -ne $badgeEvidenceCaseWikiContextAdoptionCaseWikiRate) { [string]$badgeEvidenceCaseWikiContextAdoptionCaseWikiRate } else { "(none)" }))
 Write-Host ("- evidence snapshot (provider usage status): " + $badgeEvidenceProviderUsageStatus)
 Write-Host ("- evidence snapshot (provider usage validated): " + $badgeEvidenceProviderUsageValidated)
 Write-Host ("- evidence snapshot (provider usage active secondary providers): " + $badgeEvidenceProviderUsageActiveSecondaryProviders)

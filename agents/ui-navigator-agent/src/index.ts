@@ -94,6 +94,7 @@ type GroundingSignalSummary = {
   refMapCount: number;
   actionableRefIds: string[];
   staleRefTargets: string[];
+  healedRefTargets: string[];
 };
 
 type VerificationExecutionSnapshot = {
@@ -2808,11 +2809,12 @@ function buildGroundingSignalSummary(input: UiTaskInput): GroundingSignalSummary
     refMapCount: Object.keys(input.refMap).length,
     actionableRefIds: Object.keys(input.refMap).sort().slice(0, 20),
     staleRefTargets: [],
+    healedRefTargets: [],
   };
 }
 
 function groundingAdapterNote(summary: GroundingSignalSummary): string {
-  return `grounding_context screenshot=${summary.screenshotRefProvided} dom=${summary.domSnapshotProvided} a11y=${summary.accessibilityTreeProvided} marks=${summary.markHintsCount} refs=${summary.refMapCount} stale_refs=${summary.staleRefTargets.length}`;
+  return `grounding_context screenshot=${summary.screenshotRefProvided} dom=${summary.domSnapshotProvided} a11y=${summary.accessibilityTreeProvided} marks=${summary.markHintsCount} refs=${summary.refMapCount} stale_refs=${summary.staleRefTargets.length} healed_refs=${summary.healedRefTargets.length}`;
 }
 
 function mergeGroundingSignalSummary(
@@ -2832,6 +2834,7 @@ function mergeGroundingSignalSummary(
       new Set([...(base.actionableRefIds ?? []), ...((override.actionableRefIds ?? []).slice(0, 20))]),
     ),
     staleRefTargets: Array.from(new Set([...(base.staleRefTargets ?? []), ...(override.staleRefTargets ?? [])])),
+    healedRefTargets: Array.from(new Set([...(base.healedRefTargets ?? []), ...(override.healedRefTargets ?? [])])),
   };
 }
 
@@ -2846,10 +2849,14 @@ function parseExecutorGroundingSignalSummary(value: unknown): Partial<GroundingS
   const staleRefTargets = Array.isArray(value.staleRefTargets)
     ? value.staleRefTargets.map((item) => toNonEmptyString(item, "")).filter((item) => item.length > 0)
     : [];
+  const healedRefTargets = Array.isArray(value.healedRefTargets)
+    ? value.healedRefTargets.map((item) => toNonEmptyString(item, "")).filter((item) => item.length > 0)
+    : [];
   return {
     refMapCount: refMapCount ?? actionableRefIds.length,
     actionableRefIds,
     staleRefTargets,
+    healedRefTargets,
   };
 }
 

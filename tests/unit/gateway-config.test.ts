@@ -40,6 +40,7 @@ test("gateway config defaults to websocket transport mode", { concurrency: false
       GATEWAY_WEBRTC_ROLLOUT_STAGE: undefined,
       GATEWAY_WEBRTC_CANARY_PERCENT: undefined,
       GATEWAY_WEBRTC_ROLLBACK_READY: undefined,
+      API_BACKEND_BASE_URL: undefined,
       GATEWAY_ORCHESTRATOR_TIMEOUT_MS: undefined,
       GATEWAY_ORCHESTRATOR_STORY_TIMEOUT_MS: undefined,
       GATEWAY_ORCHESTRATOR_MAX_RETRIES: undefined,
@@ -51,6 +52,7 @@ test("gateway config defaults to websocket transport mode", { concurrency: false
       assert.equal(config.gatewayWebrtcRolloutStage, "spike");
       assert.equal(config.gatewayWebrtcCanaryPercent, 0);
       assert.equal(config.gatewayWebrtcRollbackReady, true);
+      assert.equal(config.apiBackendBaseUrl, "http://localhost:8081");
       assert.equal(config.orchestratorTimeoutMs, 35_000);
       assert.equal(config.orchestratorStoryTimeoutMs, 90_000);
       assert.equal(config.orchestratorMaxRetries, 1);
@@ -62,6 +64,7 @@ test("gateway config defaults to websocket transport mode", { concurrency: false
 test("gateway config accepts orchestrator timeout overrides for slower live and story providers", { concurrency: false }, async () => {
   await withEnv(
     {
+      API_BACKEND_BASE_URL: "https://api.example.com",
       GATEWAY_ORCHESTRATOR_TIMEOUT_MS: "45000",
       GATEWAY_ORCHESTRATOR_STORY_TIMEOUT_MS: "95000",
       GATEWAY_ORCHESTRATOR_MAX_RETRIES: "2",
@@ -69,6 +72,7 @@ test("gateway config accepts orchestrator timeout overrides for slower live and 
     },
     () => {
       const config = loadGatewayConfig();
+      assert.equal(config.apiBackendBaseUrl, "https://api.example.com");
       assert.equal(config.orchestratorTimeoutMs, 45_000);
       assert.equal(config.orchestratorStoryTimeoutMs, 95_000);
       assert.equal(config.orchestratorMaxRetries, 2);

@@ -24,7 +24,349 @@ npm run dev:ui-executor
 npm run dev:frontend
 ```
 
-Frontend: `http://localhost:3000`
+`apps/realtime-gateway` pulls compiled Case Wiki snapshots from `apps/api-backend`
+before dispatching `orchestrator.request`. Local development assumes
+`API_BACKEND_BASE_URL=http://localhost:8081`; override that env var if your API
+is bound elsewhere.
+
+Frontend: `http://localhost:3000/app`
+
+`npm run dev:frontend` prebuilds the React app shell into
+`apps/demo-frontend/public/app-shell`, and the server then serves `/app`,
+`/app/console/runtime`, `/bundle/<id>`, and `/evidence/<id>` from that built
+asset set.
+
+Route guide:
+
+1. `http://localhost:3000/` redirects to the new Action Desk workspace shell.
+2. `http://localhost:3000/app` serves the primary Action Desk workspace shell.
+3. `http://localhost:3000/app?demo=visa-intake` opens the seven-minute visa-intake product path. The same path is available from `/app` through the `Start 7-minute demo` button in the Live Desk header. The same first fold now also exposes four playbook templates (`Visa lead qualification`, `Missing-document follow-up`, `Consultation booking prep`, `CRM handoff summary`) so operators can jump into the current wedge without reading docs first. Each template card previews `Outcome`, `Approval`, `Evidence`, and `Deliverable`, and selecting one opens an inline detail panel with `Sample input`, `Approval policy`, `Evidence output`, and `CRM fields`. That panel now also shows a real `Payload preview`, `Surface path`, and `Copy payload` action built from the current case and available Case Wiki state, plus `Open export drawer` for the integration-ready handoff view. The `CRM payload drawer` and `Consultation handoff drawer` expose `Human-readable` and `JSON` modes, an operator review checklist, and canonical jumps to `Case Vault` or `Presentation bundle`. The focused lane can also be deep-linked through `?playbook=<lane-id>`, while the demo path uses the existing Live Desk case model and surfaces `Case Outcome Summary`, approval, bundle, evidence, and Case Vault links before deeper runtime detail. Use `docs/evidence-and-trust.md` for replay, signing, release evidence, and operator-safe proof posture without moving that depth into the first product scan.
+3.1. `http://localhost:3000/app?demo=local-services-dispatch&service=ac-repair-dispatch` opens the P0 local-services dispatcher demo. The first fold switches to `AI Dispatcher for Local Services` and shows `AC repair dispatch`, `Plumbing emergency`, `Cleaning quote and booking`, and `Measurement visit booking` cards. Each card keeps the same operator contract (`Outcome`, `Approval`, `Evidence`, `Deliverable`) and opens a detail panel with phone intake, pricing and slot inputs, approval policy, evidence output, customer confirmation draft, master/operator handoff, `Telegram intake prototype`, `Pilot readiness`, and `Dispatch payload preview`. Use `Open dispatch drawer`, `Open customer drawer`, or `Open handoff drawer` for the `Human-readable` / `JSON` exports. The same panel now also carries `One-page offer`, `90-second demo script`, `Outreach focus`, a `Launch checklist`, tracked `Pilot metrics`, and `Agent setup / training state` with `Business profile`, `Knowledge sources`, `Agent behavior`, `Test call/message`, `Ready for test call/message`, `Open setup checklist`, `Training cards`, `Copy setup brief`, `local_services_agent_setup_training`, and `No channel activation`; it is deterministic setup evidence and does not activate phone, Telegram, WhatsApp, CRM, analytics, or billing. It also carries a 4-step `Pilot outreach wizard` with `Offer preview`, `Audience from outreach list`, `Message/test preview`, and `Operator confirmation`. The `Message/test preview` step opens a `Preview / Test message modal` with `Human-readable` / `JSON` modes, `Copy test message`, `Copy test message preview`, `Channel variants`, `Telegram variant`, `WhatsApp variant`, `Phone script variant`, `Copy Telegram variant`, `Copy WhatsApp variant`, and `Copy phone script`; it is copy-only and does not trigger Telegram, WhatsApp, phone, CRM, scorecard, calendar, or outreach side effects. The `Operator confirmation` step opens an `Operator confirmation summary` with `Ready for manual outreach`, selected company, channel, exact message, approval checklist, and `Copy confirmation summary`; it also does not send outreach. The wizard now shows `Wizard progress`; `Record ready for manual outreach` changes only browser-local state to `Draft ready` and `Ready for manual outreach recorded`. The wizard now includes `AI analyst` / `Ask AI about pilot` with `Suggested questions`, `Best candidate`, `Bottleneck`, `Next message`, `Copy analyst brief`, `local_services_pilot_ai_analyst`, and `No external LLM call`; it is deterministic and does not send outreach. The wizard now includes `Pilot scorecard action`, `Selected company`, `Record scorecard draft`, `Pilot workspace state`, `Saved in this browser`, `Contacted manually`, `Reply received`, `Rejected for now`, and `No outbound message sent` so pilot prep stays local and operator-approved across reloads through `liveDesk:localServicesPilotWorkspace:v1`. It also records `First request outcome`, `Manual outcome state`, `Qualified`, `Needs follow-up`, `Rejected`, `Booked manually`, and `firstRequestOutcomeByProspectKey` as browser-local outcome notes only. `Outcome chain summary` shows that same outcome across `Scorecard draft`, `Daily log`, `Week-one review`, and `Evidence pack`. The same shell now shows `Pilot funnel summary`, `All candidates`, per-status counts, `Next manual batch`, and `Manual execution rule`. `Open pilot export` opens a `Pilot workspace export drawer` with `Human-readable` / `JSON` modes and `Copy pilot workspace export`; `Open workspace API export` opens a `Workspace API export drawer` with `workspace API + local fallback`, `Copy workspace API export`, `local_services_workspace_api`, and `browser_local_preview` so the API boundary is inspectable with browser fallback; both remain manual-only and do not send outreach or write CRM. `Open metrics tracker` opens a `Pilot metrics tracker` with `Human-readable` / `JSON` modes and `Copy pilot metrics tracker`; it remains manual-only and does not sync analytics or write CRM. `Open offer doc`, `Open demo script`, `Open outreach list`, `Open outreach execution pack`, and `Open pilot scorecard` resolve to `http://localhost:3000/workspace-docs/local-services-pilot-offer.md`, `http://localhost:3000/workspace-docs/local-services-demo-script.md`, `http://localhost:3000/workspace-docs/local-services-outreach-list.md`, `http://localhost:3000/workspace-docs/local-services-outreach-execution-pack.md`, and `http://localhost:3000/workspace-docs/local-services-pilot-scorecard.md`. The real execution runbook is also served at `http://localhost:3000/workspace-docs/local-services-pilot-runbook.md`, and the developer implementation map is served at `http://localhost:3000/workspace-docs/local-services-developer-map.md`. This path is phone-first, but booking, dispatch, pilot outreach, and metric sync remain operator-approved. The measurement lane is construction-adjacent P0; material stock, delivery, payment, and substitution rules remain out of scope.
+3.1a. `Scenario modal` opens `local_services_scenario_modal` for the selected lane. Sanity-check `Chat dialogue`, `Structured job card`, `Final handoff and approval state`, `Export scenarios JSON`, `Import scenario JSON`, `Reset overrides`, and bounded `scenarioOverrides` through the local-services workspace adapter. It is fixed-lane scenario editing only and must not create/delete scenarios, send outreach, dispatch masters, book slots, write CRM, activate channels, or mutate docs.
+3.1-handoff. The cross-agent implementation handoff is served at
+`http://localhost:3000/workspace-docs/local-services-agent-handoff.md`. Use it
+before changing local-services dashboard IA, backend persistence, setup,
+outreach, or scenario behavior.
+3.1a. In that same local-services route, `AppSidebar` switches into a
+product-mode sidebar: `AI Dispatcher`, `Service workspace`, `Dispatcher`,
+`Requests`, `Schedule / Dispatch`, `Customers`, `Knowledge & Setup`, `Reviews`,
+and one quieter `Advanced / Runtime` group. Runtime/judge surfaces remain
+reachable there, but `VIP cases`, `Judge artifacts`, `Presentation Bundle`, and
+visa case refs no longer occupy the first scan for a local-services design
+partner.
+The same route switches the top chrome from `Live Desk` to `AI Dispatcher`,
+hides runtime/SLA/device alerts from the first scan, and removes the old visa
+demo button, case filters, case search, and `New case` action from the
+local-services header.
+3.1b. The local-services product view states are now query-backed:
+`view=requests` opens `Requests inbox`, `view=schedule` opens
+`Schedule / Dispatch board`, `view=customers` opens `Customer directory`,
+`setup=7min&view=setup` opens `Knowledge setup state`, and `view=reviews`
+opens `Review queue`. They are browser-local, view-only panels over the same
+operator-approved dispatch payloads, setup state, evidence drawers, and review
+drawers; they do not send, book, dispatch, or write CRM. `Requests inbox`
+contains an `Operator action rail` for browser-local request status and first
+request outcome notes only.
+`Schedule / Dispatch board` contains an `Approval-ready slot planner` with KPI
+cards for confirmed slots, approval-ready slot cards, same-day/ASAP routes, and
+conflicts. `Schedule compact slot planner` rows select only the preview; `Open
+schedule drawer` and `Open in Dispatcher` are the explicit full actions.
+`Schedule approval rail` owns `dispatchApprovalByService`, the customer
+confirmation draft, master handoff draft, `Booking handoff preview`, and
+`Workspace record`. These controls also mirror the latest choice to
+`operatorDecisionByCaseRef` through `/v1/local-services/cases/:ref/decision`;
+they do not create appointments, dispatch technicians, message customers, write
+CRM, collect payment, or activate a live channel.
+`Customer directory` contains a `Customer confirmation rail`,
+`customerConfirmationByService` state, `Customer confirmation actions`, and a
+`Consent-safe confirmation preview`. It also has a `Customer compact directory`
+with contactable customers, active 30-day demo cases, honest `Сумма заявок`
+midpoint estimates, district coverage, and `LAST = service + ref`; row click
+selects preview only, while `Open customer drawer` is the explicit full action.
+These controls mirror the latest review to the same operator-decision boundary;
+they do not send SMS, Telegram, WhatsApp, email, CRM updates, payments,
+bookings, or dispatches.
+Both rails show `Workspace record`, `operatorDecisionByCaseRef`, and
+`API + local fallback` as a compact status signal for the latest recorded
+case decision.
+`Review queue` contains a `Review queue decision rail`,
+`weekOneOwnerDecisionByProspectKey` state,
+`weeklyScorecardSyncReviewedByService` state, `Review decision actions`, and a
+`Copy review queue summary` action. These controls are browser-local founder
+review notes only; they do not write CRM, change billing, send customer
+messages, activate channels, or make an autonomous pilot decision.
+`path=7min&view=requests` opens the `7-minute launch path`, a guided stepper
+over `Request intake`, `Approval-ready slot`, `Customer confirmation`, `Setup
+and dry run`, and `Founder review`. `path=7min&view=requests&packet=launch`
+opens the same path with `Pilot launch packet` already visible for issue-aware
+handoff links. It only changes query-backed product views and can copy a
+`Copy 7-minute launch path` manual summary. It also exposes
+`Recorded N/5`, `Record current step reviewed`, `Reset launch path progress`,
+and browser-local `launchPathStepCompletionByService` state. Its `Launch packet
+bridge` rolls the path into `local_services_pilot_launch_packet` with `Open
+launch packet`, `Copy launch packet`, `Path recorded`, `Schedule approval`,
+`Customer confirmation`, `Setup + dry run`, and `Founder review` rows. The
+visible bridge is a `Launch packet readiness card`: `Manual launch checklist`
+shows the operator-ready blockers, `Manual execution guardrails` repeats the
+no-send/no-CRM/no-dispatch rules, and `Launch support details` keeps the
+source state rows collapsed for debugging. The opened drawer includes the same
+`7-minute gate` and
+`operator_approved_manual_contact_packet_with_7_minute_bridge` payload; it does
+not send, book, dispatch, write CRM, change billing, activate channels, or make
+the pilot decision.
+3.2. The same local-services route now includes view-only pilot list controls:
+`Outreach list filters`, `Column settings`, `Service filter`, `Status filter`,
+`Filtered candidates`, `Filtered outreach list`, `All services`,
+`All statuses`, `Clear filters`, and `View only, no send`. They narrow the
+browser-local outreach list and do not send messages or write CRM.
+3.3. The same route now exposes `Open intake evidence` and
+`Transcript + evidence`, which opens a `Saved intake evidence` drawer with
+`Intake transcript + evidence link`, `Transcript preview`,
+`Evidence export mode`, `Copy intake evidence`, `local_services_intake_evidence`,
+and `transcript_evidence_link`. This is proof-only: it does not write Telegram,
+CRM, phone storage, or scorecards.
+3.4. The same route now includes `Pilot execution checklist` with
+`Pass test call/message`, `Needs test call passed`,
+`Prepare first manual batch`, `Ready for first manual batch`,
+`Record ready drafts`, `Log manual contact`, `Book discovery call`,
+`Start metric capture`, `Founder/operator validation`, `No autonomous send`, and
+`Open pilot runbook`. Its header shows `Pilot checklist progress`,
+`Dry run required` / `Dry run passed`, and `Manual launch blocked` /
+`Manual launch ready`, so first contact stays gated on the dry run and a ready
+draft. `Open launch packet` opens `Pilot launch packet` / `Launch packet
+preview` with `First manual contact checklist`, `Launch readiness`,
+`Dry-run gate`, `Selected company`, `Draft status`, `Next action`,
+`Copy launch packet`, and `local_services_pilot_launch_packet`. The drawer
+now starts with `Pilot launch packet readiness rail`, then
+`First manual contact packet` / `Manual contact copy preview`,
+`First manual contact checklist`, and `Launch packet guardrails`; raw source
+keys and Human/JSON copy stay in collapsed `Launch packet support details`.
+The checklist also exposes `Open Preview / Test message`, which switches from
+the launch packet into the existing copy-only channel preview for the selected
+account.
+The preview exposes `Operator outcome log`: `Preview reviewed` records
+`messagePreviewReviewedByProspectKey`, copy actions record `Copied` in
+`contactPacketCopiedByProspectKey`, and `Contacted manually` records
+`contactProofByProspectKey.manualMessageSent` / `contacted_manually` only after
+the human actually performs outreach outside the shell.
+The same state is now exported as `Outreach outcome trail` /
+`outreach_outcome_trail` so pilot export, communication preview, and batch
+review show selected draft, reviewed, copied, contacted-manually, scorecard row,
+and batch handoff markers together.
+It still does
+not send outreach, create calendar events, write CRM, or mutate docs. It
+mirrors browser-local state only and does not send
+outreach, write CRM, sync analytics, or mutate Markdown docs.
+It also shows `Manual activity log`, `Last manual action`, `Copy activity log`,
+and `local_services_manual_activity_log` for browser-local scorecard and metric
+events. The activity log includes `Selected outreach channel` /
+`selectedChannelByProspectKey`, says `No external side effects`, and does not send
+outreach, create calendar events, write CRM, sync analytics, bill, or mutate
+Markdown docs.
+3.5. The same checklist now includes `Open discovery prep`, which opens
+`Discovery call prep` with `Questions to ask`, `Pilot success criteria`,
+`Human-readable` / `JSON` modes, `Copy discovery call prep`, and
+`local_services_discovery_call_prep`. It prepares the first replied-company
+conversation only; it does not create calendar bookings, send follow-up, write
+CRM, sync analytics, or mutate Markdown docs.
+3.6. The same route now includes `Open day-one setup`, which opens
+`Day-one setup brief` with `Business profile lock`, `Setup tasks`,
+`Test call plan`, `Copy day-one setup brief`, and
+`local_services_day_one_setup_brief`. It converts a discovery call into a
+manual setup handoff only; it does not activate phone, Telegram, WhatsApp, CRM,
+analytics, billing, calendar, or customer sends.
+3.7. The same route now includes `Open daily log`, which opens `Pilot daily
+log` with `Daily capture fields`, `Daily operating loop`,
+`Copy pilot daily log`, and `local_services_pilot_daily_log`. It is a manual
+daily operating-loop template only; it does not sync analytics, write CRM,
+create calendar bookings, send customer messages, or mutate Markdown docs. It
+also carries the selected company, pilot status, `First request outcome`, and
+`firstRequestOutcomeByProspectKey` before weekly scorecard sync.
+3.8. The same route now includes `Open week-one review`, which opens `Pilot
+week-one review` with `Continue / stop decision`, `Copy week-one review`, and
+`local_services_pilot_week_one_review`. It is a manual owner/operator review
+only; it does not decide autonomously, write CRM, change billing, send customer
+messages, or mutate Markdown docs. It also carries `First request outcome` and
+`firstRequestOutcomeByProspectKey` into the reviewed week-one decision packet.
+The drawer now adds `Owner-ready summary`, `Decision readiness`,
+`Latest manual signal`, and `day_one_recap_to_week_one_review` so the owner
+review is a compact week-one packet instead of a raw checklist. The shell now
+also records `Week-one owner decision state` with `Record continue`,
+`Record pause`, `Record stop`, and `weekOneOwnerDecisionByProspectKey`.
+3.9. The same route now includes `Open evidence pack`, which opens `Pilot
+evidence pack` with `Week-two evidence pack`, `Copy evidence pack`, and
+`local_services_pilot_evidence_pack`. It is a redacted manual proof pack only;
+it does not store private customer data in public docs, decide autonomously,
+write CRM, change billing, send customer messages, or mutate Markdown docs. It
+also carries `First request outcome` and `firstRequestOutcomeByProspectKey`
+plus `Week-one owner decision` and `week_one_owner_decision_to_evidence_pack`
+into the paid-pilot readiness proof pack.
+3.10. The same route now includes `Open recording checklist`, which opens
+`http://localhost:3000/workspace-docs/local-services-demo-recording-checklist.md`.
+It is a 90-second walkthrough checklist for the local-services demo only; it
+does not claim live phone, Telegram, CRM, calendar, billing, or revenue-lift
+automation.
+3.11. The same route now includes `Open founder execution log`, which opens
+`http://localhost:3000/workspace-docs/local-services-founder-execution-log.md`.
+It is a redacted first-10-contact worksheet for real pilot evidence capture;
+it does not send outreach, write CRM, book calendars, bill, sync analytics, or
+store private customer data in public docs.
+3.12. The same route now includes `First 10 contacts workspace`, `Pilot proof
+checklist`, `Stop / Continue decision gate`, `Open batch review`, `First
+contact batch review drawer`, `Copy batch review`, `Copy founder workspace`,
+`First-contact batch review rows`, `review_decision`,
+`scorecard_row_copied`, `batch_handoff_copied`, and
+`outreach_outcome_trail`,
+`Channel checked`, `Manual sent`, `Discovery call`, `Demo booked`, and
+`Pilot candidate`. It also includes `Pilot ops today`, `Copy pilot ops handoff`,
+`Open ops confirmation`, `Open communication preview`,
+`local_services_pilot_ops_today`, `local_services_pilot_ops_confirmation`,
+`local_services_pilot_communication_preview`, `Current account picker`,
+`local_services_current_account_picker`, `Auto next account`, `Select account`,
+`Current account prep checklist`,
+`local_services_current_account_prep_checklist`, `Prep status`,
+`Channel verified`, `Message preview reviewed`, `Proof marker selected`,
+`Manual-only guardrail`, `Mark preview reviewed`, `Reset preview review`,
+`Prep complete`, `messagePreviewReviewedByProspectKey`,
+`Selected outreach channel`, `Channel selected`, `Select Telegram`,
+`Select WhatsApp`, `Select phone script`, `selectedChannelByProspectKey`,
+`Prep gate`, `local_services_current_account_prep_gate`, `Blocked by prep`,
+`Current account contact packet`,
+`local_services_current_account_contact_packet`, `Ready for manual contact`,
+`Copy contact packet`, `Packet copied`, `Reset packet review`,
+`contactPacketCopiedByProspectKey`, `Packet needed`,
+`Current account action path`, `local_services_current_account_action_path`,
+`Current account outcome capture`,
+`local_services_current_account_outcome_capture`,
+`firstRequestOutcomeByProspectKey`,
+`Current account scorecard sync preview`,
+`local_services_current_account_scorecard_sync_preview`,
+`Copy scorecard row`, `Scorecard row copied`,
+`Reset scorecard row review`, `scorecardRowCopiedByProspectKey`,
+`scorecard_row_copy_required_for_batch_review`,
+`Current account batch review handoff`,
+`local_services_current_account_batch_review_handoff`,
+`Copy batch handoff`, `Batch handoff copied`,
+`Reset batch handoff review`, `batchReviewHandoffCopiedByProspectKey`,
+`Pilot proof update rail`, and
+`local_services_pilot_proof_update_rail`, `Current account mini-audit`, and
+`local_services_current_account_mini_audit`, plus `Open account history` /
+`local_services_account_history_drawer` so the operator sees one current
+account, one next manual action, browser-local account override,
+phone/Telegram/WhatsApp preview, channel/message/proof/guardrail prep
+checklist, the account -> preview -> manual contact -> proof -> continue gate
+path, latest account-local proof events, and the
+browser-local proof marker to update afterward. `Daily pilot briefing`,
+`Copy daily briefing`, and `local_services_daily_pilot_briefing` add the
+manual-only scheduled-task preview for founder/operator daily review; it is not
+a real cron and cannot send Slack, Telegram, WhatsApp, phone, CRM, analytics,
+billing, or Markdown side effects. It also
+includes `Category pilot score`, `Leading category`,
+and `No category expansion without proof` so AC, plumbing, cleaning, and
+measurement are compared from the same proof markers before any category
+expansion. `Leading category action layer` turns the top lane into `Next manual
+batch`, `Discovery questions`, `Pilot setup checklist`, `Integration hold`, and
+`Focus leading category`. `Pilot setup readiness`, `Paid pilot gate`,
+`Ready for first paid pilot`, and `Not ready for paid pilot` show whether the
+leading lane can move toward a paid pilot or still has proof/setup/dry-run
+blockers. The readiness gate now includes `Week-one owner decision`: only
+`Continue` can move the lane toward `Paid pilot proposal`; `Pause`, `Stop`, or
+no recorded decision keep the proposal path blocked. `Readiness action plan`,
+`Continue setup/test path`,
+`Copy readiness action plan`, and `local_services_readiness_action_plan` make
+the next blocker actionable from the same shell. `Open proof drawer`,
+`Readiness proof drawer`, `Copy readiness proof`, and
+`local_services_readiness_proof_drawer` show the proof snippets behind that
+gate without opening multiple drawers. `Open proposal preview`,
+`Paid pilot proposal preview`, `Copy proposal preview`, and
+`local_services_paid_pilot_proposal_preview` show the proposed paid-pilot offer
+as a private operator approval artifact, not a live send or billing action.
+`Open approval handoff`, `Proposal approval handoff`, `Copy approval handoff`,
+and `local_services_proposal_approval_handoff` then show who must approve price,
+scope, owner send, CRM payload, booking policy, and billing-disabled state.
+`Proposal approval state`, `Approve proposal handoff`, `Needs changes`,
+`Block proposal`, `Reset proposal approval`, and `proposalApprovalByService`
+record that operator decision locally; kickoff remains blocked unless the state
+is approved.
+`Open kickoff gate`, `Pilot kickoff gate`, `Copy kickoff gate`, and
+`local_services_pilot_kickoff_gate` decide whether that approval can advance to
+manual day-one setup without activating channels or external systems.
+`Kickoff decision state`, `Mark kickoff ready`, `Needs more prep`,
+`Block kickoff`, `Reset kickoff decision`, and `kickoffDecisionByService`
+record that day-one decision locally; the run sheet remains blocked until
+kickoff is ready.
+`Open run sheet`, `Day-one operator run sheet`, `Copy run sheet`,
+`local_services_day_one_operator_run_sheet`, and
+`manual_day_one_operator_run_sheet` add the first-day operator worksheet:
+sample inbound, owner script, expected fields, approval pauses, metric capture,
+and manual result logging only. `day_one_run_sheet_outcome_capture` links that
+worksheet to `Open daily log`, so the actual first request outcome is recorded
+before any weekly scorecard sync. `Day-one outcome capture gate`,
+`Reset day-one outcome`, `Weekly scorecard sync gate`, and
+`manual_weekly_scorecard_sync_gate` make the leading-category target explicit;
+weekly scorecard sync remains blocked until `firstRequestOutcomeByProspectKey`
+is recorded and metrics are review-ready. `Open weekly sync checklist`,
+`Weekly scorecard sync checklist`, `Copy weekly sync checklist`, and
+`local_services_weekly_scorecard_sync_checklist` prepare the reviewed manual
+copy packet for the private scorecard without mutating Markdown, CRM,
+analytics, billing, bookings, or messages. `Record weekly sync reviewed`,
+`Reset weekly sync review`, and `weeklyScorecardSyncReviewedByService` record
+only that a human completed the private tracker copy. `Pilot week-one review`
+and `Pilot evidence pack` read the same state as `Weekly sync reviewed`, and
+their `Evidence readiness` stays blocked until that manual private scorecard sync
+is reviewed. The evidence pack also carries `selected_channel_id`,
+`selected_channel`, and `selected_channel_state_key`. `Open day-one recap`,
+`Day-one recap`,
+`Copy day-one recap`, `local_services_day_one_recap`, and
+`day_one_recap_to_week_one_review` then turn the first real run into a reviewed
+handoff for week-one review.
+The outreach wizard itself now shows `Outreach readiness rail`, `Next outreach
+action`, `Mark preview reviewed`, and `Manual outreach boundary` before
+operator confirmation; it records `messagePreviewReviewedByProspectKey` only
+and explicitly blocks outbound send, CRM write, scorecard mutation, and calendar
+event side effects.
+These controls update only
+`liveDesk:localServicesPilotWorkspace:v1` in browser-local state and the manual
+activity log; they do not send outreach, create bookings, write CRM, sync
+analytics, bill, or mutate Markdown docs. The platform frame remains
+NEWO-style AI employee expansion by category; the manual batch is only the
+validation gate.
+3.13. Append `&recording=90s` to the local-services route to enter
+`90-second recording mode`. The route is
+`http://localhost:3000/app?demo=local-services-dispatch&service=ac-repair-dispatch&recording=90s`.
+The shell shows `Recording path` and hides the outreach table and scorecard
+controls during recording.
+3.14. Append `&setup=7min` to the local-services route to enter
+`7-minute setup wizard`. The route is
+`http://localhost:3000/app?demo=local-services-dispatch&service=ac-repair-dispatch&setup=7min`.
+The shell shows `Setup path`, `Open setup checklist`, `Open day-one setup`, and
+`Copy setup brief`, while outreach tables and scorecard controls stay hidden so
+the first operator demo stays about setup readiness.
+The wizard stores `setupStepCompletionByService`, `setupReadyByService`, and
+bounded `setupEvents` through the local-services workspace adapter, shows
+`Setup progress`, `Saved setup state`, `Latest setup record`, `Mark complete`,
+`Mark ready for pilot test`, and `Ready for pilot test`, and never activates
+live channels. The setup view also shows `Next setup action` and
+`Setup validation checklist` with the current step, `Required inputs`,
+`Validation rule`, `Side-effect boundary`, and `Complete current step` so a
+new operator can finish the setup path without opening a separate document.
+After the ready gate, the same route shows `Test call/message panel` with
+`Sample inbound`, `Expected extracted fields`, `Pass/fail checklist`,
+`Mark check passed`, `Record test passed`, `Test call passed`, and
+`Reset test call`. It persists `testCallChecklistByService`,
+`testCallPassedByService`, and setup/test-call events in the same workspace
+state with browser fallback.
+4. `http://localhost:3000/app/console/runtime` serves the deeper operator support route for replay, compliance, export, and runtime diagnostics. It remains a secondary/internal surface, while the primary sidebar keeps the transferred `hello-friend` routing (`/app`, `/app/console`, `/app/simulation`, `/app/nodes`) intact.
+4.1. `http://localhost:3000/debug-artifacts/index.json` serves the read-only artifact index used by the runtime support `Artifact Viewer`, and the same frontend server can then serve allowlisted JSON files from `artifacts/demo-e2e`, `artifacts/runtime`, and `artifacts/release-evidence`; the support route also pins quick-view tabs for the four main evidence files so a local operator can inspect the structured release/demo summary before opening the raw JSON.
+5. `http://localhost:3000/legacy` keeps the legacy compatibility dashboard/runtime surfaces, links back to `/app`, defaults to `Operator Console` + `Device Nodes` fallback tabs, no longer keeps the hidden legacy live/simulation render loops or compatibility-only control bindings active, and bounces any remaining quick-start actions that need those primary surfaces into `/app`. The direct-live proof query opts those live bindings back in for smoke evidence only (`?debugLive=true` or `?livePreferredMode=direct_live`).
+6. `http://localhost:3000/bundle/<id>` serves the public presentation bundle surface.
+7. `http://localhost:3000/evidence/<id>` serves the evidence viewer shell.
+8. `Live Desk`, `Operator Console`, runtime chrome, and node detail rails in
+   that app shell prefer repo-owned runtime data from `/v1/operator/summary`,
+   `/v1/sessions`, `/v1/runtime/case-wiki`, and `/v1/device-nodes`, with
+   `GET /config.json` + `FRONTEND_API_BASE_URL` used when the frontend runs
+   standalone, and bundled design mocks kept only as fallback when a local
+   service is missing.
 
 ## Dev Cost Profiles
 
@@ -83,6 +425,14 @@ Key knobs:
 When enabled, the session pool is surfaced in `GET /status` and
 `GET /runtime/config`, and background browser job metadata now reports explicit
 session state (`ephemeral`, `pending`, `ready`, `released`, `closed`, `expired`).
+Stable `ref:` targets now also get one stale-selector recovery pass from
+`refMap` id/name/label hints before the executor surfaces `staleRefTargets`.
+Successful recoveries are reported through `grounding.healedRefTargets`, while
+unresolved cases still return the usual `Refresh snapshot and rerun` hint.
+`npm run demo:e2e` now includes one deterministic `/execute` proof on the local
+profile-settings fixture so `badge-details.json` and unified release evidence
+show the healed ids, zero residual stale refs, and the disabled-to-enabled
+submit transition from the same real Playwright run.
 
 ## GCP Judge Runtime
 
@@ -139,6 +489,8 @@ npm run verify:release:artifact:refresh-local-source
 npm run verify:release:artifact-only
 ```
 
+That local refresh now also preserves compact deploy/publish runtime ingress tuples from `artifacts/deploy/railway-deploy-summary.json` and `artifacts/deploy/repo-publish-summary.json` (`railwayDeploySummaryCaseWikiRuntimeSurfaceIngress*`, `repoPublishSummaryCaseWikiRuntimeSurfaceIngress*`), so offline artifact-only checks can distinguish deploy-owned `Case Wiki` ingress without reopening full release-evidence snapshots.
+
 ## Optional Moonshot / Kimi Text Path
 
 To test live-agent `translation` or `conversation` with Moonshot/Kimi 2.5 instead of the default Gemini text path, set:
@@ -154,6 +506,33 @@ Gemini remains the judged-default provider. If Moonshot is selected but no Moons
 For local `Discuss` runs, the conversation lane now also uses Moonshot as the secondary provider when `LIVE_AGENT_USE_GEMINI_CHAT=false` but a Moonshot key is available, instead of degrading straight to the repo echo fallback.
 
 For local `Research` runs, skill directives stay in provider context instead of being prepended to the user query. If the grounded research provider is unavailable but the reasoning adapter is still live, the agent returns a concise answer without citations before it falls back to the deterministic offline message.
+
+## Runtime Evidence Signing
+
+`GET /v1/runtime/case-wiki` and `GET /v1/runtime/session-replay` always emit `evidenceSignature.payloadHash` as a canonical SHA256 over the snapshot without the signature field. To sign snapshots locally, configure:
+
+1. `RUNTIME_EVIDENCE_SIGNING_ENABLED=true`
+2. `RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM` or `RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64`
+3. `RUNTIME_EVIDENCE_SIGNING_KEY_ID=local-dev-key`
+4. `RUNTIME_EVIDENCE_SIGNING_SIGNER_ID=api-backend`
+
+Fast bootstrap:
+
+```bash
+npm run runtime:evidence:keygen -- --outputDir ./.credentials/runtime-evidence-signing --keyId local-dev-key
+```
+
+The helper writes:
+
+1. `.credentials/runtime-evidence-signing/runtime-evidence-private-key.pem`
+2. `.credentials/runtime-evidence-signing/runtime-evidence-private-key.base64.txt`
+3. `.credentials/runtime-evidence-signing/runtime-evidence-public-key.pem`
+4. `.credentials/runtime-evidence-signing/runtime-evidence.env`
+5. `.credentials/runtime-evidence-signing/runtime-evidence-summary.json`
+
+Use `runtime-evidence.env` for local `.env` bootstrapping, or paste the contents of `runtime-evidence-private-key.base64.txt` into `RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64` for Railway/GitHub secrets. Re-running the helper against the same output path requires `--overwrite true` so accidental key rotation is explicit.
+
+Without a private key, snapshots stay `unsigned` but keep the canonical hash for deterministic artifact comparison. `GET /v1/runtime/diagnostics` reflects the same signer posture and will raise `evidence_signing_key_unavailable` when signing is enabled but the key is missing or invalid.
 
 ## Storyteller Secondary Media Paths
 
@@ -228,10 +607,25 @@ npm run build
 npm run verify:release
 ```
 
+3.1. Signed local release gate:
+
+```bash
+npm run runtime:evidence:keygen -- --outputDir ./.credentials/runtime-evidence-signing --keyId local-release-key
+npm run verify:release:signed
+```
+
+This alias uses the git-ignored local bundle at `./.credentials/runtime-evidence-signing/runtime-evidence.env` so release evidence must prove `caseWikiEvidenceSignature.status=pass` with `signatureStatus=signed`. If runtime signing is already configured through process env or repo-local `.env`, that configuration takes precedence and the local bundle bootstrap is skipped.
+
 4. Strict release gate:
 
 ```bash
 npm run verify:release:strict
+```
+
+4.1. Strict signed local release gate:
+
+```bash
+npm run verify:release:strict:signed
 ```
 
 ## Autoresearch Runtime-Perf Loop

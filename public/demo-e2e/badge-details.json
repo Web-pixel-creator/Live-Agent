@@ -1,24 +1,24 @@
 {
-  "generatedAt": "2026-04-09T06:56:14.382Z",
+  "generatedAt": "2026-05-22T12:03:03.857Z",
   "ok": true,
   "policyPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\summary.json",
-  "checks": 281,
+  "checks": 319,
   "violations": 0,
-  "roundTripMs": 1162,
+  "roundTripMs": 645,
   "costEstimate": {
     "currency": "USD",
-    "geminiLiveUsd": 0.035835,
+    "geminiLiveUsd": 0.04986,
     "imagenUsd": 0.12,
     "veoUsd": 0.36,
     "ttsUsd": 0.024,
-    "totalUsd": 0.539835,
+    "totalUsd": 0.55386,
     "source": "runtime_estimate"
   },
   "tokensUsed": {
-    "input": 2561,
-    "output": 25691,
-    "total": 28252,
+    "input": 3912,
+    "output": 35629,
+    "total": 39541,
     "source": "runtime_estimate"
   },
   "liveTransport": {
@@ -104,7 +104,7 @@
     ]
   },
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-04-09T11:56:13.1306370+05:00",
+    "sourceSummaryGeneratedAt": "2026-05-22T17:03:02.8082217+05:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -112,7 +112,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-04-09T06:56:08.706Z",
+      "latestSeenAt": "2026-05-22T12:02:59.299Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -126,7 +126,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-04-09T06:56:08.791Z",
+      "latestSeenAt": "2026-05-22T12:02:59.390Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -160,7 +160,7 @@
         "verdict": "ask",
         "source": "file",
         "matchedRuleCount": 1,
-        "seenAt": "2026-04-09T06:56:06.463Z",
+        "seenAt": "2026-05-22T12:02:57.647Z",
         "seenAtIsIso": true
       }
     },
@@ -224,10 +224,10 @@
       },
       "latest": {
         "outcome": "succeeded",
-        "pluginId": "demo-plugin-skill-651ffded-77ed-423f-b886-ba65b1538170",
+        "pluginId": "demo-plugin-skill-6f72db03-c675-48d4-ae60-3908c8b5fc7a",
         "version": 1,
         "signingStatus": "unsigned",
-        "seenAt": "2026-04-09T06:56:12.230Z",
+        "seenAt": "2026-05-22T12:03:01.209Z",
         "seenAtIsIso": true
       }
     },
@@ -256,15 +256,15 @@
     "agentUsage": {
       "status": "pass",
       "validated": true,
-      "total": 9,
-      "uniqueRuns": 8,
-      "uniqueSessions": 1,
-      "totalCalls": 8,
-      "inputTokens": 2517,
-      "outputTokens": 406,
-      "totalTokens": 2923,
+      "total": 10,
+      "uniqueRuns": 9,
+      "uniqueSessions": 3,
+      "totalCalls": 0,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
       "models": [
-        "gemini-3.1-flash-lite-preview",
+        "google-translate-free",
         "usage_metadata_unavailable"
       ],
       "summarySource": "gateway_runtime",
@@ -273,12 +273,13 @@
     "runtimeGuardrailsSignalPaths": {
       "status": "pass",
       "validated": true,
-      "summaryStatus": "critical signals=3",
-      "signalsSummary": "total=3 | critical=1 | warn=2 | info=0",
+      "summaryStatus": "degraded signals=3",
+      "signalsSummary": "total=3 | critical=0 | warn=3 | info=0",
       "coverageSummary": "healthy=4/4 | ready=4/4 | runtime=4/4 | metrics=4/4 | startup=0/0",
-      "sandboxSummary": "mode=off | network=allow_all | setup=unconfigured | warnings=0",
+      "sloSummary": "liveFirstAudioP95=747ms/2500ms | navigatorStepP95=3ms/25000ms | caseWikiQueryP95=3ms/1500ms",
+      "sandboxSummary": "mode=enforce | network=allow_list | setup=current | warnings=0",
       "skillsSummary": "catalog=path/0w | personas=3/10 | recipes=3/10 | runtime=off active=0 skipped=0 blocked=0",
-      "topSignal": "critical ui_executor_sandbox_not_enforce@ui-executor | value=off | UI executor sandbox mode is weaker than enforce.",
+      "topSignal": "warn operator_stage_awaiting_approval@orchestrator | value=2 | Operator trace summary shows runs waiting for approval.",
       "historyStatus": "Signal paths are sourced from the current runtime summary. Release artifacts exclude browser-local lifecycle history.",
       "totalPaths": 1,
       "lifecycleCounts": {
@@ -293,53 +294,221 @@
       },
       "lifecycleSummary": "active=1",
       "primaryPath": {
-        "title": "Recovery drill - ui-executor-sandbox-audit",
-        "kind": "runtime_drill",
-        "signalKey": "ui_executor_sandbox_not_enforce",
+        "title": "Manual triage path",
+        "kind": "jump_card",
+        "signalKey": "ui_executor_sandbox_loopback_allowed",
         "signalService": "ui-executor",
         "signalKeys": [],
         "signalDescriptors": [],
-        "profileId": "ui-executor-sandbox-audit",
-        "phase": "recovery",
-        "targetStatusId": null,
-        "summaryText": "Recovery drill: UI executor sandbox audit mode (ui-executor-sandbox-audit/recovery) for ui_executor_sandbox_not_enforce@ui-executor.",
-        "buttonLabel": "Plan Recovery Drill",
+        "profileId": null,
+        "phase": null,
+        "targetStatusId": "operatorRuntimeGuardrailsStatus",
+        "summaryText": "Manual triage: loopback access remains enabled only for repo-owned local demo fixtures. Inspect Runtime Guardrails before judged flow.",
+        "buttonLabel": "Jump to Runtime Guardrails",
         "lifecycle": {
           "statusCode": "active",
           "statusText": "active",
           "detailText": "Repo-generated active signal path from runtime diagnostics summary.",
-          "updatedAt": "2026-04-09T11:56:12.5301879+05:00",
+          "updatedAt": "2026-05-22T17:03:01.3869507+05:00",
           "updatedAtIsIso": true
         }
       },
       "paths": [
         {
-          "title": "Recovery drill - ui-executor-sandbox-audit",
-          "kind": "runtime_drill",
-          "signalKey": "ui_executor_sandbox_not_enforce",
+          "title": "Manual triage path",
+          "kind": "jump_card",
+          "signalKey": "ui_executor_sandbox_loopback_allowed",
           "signalService": "ui-executor",
           "signalKeys": [],
           "signalDescriptors": [],
-          "profileId": "ui-executor-sandbox-audit",
-          "phase": "recovery",
-          "targetStatusId": null,
-          "summaryText": "Recovery drill: UI executor sandbox audit mode (ui-executor-sandbox-audit/recovery) for ui_executor_sandbox_not_enforce@ui-executor.",
-          "buttonLabel": "Plan Recovery Drill",
+          "profileId": null,
+          "phase": null,
+          "targetStatusId": "operatorRuntimeGuardrailsStatus",
+          "summaryText": "Manual triage: loopback access remains enabled only for repo-owned local demo fixtures. Inspect Runtime Guardrails before judged flow.",
+          "buttonLabel": "Jump to Runtime Guardrails",
           "lifecycle": {
             "statusCode": "active",
             "statusText": "active",
             "detailText": "Repo-generated active signal path from runtime diagnostics summary.",
-            "updatedAt": "2026-04-09T11:56:12.5301879+05:00",
+            "updatedAt": "2026-05-22T17:03:01.3869507+05:00",
             "updatedAtIsIso": true
           }
         }
       ]
+    },
+    "caseWikiEvidenceSignature": {
+      "status": "warn",
+      "validated": true,
+      "totalArtifacts": 1,
+      "signedArtifacts": 0,
+      "unsignedArtifacts": 1,
+      "signatureStatus": "unsigned",
+      "algorithm": "ed25519-sha256",
+      "canonicalization": "json-stable-v1",
+      "payloadHash": "sha256:80762ec96318d306bb1b90cc8b336a27061e6481515f639608ee81421e913e05",
+      "keyId": null,
+      "signerId": "api-backend",
+      "signedAt": "2026-05-22T12:03:01.525Z",
+      "signedAtIsIso": true,
+      "signaturePresent": false,
+      "caseId": "local-1779451321302-93248",
+      "sessionId": "local-1779451321302-93248",
+      "overviewStatus": "waiting_on_operator",
+      "focusKind": null,
+      "focusLabel": null,
+      "nextAction": "Resolve pending approval",
+      "sourceRefsCount": 0
+    },
+    "caseWikiCompliance": {
+      "status": "pass",
+      "validated": true,
+      "observed": true,
+      "tenantId": "governance-demo-f659f8e6-9974-466b-8160-c5e0c866a10a",
+      "templateId": "strict",
+      "requestedTemplateId": "strict",
+      "source": "tenant_override",
+      "fallbackApplied": false,
+      "controls": {
+        "piiRedactionLevel": "high",
+        "crossTenantAdminOnly": true,
+        "approvalSlaEnforced": true,
+        "auditTrailRequired": true
+      },
+      "retention": {
+        "rawMediaDays": 2,
+        "auditLogsDays": 540,
+        "eventsDays": 400,
+        "sessionsDays": 45
+      },
+      "evidenceSigning": {
+        "enabled": false,
+        "expectedSignatureStatus": "unsigned",
+        "keyState": "missing",
+        "signerId": "api-backend",
+        "keyId": null
+      },
+      "observedSignatureStatus": "unsigned",
+      "signatureMatch": true,
+      "summary": "template=strict | tenant_override | pii=high | rawMedia=2d | audit=required | signing=unsigned | enforcement=pass"
+    },
+    "caseWikiRoutingContext": {
+      "status": "pass",
+      "validated": true,
+      "observed": true,
+      "contextSource": "case_wiki",
+      "ingressSource": "preserved_input_case_wiki",
+      "focusId": "question:passport-scan",
+      "blocker": "Do we have the passport scan?",
+      "nextAction": "Request passport scan",
+      "route": "live-agent",
+      "mode": "deterministic",
+      "requestedIntent": "conversation",
+      "routedIntent": "conversation"
+    },
+    "caseWikiGatewayHydration": {
+      "status": "pass",
+      "validated": true,
+      "observed": true,
+      "sessionId": "local-1779451373322-92365",
+      "noteEventId": "ee9046f1-a983-46f4-bac6-d572a7b346f7",
+      "questionId": "question:event:ee9046f1-a983-46f4-bac6-d572a7b346f7",
+      "questionMatched": true,
+      "noteSourceRefSeen": true,
+      "questionSuggestedNextStep": "Request passport scan",
+      "contextSource": "case_wiki",
+      "ingressSource": "gateway_hydrated_case_wiki",
+      "focusId": "question:event:ee9046f1-a983-46f4-bac6-d572a7b346f7",
+      "blocker": "Passport scan is still missing from the case.",
+      "nextAction": "Review the latest case evidence",
+      "route": "live-agent",
+      "mode": "deterministic",
+      "requestedIntent": "conversation",
+      "routedIntent": "conversation"
+    },
+    "caseWikiContextAdoption": {
+      "status": "pass",
+      "validated": true,
+      "observed": true,
+      "observedCount": 3,
+      "caseWikiObservedCount": 3,
+      "inputOnlyObservedCount": 0,
+      "unknownObservedCount": 0,
+      "caseWikiRate": 1
+    },
+    "uiRefHealing": {
+      "status": "pass",
+      "validated": true,
+      "observed": true,
+      "finalStatus": "completed",
+      "adapterMode": "remote_http",
+      "healedRefCount": 2,
+      "healedRefTargets": [
+        "email",
+        "submit_primary"
+      ],
+      "staleRefCount": 0,
+      "staleRefTargets": [],
+      "traceCount": 7,
+      "retries": 0,
+      "disabledSubmitSeen": true,
+      "enabledSubmitSeen": true,
+      "healingObservationSeen": true,
+      "healingNoteSeen": true
+    },
+    "browserWorkerRecovery": {
+      "status": "pass",
+      "validated": true,
+      "observed": true,
+      "finalStatus": "completed",
+      "adapterMode": "remote_http",
+      "checkpointCount": 1,
+      "resumedCheckpointCount": 1,
+      "healedRefCount": 2,
+      "healedRefTargets": [
+        "email",
+        "submit_primary"
+      ],
+      "staleRefCount": 2,
+      "staleRefTargets": [
+        "email",
+        "submit_primary"
+      ],
+      "traceCount": 7,
+      "retryCount": 0,
+      "runtimeRetryCount": 0,
+      "runtimeResumedCheckpointCount": 1,
+      "runtimeStaleRefCount": 2,
+      "runtimeHealedRefCount": 2,
+      "checkpointReadyCleared": true,
+      "summary": "healed 2 stale grounding refs; resumed 1 checkpoint."
+    },
+    "navigatorVisaFlows": {
+      "status": "pass",
+      "validated": true,
+      "observed": true,
+      "totalFlows": 4,
+      "succeededFlows": 4,
+      "successRate": 1,
+      "persistentSessionCount": 4,
+      "replayBundleCount": 4,
+      "verifiedCount": 4,
+      "staleRecoveryObservedCount": 4,
+      "healedRecoveryObservedCount": 4,
+      "resumedCheckpointCount": 4,
+      "checkpointReadyClearedCount": 4,
+      "scenarioNames": [
+        "booking",
+        "reminder",
+        "handoff",
+        "escalation"
+      ],
+      "summary": "4/4 visa flows passed; persistent=4; verified=4; staleRecovery=4; resumed=4."
     }
   },
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 281 checks | 1162ms ws",
+    "message": "pass | 319 checks | 645ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }

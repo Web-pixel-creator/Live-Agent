@@ -8,7 +8,9 @@ test("release script aliases stay aligned with release-readiness flags", () => {
   const pkgRaw = readFileSync(packagePath, "utf8");
   const pkg = JSON.parse(pkgRaw) as { scripts?: Record<string, string> };
 
+  const signedScript = pkg.scripts?.["verify:release:signed"] ?? "";
   const strictScript = pkg.scripts?.["verify:release:strict"] ?? "";
+  const strictSignedScript = pkg.scripts?.["verify:release:strict:signed"] ?? "";
   const strictSkipPerfRunScript = pkg.scripts?.["verify:release:strict:skip-perf-run"] ?? "";
   const artifactOnlyScript = pkg.scripts?.["verify:release:artifact-only"] ?? "";
   const artifactOnlySmokeScript = pkg.scripts?.["verify:release:artifact-only:smoke"] ?? "";
@@ -20,8 +22,15 @@ test("release script aliases stay aligned with release-readiness flags", () => {
   const workflowDispatchDryScript = pkg.scripts?.["verify:workflow:dispatch:dry"] ?? "";
   const workflowDispatchScript = pkg.scripts?.["workflow:dispatch"] ?? "";
 
+  assert.match(signedScript, /release-readiness\.ps1/);
+  assert.match(signedScript, /-UseLocalRuntimeEvidenceSigningBundle/);
+
   assert.match(strictScript, /release-readiness\.ps1/);
   assert.match(strictScript, /-StrictFinalRun/);
+
+  assert.match(strictSignedScript, /release-readiness\.ps1/);
+  assert.match(strictSignedScript, /-StrictFinalRun/);
+  assert.match(strictSignedScript, /-UseLocalRuntimeEvidenceSigningBundle/);
 
   assert.match(strictSkipPerfRunScript, /release-readiness\.ps1/);
   assert.match(strictSkipPerfRunScript, /-StrictFinalRun/);

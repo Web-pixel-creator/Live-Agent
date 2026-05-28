@@ -8,6 +8,7 @@ Transport baseline:
 
 1. MVP transport is WebSocket only.
 2. WebRTC is deferred to V2 and is not required for judged demo flows.
+3. Direct live sockets may emit binary frames (`Blob`/`ArrayBuffer`) containing JSON payloads; clients MUST decode to UTF-8 text before parsing.
 
 ## Envelope Contract
 
@@ -73,10 +74,11 @@ Notes:
 5. `input_audio` parts SHOULD provide base64 audio bytes (`audio` or `audioBase64`) and SHOULD include `mimeType` (for example `audio/wav` or `audio/pcm;rate=16000`) for deterministic decoding.
 6. `live.setup` overrides are merged on top of gateway base setup and optional env patch (`LIVE_SETUP_PATCH_JSON`), with `live.setup` taking highest precedence.
 7. `live.setup` MAY override runtime setup fields such as `model`, `generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName`, `generationConfig.realtimeInputConfig.activityHandling`, and `systemInstruction`.
-8. `orchestrator.request` for `intent=research` MAY include `query` or `text`; successful responses return `payload.output.research` with `answer`, `citations[]`, and `sourceUrls[]`.
-9. Translation, research, and UI task responses MAY also include `payload.output.text` as display-safe copy for the reading rail; research requests may set `payload.output.research.clarificationRequired=true` and return a clarification prompt before external grounding runs.
-10. `orchestrator.request` for `intent=ui_task` MAY include grounding signals (`url`, `deviceNodeId`, `deviceNodeKind`, `deviceNodePlatform`, `deviceNodeCapabilities`, `deviceNodeMinTrustLevel`, `screenshotRef`, `domSnapshot`, `accessibilityTree`, `markHints`, `refMap`) to improve computer-use action stability and deterministic device-node routing. `refMap` is an optional stable element-addressing object keyed by logical ids such as `email` or `submit_primary`, where each entry contains at least a CSS selector and may also include `kind`, `label`, or aliases for recovery.
-11. `conversation.item.delete` is session-local in current Gemini bridge profile and emits `live.turn.deleted` for UI playback cleanup.
+8. `orchestrator.request` MAY include a compiled `caseWiki` snapshot (focus pack, routing pack, action pack, and workspace pack). When present, agents should treat it as the canonical memory substrate and only consult raw transcript context if the Case Wiki is missing or empty.
+9. `orchestrator.request` for `intent=research` MAY include `query` or `text`; successful responses return `payload.output.research` with `answer`, `citations[]`, and `sourceUrls[]`.
+10. Translation, research, and UI task responses MAY also include `payload.output.text` as display-safe copy for the reading rail; research requests may set `payload.output.research.clarificationRequired=true` and return a clarification prompt before external grounding runs.
+11. `orchestrator.request` for `intent=ui_task` MAY include grounding signals (`url`, `deviceNodeId`, `deviceNodeKind`, `deviceNodePlatform`, `deviceNodeCapabilities`, `deviceNodeMinTrustLevel`, `screenshotRef`, `domSnapshot`, `accessibilityTree`, `markHints`, `refMap`) to improve computer-use action stability and deterministic device-node routing. `refMap` is an optional stable element-addressing object keyed by logical ids such as `email` or `submit_primary`, where each entry contains at least a CSS selector and may also include `kind`, `label`, or aliases for recovery.
+12. `conversation.item.delete` is session-local in current Gemini bridge profile and emits `live.turn.deleted` for UI playback cleanup.
 
 ## Gateway -> Client Events
 

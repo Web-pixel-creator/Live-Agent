@@ -326,6 +326,25 @@ $sourceRunManifest = [ordered]@{
         summaryText = "Recovery drill: UI executor sandbox audit mode for ui_executor_sandbox_not_enforce@ui-executor."
         lifecycleStatus = "active"
       }
+      badgeEvidenceCaseWikiRoutingContextStatus = "pass"
+      badgeEvidenceCaseWikiRoutingContextValidated = $true
+      badgeEvidenceCaseWikiRoutingContextObserved = $true
+      badgeEvidenceCaseWikiRoutingContextSource = "case_wiki"
+      badgeEvidenceCaseWikiRoutingContextFocusId = "question:passport-scan"
+      badgeEvidenceCaseWikiRoutingContextBlocker = "Do we have the passport scan?"
+      badgeEvidenceCaseWikiRoutingContextNextAction = "Request passport scan"
+      badgeEvidenceCaseWikiRoutingContextRoute = "live-agent"
+      badgeEvidenceCaseWikiRoutingContextMode = "assistive_override"
+      badgeEvidenceCaseWikiRoutingContextRequestedIntent = "conversation"
+      badgeEvidenceCaseWikiRoutingContextRoutedIntent = "negotiation"
+      badgeEvidenceCaseWikiContextAdoptionStatus = "pass"
+      badgeEvidenceCaseWikiContextAdoptionValidated = $true
+      badgeEvidenceCaseWikiContextAdoptionObserved = $true
+      badgeEvidenceCaseWikiContextAdoptionObservedCount = 20
+      badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount = 19
+      badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount = 1
+      badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount = 0
+      badgeEvidenceCaseWikiContextAdoptionCaseWikiRate = 0.95
       badgeEvidenceProviderUsageStatus = "pass"
       badgeEvidenceProviderUsageValidated = $true
       badgeEvidenceProviderUsageActiveSecondaryProviders = 0
@@ -377,9 +396,17 @@ if ($StrictFinalRun) {
 }
 
 Write-Host "[artifact-only-smoke] Running release artifact-only gate with generated local artifacts..."
-& $resolvedPowerShell @args
-if ($LASTEXITCODE -ne 0) {
-  Fail ("release artifact-only smoke failed with exit code " + $LASTEXITCODE)
+$releaseExitCode = 0
+Push-Location $tempRoot
+try {
+  & $resolvedPowerShell @args
+  $releaseExitCode = $LASTEXITCODE
+}
+finally {
+  Pop-Location
+}
+if ($releaseExitCode -ne 0) {
+  Fail ("release artifact-only smoke failed with exit code " + $releaseExitCode)
 }
 
 Write-Host ("[artifact-only-smoke] Passed. temp_root=" + $tempRoot)

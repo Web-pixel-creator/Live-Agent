@@ -81,6 +81,11 @@ test("railway deploy-all workflow is wired to combined helper with required secr
   assert.match(source, /Direct-live proof API URL:/);
   assert.match(source, /Direct-live proof requested session:/);
   assert.match(source, /Direct-live proof transport:/);
+  assert.match(source, /Direct-live proof latency:/);
+  assert.match(source, /Direct-live proof fallback events:/);
+  assert.match(source, /Direct-live proof runtime evidence expectation:/);
+  assert.match(source, /Direct-live proof case-wiki signature expectation:/);
+  assert.match(source, /Direct-live proof case-wiki signature observed:/);
   assert.match(source, /Direct-live proof was not generated\./);
   assert.match(source, /- name:\s*Upload Railway Deploy Artifacts/);
   assert.match(source, /name:\s*railway-deploy-all-artifacts/);
@@ -118,4 +123,16 @@ test("readme documents deploy-all workflow and required secrets", () => {
   assert.match(readme, /railway-deploy-all-artifacts/);
   assert.match(readme, /frontend_api_base_url/);
   assert.match(readme, /frontend_ws_url/);
+});
+
+test("railway deploy-all workflow installs playwright before combined deploy", () => {
+  const workflowPath = resolve(process.cwd(), ".github", "workflows", "railway-deploy-all.yml");
+  const source = readFileSync(workflowPath, "utf8");
+
+  const installIndex = source.indexOf("- name: Install Playwright Browser");
+  const deployIndex = source.indexOf("- name: Run Combined Railway Deploy");
+
+  assert.notEqual(installIndex, -1);
+  assert.notEqual(deployIndex, -1);
+  assert.ok(installIndex < deployIndex);
 });

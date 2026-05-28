@@ -149,6 +149,58 @@ function deriveDeviceNodeUpdatesStatus(deviceNodesEvidence) {
   return "unavailable";
 }
 
+function summarizeCaseWikiRuntimeSurfaceIngress(ingress) {
+  if (!ingress || typeof ingress !== "object") {
+    return null;
+  }
+
+  const status = toOptionalText(ingress.status);
+  const observed = ingress.observed === true ? "yes" : "no";
+  const contextSource = toOptionalText(ingress.contextSource);
+  const ingressSource = toOptionalText(ingress.ingressSource);
+  const focusId = toOptionalText(ingress.focusId);
+  const blocker = toOptionalText(ingress.blocker);
+  const nextAction = toOptionalText(ingress.nextAction);
+  const route = toOptionalText(ingress.route);
+  const updatedAt = toOptionalText(ingress.updatedAt);
+
+  if (
+    status === "unavailable" &&
+    contextSource === "unavailable" &&
+    ingressSource === "unavailable" &&
+    focusId === "unavailable" &&
+    blocker === "unavailable" &&
+    nextAction === "unavailable" &&
+    route === "unavailable" &&
+    updatedAt === "unavailable"
+  ) {
+    return null;
+  }
+
+  return {
+    status,
+    observed,
+    contextSource,
+    ingressSource,
+    focusId,
+    blocker,
+    nextAction,
+    route,
+    updatedAt,
+    summary: [
+      `status ${status}`,
+      `observed ${observed}`,
+      `context ${contextSource}`,
+      `ingress ${ingressSource}`,
+      `focus ${focusId}`,
+      `blocker ${blocker}`,
+      `next action ${nextAction}`,
+      `route ${route}`,
+      `updated ${updatedAt}`,
+    ].join("; "),
+  };
+}
+
 function buildDeployProvenanceRows(deployProvenance) {
   const rows = [];
   const gcpCloudRun = deployProvenance.gcpCloudRun;
@@ -188,6 +240,14 @@ function buildDeployProvenanceRows(deployProvenance) {
       summary: `status ${railwayDeploy.status}; deployment ${railwayDeploy.deploymentId}; public URL ${railwayDeploy.effectivePublicUrl}`,
     });
 
+    if (railwayDeploy.caseWikiRuntimeSurfaceIngress?.summary) {
+      rows.push({
+        id: "railwayDeployCaseWikiIngress",
+        title: "Railway deploy case wiki ingress",
+        summary: railwayDeploy.caseWikiRuntimeSurfaceIngress.summary,
+      });
+    }
+
     const badgeParts = [];
     if (railwayDeploy.badgeEndpoint !== "unavailable") {
       badgeParts.push(`badge ${railwayDeploy.badgeEndpoint}`);
@@ -215,6 +275,14 @@ function buildDeployProvenanceRows(deployProvenance) {
         `frontend deploy ${repoPublish.railwayFrontendDeployEnabledLabel}`,
       ].join("; "),
     });
+
+    if (repoPublish.caseWikiRuntimeSurfaceIngress?.summary) {
+      rows.push({
+        id: "repoPublishCaseWikiIngress",
+        title: "Repo publish case wiki ingress",
+        summary: repoPublish.caseWikiRuntimeSurfaceIngress.summary,
+      });
+    }
   }
 
   return rows;
@@ -273,6 +341,9 @@ function collectDeployProvenance(
       status: toOptionalText(railwayDeploySummary?.status),
       deploymentId: toOptionalText(railwayDeploySummary?.deploymentId),
       effectivePublicUrl: toOptionalText(railwayDeploySummary?.effectivePublicUrl),
+      caseWikiRuntimeSurfaceIngress: summarizeCaseWikiRuntimeSurfaceIngress(
+        railwayDeploySummary?.caseWikiRuntimeSurfaceIngress,
+      ),
       badgeEndpoint: toOptionalText(railwayChecks?.badgeEndpoint),
       badgeDetailsEndpoint: toOptionalText(railwayChecks?.badgeDetailsEndpoint),
     },
@@ -284,6 +355,9 @@ function collectDeployProvenance(
       railwayFrontendDeployEnabled: repoPublishSteps?.railwayFrontendDeployEnabled === true,
       railwayDeployEnabledLabel: toEnabledLabel(repoPublishSteps?.railwayDeployEnabled),
       railwayFrontendDeployEnabledLabel: toEnabledLabel(repoPublishSteps?.railwayFrontendDeployEnabled),
+      caseWikiRuntimeSurfaceIngress: summarizeCaseWikiRuntimeSurfaceIngress(
+        repoPublishSummary?.caseWikiRuntimeSurfaceIngress,
+      ),
     },
   };
 

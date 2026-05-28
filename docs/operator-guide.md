@@ -16,11 +16,509 @@ Product framing for operators:
 
 ## Access Points
 
-1. Frontend: `http://localhost:3000`
-2. API summary: `GET /v1/operator/summary`
-3. Operator actions: `POST /v1/operator/actions`
-4. Runtime drill catalog: `GET /v1/runtime/fault-profiles`
-5. Runtime drill execution: `POST /v1/runtime/fault-profiles/execute` (`x-operator-role: admin`, use `dryRun=true` before live activation when possible)
+1. Frontend: `http://localhost:3000/app`
+2. Seven-minute visa-intake path: `http://localhost:3000/app?demo=visa-intake`
+3. Local-services dispatcher path: `http://localhost:3000/app?demo=local-services-dispatch&service=ac-repair-dispatch`
+4. API summary: `GET /v1/operator/summary`
+5. Operator queue: `GET /v1/operator/queue`
+6. Operator actions: `POST /v1/operator/actions`
+7. Runtime drill catalog: `GET /v1/runtime/fault-profiles`
+8. Runtime drill execution: `POST /v1/runtime/fault-profiles/execute` (`x-operator-role: admin`, use `dryRun=true` before live activation when possible)
+9. Evidence and trust support doc: `docs/evidence-and-trust.md`
+
+Seven-minute demo note: use `/app?demo=visa-intake` when the goal is to show
+product value before runtime depth, or open `/app` and click `Start 7-minute
+demo`. The path keeps the primary shell in Live Desk, lifts `Case Outcome
+Summary` for `VS-2841`, and links directly to the approval, presentation
+bundle, evidence bundle, and Case Vault surfaces. The same Live Desk header now
+also exposes four playbook templates for the current wedge: `Visa lead
+qualification`, `Missing-document follow-up`, `Consultation booking prep`, and
+`CRM handoff summary`. Each card previews `Outcome`, `Approval`, `Evidence`,
+and `Deliverable` so the operator can explain the lane before opening it.
+Selecting a card opens an inline detail panel with `Sample input`, `Approval
+policy`, `Evidence output`, and `CRM fields`; the same focused lane can be
+shared with `/app?playbook=<lane-id>`. That panel now also carries a real
+`Payload preview`, `Surface path`, and `Copy payload` action for the selected
+handoff lane. Use `Open export drawer` when the operator needs an
+integration-ready review surface: `CRM handoff summary` opens a `CRM payload
+drawer`, `Consultation booking prep` opens a `Consultation handoff drawer`, and
+both drawers switch between `Human-readable` and `JSON` modes before jumping to
+the canonical `Case Vault` or `Presentation bundle` surface.
+Use `docs/evidence-and-trust.md` when an operator needs replay, signing,
+release evidence, or compliance posture; keep that detail out of the first
+product scan unless the buyer asks for proof depth.
+
+Local-services demo note: use
+`/app?demo=local-services-dispatch&service=ac-repair-dispatch` when the goal is
+to show the Tashkent local-services wedge. The first screen says `AI Dispatcher
+for Local Services` and exposes `AC repair dispatch`, `Plumbing emergency`,
+`Cleaning quote and booking`, and `Measurement visit booking`. In this route the
+sidebar also switches to product mode: `AI Dispatcher`, `Service workspace`,
+`Dispatcher`, `Requests`, `Schedule / Dispatch`, `Customers`,
+`Knowledge & Setup`, `Reviews`, and `Advanced / Runtime`. The runtime/judge
+surfaces remain reachable, but they no longer dominate the first scan. The top
+chrome also reads `AI Dispatcher` and removes old runtime/SLA alerts, visa demo,
+case filters, case search, and `New case` from this product header. The AI assistant is phone-first, but the demo keeps
+booking and dispatch operator-approved: it collects the request, prepares
+pricing and slot inputs, drafts customer confirmation, produces a master/operator
+handoff, keeps the `Dispatch payload preview` behind review, and exposes
+`Open dispatch drawer`, `Open customer drawer`, and `Open handoff drawer` for
+operator-approved `Human-readable` / `JSON` exports. The same detail panel now
+shows `Telegram intake prototype`, so a message-based customer request is
+normalized into the same job-card payload instead of creating a second workflow.
+The dispatcher queue follows the selection/open contract from
+`docs/local-services-agent-handoff.md`: row click selects the right preview,
+while `Enter`, double-click, context menu, or the row open icon opens the full
+console/task detail. Queue scroll is not allowed to auto-change the selected
+case.
+The default `Dispatcher` screen now uses the product workbench layout:
+`Main dispatcher compact queue` plus `Main dispatcher full-height decision
+rail`. The queue rows now use a two-line compact row contract and keep actions
+in the fixed right lane, so inline metadata does not collide with
+approve/wait/reject buttons. The current shell reserves `188-204px` for row
+actions and `520-540px` for the decision rail; the two-column queue/rail layout
+only turns on at `min-width: 1600px`, and narrower screens stack the rail
+instead of clipping it. On wide screens, the queue and rail are viewport-locked
+with independent scroll bodies. The right rail separates
+the AI recommendation from the customer request and keeps the sticky footer
+operator-facing: `Контроль · оператор · автоотправка выкл.`.
+It also carries `Decision rail compact stack`: the rail is a dense L1 `bg-card`
+surface, AI stays in an accent panel, customer request stays in a separate
+card, case details are collapsed by default, and edit/reject are quieter than
+the primary dispatch action.
+The `Requests` view uses the same bounded rail behavior: `Selected request
+decision rail` keeps a fixed-height shell, independent scroll body, and
+footer actions outside the scroll area so preview content is not hidden under
+the buttons. It carries `Request rail compact stack`: dense rail chrome,
+accent AI packet, separate customer card, collapsed status/outcome controls,
+and a dominant explicit open action.
+Each lane card also exposes `Scenario modal` /
+`local_services_scenario_modal`: `Chat dialogue`, `Structured job card`, and
+`Final handoff and approval state` with JSON export/import for the four fixed
+lanes only. It writes browser-local `scenarioOverrides` and does not send,
+book, dispatch, write CRM, activate channels, create/delete scenarios, or
+mutate docs.
+Product view states are available from the same sidebar: `Requests inbox`,
+`Schedule / Dispatch board`, `Customer directory`, `Knowledge setup state`, and
+`Review queue`. They are query-backed (`view=requests`, `view=schedule`,
+`view=customers`, `setup=7min&view=setup`, `view=reviews`) and are safe for demo
+navigation because they only change the visible panel; they do not trigger a
+send, booking, dispatch, payment, CRM write, or channel activation.
+`Requests inbox` includes an `Operator action rail` for local request status
+and first-request outcome notes. The inbox is intentionally split into a compact
+request queue and a selected request decision rail: click a row to inspect the
+right preview, use the explicit open action when you really want the full
+dispatch drawer, and do not expect scroll position to change the selected case.
+The rail separates AI recommendation, customer request, and the sticky operator
+footer. It updates browser-local pilot workspace state only and is not an
+external send, booking, dispatch, payment, CRM write, or channel activation.
+`Schedule / Dispatch board` is the `Approval-ready slot planner`. The KPI cards
+show confirmed slots, approval-ready slot cards, same-day/ASAP routes, and
+conflicts. In the `Schedule compact slot planner`, click a row to inspect the
+slot preview; use `Open schedule drawer` or `Open in Dispatcher` for the full
+action. The `Schedule approval rail` includes `dispatchApprovalByService`,
+`Customer confirmation draft`, `Master handoff draft`, and a `Booking handoff
+preview`. It carries `Schedule rail compact stack`: bounded right rail,
+separate approval/customer/master cards, and closed schedule support details
+for `Workspace record` plus the handoff preview. Use it to decide whether a
+human owner can manually confirm a slot; the latest decision is mirrored to
+`operatorDecisionByCaseRef` through the workspace API, but the shell still does
+not create the appointment, dispatch a technician, send a message, write CRM,
+collect payment, or activate channels.
+`Customer directory` includes contactable customers, active 30-day demo cases,
+honest `Сумма заявок` midpoint estimates, and district coverage. The
+`Customer compact directory` uses `LAST = service + ref`; clicking a row selects
+the right preview only, while `Open customer drawer` is the explicit full
+action. The `Customer confirmation rail` contains
+`customerConfirmationByService`, `Customer confirmation actions`, and a
+`Consent-safe confirmation preview`. Use it to review customer copy and consent
+posture before a human manually sends anything; the latest review is mirrored to
+the same operator-decision boundary. It carries `Customer rail compact stack`:
+bounded rail chrome, accent consent action, separate request/preview cards, and
+a collapsed `Customer support details` block for the workspace record plus the
+confirmation payload. The shell still does not send SMS, Telegram, WhatsApp,
+email, CRM updates, payments, bookings, or dispatches.
+Both rails show `Workspace record`, `operatorDecisionByCaseRef`, and
+`API + local fallback` so the operator can confirm the decision was recorded
+without treating it as a real send, booking, dispatch, or CRM write.
+`Review queue` includes a `Review queue decision rail` with
+`weekOneOwnerDecisionByProspectKey`, `weeklyScorecardSyncReviewedByService`,
+`Review decision actions`, and `Copy review queue summary`. It carries
+`Review rail compact stack`: bounded rail chrome, accent scorecard packet,
+sticky review actions, and collapsed `Review support details`. Use it to record
+Continue/Pause/Stop and weekly scorecard sync review before a human prepares
+the evidence pack; the shell still does not write CRM, change billing, message
+customers, activate channels, or make the pilot decision autonomously.
+Use `path=7min&view=requests` or the `7-minute path` button for the guided
+first demo. Use `path=7min&view=requests&packet=launch` when the handoff link
+should land with `Pilot launch packet` already open. The `7-minute launch path`
+walks through `Request intake`, `Approval-ready slot`, `Customer confirmation`,
+`Setup and dry run`, and `Founder review`, then exposes
+`Copy 7-minute launch path` for a manual launch summary. It also shows
+`Recorded N/5` and lets the
+operator use `Record current step reviewed` or `Reset launch path progress`;
+those notes stay in
+`launchPathStepCompletionByService`. The `Launch packet bridge` connects that
+path to `local_services_pilot_launch_packet` with `Open launch packet`, `Copy
+launch packet`, `Path recorded`, `Schedule approval`, `Customer confirmation`,
+`Setup + dry run`, and `Founder review` rows. The drawer itself carries the
+same `7-minute gate` and
+`operator_approved_manual_contact_packet_with_7_minute_bridge` payload. It is a
+navigation and explanation layer only; it does not create external side
+effects. The bridge itself is intentionally product-first: `Launch packet
+readiness card` is the visible operator scan, `Manual launch checklist` shows
+what still blocks first contact, `Manual execution guardrails` repeats what the
+shell will not do, and `Launch support details` keeps source-state rows
+available without putting them in the primary scan.
+It now also exposes `Open intake evidence` and `Transcript + evidence`, which
+opens a `Saved intake evidence` drawer with `Intake transcript + evidence link`,
+`Transcript preview`, `Evidence export mode`, `Copy intake evidence`,
+`local_services_intake_evidence`, and `transcript_evidence_link`. Treat it as
+operator-reviewed proof only; it does not write Telegram, CRM, phone storage, or
+the pilot scorecard.
+The same panel now carries `Pilot readiness`, including `One-page offer`,
+`90-second demo script`, `Outreach focus`, a `Launch checklist`, and tracked
+`Pilot metrics` for the first local-services pilot.
+`Pilot readiness` now also carries `Agent setup / training state`, which gives
+the operator a 7-minute setup path before any live channel is connected:
+`Business profile`, `Knowledge sources`, `Agent behavior`, `Test call/message`,
+and `Ready for test call/message`. `Open setup checklist` opens a reviewed
+setup sheet with `Training cards`, `Copy setup brief`, and
+`local_services_agent_setup_training`. This is setup evidence only: no phone,
+Telegram, WhatsApp, CRM, analytics, or billing integration is activated.
+Use `?setup=7min` or the `7-min setup` header toggle when the operator needs
+the setup story first. The shell shows `7-minute setup wizard`, `Setup path`,
+`Open setup checklist`, `Open day-one setup`, and `Copy setup brief`, while
+outreach tables and scorecard controls stay hidden until the operator exits
+setup mode.
+The setup wizard is now stateful in the local-services workspace adapter:
+`setupStepCompletionByService` tracks completed setup steps, `setupReadyByService`
+tracks the final `Ready for pilot test` gate, bounded `setupEvents` record the
+setup/test-call actions, and the UI shows `Setup progress`, `Saved setup state`,
+`Latest setup record`, `Mark complete`, `Mark ready for pilot test`, and
+`Reset setup progress`. This does not activate phone, Telegram, WhatsApp, CRM,
+analytics, billing, calendar, or customer sends.
+The same setup view now includes `Next setup action` and
+`Setup validation checklist`: the operator sees the current step, owner,
+minute window, `Required inputs`, `Validation rule`, `Side-effect boundary`,
+and `Complete current step` before moving to the next gate.
+After the ready gate, use `Test call/message panel` to replay the first sample
+call or message before pilot activation. The panel shows `Sample inbound`,
+`Expected extracted fields`, and a `Pass/fail checklist`; each check uses
+`Mark check passed`, the operator records the result with `Record test passed`,
+and the shell shows `Test call passed` until `Reset test call`. The state is
+stored as `testCallChecklistByService` and `testCallPassedByService` in the same
+workspace API state with browser fallback.
+It also carries a 4-step `Pilot outreach wizard` with `Offer preview`,
+`Audience from outreach list`, `Message/test preview`, and
+`Operator confirmation` so the pilot can be prepared without implying an
+autonomous send.
+The `Message/test preview` step opens a `Preview / Test message modal` with
+`Human-readable` / `JSON` modes, the exact `Copy test message` action, and
+`Copy test message preview`; the operator still sends manually only after
+approval.
+The modal now has an `Operator outcome log`: `Preview reviewed` records
+`messagePreviewReviewedByProspectKey`, `Copied` records
+`contactPacketCopiedByProspectKey`, and `Contacted manually` records
+`contactProofByProspectKey.manualMessageSent` / `contacted_manually`. Treat
+those as local operator notes only. They prove the human workflow happened but
+do not send, dial, dispatch, book, bill, or write CRM.
+Those same markers now appear as `Outreach outcome trail` /
+`outreach_outcome_trail` in the pilot workspace export, communication preview,
+and batch review so the operator can see which selected draft was reviewed,
+copied, and manually contacted before private scorecard or CRM sync.
+The same modal now shows `Channel variants`: `Telegram variant`,
+`WhatsApp variant`, and `Phone script variant`, with `Copy Telegram variant`,
+`Copy WhatsApp variant`, and `Copy phone script`. These are copy-only drafts
+for manual outreach and cannot trigger Telegram, WhatsApp, phone, CRM,
+scorecard, calendar, or outbound-send side effects.
+It also shows `Selected outreach channel`; use `Select Telegram`,
+`Select WhatsApp`, or `Select phone script` until the UI shows
+`Channel selected`. That choice is stored in `selectedChannelByProspectKey`,
+resets only the current company's preview review, and controls the exact draft
+shown in operator confirmation/export. It is also copied into `Manual activity
+log`, the pilot workspace export, and `Pilot evidence pack` so a reviewer can
+see which manual channel was approved.
+The `Operator confirmation` step opens an `Operator confirmation summary` with
+`Ready for manual outreach`, selected company, channel, exact message, approval
+checklist, and `Copy confirmation summary`.
+The wizard now shows `Wizard progress`; `Record ready for manual outreach`
+sets only the browser-local scorecard state to `Draft ready` and changes the
+wizard status to `Ready for manual outreach recorded`.
+It also shows an `Outreach readiness rail` with a step-count `Wizard progress`,
+`Next outreach action`, `Mark preview reviewed`, and `Manual outreach boundary`.
+That rail records only `messagePreviewReviewedByProspectKey` and local prep
+state: no outbound send, no CRM write, no scorecard mutation, and no calendar
+event.
+The same wizard now exposes `AI analyst` / `Ask AI about pilot`, which opens a
+deterministic analyst sheet with `Suggested questions`, `Best candidate`,
+`Bottleneck`, `Next message`, `Copy analyst brief`, and
+`local_services_pilot_ai_analyst`. It is an internal planning note only: no
+external LLM call, outreach send, or CRM write happens.
+The `Pilot funnel summary` also includes `Outreach list filters` and
+`Column settings`. Operators can use `Service filter`, `Status filter`,
+`Filtered candidates`, `Filtered outreach list`, `All services`,
+`All statuses`, and `Clear filters` to narrow the first pilot list. The filtered
+list is labeled `View only, no send`; selecting a row only loads that company
+into the scorecard action.
+The same funnel includes `Pilot execution checklist`, a 14-day manual operating
+loop with `Pass test call/message`, `Needs test call passed`,
+`Prepare first manual batch`, `Ready for first manual batch`,
+`Record ready drafts`, `Log manual contact`, `Book discovery call`,
+`Start metric capture`, `Founder/operator validation`, `No autonomous send`, and
+`Open pilot runbook`. Its header shows `Pilot checklist progress`,
+`Dry run required` / `Dry run passed`, and `Manual launch blocked` /
+`Manual launch ready`, so first contact stays gated on the dry run and a ready
+draft. `Open launch packet` opens `Pilot launch packet` / `Launch packet
+preview` with `First manual contact checklist`, `Launch readiness`,
+`Dry-run gate`, `Selected company`, `Draft status`, `Next action`,
+`Copy launch packet`, and `local_services_pilot_launch_packet`. The operator
+sees `Pilot launch packet readiness rail`, `First manual contact packet`,
+`Manual contact copy preview`, `First manual contact checklist`, and
+`Launch packet guardrails` first; `Launch packet support details` keeps raw
+Human/JSON and source-key detail secondary. Use `Open Preview / Test message`
+inside that checklist to move directly into the copy-only Telegram / WhatsApp /
+phone-script preview for the selected account. Treat it as
+status guidance only. It does not send,
+write CRM, sync analytics, or mutate docs.
+The same checklist now includes `Manual activity log`, `Last manual action`,
+`Copy activity log`, and `local_services_manual_activity_log` so the operator
+can copy browser-local scorecard and metric events after review. The copied log
+also includes `Selected outreach channel` and `selectedChannelByProspectKey`.
+Treat
+`No external side effects` literally: the log does not send outreach, write CRM,
+create calendar events, sync analytics, bill, or mutate docs.
+`Open discovery prep` opens `Discovery call prep` for the replied-company call:
+review `Questions to ask`, `Pilot success criteria`, and
+`Copy discovery call prep` before manually booking or following up. The payload
+is `local_services_discovery_call_prep`; it is not a calendar action, CRM write,
+analytics sync, or outbound message.
+`Open day-one setup` opens `Day-one setup brief` after the discovery call:
+review `Business profile lock`, `Setup tasks`, `Test call plan`, and
+`Copy day-one setup brief` before running the first test call/message. The
+payload is `local_services_day_one_setup_brief`; it is not phone activation,
+Telegram/WhatsApp activation, billing, CRM write, calendar booking, analytics
+sync, or customer send.
+The wizard now has an operator-local `Pilot scorecard action`: choose a
+lane-specific company from the outreach list, inspect the `Test message preview`,
+and `Record scorecard draft` as `Not contacted`. This records demo-session
+intent only; real outreach still requires manual operator action outside the
+shell.
+The same card now has `First request outcome` / `Manual outcome state`: choose
+`Qualified`, `Needs follow-up`, `Rejected`, or `Booked manually` after the first
+operator-supervised request. The value is stored only in
+`firstRequestOutcomeByProspectKey`; it does not create bookings, write CRM, or
+mutate the Markdown scorecard. `Outcome chain summary` shows the same local
+outcome moving through `Scorecard draft`, `Daily log`, `Week-one review`, and
+`Evidence pack` before paid-pilot proof is reviewed.
+The selected company and pilot status hydrate through the local-services
+workspace adapter, sync to `/v1/local-services/workspace`, and keep browser
+`localStorage` fallback under `liveDesk:localServicesPilotWorkspace:v1`. Use the
+status buttons only as operator notes: `Draft ready`, `Contacted manually`,
+`Reply received`, and `Rejected for now` do not send messages or update external
+CRM.
+The `Pilot funnel summary` shows `All candidates`, per-status counts, and
+`Next manual batch` so the operator can plan who to contact next without opening
+the Markdown scorecard first.
+Use `Open pilot export` when the operator needs one reviewed snapshot of the
+mini-funnel. The `Pilot workspace export drawer` switches between
+`Human-readable` and `JSON`, exposes `Copy pilot workspace export`, includes
+the latest `Manual activity log` / `Last manual action`, `Outreach outcome
+trail`, and `outreach_outcome_trail`, and remains manual-only: no outbound
+message, no CRM write, and no Markdown scorecard mutation.
+Use `Open workspace API export` when a developer/operator needs to inspect the
+repo-owned workspace boundary itself. The `Workspace API export drawer` exposes
+`workspace API + local fallback`, `Copy workspace API export`,
+`local_services_workspace_api`, and `browser_local_preview`; it is not durable
+production storage and has no external effects.
+Use `Open metrics tracker` when the operator needs one reviewed snapshot of the
+selected lane's pilot measurements. The `Pilot metrics tracker` switches between
+`Human-readable` and `JSON`, exposes `Copy pilot metrics tracker`, and remains
+manual-only: no analytics sync, no CRM write, and no Markdown scorecard
+mutation.
+Use `Open daily log` when the operator needs the current day's operating-loop
+note before updating a private scorecard. `Pilot daily log` exposes
+`Daily capture fields`, `Daily operating loop`, and `Copy pilot daily log`.
+The payload is `local_services_pilot_daily_log`; it remains manual-only and
+does not sync analytics, write CRM, create calendar bookings, send customer
+messages, or mutate Markdown docs.
+The same daily log now carries the selected company, pilot status,
+`First request outcome`, and `firstRequestOutcomeByProspectKey` so the first
+observed result is reviewed before weekly scorecard sync.
+Use `Open week-one review` when the first operating week has real activity and
+the owner must decide whether to continue, pause, or stop. `Pilot week-one
+review` exposes `Continue / stop decision`, `Copy week-one review`, and
+`local_services_pilot_week_one_review`. It is manual-only: no autonomous pilot
+decision, CRM write, billing change, customer message, or Markdown mutation.
+It now also carries `First request outcome` and
+`firstRequestOutcomeByProspectKey`, so the week-one decision has the first
+observed request result in the same reviewed packet. The drawer also includes
+`Owner-ready summary`, `Decision readiness`, `Latest manual signal`, and
+`day_one_recap_to_week_one_review`, giving the owner one compact continue,
+pause, or stop packet instead of a raw checklist. Record `Week-one owner
+decision state` with `Record continue`, `Record pause`, or `Record stop`; this
+only writes `weekOneOwnerDecisionByProspectKey`.
+Use `Open evidence pack` at the end of a serious pilot to assemble the redacted
+owner proof pack. `Pilot evidence pack` exposes `Week-two evidence pack`,
+`Copy evidence pack`, `local_services_pilot_evidence_pack`, paid-pilot
+readiness, decision options, `selected_channel_id`, `selected_channel`, and
+redaction guardrails. It is not CRM, billing,
+customer-message, or public-doc storage automation. It now also carries
+`First request outcome` and `firstRequestOutcomeByProspectKey` into the
+redacted paid-pilot readiness proof pack, plus `Week-one owner decision` through
+`week_one_owner_decision_to_evidence_pack`.
+The pilot metrics/export controls are intentionally grouped as
+`Pilot metric and evidence export actions`, so `Open metrics tracker`,
+`Open daily log`, `Open week-one review`, and `Open evidence pack` stay in the
+same bounded rail and remain clickable beside the handoff/export preview.
+Use `Open offer doc`, `Open demo script`, and `Open recording checklist` when
+the operator needs the pilot artifact layer instead of the inline summary. The
+recording checklist is for a 90-second walkthrough and keeps claims limited to
+the current manual, operator-approved demo.
+Use `?recording=90s` or the `90s recording` header toggle when recording the
+local-services walkthrough. The shell shows `90-second recording mode` and
+`Recording path`, then hides outreach tables and scorecard controls so the
+video stays focused on product promise, job card, intake, evidence, pilot
+readiness, and evidence pack.
+Use `Open outreach list`, `Open outreach execution pack`,
+`Open pilot scorecard`, and `Open founder execution log` when the conversation
+moves from positioning into real pilot execution. The founder execution log is
+served at `/workspace-docs/local-services-founder-execution-log.md`; it is a
+redacted first-10-contact worksheet, not CRM, outreach send, booking, billing,
+analytics, or public customer-data storage.
+Use the in-app `First 10 contacts workspace` before private spreadsheets when
+the founder/operator is validating demand. It shows `Pilot proof checklist`,
+`Stop / Continue decision gate`, `Open batch review`, `First contact batch
+review drawer`, `Copy batch review`, `Copy founder workspace`, and
+`First-contact batch review rows` with `Account -> Lane -> Scorecard row ->
+Batch handoff -> Proof -> Decision` plus JSON `review_decision`,
+`scorecard_row_copied`, `batch_handoff_copied`, and
+`outreach_outcome_trail`; use it before any
+continue, pause, stop, CRM, or weekly scorecard decision. It also shows
+browser-local proof buttons for channel check, manual send, discovery call,
+demo booking, and pilot candidate. `Pilot ops today`, `Copy pilot ops handoff`,
+`Open ops confirmation`, `Open communication preview`,
+`local_services_pilot_ops_today`, `local_services_pilot_ops_confirmation`,
+`local_services_pilot_communication_preview`, `Current account picker`,
+`local_services_current_account_picker`, `Auto next account`, `Select account`,
+`Current account prep checklist`,
+`local_services_current_account_prep_checklist`, `Prep status`,
+`Channel verified`, `Message preview reviewed`, `Proof marker selected`,
+`Manual-only guardrail`, `Mark preview reviewed`, `Reset preview review`,
+`Prep complete`, `messagePreviewReviewedByProspectKey`,
+`Prep gate`, `local_services_current_account_prep_gate`, `Blocked by prep`,
+`Current account contact packet`,
+`local_services_current_account_contact_packet`, `Ready for manual contact`,
+`Copy contact packet`, `Packet copied`, `Reset packet review`,
+`contactPacketCopiedByProspectKey`, `Packet needed`,
+`Current account action path`, `local_services_current_account_action_path`,
+`Current account outcome capture`,
+`local_services_current_account_outcome_capture`,
+`firstRequestOutcomeByProspectKey`,
+`Current account scorecard sync preview`,
+`local_services_current_account_scorecard_sync_preview`,
+`Copy scorecard row`, `Scorecard row copied`,
+`Reset scorecard row review`, `scorecardRowCopiedByProspectKey`,
+`scorecard_row_copy_required_for_batch_review`,
+`Current account batch review handoff`,
+`local_services_current_account_batch_review_handoff`,
+`Copy batch handoff`, `Batch handoff copied`,
+`Reset batch handoff review`, `batchReviewHandoffCopiedByProspectKey`,
+`Pilot proof update rail`, and
+`local_services_pilot_proof_update_rail`, `Current account mini-audit`, and
+`local_services_current_account_mini_audit`, plus `Open account history` /
+`local_services_account_history_drawer` reduce the live pilot run to one
+current account, one next manual action, browser-local account override,
+phone/Telegram/WhatsApp preview, channel/message/proof/guardrail prep
+checklist, the account -> preview -> manual contact -> proof -> continue gate
+path, latest account-local proof events, and one browser-local proof marker to
+capture afterward. `Daily pilot briefing`, `Copy daily briefing`, and
+`local_services_daily_pilot_briefing` give the founder/operator a manual-only
+scheduled-task preview for daily review; it is not a real cron and cannot send
+Slack, Telegram, WhatsApp, phone, CRM, analytics, billing, or Markdown side
+effects. It
+is still manual-only and must not be
+treated as proof of external delivery. `Category pilot score`,
+`Leading category`, and `No category expansion without proof` rank AC,
+plumbing, cleaning, and measurement from the same manual markers before a lane
+gets more integration work. `Leading category action layer` gives the operator
+the `Next manual batch`, `Discovery questions`, `Pilot setup checklist`,
+`Integration hold`, and `Focus leading category` action. `Pilot setup
+readiness` adds the `Paid pilot gate`: treat `Ready for first paid pilot` as
+permission to prepare a proposal only, and treat `Not ready for paid pilot` as a
+hard stop on live channels, CRM sync, analytics, billing, and customer sends.
+The gate also includes `Week-one owner decision`: only `Continue` lets the
+operator prepare a `Paid pilot proposal`; `Pause`, `Stop`, or no recorded
+decision keep proposal work blocked. `Readiness action plan` then points to the
+blocker surface; use
+`Continue setup/test path` when the blocker is setup or dry-run, and use
+`Copy readiness action plan` only as a private operator note.
+Use `Open proof drawer` to review `Readiness proof drawer` before changing the
+pilot posture; `Copy readiness proof` is still a private proof note, not a
+customer send, CRM write, analytics sync, booking, or billing action.
+Use `Open proposal preview` only after proof review to inspect `Paid pilot
+proposal preview`; `Copy proposal preview` is a private operator-approved draft,
+not permission to send a proposal, create a booking, write CRM, sync analytics,
+charge, or activate a channel.
+Use `Open approval handoff` after the proposal preview to inspect `Proposal
+approval handoff`; `Copy approval handoff` is the manual approval checklist for
+price, scope, owner send, CRM payload, booking policy, and billing-disabled
+state. Use `Proposal approval state` to record `Approve proposal handoff`,
+`Needs changes`, or `Block proposal` in browser-local
+`proposalApprovalByService`; kickoff remains blocked unless this state is
+approved. It is still not a sent proposal or launched paid pilot.
+Use `Open kickoff gate` before day-one setup; `Pilot kickoff gate` and
+`Copy kickoff gate` confirm whether proof, proposal approval, setup, dry-run,
+owner conversation, metric baseline, and `Week-one owner decision` are ready.
+Use `Kickoff decision state` to record `Mark kickoff ready`,
+`Needs more prep`, or `Block kickoff` in browser-local
+`kickoffDecisionByService`; the run sheet remains blocked unless this state is
+ready. It is still a manual gate, not phone, messaging, CRM, analytics,
+billing, booking, or customer-send activation.
+Use `Open run sheet` after that gate to inspect `Day-one operator run sheet`.
+`Copy run sheet` exports `local_services_day_one_operator_run_sheet` /
+`manual_day_one_operator_run_sheet`: sample inbound, owner script, expected
+fields, approval pauses, metric capture, and manual result logging for the
+first operator-supervised request. `day_one_run_sheet_outcome_capture` points
+the sheet's `Open daily log` action at `Pilot daily log`, where the operator
+records the actual result before scorecard sync. `Day-one outcome capture
+gate`, `Reset day-one outcome`, `Weekly scorecard sync gate`, and
+`manual_weekly_scorecard_sync_gate` keep this leading-category outcome explicit;
+do not treat a weekly scorecard as reviewed until `firstRequestOutcomeByProspectKey`
+is recorded and metrics are review-ready.
+Use `Open weekly sync checklist` before copying week data into the private
+tracker. `Weekly scorecard sync checklist`, `Copy weekly sync checklist`, and
+`local_services_weekly_scorecard_sync_checklist` carry the target row, first
+request outcome, metric status, latest manual signal, and source surfaces. It
+is still a manual copy packet only: no Markdown mutation, CRM write, analytics
+sync, billing, booking, or customer message. After the private tracker is
+updated, use `Record weekly sync reviewed`; `Reset weekly sync review` clears
+that browser-local `weeklyScorecardSyncReviewedByService` proof if the outcome
+or metrics changed. `Pilot week-one review` and `Pilot evidence pack` should
+then show `Weekly sync reviewed`; `Evidence readiness` remains blocked until this
+manual private scorecard sync proof is recorded.
+Use `Open day-one recap` after a real first run. `Day-one recap` and
+`Copy day-one recap` export `local_services_day_one_recap` /
+`manual_day_one_recap`, including `day_one_recap_to_week_one_review`, so the
+operator can move a reviewed first-day result into week-one review without
+creating bookings, sending customers, writing CRM, syncing analytics, billing,
+or activating channels.
+The concept remains a NEWO-style AI employee platform for service categories;
+the manual batch only decides whether to continue, revise, or stop expansion.
+Use `docs/local-services-pilot-runbook.md` for the actual 14-day operating
+sequence: day-minus-one prep, manual outreach, discovery call, pilot setup,
+daily metric capture, week-one review, week-two review, and evidence pack. It
+is intentionally outside the product shell because real outreach and customer
+data handling stay manual and operator-owned.
+Use `docs/local-services-outreach-execution-pack.md` for the first manual
+contact wave: AC MASTER, Aircold, Santexniki.uz, and Service-Pro message
+templates, discovery-call questions, the manual execution table, and
+Do-Not-Send Rules.
+The measurement lane is the only construction-adjacent P0 lane: it captures
+windows, doors, ceilings, fit-out, photos, approximate sizes, and a manager-
+approved measurer slot. Material quote/delivery desks remain later work.
+
+`GET /v1/operator/queue` is the repo-owned operator queue built from compiled Case Wiki snapshots. `GET /v1/operator/summary` now also includes the same snapshot at `data.operatorQueue`, so the main summary refresh can hydrate queue cards and `Active Queue` without a second fetch. The frontend should prefer this backend snapshot for remediation, approval, runtime, incident, and compliance-enforcement jumps; local queue inference remains only as a fallback when the route is unavailable or stale.
 
 ## Frontend Tabs
 
@@ -32,6 +530,20 @@ Control tray note: That same Control tray now owns low-frequency operator extras
 Advanced operator tools note: those lower-frequency surfaces now sit behind one collapsed `Advanced operator tools` shell, so the first scan inside `Control` stays focused on approvals, queue state, and the handoff into `Operator Console`.
 
 Operator handoff note: `Operator Console` now starts with one explicit `Operator handoff` card (`Approvals`, `Runtime`, `Audit`, `Refresh Summary`), so live-to-operator transitions land in a clearer operator-first route before the deeper board surfaces.
+Operator proof-link note: `Live Desk` row actions/context menus and the `Operator Console` hero quick actions now open per-case `Presentation Bundle` / `Visual Evidence` targets through the same repo-owned `caseId/sessionId/ref` resolver, so proof surfaces stay attached to the active runtime case instead of bouncing through the generic judge-artifact index.
+App shell session-ops note: the main `/app/console` screen stays approval-first and matches the transferred design `1:1`, while deeper runtime support now lives on `/app/console/runtime`. That support route keeps `Session Boundary` and `Operator Session Ops` together: `Session Boundary` reads the selected `GET /v1/runtime/session-replay` snapshot for replay state, approval gate, latest proof ingress (`contextSource` / `ingressSource`), recovery path, and structured `After refresh` follow-up paths; `Operator Session Ops` keeps `Refresh replay`, `Refresh Case Wiki`, `Export Markdown`, and `Export JSON` in the same operator support route, and the export actions build repo-owned payloads from the current case, compiled `Case Wiki`, replay boundary, and compact runtime-surface ingress. When `compliance.enforcement.exportReady=false`, those exports stay compliance-blocked and return the same repo-owned blocked reason instead of leaking a stale payload.
+App shell diagnostics note: the deeper runtime control surfaces that previously required `/legacy` now live on `/app/console/runtime`, not inline under the main console hero. `Workflow Runtime`, `Runtime Guardrails`, `Bootstrap Doctor`, and `Browser Workers` prefer repo-owned routes: `GET /v1/runtime/workflow-config`, `POST /v1/runtime/workflow-control-plane-override`, `GET /v1/runtime/bootstrap-status`, `GET /v1/runtime/auth-profiles`, `POST /v1/runtime/auth-profiles/rotate`, `GET /v1/runtime/browser-jobs`, and `POST /v1/runtime/browser-jobs/:jobId/resume|cancel`.
+App shell case-vault note: that same `/app/console/runtime` route now also includes a `Case Vault` section: a Rowboat-style inspectable memory projection of the compiled `Case Wiki`. It keeps entity links, open threads, ref families, recent memory trail, plus two compact projection modes (`Operator handoff` and `CRM prep`) in one support surface so operators can inspect linked case knowledge without forcing that deeper memory graph back into the primary `/app/console` approval flow. Vault `Copy` / `Export Markdown` actions reuse the same compiled compliance/export gate as the main repo-owned export lane, so both handoff and CRM-prep text stay blocked when `exportReady=false`. `Live Desk`, `Operator Console`, and `Case Wiki` now all deep-link to that same case-scoped vault route through one shared helper instead of hand-assembling support URLs.
+App shell artifact-viewer note: that same `/app/console/runtime` route now also includes an `Artifact Viewer` section for repo-owned JSON artifacts. It uses read-only debug artifact routes from `demo-frontend` to inspect the current `artifacts/demo-e2e`, `artifacts/runtime`, and `artifacts/release-evidence` payloads in-place, keeps pinned quick-view tabs for `report.json`, `manifest.json`, `runtime-proof-report.json`, `action-desk-kpi-report.json`, `consultation-booking-proof.json`, and `badge-details.json`, and now also exposes `consultation-booking-approved.json` in the same support catalog for the booking connector lane. The viewer renders a structured snapshot above the raw JSON dump so replay/runtime/release evidence can be inspected in the same support surface instead of forcing operators to open raw files out-of-band. `Case Wiki`, `Case Vault`, `/bundle/:id`, and `/evidence/:id` now open that same viewer with an `artifact=` query so support lands directly on the relevant proof/report tab, and the runtime support cards (`Session Boundary`, `Operator Session Ops`, `Workflow Runtime`, `Runtime Guardrails`) now reuse the same deep-link pattern instead of adding separate debug destinations. Issue-aware support links now also carry `section=` so the viewer can jump to the right structured subsection anchor inside the chosen artifact.
+App shell anchor note: the operator helper entries now match the transferred `hello-friend` shell `1:1`: `Live activity` points at `/app`, `Action queue` points at `/app/console`, `Connections` and `Health check` point at `/app/nodes`, and `Safety rules` points at `/app/simulation`. The deeper `/app/console/runtime` route stays available as a secondary/internal surface for replay, export, compliance, and runtime diagnostics through direct links and the command palette.
+App shell support-strip note: the main `/app/console` screen only shows the compact runtime-support strip when repo-owned support posture needs attention. Problem-state pills (`Export blocked|waiting`, `Proof pending`, `Replay waiting`, `Gate pending`) now pair with an issue-specific CTA (`Inspect raw artifact blocker`, `Inspect signature pending`, `Inspect compliance blocker`, `Inspect export block`, `Inspect unsigned proof`, `Inspect missing proof`, `Inspect replay gate`, or `Inspect replay`) that deep-links straight into the relevant `/app/console/runtime` section without pulling the larger runtime cards back under the approval/documents layout. When repo-owned `Case Wiki` remediation is present, that strip also shows a compact inline next-step hint from `operatorActionLabel` and `blockingRef`.
+App shell Case Wiki remediation note: the deeper `Case Wiki` support card now mirrors that same repo-owned remediation posture in `Compliance & remediation`, adding quiet `Raw artifact blocker` / `Signature pending` pills plus a compact `Next repo-owned step` hint from `operatorActionLabel` and `blockingRef` so support operators can read the blocker before copying remediation or opening export actions.
+App shell Case Vault remediation note: the `Case Vault` projection card now mirrors the same repo-owned remediation posture for `Operator handoff` and `CRM prep`, adding quiet `Raw artifact blocker` / `Signature pending` pills plus a compact `Next repo-owned step` hint before copy/export actions are used.
+App shell Session Ops remediation note: `Operator Session Ops` now mirrors that same repo-owned remediation posture in its export lane, adding quiet `Raw artifact blocker` / `Signature pending` pills plus a compact `Next repo-owned step` hint before Markdown/JSON export actions are used.
+App shell Runtime Guardrails remediation note: `Runtime Guardrails` now mirrors that same repo-owned remediation posture, adding quiet `Raw artifact blocker` / `Signature pending` pills plus a compact `Next repo-owned step` hint while triaging support-lane safety state.
+App shell Workflow Runtime remediation note: `Workflow Runtime` now mirrors that same repo-owned remediation posture, adding quiet `Raw artifact blocker` / `Signature pending` pills plus a compact `Next repo-owned step` hint while triaging workflow control-plane state.
+App shell remediation-evidence note: those quiet remediation hints in `Case Wiki`, `Case Vault`, `Operator Session Ops`, `Workflow Runtime`, and `Runtime Guardrails` now also deep-link into `Artifact Viewer` with an issue-aware `artifact=` + `issue=` + `section=` query. `Raw artifact blocker` lands on the manifest lane, `Signature pending` / `Unsigned proof` land on the runtime-proof lane, and generic compliance/export posture lands on the unified report lane, so support operators jump straight to the relevant proof surface instead of a generic artifact list. Inside the viewer the matching structured section is now highlighted as the focus card, a compact issue summary lifts repo-owned fields like signature status, blocker, next action, and proof posture above the raw JSON, that same focused lane is rendered first in the structured snapshot while the raw JSON pane keeps a quiet focus cue, and the focused card itself now embeds compact `Focus fields` so the critical values remain visible where the operator is already inspecting. The same focused subsection now exposes a stable anchor id, so support can land directly on the right structured card before reading the raw payload, and the most relevant structured rows inside that card now get a quiet `focus field` emphasis as well. When a focused section exists, the same viewer now also offers a quiet `Show focused only` mode so support can temporarily collapse the structured snapshot to one prioritized lane while keeping the raw JSON fallback unchanged; the toggle writes `focusedOnly=1` into the runtime URL and clears it when all sections are restored, so issue-aware support links can preserve that posture without changing the raw JSON fallback. The release evidence generator also publishes an `Action Desk workflow KPI` support artifact that summarizes qualification, consultation booking, missing-document follow-up, and CRM/handoff proof, plus a separate `Consultation booking proof` artifact that now treats a repo-owned approved booking artifact as sufficient connector proof even while explicit calendar writeback remains a later evidence lane.
+Simulation Lab policy note: the live `policy-current` snapshot in `Simulation Lab` now prefers repo-owned governance runtime data from `GET /v1/governance/policy` plus the real template catalog from `GET /v1/governance/compliance-template`, so replay labels, candidate templates, and the drawer blurb reflect the active compliance template before the UI falls back to curated demo policy copy. When a runtime template candidate is selected, the drawer promote action now uses `POST /v1/governance/policy` and recent tenant-scoped update history from `GET /v1/governance/policy/{tenantId}/updates`.
 Operator onboarding note: that same first fold now exposes a guided `Refresh -> Inspect -> Recover` path, so first-time operators see one state-aware sequence before they open deeper console lanes.
 Operator onboarding note: that same guided path now also uses workspace-first inspect/open wording, so the first operator sequence stays aligned with `Choose workspace`, the `Operator brief` preview row, and the current product-surface vocabulary.
 Case workspace note: the secondary jump/review subshells inside `Case path` and `Result tools` now keep one current path row on top and quieter later jumps or reviews underneath it.
@@ -260,7 +772,7 @@ Operator support note: `Workflow Control Panel` and `Browser Worker Control` now
 3. Device Nodes Health
 4. Device Node Updates Evidence
 5. Trace Coverage
-6. Task Queue Pressure
+6. Operator Queue
 7. Startup Failures
 8. UI Executor Failover
 9. Workflow Runtime
@@ -271,11 +783,12 @@ Operator support note: `Workflow Control Panel` and `Browser Worker Control` now
 14. Cost & Tokens Evidence
 
 Runtime surface inventory note: use `GET /v1/runtime/surface` when you need one repo-owned snapshot of agent routes, runtime/control-plane surfaces, available playbooks, evidence outputs, and UI/runtime capabilities without stitching together bootstrap, diagnostics, and skills views by hand.
-Runtime surface readiness note: use `GET /v1/runtime/surface/readiness` when you need one operator-safe `ready / degraded / critical` verdict; it overlays bootstrap doctor, runtime diagnostics, service coverage, device readiness, and evidence posture, while `Skills Registry Lifecycle` remains the source for managed-skill activation history rather than readiness state.
-Runtime session replay note: use `GET /v1/runtime/session-replay` when you need one operator-safe snapshot of selected-session status, recent runs/events, pending approvals, replay counters, resume-ready or blocked-by posture, a human-readable next operator action, an explicit next action target, the next operator workspace, a repo-owned primary step, step progress, a phase-aware step path (`active` + `queued`), remaining steps, a short repo-owned checklist, the latest verified proof pointer and stage, compact booking/follow-up/handoff state, a workflow boundary summary, boundary owner, approval gate, recovery path hint, a repo-owned recovery drill summary for failed workflow boundaries, a nullable structured `liveTransport` summary for the actually used `relay` vs `direct_live` path, a structured repo-owned `refresh recovery followup path`, a structured refresh state (`action`, `targetState`, summary hints, `followupPath`, `followupTree`, compatibility metadata), and current workflow linkage without stitching `/v1/sessions`, `/v1/events`, `/v1/runs`, and `/v1/runtime/workflow-config` by hand. The operator UI now renders that path as a compact ladder under `After refresh`, while the replay drawer keeps a structured preview/export copy of the same ladder.
-Runtime case wiki note: use `GET /v1/runtime/case-wiki` when you need one operator-safe compiled memory view of the selected case instead of reading raw replay lines. The route turns session state, approvals, workflow summary, operator notes, and recent runtime evidence into `overview`, `entities`, `timeline`, `proofs`, `openQuestions`, `recommendedNextAction`, a compact backend-built `handoffPack`, a compact backend-built `detailPack`, a compact backend-built `routingPack`, a compact backend-built `actionPack`, a compact backend-built `focusPack`, a compact backend-built `previewPack`, a compact backend-built `workspacePack`, and a compact backend-built `operatorPreviewPack`. That `operatorPreviewPack` now carries compact `overview`, `evidence`, `Open Questions`, and `Timeline` panes for `Operator Session Ops`, while `workspacePack` now also carries compact open-question and timeline strings plus `defaultFocus` for the `Case Workspace` card and `focusPack` provides backend-built chip labels/titles for the workspace proof/question rail. Use `POST /v1/runtime/case-wiki/notes` to append a repo-owned operator note for the current session; those notes are stored as backend events and are folded back into future Case Wiki reads.
+Runtime surface readiness note: use `GET /v1/runtime/surface/readiness` when you need one operator-safe `ready / degraded / critical` verdict; it overlays bootstrap doctor, runtime diagnostics, service coverage, device readiness, evidence posture, and compact Case Wiki ingress provenance from recent runtime events, while `Skills Registry Lifecycle` remains the source for managed-skill activation history rather than readiness state.
+Runtime session replay note: use `GET /v1/runtime/session-replay` when you need one operator-safe snapshot of selected-session status, recent runs/events, pending approvals, replay counters, resume-ready or blocked-by posture, a human-readable next operator action, an explicit next action target, the next operator workspace, a repo-owned primary step, step progress, a phase-aware step path (`active` + `queued`), remaining steps, a short repo-owned checklist, the latest verified proof pointer and stage, latest turn `contextSource/contextIngressSource`, latest verified proof `contextSource/contextIngressSource`, compact booking/follow-up/handoff state, a workflow boundary summary, boundary owner, approval gate, recovery path hint, a repo-owned recovery drill summary for failed workflow boundaries, a nullable structured `liveTransport` summary for the actually used `relay` vs `direct_live` path, a structured repo-owned `refresh recovery followup path`, a structured refresh state (`action`, `targetState`, summary hints, `followupPath`, `followupTree`, compatibility metadata), a tamper-evident root `evidenceSignature` envelope, and current workflow linkage without stitching `/v1/sessions`, `/v1/events`, `/v1/runs`, and `/v1/runtime/workflow-config` by hand. The operator UI now renders that path as a compact ladder under `After refresh`, while the replay drawer keeps a structured preview/export copy of the same ladder. When `contextSource=case_wiki`, the same replay proof metadata preserves whether the compiled snapshot came from `preserved_input_case_wiki` or `gateway_hydrated_case_wiki`, so the operator can see ingress provenance without reopening raw request payloads.
+Runtime case wiki note: use `GET /v1/runtime/case-wiki` when you need one operator-safe compiled memory view of the selected case instead of reading raw replay lines. The route turns session state, approvals, workflow summary, operator notes, and recent runtime evidence into `overview`, `entities`, `timeline`, `compliance`, `auditLog`, `proofs`, `openQuestions`, `recommendedNextAction`, a compact backend-built `handoffPack`, a compact backend-built `detailPack`, a compact backend-built `routingPack`, a compact backend-built `actionPack`, a compact backend-built `focusPack`, a compact backend-built `previewPack`, a compact backend-built `workspacePack`, and a compact backend-built `operatorPreviewPack`. That `actionPack` now also carries one `remediationDraft` per proof/question focus item, `compliance` now also carries a repo-owned `enforcement` verdict (`status`, `snapshotMode`, `rawRefCount`, `redactionSatisfied`, `signatureSatisfied`, `exportReady`, `blockingReasons`) plus `artifactPosture` (`raw`, `redacted`, `signed`, `blockingRefs`) and `remediation` (`primaryAction`, `operatorActionLabel`, `blockingRef`, `requiredPosture`) for redaction/signing drift, and `operatorPreviewPack` now carries compact `overview`, `evidence`, `Open Questions`, `Focused Remediation`, `Compliance`, `Audit`, and `Timeline` panes for `Operator Session Ops`, while `workspacePack` now also carries compact open-question and timeline strings, `defaultFocus` for the `Case Workspace` card, and `costSummary` / `costValue` for per-case token/live/ui/storage cost posture; `focusPack` still provides backend-built chip labels/titles for the workspace proof/question rail. Frontend/runtime ingress treat `caseWiki`, `caseWikiSnapshot`, `runtimeCaseWiki`, `compiledCaseWiki`, and `context.caseWiki` as the same compiled-memory contract and only hydrate a fresh repo-owned snapshot when the selected-session context is missing or stale. Use `POST /v1/runtime/case-wiki/notes` to append a repo-owned operator note for the current session; those notes are stored as backend events and are folded back into future Case Wiki reads.
 Runtime case wiki focus note: when `Case Workspace` has no explicitly selected proof/question chip, it now chooses the default focus from backend-built `workspacePack.defaultFocus`, keeping the workspace drilldown, handoff preview, copy/open actions, and active focus chip aligned with the compiled blocker/proof posture.
-Runtime surface artifact note: use `npm run runtime:surface:snapshot` to write `artifacts/runtime/runtime-surface-snapshot.json`; pass `-- --offline true` when you want the repo-owned inventory/readiness pair without live service or device-node probing.
+Runtime cost guard note: when compiled Case Wiki memory is passed into an orchestrator turn, `workspacePack.costSummary` is used for route admission. Soft-limit cases continue with deterministic routing and `short_context` prompt compaction; hard-limit cases pause for operator approval before invoking the target agent when `ORCHESTRATOR_COST_GUARD_REQUIRE_APPROVAL=true`.
+Runtime surface artifact note: use `npm run runtime:surface:snapshot` to write `artifacts/runtime/runtime-surface-snapshot.json`; live artifacts also mirror compact Case Wiki ingress provenance into `readiness.summary.workflow.caseWikiIngress`, while `-- --offline true` keeps the repo-owned inventory/readiness pair deterministic without live service or device-node probing.
 Runtime surface parity note: use `npm run runtime:surface:parity` after the snapshot step when you need a hard gate against missing runtime-surface agents, routes, control-plane entries, evidence lanes, UI capabilities, or required ready playbooks.
 Runtime surface doc drift note: use `npm run runtime:surface:doc-drift` after the snapshot/parity steps when you need a hard gate that `README.md`, `docs/architecture.md`, `docs/operator-guide.md`, and `package.json` still describe the same repo-owned runtime-surface routes, scripts, and artifact paths; it writes `artifacts/runtime/runtime-surface-doc-drift.json`.
 
@@ -322,7 +835,7 @@ Runtime surface doc drift note: use `npm run runtime:surface:doc-drift` after th
 14.2. On desktop, that quiet `Lane Radar` state now keeps only the top three jump chips plus a quiet `More` toggle by default, so the left first fold stays readable without losing access to the rest of the watch lanes
 14.3. On desktop, when fail/watch lanes stack up, that same `Lane Radar` now also keeps only the top four active jump cards plus `More` and uses the same collapsed quiet shell, so active incidents do not reopen a second mini-board above the deep lanes
 14.4. On desktop, that same compact `Lane Radar` state now also shortens visible jump-status pills (`blocking 2`, `request wait`, `proof`) and drops the secondary stable-count/meta line in collapsed fail posture, so the strip reads more like a jump rail than a mini-board
-15. `Triage Summary` now behaves like an `Active Queue`: the top of that surface lists the next operator actions, while live counters move into a quieter `Board Visibility` footer so filter scope stays visible without competing with incident signals; that footer now behaves more like a compact chip ledger than a second mini-dashboard, so scope stays legible without adding another stacked row of counters, and the queue / recovery helper copy stays shorter in the same pass. That `Active Queue` now stamps next actions as `P1/P2/P3`, while lane headers render chip-based visibility counters instead of one long inline string, so scan order stays obvious even when the board is partially filtered. The same triage shell now carries a contextual `Action Center`, so a single compact `Recovery Rail` lives beside the queue while `Quick Start` and `Recovery Playbook` stay lower as calmer secondary rails. That same shell now also includes a compact `Focused Evidence` drawer, so the selected lane exposes its latest facts and next actions before the operator opens the deeper board. The same shell now also includes a tabbed compact `Focused Evidence` drawer (`Latest event`, `Trace`, `Recovery`, `Audit`), so operators can switch between fresh facts, inspectable trace anchors, recovery paths, and audit posture without expanding the full board. That same drawer now also exposes a compact three-step evidence timeline, so operators can confirm current state, freshest anchor, and next move without opening the deep lane. That same drawer now also exposes a compact checkpoint rail, so each tab keeps a few raw anchors (`State`, `Refresh`, `Path`, `Trace`, `Review`) in the first scan path. That same timeline now behaves like a lane mini-log with tighter timestamp chips, so chronology and freshness read as one surface instead of being inferred from scattered facts. That same drawer now also surfaces quiet context chips (`Workspace`, `View`, `Source`) above the facts grid, so scope and provenance stay visible before the operator parses the deeper details. That same drawer now also surfaces an `Action provenance` strip (`Actor`, `Route`, `Verify`), so the next control step reads as an owned path with a clear verification loop instead of a lone CTA. That provenance strip is now tab-aware, so `Latest`, `Trace`, `Recovery`, and `Audit` call out different control owners like `Active queue`, `Trace review`, `Action center`, or `Saved view` instead of flattening every action to one generic operator identity. That `Route` value is now workflow-intent aware per lane, so generic CTAs like `Run UI Task` or `Run Negotiation` stay paired with the actual operator objective (`Approval decisions`, `Bridge recovery`, `Workflow override`, `Node health`) instead of reading like repeated button text. That same drawer now also reorders `Latest` and `Trace` facts by lane, so approvals show backlog and SLA context first, runtime surfaces show workflow or executor posture first, and bridge lanes keep the freshest incident evidence in the first three facts. The first fact now renders as the lead evidence card while the other two stay quieter supporting context, so one signal wins the first glance instead of three equal tiles competing. That same drawer now also adds one concise view summary sentence and prunes duplicated lower sections in `Recovery` / `Audit`, so it reads like a compact decision aid instead of a second full dashboard nested inside the first fold.
+15. `Triage Summary` now behaves like an `Active Queue`: the top of that surface lists the next operator actions, while live counters move into a quieter `Board Visibility` footer so filter scope stays visible without competing with incident signals; that footer now behaves more like a compact chip ledger than a second mini-dashboard, so scope stays legible without adding another stacked row of counters, and the queue / recovery helper copy stays shorter in the same pass. That `Active Queue` now stamps next actions as `P1/P2/P3`, while lane headers render chip-based visibility counters instead of one long inline string, so scan order stays obvious even when the board is partially filtered. When `Case Wiki` is hydrated with a real blocker or follow-up draft, the same queue now lifts that compiled follow-up into the first scan path and exposes `Open Remediation` plus `Copy Draft`, so operators can jump directly into the focused case step instead of searching the full board first. When the backend queue promotes a `Compliance blocker`, the same `Active Queue` now rewrites that card into plain export language (`Clear export blocker`) and surfaces the concrete raw-ref or signing reason in the queue helper text, so the operator can treat compliance enforcement as an immediate queue gate instead of hunting through deep case memory first. The same triage shell now carries a contextual `Action Center`, so a single compact `Recovery Rail` lives beside the queue while `Quick Start` and `Recovery Playbook` stay lower as calmer secondary rails. That same shell now also includes a compact `Focused Evidence` drawer, so the selected lane exposes its latest facts and next actions before the operator opens the deeper board. The same shell now also includes a tabbed compact `Focused Evidence` drawer (`Latest event`, `Trace`, `Recovery`, `Audit`), so operators can switch between fresh facts, inspectable trace anchors, recovery paths, and audit posture without expanding the full board. That same drawer now also exposes a compact three-step evidence timeline, so operators can confirm current state, freshest anchor, and next move without opening the deep lane. That same drawer now also exposes a compact checkpoint rail, so each tab keeps a few raw anchors (`State`, `Refresh`, `Path`, `Trace`, `Review`) in the first scan path. That same timeline now behaves like a lane mini-log with tighter timestamp chips, so chronology and freshness read as one surface instead of being inferred from scattered facts. That same drawer now also surfaces quiet context chips (`Workspace`, `View`, `Source`) above the facts grid, so scope and provenance stay visible before the operator parses the deeper details. That same drawer now also surfaces an `Action provenance` strip (`Actor`, `Route`, `Verify`), so the next control step reads as an owned path with a clear verification loop instead of a lone CTA. That provenance strip is now tab-aware, so `Latest`, `Trace`, `Recovery`, and `Audit` call out different control owners like `Active queue`, `Trace review`, `Action center`, or `Saved view` instead of flattening every action to one generic operator identity. That `Route` value is now workflow-intent aware per lane, so generic CTAs like `Run UI Task` or `Run Negotiation` stay paired with the actual operator objective (`Approval decisions`, `Bridge recovery`, `Workflow override`, `Node health`) instead of reading like repeated button text. That same drawer now also reorders `Latest` and `Trace` facts by lane, so approvals show backlog and SLA context first, runtime surfaces show workflow or executor posture first, and bridge lanes keep the freshest incident evidence in the first three facts. The first fact now renders as the lead evidence card while the other two stay quieter supporting context, so one signal wins the first glance instead of three equal tiles competing. That same drawer now also adds one concise view summary sentence and prunes duplicated lower sections in `Recovery` / `Audit`, so it reads like a compact decision aid instead of a second full dashboard nested inside the first fold.
 15.0.0. That same `Active Queue` helper now keeps workspace-first wording (`highlighted workspace`, `recovery path`) in both first-paint and compact queue shells, so the first queued action stays aligned with the workspace chooser and header posture instead of slipping back to lane-first copy.
 15.0.1. That same triage-shell helper now names `Focused Evidence` and `Recovery Rail` directly, so the visible helper sentence matches the actual surface labels instead of reverting to generic evidence/recovery wording.
 15.1. On desktop, that same `Board Visibility` footer now drops its heading, hides the redundant `Total` chip, and relabels `Neutral` as `Watch`, so the lower triage meta reads as a short `Visible / Fail / Watch / Ok / Hidden` ledger instead of another summary block
@@ -351,14 +864,16 @@ Runtime surface doc drift note: use `npm run runtime:surface:doc-drift` after th
 16. Inside that drawer, collapsible `Workflow Control Panel` lets operators inspect the redacted orchestrator workflow-store snapshot, verify control-plane override state, and run assistive-router presets or JSON overrides through `api-backend` without exposing the raw key; provider/model/budget-policy/prompt-caching/watchlist posture is visible directly in the redacted snapshot
 17. Inside that drawer, collapsible `Bootstrap Doctor & Auth Profiles` lets operators inspect provider readiness, auth-profile posture, device-node bootstrap readiness, fallback coverage, and repo-owned live direct posture through `api-backend`; `GET /v1/runtime/live/capabilities` keeps `relay` vs `direct_live`, provider/model, and last fallback reason visible before a browser session starts, while admin can still rotate repo-owned auth profiles without leaving Operator Console
 18. Inside that drawer, collapsible `Browser Worker Control` lets operators inspect the repo-owned `ui-executor` background browser worker runtime, load a specific `jobId`, and resume or cancel checkpointed jobs through the operator control plane without leaving the console
-18.1. That same Browser Worker Control surface now carries a compact replay bundle per job: target URL, verification posture, screenshot count, latest result/checkpoint refs, and step summaries, so operators can review a UI run without opening raw logs first
+18.1. That same Browser Worker Control surface now carries a compact replay bundle per job: target URL, verification posture, screenshot count, latest result/checkpoint refs, step summaries, and recovery posture (`retryCount`, stale refs observed/healed, resumed checkpoints, summary), so operators can review a UI run without opening raw logs first
 18.1. Operator trace surfaces also carry UI verification posture for each run (`verified`, `partially verified`, `unverified`, `blocked pending approval`) plus verification step counts, so a click-only run is not treated as a proved outcome
-18. Inside that drawer, collapsible `Operator Session Ops` stores a required purpose declaration for high-risk operator actions, refreshes session replay via `GET /v1/runtime/session-replay`, hydrates compiled case memory via `GET /v1/runtime/case-wiki`, appends repo-owned operator notes via `POST /v1/runtime/case-wiki/notes`, refreshes cross-agent discovery via `GET /v1/skills/personas` + `GET /v1/skills/recipes`, and keeps the latest purpose/replay/discovery/case-wiki snapshots visible without leaving Operator Console. That replay snapshot now also shows `resume-ready`, `blocked-by`, a human-readable `next operator action`, the explicit target surface for that next action, the next operator workspace, a repo-owned primary step, step progress, a phase-aware step path (`active` + `queued`), remaining steps, a short repo-owned checklist, where the latest verified proof and stage live, whether the active workflow boundary is carrying booking, follow-up, or handoff work, who currently owns that boundary, whether an approval gate is still open, which recovery path or handoff the operator should take next, which repo-owned recovery drill is suggested when the workflow boundary has already failed, and the current `live transport` posture when the selected replay session is also the active frontend session. The same drawer now also keeps `Case Wiki Overview`, `Case Wiki Evidence`, `Case Wiki Focused Handoff`, `Case Wiki Focused Routing`, `Case Wiki Open Questions`, and `Case Wiki Timeline` cards visible, so operators can inspect compiled memory, inspect the top proof/entity pair, inspect the repo-owned `evidencePack` (`proofs`, `entities`, `questions`, `sourceRefs`), inspect one backend-built `handoffPack` for compact proof/question handoff posture, inspect one backend-built `detailPack` for proof/question detail rows and per-item badges, inspect one backend-built `routingPack` for compact proof/question route + CTA posture, inspect one backend-built `actionPack` for copy-ready proof/question mini-actions, inspect one backend-built `focusPack` for focus summaries, drilldowns, chip labels, chip titles, and handoff previews, inspect one backend-built `previewPack` for pack/ref/proof/question/handoff summary strings, inspect one backend-built `workspacePack` for the top `Case Workspace` card fields plus compact open-question and timeline summaries, inspect one backend-built `operatorPreviewPack` for the compact overview/evidence/question/timeline operator snapshots, inspect a source-linked handoff preview, inspect a focus-aware handoff block when a proof or question chip is selected, copy one-click handoff/export payloads from that focused block, inspect/copy a focused routing rail with explicit lane, owner, priority, blocking, approval posture, and one ready-to-run one-click CTA action, and append blocking customer/operator notes without leaving the control panel, while `Case Workspace` mirrors the same compiled memory as a compact `Case Wiki` summary card for product-first triage and now exposes one `top proof`, one `key entity`, compact open-question and timeline summaries, one compact proof/question drilldown, clickable proof/question focus chips sourced from backend-built `focusPack`, expandable proof/question detail rows, compact per-item badges for status/priority/owner/refs, source-aware `Copy handoff` / `Copy refs` mini-actions from the backend-built `actionPack` for the selected proof or question, focus-aware drilldown/handoff text from the backend-built `focusPack`, compact pack/ref/proof/question/handoff summary strings from the backend-built `previewPack`, the compact status/summary/blocker/next-action/proof/entity/question/timeline values from the backend-built `workspacePack`, and one-tap `Open in Operator Ops` jumps that carry the current focus into the operator focused routing block, plus a short evidence-pack/source-ref/handoff summary from repo-owned `highlights` + `evidencePack` in that product-facing view.
+18. Inside that drawer, collapsible `Operator Session Ops` stores a required purpose declaration for high-risk operator actions, refreshes session replay via `GET /v1/runtime/session-replay`, hydrates compiled case memory via `GET /v1/runtime/case-wiki`, appends repo-owned operator notes via `POST /v1/runtime/case-wiki/notes`, refreshes cross-agent discovery via `GET /v1/skills/personas` + `GET /v1/skills/recipes`, and keeps the latest purpose/replay/discovery/case-wiki snapshots visible without leaving Operator Console. That replay snapshot now also shows `resume-ready`, `blocked-by`, a human-readable `next operator action`, the explicit target surface for that next action, the next operator workspace, a repo-owned primary step, step progress, a phase-aware step path (`active` + `queued`), remaining steps, a short repo-owned checklist, where the latest verified proof and stage live, whether the active workflow boundary is carrying booking, follow-up, or handoff work, who currently owns that boundary, whether an approval gate is still open, which recovery path or handoff the operator should take next, which repo-owned recovery drill is suggested when the workflow boundary has already failed, and the current `live transport` posture when the selected replay session is also the active frontend session. That `live transport` posture now also includes latest first-audio/first-output latency plus a fallback-event count, so direct-live proof is readable without opening raw replay lines. The same replay snapshot now also includes a tamper-evident root `evidenceSignature` envelope, aligned with the same runtime signer posture used for `Case Wiki` snapshots. The same drawer now also keeps `Case Wiki Overview`, `Case Wiki Evidence`, `Case Wiki Focused Handoff`, `Case Wiki Focused Routing`, `Case Wiki Focused Remediation`, `Case Wiki Open Questions`, `Case Wiki Compliance`, `Case Wiki Audit`, and `Case Wiki Timeline` cards visible, so operators can inspect compiled memory, inspect the top proof/entity pair, inspect the repo-owned `evidencePack` (`proofs`, `entities`, `questions`, `sourceRefs`), inspect one backend-built `handoffPack` for compact proof/question handoff posture, inspect one backend-built `detailPack` for proof/question detail rows and per-item badges, inspect one backend-built `routingPack` for compact proof/question route + CTA posture, inspect one backend-built `actionPack` for copy-ready proof/question mini-actions plus per-focus `remediationDraft` payloads, inspect one backend-built `focusPack` for focus summaries, drilldowns, chip labels, chip titles, and handoff previews, inspect one backend-built `previewPack` for pack/ref/proof/question/handoff summary strings, inspect one backend-built `workspacePack` for the top `Case Workspace` card fields plus compact open-question and timeline summaries, inspect one backend-built `operatorPreviewPack` for the compact overview/evidence/question/remediation/compliance/audit/timeline operator snapshots, inspect the compiled `compliance` posture for template/redaction/retention/signing state, inspect the compiled `auditLog` trail for fact changes, inspect a source-linked handoff preview, inspect a focus-aware handoff block when a proof or question chip is selected, copy one-click handoff/export payloads from that focused block, inspect/copy a focused routing rail with explicit lane, owner, priority, blocking, approval posture, and one ready-to-run one-click CTA action, inspect/copy a focused remediation draft when the operator needs a ready-to-send customer or operator brief, and append blocking customer/operator notes without leaving the control panel, while `Case Workspace` mirrors the same compiled memory as a compact `Case Wiki` summary card for product-first triage and now exposes one `top proof`, one `key entity`, compact open-question and timeline summaries, one compact proof/question drilldown, clickable proof/question focus chips sourced from backend-built `focusPack`, expandable proof/question detail rows, compact per-item badges for status/priority/owner/refs, source-aware `Copy handoff` / `Copy refs` mini-actions from the backend-built `actionPack` for the selected proof or question, focus-aware drilldown/handoff text from the backend-built `focusPack`, compact pack/ref/proof/question/handoff summary strings from the backend-built `previewPack`, the compact status/summary/blocker/next-action/proof/entity/question/timeline values from the backend-built `workspacePack`, and one-tap `Open in Operator Ops` jumps that carry the current focus into the operator focused routing block, plus a short evidence-pack/source-ref/handoff summary from repo-owned `highlights` + `evidencePack` in that product-facing view.
+18.2. The same `Case Wiki` snapshot now carries a top-level `compliance` posture plus `auditLog`, and `operatorPreviewPack` now includes compact `Compliance` and `Audit` panes. The compliance lane summarizes the active governance template, PII redaction level, retention posture, and evidence-signing expectation; the audit lane summarizes approval decisions, operator note inserts, workflow refreshes, and runtime verification events as repo-owned audit rows (`actor`, `source`, `action`, `field`, `oldValue`, `newValue`, `reason`, `sourceRefs`) so downstream handoff/export tooling can explain both current handling posture and fact changes without reading raw replay lines.
 18.1. `Case Workspace` now defaults its Case Wiki focus from backend-built `workspacePack.defaultFocus` whenever no proof/question chip is explicitly selected, so product-facing drilldown, copy/open actions, and handoff previews open on the compiled blocker/proof path instead of the raw evidence-pack order.
-19. `Workflow Runtime`, `Bootstrap Doctor`, `Browser Workers`, and `Runtime Guardrails` cards, plus `Workflow` and `Guardrails` signal-strip tiles, mirror runtime posture directly: workflow surfaces control-plane override state, assistive-router provider selection, and the live workflow stage/active role, bootstrap doctor surfaces provider/auth-profile/device/fallback readiness plus compact `Live Mode` and `Live Bootstrap` rows for repo-owned `relay` vs `direct_live` posture, browser workers surface checkpoint/backlog state for long-horizon UI jobs, and runtime guardrails aggregates active signals, service coverage, sandbox state, and skills/runtime warnings without reopening setup panels. For `ui-executor`, that guardrail posture now also calls out network mode, missing read/write roots, and weak exceptions such as open egress, `file://`, or loopback allowances. Actionable signals also surface direct CTAs such as `Plan Recovery Drill` and `Open Workflow Clear Path`, a `Signal Paths` list keeps multiple recovery or triage routes visible at once, each path reports lifecycle state (`active`, `staged`, `planned`, `executed`, `cleared`, `failed`), and recent path history is restored locally across reloads until `Clear Path History` is used
+19. `Workflow Runtime`, `Bootstrap Doctor`, `Browser Workers`, and `Runtime Guardrails` cards, plus `Workflow` and `Guardrails` signal-strip tiles, mirror runtime posture directly: workflow surfaces control-plane override state, assistive-router provider selection, the live workflow stage/active role, and the latest repo-owned `Case Wiki` routing ingress provenance, bootstrap doctor surfaces provider/auth-profile/device/fallback readiness plus compact `Live Mode` and `Live Bootstrap` rows for repo-owned `relay` vs `direct_live` posture, browser workers surface checkpoint/backlog state for long-horizon UI jobs, and runtime guardrails aggregates active signals, service coverage, sandbox state, and skills/runtime warnings without reopening setup panels. For `ui-executor`, that guardrail posture now also calls out network mode, missing read/write roots, and weak exceptions such as open egress, `file://`, or loopback allowances. Actionable signals also surface direct CTAs such as `Plan Recovery Drill` and `Open Workflow Clear Path`, a `Signal Paths` list keeps multiple recovery or triage routes visible at once, each path reports lifecycle state (`active`, `staged`, `planned`, `executed`, `cleared`, `failed`), and recent path history is restored locally across reloads until `Clear Path History` is used
 19.1. `Runtime surface inventory` and `Runtime surface readiness` stay above those cards conceptually: inventory answers what the repo-owned runtime can expose right now, readiness answers whether that surface is safe to operate, and the deeper cards still own the per-domain drill-down once the operator chooses a path.
 19.1.1. Operator Console now mirrors that pair directly in a compact `Runtime Surface` card, so the first runtime scan shows inventory, missing capability posture, playbook readiness, evidence posture, and skills readiness before an operator opens `Workflow Runtime`, `Bootstrap Doctor`, `Runtime Guardrails`, or `Browser Workers`; `Refresh Summary` silently rehydrates the card, while `Refresh Surface` reruns only the runtime-surface snapshot pair.
-19.1.2. Operator Console now also mirrors the latest loaded replay snapshot in a compact `Session Boundary` card, so selected-session replay state, workflow boundary state, explicit `Boundary Owner`, `Approval Gate`, `Next Action`, `First Step`, `After refresh`, `Step Progress`, `Checklist`, `Latest Proof`, `Recovery`, `Handoff`, and `live transport` rows stay visible even when `Operator Session Ops` is collapsed.
+19.1.2. Operator Console now also mirrors the latest loaded replay snapshot in a compact `Session Boundary` card, so selected-session replay state, workflow boundary state, explicit `Boundary Owner`, `Approval Gate`, `Next Action`, `First Step`, `After refresh`, `Step Progress`, `Checklist`, `Latest Proof`, `Recovery`, `Handoff`, `live transport`, and compact `Case Wiki` proof/turn ingress provenance stay visible even when `Operator Session Ops` is collapsed.
+19.1.2.1. The new `/app/console` shell now also mirrors the same compiled `Case Wiki` posture directly inside the approval workspace: repo-owned blocker, next action, compliance/export readiness, evidence-signature posture, remediation draft, and `Open bundle` / `Open evidence` / `Copy handoff` / `Copy refs` actions are visible without reopening `/legacy`, and the copy actions keep the same compliance gate semantics by returning the repo-owned blocked reason when `exportReady=false`.
 19.1.3. Stale-refresh recovery is now documented and rendered through the structured `refreshState` contract: `action`, `targetState`, summary hints, `followupPath`, `followupTree`, and compatibility metadata. Frontend replay views prefer `refreshState.followupTree` / `refreshState.followupPath`, render the compact recovery ladder below `After refresh`, include the same model in Session Ops metadata/export, and keep the flat `refreshEscalation...` fields only as a transitional legacy projection for older consumers.
 19.1.4. The first-step CTA still switches between `Refresh first`, `Open first step`, and `Run first step` from the repo-owned primary-step contract, follows the repo-owned next action target, switches the matching operator workspace first, and keeps failed workflow boundary recovery drills visible from the same card.
 20. Top operator toolbar keeps only primary triage controls visible (`Demo/Full`, `Refresh`, `Focus Critical`, `Issues Only`); reset/collapse/cancel controls are grouped under a collapsed `Board Actions` block
@@ -412,7 +927,7 @@ Runtime surface doc drift note: use `npm run runtime:surface:doc-drift` after th
 36. Export session evidence from frontend via single `Export Session` dropdown (`Markdown` / `JSON` / `Audio (WAV)`)
 37. Export dropdown keeps `Last export` metadata, format badges (`MD/JS/WAV`), and a `Recent exports` list (last 3 downloads); audio export is enabled only after assistant audio chunks are captured and the menu hint shows live capture metadata (`turns`, `size`, `trimmed` when rolling-window cap applies)
 38. Session Markdown/JSON exports now include structured `runtimeGuardrailsSignalPaths` evidence from the operator board: current guardrail status, history status, lifecycle counts, primary path, and the visible `Signal Paths` entries
-39. Session Markdown/JSON exports also include `operatorPurpose`, `operatorSessionReplay`, `operatorCaseWiki`, and `operatorDiscovery` from `Operator Session Ops` so operator replay/discovery posture can be preserved outside the browser session, including the captured `liveTransport` summary when the browser actually negotiated relay or direct-live bootstrap. `operatorCaseWiki` also carries compact `topProof`, `topEntity`, one backend-built `handoffPack`, one backend-built `detailPack`, one backend-built `routingPack`, one backend-built `actionPack`, one backend-built `focusPack`, one backend-built `previewPack`, one backend-built `workspacePack`, one backend-built `operatorPreviewPack`, a focused handoff block, and a focused routing block for downstream handoff or audit tooling, with `operatorPreviewPack` now covering compact overview, evidence, Open Questions, and Timeline payloads.
+39. Session Markdown/JSON exports also include `operatorPurpose`, `operatorSessionReplay`, `operatorCaseWiki`, and `operatorDiscovery` from `Operator Session Ops` so operator replay/discovery posture can be preserved outside the browser session, including the captured `liveTransport` summary when the browser actually negotiated relay or direct-live bootstrap. `operatorCaseWiki` also carries compact `topProof`, `topEntity`, one backend-built `handoffPack`, one backend-built `detailPack`, one backend-built `routingPack`, one backend-built `actionPack`, one backend-built `focusPack`, one backend-built `previewPack`, one backend-built `workspacePack`, one backend-built `operatorPreviewPack`, the compact `remediationPreview`, the top-level `compliance`, the top-level `auditLog`, a focused handoff block, a focused routing block, and a focused remediation draft for downstream handoff or audit tooling, with `operatorPreviewPack` now covering compact overview, evidence, Open Questions, Focused Remediation, Compliance, Audit, and Timeline payloads. When `compliance.enforcement.exportReady=false`, the frontend treats that verdict as a hard export gate: Session Markdown/JSON export, focused handoff/export payload actions, and `Case Workspace` `Copy handoff` / `Copy refs` mini-actions stay disabled and the same compliance-blocked reason is returned if a stale client still tries the runtime handler, now with repo-owned `artifactPosture.blockingRefs` when raw runtime artifacts are the blocker and `compliance.enforcement.remediation.primaryAction` as the exact next unblock step.
 40. Inspect Story Studio panel to verify Storyteller segment sequencing, `Timeline State` KPI, latest-output dossier (`brief lockup` / `delivery stack` / `recent passes`), storyboard-style current-scene panel, and scene-card cue tags during demo
 41. For `Intent=Request`, UI grounding fields are visible only when `intent=ui_task` and are grouped under `Advanced UI Task Settings`
 42. Live Negotiator status strip (`Status/Assistant/Run ID/User ID/Session State/Mode/PTT/Export`) uses high-contrast text, pill-state color mapping, dedicated value chips for `Run ID`/`User ID`, concise export labels (`exported markdown/json/audio`), and lane-level `ok/neutral/fail` accents in a compact `4-column` matrix (2 rows on desktop) for faster scan and lower visual density; on narrower screens, items wrap to 2-column/1-column naturally without horizontal overflow
@@ -431,13 +946,15 @@ Runtime surface doc drift note: use `npm run runtime:surface:doc-drift` after th
 48. Frontend `Workflow Control Panel` mirrors that contract in Operator Console: `Refresh Runtime` hydrates the current redacted snapshot, preset buttons apply repo-owned assistive-router overrides, `Apply JSON Override` sends the textarea object, and `Clear Override` restores baseline while auto-refreshing operator summary evidence
 49. Repo-owned bootstrap doctor/auth-profile control plane is exposed via `GET /v1/runtime/bootstrap-status`, `GET /v1/runtime/live/capabilities`, `POST /v1/runtime/live/session-token`, `POST /v1/runtime/live/session-events`, `GET /v1/runtime/auth-profiles`, and `POST /v1/runtime/auth-profiles/rotate`; use it to inspect provider posture, repo-owned credential routing, device bootstrap readiness, safe fallback coverage, direct-live bootstrap readiness, and repo-owned browser-direct replay proof from the operator lane
 50. Frontend `Bootstrap Doctor & Auth Profiles` mirrors that contract in Operator Console: `Refresh Doctor` hydrates the current posture snapshot, `GET /v1/runtime/live/capabilities` is folded into compact `Live Mode` and `Live Bootstrap` rows so `relay` vs `direct_live`, provider/model, ephemeral-token support, and fallback reason stay visible before a browser session starts, and profile/credential selectors plus `Rotate Active Profile` keep repo-owned runtime credentials manageable without hiding direct env override warnings
-51. Repo-owned background browser worker control plane is exposed via `GET /v1/runtime/browser-jobs`, `GET /v1/runtime/browser-jobs/:jobId`, and `POST /v1/runtime/browser-jobs/:jobId/resume|cancel`; use it to inspect queue health, traces, checkpoints, and to continue or stop long-horizon UI jobs from the operator lane
-52. Frontend `Browser Worker Control` mirrors that contract in Operator Console: `Refresh Runtime` loads queue state, `Inspect Job` hydrates a specific `jobId`, and `Resume Job` / `Cancel Job` act on checkpointed or in-flight work while preserving repo-owned artifacts and operator audit
+51. Repo-owned background browser worker control plane is exposed via `GET /v1/runtime/browser-jobs`, `GET /v1/runtime/browser-jobs/:jobId`, and `POST /v1/runtime/browser-jobs/:jobId/resume|cancel`; use it to inspect queue health, traces, checkpoints, recovery counters, checkpoint-resume proof, and to continue or stop long-horizon UI jobs from the operator lane
+52. Frontend `Browser Worker Control` mirrors that contract in Operator Console: `Refresh Runtime` loads queue state, `Inspect Job` hydrates a specific `jobId`, and `Resume Job` / `Cancel Job` act on checkpointed or in-flight work while preserving repo-owned artifacts, observed stale/healed ref evidence, resumed-checkpoint proof, and operator audit
 53. `Runtime Guardrails` turns actionable `activeSignals` into direct operator links: `Plan Recovery Drill` preloads the mapped fault-profile `recovery` step in `Runtime Drill Runner`, `Open Workflow Clear Path` jumps to the redacted `Workflow Control Panel` clear flow for active override signals, and the `Signal Paths` list keeps several active recovery or manual-triage routes available side-by-side
+53.1. The same card now shows latency SLO posture from runtime diagnostics: `liveFirstAudioP95`, `navigatorStepP95`, and `caseWikiQueryP95` compare observed p95 latency against the configured thresholds so operators can separate transport/action-memory latency breaches from generic guardrail warnings. The same diagnostics payload also exposes runtime evidence signing posture (`enabled`, `keyState`, `expectedSignatureStatus`) plus the latest repo-owned `Case Wiki` routing ingress provenance (`preserved_input_case_wiki` vs `gateway_hydrated_case_wiki`), and raises `evidence_signing_key_unavailable` when signing is enabled without a usable key.
 54. `Signal Paths` now preserve frontend-owned lifecycle state after operator actions: opening a path marks it `staged`/`opened`/`focused`, dry-run drill planning marks it `planned`, live execution marks it `executed`, and the next runtime-summary refresh marks previously touched paths as `cleared` when the signal disappears
 55. The same `Signal Paths` history is persisted in browser local storage on the operator workstation, restored on reload before the next summary refresh, and can be reset explicitly with `Clear Path History`
 56. `Intent Request` now includes `research` alongside live/story/ui lanes; use it when you need a citation-bearing answer path rather than freeform conversation.
 57. Demo/release artifacts also capture a repo-generated `Runtime Guardrails` snapshot: `badge-details.json` now includes `evidence.runtimeGuardrailsSignalPaths`, plus top-level `providerUsage` for adapter provenance (for example storyteller `tts` provider/model selection, optional `image_edit` lineage, live-agent `research` citation/source-url counts, and orchestrator `routing_reasoning` provider posture), and unified release evidence surfaces the same runtime-guardrails lane as `runtimeGuardrailsSignalPathsStatus`; these artifact snapshots intentionally exclude browser-local staged/executed history
+57.1. Release evidence also records the runtime SLO summary from that snapshot, so `scripts/demo-e2e.ps1` can fail missing SLO posture before a judged demo claims production-grade latency evidence.
 58. The runtime session replay mirror exposes stale-refresh recovery through a structured `refresh state` contract: `action`, `targetState`, summary hints, `followupPath`, `followupTree`, and compatibility metadata.
 59. Operator clients should prefer `refreshState.followupTree` / `refreshState.followupPath` for recovery ladders; the flat `refreshEscalation...` fields remain a transitional legacy projection for older consumers.
 60. The frontend renders that structured recovery ladder under `After refresh` and includes the same model in Session Ops metadata/export.

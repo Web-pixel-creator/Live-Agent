@@ -43,16 +43,25 @@ test("api backend exposes runtime case wiki routes, helpers, inventory, and docs
     "detailPack",
     "routingPack",
     "actionPack",
+    "remediationDraft",
     "focusPack",
     "previewPack",
     "workspacePack",
     "defaultFocus",
     "buildCaseWikiDefaultFocus",
     "operatorPreviewPack",
+    "remediation:",
+    "compliance",
+    "enforcement",
+    "auditLog",
+    "buildAuditLog",
+    "buildCaseWikiComplianceEnforcement",
+    "buildEventSourceRefs",
     "questionsValue",
     "timelineValue",
     "questions:",
     "timeline:",
+    "audit:",
     "question:event:",
     "operator.note",
     "case_wiki_note",
@@ -86,40 +95,61 @@ test("api backend exposes runtime case wiki routes, helpers, inventory, and docs
   assert.match(readme, /detailPack/i);
   assert.match(readme, /routingPack/i);
   assert.match(readme, /actionPack/i);
+  assert.match(readme, /remediationDraft/i);
   assert.match(readme, /focusPack/i);
   assert.match(readme, /previewPack/i);
   assert.match(readme, /workspacePack/i);
   assert.match(readme, /defaultFocus/i);
   assert.match(readme, /open-question/i);
   assert.match(readme, /operatorPreviewPack/i);
+  assert.match(readme, /Focused Remediation/i);
+  assert.match(readme, /compliance/i);
+  assert.match(readme, /auditLog/i);
   assert.match(readme, /Open Questions/i);
   assert.match(readme, /Timeline/i);
+  assert.match(readme, /Audit/i);
+  assert.match(readme, /Compliance/i);
+  assert.match(readme, /enforcement/i);
   assert.match(operatorGuide, /case wiki/i);
   assert.match(operatorGuide, /case-wiki\/notes/i);
   assert.match(operatorGuide, /handoffPack/i);
   assert.match(operatorGuide, /detailPack/i);
   assert.match(operatorGuide, /routingPack/i);
   assert.match(operatorGuide, /actionPack/i);
+  assert.match(operatorGuide, /remediationDraft/i);
   assert.match(operatorGuide, /focusPack/i);
   assert.match(operatorGuide, /previewPack/i);
   assert.match(operatorGuide, /workspacePack/i);
   assert.match(operatorGuide, /defaultFocus/i);
   assert.match(operatorGuide, /timeline/i);
   assert.match(operatorGuide, /operatorPreviewPack/i);
+  assert.match(operatorGuide, /Focused Remediation/i);
+  assert.match(operatorGuide, /compliance/i);
+  assert.match(operatorGuide, /auditLog/i);
   assert.match(operatorGuide, /Open Questions/i);
   assert.match(operatorGuide, /Timeline/i);
+  assert.match(operatorGuide, /Audit/i);
+  assert.match(operatorGuide, /Compliance/i);
+  assert.match(operatorGuide, /enforcement/i);
   assert.match(architecture, /case wiki/i);
   assert.match(architecture, /handoffPack/i);
   assert.match(architecture, /detailPack/i);
   assert.match(architecture, /routingPack/i);
   assert.match(architecture, /actionPack/i);
+  assert.match(architecture, /remediationDraft/i);
   assert.match(architecture, /focusPack/i);
   assert.match(architecture, /previewPack/i);
   assert.match(architecture, /workspacePack/i);
   assert.match(architecture, /defaultFocus/i);
   assert.match(architecture, /timeline/i);
   assert.match(architecture, /operatorPreviewPack/i);
+  assert.match(architecture, /Focused Remediation/i);
+  assert.match(architecture, /compliance/i);
+  assert.match(architecture, /auditLog/i);
   assert.match(architecture, /Open Questions/i);
   assert.match(architecture, /Timeline/i);
+  assert.match(architecture, /Audit/i);
+  assert.match(architecture, /Compliance/i);
+  assert.match(architecture, /enforcement/i);
   assert.match(architecture, /case-wiki\/notes/i);
 });

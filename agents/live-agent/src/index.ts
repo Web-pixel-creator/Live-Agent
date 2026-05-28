@@ -271,6 +271,24 @@ type CompactionOutcome = {
   at: string | null;
 };
 
+type CaseWikiRuntimeContext = {
+  source: "caseWiki";
+  prompt: string;
+  caseId: string | null;
+  focusKind: string | null;
+  focusId: string | null;
+  focusLabel: string | null;
+  blockingQuestion: string | null;
+  nextAction: string | null;
+  summary: string | null;
+  sourceRefs: string[];
+  runtimeBudgetGuard: {
+    status: string | null;
+    reason: string | null;
+    shortContextPreferred: boolean;
+  } | null;
+};
+
 const conversationSessions = new Map<string, ConversationSessionState>();
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -1145,7 +1163,7 @@ function getGeminiConfig(): GeminiConfig {
     moonshotTemperature: toNullableNumber(process.env.LIVE_AGENT_MOONSHOT_TEMPERATURE) ?? 1,
     moonshotTimeoutMs: toNullableNumber(process.env.LIVE_AGENT_MOONSHOT_TIMEOUT_MS) ?? Math.max(timeoutMs, 15000),
     timeoutMs,
-    liveModel: toNonEmptyString(process.env.LIVE_AGENT_LIVE_MODEL) ?? "gemini-live-2.5-flash-native-audio",
+    liveModel: toNonEmptyString(process.env.LIVE_AGENT_LIVE_MODEL) ?? "gemini-3.1-flash-live-preview",
     translationModel: toNonEmptyString(process.env.LIVE_AGENT_TRANSLATION_MODEL) ?? "gemini-3.1-flash-lite-preview",
     conversationModel: toNonEmptyString(process.env.LIVE_AGENT_CONVERSATION_MODEL) ?? "gemini-3.1-flash-lite-preview",
     moonshotTranslationModel: toNonEmptyString(process.env.LIVE_AGENT_MOONSHOT_TRANSLATION_MODEL) ?? "kimi-k2.5",
@@ -1266,6 +1284,232 @@ function clipTailText(text: string, maxChars: number): string {
   }
   const tailSize = Math.max(1, maxChars - 3);
   return `...${text.slice(text.length - tailSize)}`;
+}
+
+function firstNonEmptyString(...values: unknown[]): string | null {
+  for (const value of values) {
+    const normalized = toNonEmptyString(value);
+    if (normalized) {
+      return normalized;
+    }
+  }
+  return null;
+}
+
+function asRecordArray(value: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((item): item is Record<string, unknown> => isRecord(item));
+}
+
+function getCaseWikiRuntimeRecord(input: unknown): Record<string, unknown> | null {
+  if (!isRecord(input)) {
+    return null;
+  }
+  const directKeys = ["caseWiki", "caseWikiSnapshot", "runtimeCaseWiki", "compiledCaseWiki"];
+  for (const key of directKeys) {
+    const candidate = input[key];
+    if (isRecord(candidate)) {
+      return candidate;
+    }
+  }
+  const context = isRecord(input.context) ? input.context : null;
+  if (context && isRecord(context.caseWiki)) {
+    return context.caseWiki;
+  }
+  return null;
+}
+
+function getRuntimeBudgetGuardRecord(input: unknown): Record<string, unknown> | null {
+  if (!isRecord(input)) {
+    return null;
+  }
+  if (isRecord(input.runtimeBudgetGuard)) {
+    return input.runtimeBudgetGuard;
+  }
+  const context = isRecord(input.context) ? input.context : null;
+  return context && isRecord(context.runtimeBudgetGuard) ? context.runtimeBudgetGuard : null;
+}
+
+function normalizeCaseWikiSourceRefs(value: unknown): string[] {
+  const rawItems = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
+  const refs: string[] = [];
+  for (const item of rawItems) {
+    const ref = isRecord(item)
+      ? firstNonEmptyString(item.sourceRef, item.ref, item.id, item.url, item.label)
+      : toNonEmptyString(item);
+    if (ref && !refs.includes(ref)) {
+      refs.push(ref);
+    }
+  }
+  return refs.slice(0, 6);
+}
+
+function formatCaseWikiItems(
+  items: Record<string, unknown>[],
+  label: string,
+  maxItems = 3,
+): string[] {
+  return items.slice(0, maxItems).map((item) => {
+    const id = firstNonEmptyString(item.focusId, item.id, item.questionId, item.proofId);
+    const title = firstNonEmptyString(
+      item.focusLabel,
+      item.title,
+      item.label,
+      item.question,
+      item.summary,
+      item.description,
+    );
+    const status = firstNonEmptyString(item.status, item.state);
+    const nextStep = firstNonEmptyString(item.suggestedNextStep, item.nextStep, item.action, item.ctaLabel);
+    const route = isRecord(item.route)
+      ? firstNonEmptyString(item.route.lane, item.route.route, item.route.intent, item.route.label)
+      : null;
+    const cta = isRecord(item.cta)
+      ? firstNonEmptyString(item.cta.label, item.cta.action, item.cta.intent)
+      : null;
+    const details = [
+      id ? `id=${id}` : null,
+      status ? `status=${status}` : null,
+      route ? `route=${route}` : null,
+      cta ? `cta=${cta}` : null,
+      nextStep ? `next=${nextStep}` : null,
+    ].filter((value): value is string => Boolean(value));
+    return `${label}: ${clipText(title ?? id ?? "unnamed", 220)}${details.length > 0 ? ` (${details.join("; ")})` : ""}`;
+  });
+}
+
+function buildCaseWikiRuntimeContext(rawInput: unknown): CaseWikiRuntimeContext | null {
+  const wiki = getCaseWikiRuntimeRecord(rawInput);
+  if (!wiki) {
+    return null;
+  }
+
+  const overview = isRecord(wiki.overview) ? wiki.overview : {};
+  const workspacePack = isRecord(wiki.workspacePack) ? wiki.workspacePack : {};
+  const defaultFocus = isRecord(workspacePack.defaultFocus) ? workspacePack.defaultFocus : {};
+  const highlights = isRecord(wiki.highlights) ? wiki.highlights : {};
+  const evidencePack = isRecord(wiki.evidencePack) ? wiki.evidencePack : {};
+  const focusPack = isRecord(wiki.focusPack) ? wiki.focusPack : {};
+  const routingPack = isRecord(wiki.routingPack) ? wiki.routingPack : {};
+  const actionPack = isRecord(wiki.actionPack) ? wiki.actionPack : {};
+  const recommendedNextAction = isRecord(wiki.recommendedNextAction) ? wiki.recommendedNextAction : {};
+  const budgetGuardRecord = getRuntimeBudgetGuardRecord(rawInput);
+  const runtimeBudgetGuard = budgetGuardRecord
+    ? {
+        status: firstNonEmptyString(budgetGuardRecord.status),
+        reason: firstNonEmptyString(budgetGuardRecord.reason),
+        shortContextPreferred: budgetGuardRecord.shortContextPreferred === true,
+      }
+    : null;
+  const shortContextPreferred = runtimeBudgetGuard?.shortContextPreferred === true;
+
+  const evidenceQuestions = asRecordArray(evidencePack.questions);
+  const topBlockingQuestion = isRecord(highlights.topBlockingQuestion)
+    ? highlights.topBlockingQuestion
+    : evidenceQuestions[0] ?? {};
+
+  const caseId = firstNonEmptyString(wiki.caseId, overview.caseId, workspacePack.caseId);
+  const summary = firstNonEmptyString(overview.summary, workspacePack.summaryValue, highlights.summary);
+  const status = firstNonEmptyString(overview.status, workspacePack.statusValue, wiki.status);
+  const currentStage = firstNonEmptyString(overview.currentStage, workspacePack.currentStage, workspacePack.stageValue);
+  const focusKind = firstNonEmptyString(defaultFocus.focusKind, defaultFocus.kind);
+  const focusId = firstNonEmptyString(defaultFocus.focusId, defaultFocus.id);
+  const focusLabel = firstNonEmptyString(defaultFocus.focusLabel, defaultFocus.label, defaultFocus.title);
+  const blockingQuestion = firstNonEmptyString(
+    topBlockingQuestion.question,
+    topBlockingQuestion.focusLabel,
+    topBlockingQuestion.label,
+    workspacePack.blockerValue,
+  );
+  const blockerNextStep = firstNonEmptyString(
+    topBlockingQuestion.suggestedNextStep,
+    topBlockingQuestion.nextStep,
+    topBlockingQuestion.action,
+  );
+  const nextAction = firstNonEmptyString(
+    recommendedNextAction.summary,
+    recommendedNextAction.title,
+    workspacePack.nextActionValue,
+    blockerNextStep,
+  );
+  const sourceRefs = normalizeCaseWikiSourceRefs(evidencePack.sourceRefs);
+
+  const focusLines = [
+    ...formatCaseWikiItems(asRecordArray(focusPack.questions), "Focus question", shortContextPreferred ? 1 : 2),
+    ...formatCaseWikiItems(asRecordArray(focusPack.proofs), "Focus proof", shortContextPreferred ? 1 : 2),
+  ].slice(0, shortContextPreferred ? 2 : 4);
+  const routingLines = [
+    ...formatCaseWikiItems(asRecordArray(routingPack.questions), "Routing question", shortContextPreferred ? 1 : 2),
+    ...formatCaseWikiItems(asRecordArray(routingPack.proofs), "Routing proof", shortContextPreferred ? 1 : 2),
+  ].slice(0, shortContextPreferred ? 2 : 4);
+  const actionLines = [
+    ...formatCaseWikiItems(asRecordArray(actionPack.questions), "Action question", shortContextPreferred ? 1 : 2),
+    ...formatCaseWikiItems(asRecordArray(actionPack.proofs), "Action proof", shortContextPreferred ? 1 : 2),
+  ].slice(0, shortContextPreferred ? 2 : 4);
+
+  const hasUsefulContent = [
+    caseId,
+    summary,
+    status,
+    currentStage,
+    focusId,
+    focusLabel,
+    blockingQuestion,
+    nextAction,
+  ].some(Boolean) || focusLines.length > 0 || routingLines.length > 0 || actionLines.length > 0 || sourceRefs.length > 0;
+
+  if (!hasUsefulContent) {
+    return null;
+  }
+
+  const promptLines = [
+    "Case Wiki compiled memory (primary context).",
+    "Use this before raw transcript. If a blocker is present, do not promise completion before it is resolved.",
+    shortContextPreferred
+      ? `Runtime budget guard: short_context preferred (${runtimeBudgetGuard?.reason ?? "cost_guard"}). Use the focused Case Wiki facts only and avoid expanding raw transcript context.`
+      : null,
+    caseId ? `Case: ${clipText(caseId, 160)}` : null,
+    status ? `Status: ${clipText(status, 180)}` : null,
+    currentStage ? `Current stage: ${clipText(currentStage, 180)}` : null,
+    summary ? `Summary: ${clipText(summary, shortContextPreferred ? 360 : 900)}` : null,
+    focusId || focusLabel || focusKind
+      ? `Default focus: ${[
+          focusKind ? `kind=${focusKind}` : null,
+          focusId ? `id=${focusId}` : null,
+          focusLabel ? `label=${focusLabel}` : null,
+        ]
+          .filter((value): value is string => Boolean(value))
+          .join("; ")}`
+      : null,
+    blockingQuestion ? `Blocking question: ${clipText(blockingQuestion, shortContextPreferred ? 240 : 500)}` : null,
+    nextAction ? `Next action: ${clipText(nextAction, shortContextPreferred ? 240 : 500)}` : null,
+    focusLines.length > 0 ? `Focus pack:\n${focusLines.join("\n")}` : null,
+    routingLines.length > 0 ? `Routing pack:\n${routingLines.join("\n")}` : null,
+    actionLines.length > 0 ? `Action pack:\n${actionLines.join("\n")}` : null,
+    sourceRefs.length > 0
+      ? `Source refs: ${sourceRefs.slice(0, shortContextPreferred ? 3 : 6).join(", ")}`
+      : null,
+  ].filter((value): value is string => Boolean(value));
+
+  return {
+    source: "caseWiki",
+    prompt: promptLines.join("\n"),
+    caseId,
+    focusKind,
+    focusId,
+    focusLabel,
+    blockingQuestion,
+    nextAction,
+    summary,
+    sourceRefs,
+    runtimeBudgetGuard,
+  };
+}
+
+function hasSessionContext(state: ConversationSessionState): boolean {
+  return Boolean(state.summary || state.booking || state.handoff || state.followUp || state.turns.length > 0);
 }
 
 function createAgentUsageTotals(): AgentUsageTotals {
@@ -1478,16 +1722,23 @@ async function maybeCompactConversationContext(params: {
   };
 }
 
-function buildConversationContextPrompt(state: ConversationSessionState): string | null {
+function buildConversationContextPrompt(
+  state: ConversationSessionState,
+  caseWikiContext: CaseWikiRuntimeContext | null,
+): string | null {
   const sections: string[] = [];
+  const shortContextPreferred = caseWikiContext?.runtimeBudgetGuard?.shortContextPreferred === true;
+  if (caseWikiContext) {
+    sections.push(caseWikiContext.prompt);
+  }
   if (state.summary) {
-    sections.push(`Session summary:\n${clipTailText(state.summary, 1800)}`);
+    sections.push(`Session summary:\n${clipTailText(state.summary, shortContextPreferred ? 600 : 1800)}`);
   }
   const bookingState = renderBookingState(state.booking);
-  if (bookingState) {
+  if (bookingState && !shortContextPreferred) {
     sections.push(bookingState);
   }
-  if (state.followUp) {
+  if (state.followUp && !shortContextPreferred) {
     sections.push(
       [
         `Follow-up state: ${state.followUp.status}.`,
@@ -1497,7 +1748,7 @@ function buildConversationContextPrompt(state: ConversationSessionState): string
       ].join(" "),
     );
   }
-  if (state.handoff) {
+  if (state.handoff && !shortContextPreferred) {
     sections.push(
       [
         `Handoff state: ${state.handoff.status}.`,
@@ -1508,9 +1759,9 @@ function buildConversationContextPrompt(state: ConversationSessionState): string
       ].join(" "),
     );
   }
-  const recentTurns = state.turns.slice(-8);
+  const recentTurns = state.turns.slice(shortContextPreferred ? -2 : -8);
   if (recentTurns.length > 0) {
-    sections.push(`Recent turns:\n${renderTurns(recentTurns, 240)}`);
+    sections.push(`Recent turns:\n${renderTurns(recentTurns, shortContextPreferred ? 120 : 240)}`);
   }
   if (sections.length === 0) {
     return null;
@@ -1520,10 +1771,26 @@ function buildConversationContextPrompt(state: ConversationSessionState): string
 
 function buildContextDiagnostics(params: {
   state: ConversationSessionState;
+  caseWikiContext: CaseWikiRuntimeContext | null;
   preReplyCompaction: CompactionOutcome;
   postReplyCompaction?: CompactionOutcome;
 }): Record<string, unknown> {
+  const contextSource = params.caseWikiContext ? "caseWiki" : hasSessionContext(params.state) ? "session" : "none";
   return {
+    contextSource,
+    caseWiki: params.caseWikiContext
+      ? {
+          caseId: params.caseWikiContext.caseId,
+          focusKind: params.caseWikiContext.focusKind,
+          focusId: params.caseWikiContext.focusId,
+          focusLabel: params.caseWikiContext.focusLabel,
+          blockingQuestion: params.caseWikiContext.blockingQuestion,
+          nextAction: params.caseWikiContext.nextAction,
+          summary: params.caseWikiContext.summary,
+          sourceRefs: params.caseWikiContext.sourceRefs,
+          runtimeBudgetGuard: params.caseWikiContext.runtimeBudgetGuard,
+        }
+      : null,
     revision: params.state.revision,
     approxTokens: params.state.approxTokens,
     compactionCount: params.state.compactionCount,
@@ -2352,7 +2619,7 @@ async function generateConversationReply(params: {
     "Respond in at most 2 short sentences.",
     "Keep tone neutral-professional.",
     params.skillsPrompt ? `Skill directives:\n${params.skillsPrompt}` : null,
-    params.contextPrompt ? `Session context:\n${params.contextPrompt}` : null,
+    params.contextPrompt ? `Runtime context:\n${params.contextPrompt}` : null,
     `User message: ${inputText || "(empty)"}`,
   ]
     .filter((item): item is string => Boolean(item))
@@ -2857,6 +3124,7 @@ async function handleConversation(params: {
   const { input } = params;
   const contextConfig = getConversationContextConfig(params.config);
   const sessionContext = getOrCreateConversationSession(params.sessionId, contextConfig);
+  const caseWikiContext = buildCaseWikiRuntimeContext(params.rawInput);
 
   if (input.text.length > 0) {
     addConversationTurn({
@@ -2889,6 +3157,7 @@ async function handleConversation(params: {
       ...buildHumanHandoffResult(sessionContext),
       context: buildContextDiagnostics({
         state: sessionContext,
+        caseWikiContext,
         preReplyCompaction,
       }),
     };
@@ -2910,6 +3179,7 @@ async function handleConversation(params: {
       ...buildMissingDocumentsFollowUpResult(sessionContext),
       context: buildContextDiagnostics({
         state: sessionContext,
+        caseWikiContext,
         preReplyCompaction,
       }),
     };
@@ -2926,6 +3196,7 @@ async function handleConversation(params: {
       ...bookingResponse,
       context: buildContextDiagnostics({
         state: sessionContext,
+        caseWikiContext,
         preReplyCompaction,
       }),
     };
@@ -2941,6 +3212,7 @@ async function handleConversation(params: {
       ...bookingResponse,
       context: buildContextDiagnostics({
         state: sessionContext,
+        caseWikiContext,
         preReplyCompaction,
       }),
     };
@@ -2965,6 +3237,7 @@ async function handleConversation(params: {
       },
       context: buildContextDiagnostics({
         state: sessionContext,
+        caseWikiContext,
         preReplyCompaction,
       }),
     };
@@ -2975,7 +3248,7 @@ async function handleConversation(params: {
     config: params.config,
     capabilities: params.capabilities,
     usageTotals: params.usageTotals,
-    contextPrompt: buildConversationContextPrompt(sessionContext),
+    contextPrompt: buildConversationContextPrompt(sessionContext, caseWikiContext),
     skillsPrompt: params.skillsPrompt,
   });
   addConversationTurn({
@@ -2998,6 +3271,7 @@ async function handleConversation(params: {
     },
     context: buildContextDiagnostics({
       state: sessionContext,
+      caseWikiContext,
       preReplyCompaction,
       postReplyCompaction,
     }),

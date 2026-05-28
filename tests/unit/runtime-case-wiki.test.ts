@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { generateKeyPairSync } from "node:crypto";
 import test from "node:test";
 import type {
   ApprovalRecord,
@@ -7,6 +8,11 @@ import type {
   SessionListItem,
 } from "../../apps/api-backend/src/firestore.js";
 import { buildRuntimeCaseWiki } from "../../apps/api-backend/src/runtime-case-wiki.js";
+import {
+  buildRuntimeCaseCostSummary,
+  type RuntimeCostTrackerConfig,
+} from "../../apps/api-backend/src/runtime-cost-tracker.js";
+import { verifyEvidencePayloadSignature } from "../../apps/api-backend/src/runtime-evidence-signer.js";
 import type { RuntimeWorkflowControlPlaneSummary } from "../../apps/api-backend/src/runtime-workflow-control-plane.js";
 
 function buildWorkflowSummary(
@@ -176,6 +182,20 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
     },
   ];
 
+  const costConfig: RuntimeCostTrackerConfig = {
+    pricePer1kInputUsd: 0.00045,
+    pricePer1kOutputUsd: 0.00135,
+    pricePerLiveMinuteUsd: 0.006,
+    pricePerUiExecutorMinuteUsd: 0.02,
+    pricePerStorageMbUsd: 0.0002,
+  };
+  const costSummary = buildRuntimeCaseCostSummary({
+    events: selectedEvents,
+    config: costConfig,
+    sessionId: "session-case-1",
+    sourceRefs: ["workflow:control-plane"],
+  });
+
   const wiki = buildRuntimeCaseWiki({
     sessions,
     runs,
@@ -186,6 +206,25 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
     workflowSummary: buildWorkflowSummary(),
     userId: "user-case-1",
     now: new Date("2026-04-09T09:05:00.000Z"),
+    costSummary,
+    compliance: {
+      templateId: "strict",
+      requestedTemplateId: "strict",
+      fallbackApplied: false,
+      source: "tenant_override",
+      controls: {
+        piiRedactionLevel: "high",
+        crossTenantAdminOnly: true,
+        approvalSlaEnforced: true,
+        auditTrailRequired: true,
+      },
+      retention: {
+        rawMediaDays: 3,
+        auditLogsDays: 540,
+        eventsDays: 540,
+        sessionsDays: 120,
+      },
+    },
   });
 
   assert.ok(wiki, "expected a compiled case wiki");
@@ -194,6 +233,25 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
   assert.equal(wiki?.sessionId, "session-case-1");
   assert.equal(wiki?.userId, "user-case-1");
   assert.equal(wiki?.generatedAt, "2026-04-09T09:05:00.000Z");
+  assert.equal(wiki?.evidenceSignature?.status, "unsigned");
+  assert.match(wiki?.evidenceSignature?.payloadHash ?? "", /^sha256:[a-f0-9]{64}$/);
+  assert.equal(wiki?.evidenceSignature?.signature, null);
+  assert.equal(wiki?.evidenceSignature?.signedAt, "2026-04-09T09:05:00.000Z");
+  assert.equal(wiki?.compliance.templateId, "strict");
+  assert.equal(wiki?.compliance.source, "tenant_override");
+  assert.equal(wiki?.compliance.controls.piiRedactionLevel, "high");
+  assert.equal(wiki?.compliance.retention.rawMediaDays, 3);
+  assert.equal(wiki?.compliance.evidenceSigning.expectedSignatureStatus, "unsigned");
+  assert.equal(wiki?.compliance.enforcement.status, "pass");
+  assert.equal(wiki?.compliance.enforcement.snapshotMode, "compiled_operator_safe");
+  assert.equal(wiki?.compliance.enforcement.rawRefCount, 0);
+  assert.equal(wiki?.compliance.enforcement.redactionSatisfied, true);
+  assert.equal(wiki?.compliance.enforcement.signatureSatisfied, true);
+  assert.equal(wiki?.compliance.enforcement.exportReady, true);
+  assert.equal(wiki?.compliance.enforcement.artifactPosture?.totalArtifacts ?? 0, 0);
+  assert.equal(wiki?.compliance.enforcement.artifactPosture?.rawArtifacts ?? 0, 0);
+  assert.equal(wiki?.compliance.enforcement.remediation?.totalActions ?? 0, 0);
+  assert.match(wiki?.compliance.summary ?? "", /template=strict/i);
   assert.equal(wiki?.overview.title, "Case case-42 for Canada");
   assert.equal(wiki?.overview.status, "waiting_on_customer");
   assert.equal(wiki?.overview.customerGoal, "Spouse visa consultation");
@@ -227,6 +285,9 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
   assert.match(wiki?.actionPack.proofs[0]?.refsText ?? "", /workflow:control-plane/i);
   assert.equal(wiki?.actionPack.questions[0]?.focusId, "question:missing-followup-items");
   assert.match(wiki?.actionPack.questions[0]?.handoffText ?? "", /Question handoff/i);
+  assert.equal(wiki?.actionPack.questions[0]?.remediationDraft?.kind, "customer_message");
+  assert.equal(wiki?.actionPack.questions[0]?.remediationDraft?.targetLabel, "customer");
+  assert.match(wiki?.actionPack.questions[0]?.remediationDraft?.body ?? "", /Subject: Request missing follow-up items/i);
   assert.equal(wiki?.focusPack.proofs[0]?.focusId, "proof:followup-completeness");
   assert.match(wiki?.focusPack.proofs[0]?.drilldown ?? "", /Follow-up package is complete/i);
   assert.equal(wiki?.focusPack.questions[0]?.focusId, "question:missing-followup-items");
@@ -247,6 +308,11 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
   assert.match(wiki?.workspacePack.questionsValue ?? "", /\[high\]/i);
   assert.match(wiki?.workspacePack.timelineValue ?? "", /\[session\]/i);
   assert.match(wiki?.workspacePack.handoffValue ?? "", /Request missing follow-up items/i);
+  assert.ok(wiki?.workspacePack.costSummary, "expected workspacePack.costSummary");
+  assert.equal(wiki?.workspacePack.costSummary?.source, "case_wiki");
+  assert.equal(wiki?.workspacePack.costSummary?.totalTokens, 0);
+  assert.ok((wiki?.workspacePack.costSummary?.storageMb ?? 0) > 0);
+  assert.match(wiki?.workspacePack.costValue ?? "", /MB/i);
   assert.match(wiki?.operatorPreviewPack.overview.overview?.summary ?? "", /passport scan and invitation letter are still missing/i);
   assert.equal(wiki?.operatorPreviewPack.overview.counts.proofs, wiki?.proofs.length);
   assert.equal(wiki?.operatorPreviewPack.evidence.topProof?.status, "missing");
@@ -255,8 +321,34 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
   assert.equal(wiki?.operatorPreviewPack.questions.totalQuestions, wiki?.openQuestions.length);
   assert.equal(wiki?.operatorPreviewPack.questions.blockingQuestions, 2);
   assert.equal(wiki?.operatorPreviewPack.questions.items[0]?.id, "question:missing-followup-items");
+  assert.equal(wiki?.operatorPreviewPack.remediation.focusId, "question:missing-followup-items");
+  assert.equal(wiki?.operatorPreviewPack.remediation.draft?.kind, "customer_message");
   assert.equal(wiki?.operatorPreviewPack.timeline.totalEntries, wiki?.timeline.length);
   assert.equal(wiki?.operatorPreviewPack.timeline.latestEntries[0]?.kind, "session");
+  assert.equal(wiki?.operatorPreviewPack.compliance.templateId, "strict");
+  assert.equal(wiki?.operatorPreviewPack.compliance.evidenceSigning.keyState, "missing");
+  assert.ok((wiki?.auditLog.length ?? 0) >= 3);
+  assert.equal(wiki?.auditLog[0]?.source, "runtime");
+  assert.equal(
+    wiki?.auditLog.some(
+      (item) =>
+        item.source === "operator_note" &&
+        item.action === "blocking_note_added" &&
+        /passport scan/i.test(item.summary),
+    ),
+    true,
+  );
+  assert.equal(
+    wiki?.auditLog.some(
+      (item) =>
+        item.source === "approval" &&
+        item.action === "decision_approved" &&
+        item.newValue === "approved",
+    ),
+    true,
+  );
+  assert.equal(wiki?.operatorPreviewPack.audit.totalEntries, wiki?.auditLog.length);
+  assert.equal(wiki?.operatorPreviewPack.audit.latestEntries[0]?.source, "runtime");
   assert.equal(wiki?.entities.some((item) => item.kind === "case" && item.id === "case:case-42"), true);
   assert.equal(wiki?.entities.some((item) => item.kind === "location" && item.label === "Canada"), true);
   assert.equal(wiki?.timeline[0]?.id, "session:session-case-1");
@@ -313,6 +405,240 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
     relatedQuestionIds: ["question:missing-followup-items"],
     sourceRefs: ["workflow:control-plane"],
   });
+});
+
+test("runtime case wiki can attach a signed evidence envelope", () => {
+  const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+  const privateKeyPem = privateKey.export({ format: "pem", type: "pkcs8" }).toString();
+  const publicKeyPem = publicKey.export({ format: "pem", type: "spki" }).toString();
+  const wiki = buildRuntimeCaseWiki({
+    sessions: [
+      {
+        sessionId: "session-signed-1",
+        tenantId: "tenant-a",
+        mode: "live",
+        status: "active",
+        version: 1,
+        lastMutationId: "mutation-signed-1",
+        updatedAt: "2026-04-10T09:00:00.000Z",
+      },
+    ],
+    runs: [],
+    approvals: [],
+    recentEvents: [],
+    selectedEvents: [],
+    userId: "user-signed-1",
+    now: new Date("2026-04-10T09:01:00.000Z"),
+    evidenceSigner: {
+      enabled: true,
+      privateKeyPem,
+      keyId: "case-wiki-unit-key",
+      signerId: "api-backend-test",
+    },
+  });
+
+  assert.ok(wiki);
+  assert.ok(wiki.evidenceSignature);
+  assert.equal(wiki?.evidenceSignature?.status, "signed");
+  assert.equal(wiki?.evidenceSignature?.keyId, "case-wiki-unit-key");
+  assert.equal(wiki?.evidenceSignature?.signerId, "api-backend-test");
+  assert.equal(wiki?.evidenceSignature?.signedAt, "2026-04-10T09:01:00.000Z");
+  assert.equal(wiki?.compliance.templateId, "baseline");
+  assert.equal(wiki?.compliance.evidenceSigning.expectedSignatureStatus, "signed");
+  assert.equal(wiki?.compliance.enforcement.status, "pass");
+  assert.equal(wiki?.compliance.enforcement.observedSignatureStatus, "signed");
+  assert.equal(wiki?.compliance.enforcement.signatureSatisfied, true);
+  assert.equal(wiki?.compliance.enforcement.artifactPosture?.signedArtifacts, 1);
+  assert.deepEqual(wiki?.compliance.enforcement.artifactPosture?.blockingRefs ?? [], []);
+  assert.equal(wiki?.compliance.enforcement.artifactPosture?.items[0]?.ref, "case_wiki:evidence_signature");
+  assert.equal(wiki?.operatorPreviewPack.compliance.evidenceSigning.keyState, "loaded");
+  assert.equal(
+    verifyEvidencePayloadSignature({
+      payload: wiki,
+      evidenceSignature: wiki.evidenceSignature,
+      publicKeyPem,
+    }).ok,
+    true,
+  );
+});
+
+test("runtime case wiki compliance enforcement fails when high-redaction case refs raw artifacts", () => {
+  const wiki = buildRuntimeCaseWiki({
+    sessions: [
+      {
+        sessionId: "session-redaction-1",
+        tenantId: "tenant-a",
+        mode: "live",
+        status: "active",
+        version: 1,
+        lastMutationId: "mutation-redaction-1",
+        updatedAt: "2026-04-10T10:00:00.000Z",
+      },
+    ],
+    runs: [],
+    approvals: [],
+    recentEvents: [
+      {
+        eventId: "event-redaction-1",
+        sessionId: "session-redaction-1",
+        runId: "run-redaction-1",
+        type: "operator.note",
+        source: "operator",
+        createdAt: "2026-04-10T10:02:00.000Z",
+        route: "case-wiki",
+        status: "captured",
+        payload: {
+          kind: "case_wiki_note",
+          title: "Passport evidence added",
+          note: "Passport scan still needs a redacted export path.",
+          priority: "high",
+          blocking: true,
+          owner: "operator",
+          suggestedNextStep: "Replace raw passport artifact with a redacted export.",
+          sourceRefs: [
+            "artifact:raw:passport-scan",
+            "file:C:/tmp/passport-scan.png",
+          ],
+        },
+        metadata: {
+          kind: "case_wiki_note",
+        },
+      },
+    ],
+    selectedEvents: [],
+    compliance: {
+      templateId: "strict",
+      requestedTemplateId: "strict",
+      fallbackApplied: false,
+      source: "tenant_override",
+      controls: {
+        piiRedactionLevel: "high",
+        crossTenantAdminOnly: true,
+        approvalSlaEnforced: true,
+        auditTrailRequired: true,
+      },
+      retention: {
+        rawMediaDays: 2,
+        auditLogsDays: 540,
+        eventsDays: 540,
+        sessionsDays: 120,
+      },
+    },
+    now: new Date("2026-04-10T10:05:00.000Z"),
+  });
+
+  assert.ok(wiki);
+  assert.equal(wiki?.compliance.enforcement.status, "fail");
+  assert.equal(wiki?.compliance.enforcement.snapshotMode, "raw_ref_review");
+  assert.equal(wiki?.compliance.enforcement.redactionRequired, true);
+  assert.equal(wiki?.compliance.enforcement.redactionSatisfied, false);
+  assert.equal(wiki?.compliance.enforcement.exportReady, false);
+  assert.equal(wiki?.compliance.enforcement.rawRefCount, 2);
+  assert.deepEqual(wiki?.compliance.enforcement.blockingReasons, ["raw_like_source_refs_detected"]);
+  assert.equal(wiki?.compliance.enforcement.artifactPosture?.rawArtifacts, 2);
+  assert.deepEqual(wiki?.compliance.enforcement.artifactPosture?.blockingRefs, [
+    "artifact:raw:passport-scan",
+    "file:C:/tmp/passport-scan.png",
+  ]);
+  assert.equal(wiki?.compliance.enforcement.remediation?.totalActions, 2);
+  assert.equal(wiki?.compliance.enforcement.remediation?.primaryAction?.kind, "redact_artifact");
+  assert.equal(wiki?.compliance.enforcement.remediation?.primaryAction?.blockingRef, "artifact:raw:passport-scan");
+  assert.equal(wiki?.compliance.enforcement.remediation?.primaryAction?.requiredPosture, "redacted");
+  assert.equal(
+    wiki?.compliance.enforcement.remediation?.primaryAction?.operatorActionLabel,
+    "Prepare redacted replacement",
+  );
+  assert.equal(wiki?.operatorPreviewPack.compliance.enforcement.status, "fail");
+  assert.equal(wiki?.operatorPreviewPack.compliance.enforcement.exportReady, false);
+  assert.match(wiki?.compliance.summary ?? "", /enforcement=fail/i);
+  assert.match(wiki?.compliance.enforcement.summary ?? "", /remediation=2/i);
+  assert.equal(
+    wiki?.evidencePack.questions.some((item) => item.sourceRefs.includes("artifact:raw:passport-scan")),
+    true,
+  );
+});
+
+test("runtime case wiki compliance enforcement scans nested event artifact posture beyond compiled source refs", () => {
+  const wiki = buildRuntimeCaseWiki({
+    sessions: [
+      {
+        sessionId: "session-artifact-posture-1",
+        tenantId: "tenant-a",
+        mode: "ui",
+        status: "active",
+        version: 1,
+        lastMutationId: "mutation-artifact-posture-1",
+        updatedAt: "2026-04-10T11:00:00.000Z",
+      },
+    ],
+    runs: [],
+    approvals: [],
+    recentEvents: [
+      {
+        eventId: "event-artifact-posture-1",
+        sessionId: "session-artifact-posture-1",
+        runId: "run-artifact-posture-1",
+        type: "orchestrator.response",
+        source: "ui-navigator-agent",
+        createdAt: "2026-04-10T11:01:00.000Z",
+        route: "ui-navigator-agent",
+        status: "completed",
+        intent: "ui_task",
+        payload: {
+          output: {
+            execution: {
+              replayBundle: {
+                resultArtifactRefs: [
+                  "artifact:raw:passport-scan",
+                ],
+              },
+            },
+          },
+        },
+      },
+    ],
+    selectedEvents: [],
+    compliance: {
+      templateId: "strict",
+      requestedTemplateId: "strict",
+      fallbackApplied: false,
+      source: "tenant_override",
+      controls: {
+        piiRedactionLevel: "high",
+        crossTenantAdminOnly: true,
+        approvalSlaEnforced: true,
+        auditTrailRequired: true,
+      },
+      retention: {
+        rawMediaDays: 2,
+        auditLogsDays: 540,
+        eventsDays: 540,
+        sessionsDays: 120,
+      },
+    },
+    now: new Date("2026-04-10T11:05:00.000Z"),
+  });
+
+  assert.ok(wiki);
+  assert.equal(wiki?.compliance.enforcement.status, "fail");
+  assert.equal(wiki?.compliance.enforcement.exportReady, false);
+  assert.equal(wiki?.compliance.enforcement.rawRefCount, 1);
+  assert.deepEqual(wiki?.compliance.enforcement.blockingReasons, ["raw_like_source_refs_detected"]);
+  assert.equal(wiki?.compliance.enforcement.artifactPosture?.rawArtifacts, 1);
+  assert.deepEqual(wiki?.compliance.enforcement.artifactPosture?.blockingRefs, ["artifact:raw:passport-scan"]);
+  assert.equal(wiki?.compliance.enforcement.remediation?.totalActions, 1);
+  assert.equal(wiki?.compliance.enforcement.remediation?.primaryAction?.kind, "redact_artifact");
+  assert.match(wiki?.compliance.enforcement.remediation?.primaryAction?.title ?? "", /replay artifact/i);
+  assert.equal(
+    wiki?.compliance.enforcement.remediation?.primaryAction?.operatorActionLabel,
+    "Prepare redacted replacement",
+  );
+  assert.equal(
+    wiki?.compliance.enforcement.artifactPosture?.items.some(
+      (item) => item.ref === "artifact:raw:passport-scan" && item.source === "replay_artifact" && item.blocking === true,
+    ),
+    true,
+  );
 });
 
 test("runtime case wiki prioritizes pending approvals as the next action when operator decision is blocking", () => {
@@ -402,6 +728,8 @@ test("runtime case wiki prioritizes pending approvals as the next action when op
   assert.equal(wiki?.routingPack.questions[0]?.cta.actionId, "open_workflow_control");
   assert.equal(wiki?.actionPack.questions[0]?.focusId, "question:approval:approval-pending-1");
   assert.match(wiki?.actionPack.questions[0]?.refsText ?? "", /approval:approval-pending-1/i);
+  assert.equal(wiki?.actionPack.questions[0]?.remediationDraft?.kind, "approval_brief");
+  assert.match(wiki?.actionPack.questions[0]?.remediationDraft?.summary ?? "", /approval brief/i);
   assert.equal(wiki?.focusPack.questions[0]?.focusId, "question:approval:approval-pending-1");
   assert.match(wiki?.focusPack.questions[0]?.chipTitle ?? "", /Owner: operator/i);
   assert.equal(wiki?.workspacePack.defaultFocus?.focusKind, "question");
@@ -417,6 +745,11 @@ test("runtime case wiki prioritizes pending approvals as the next action when op
   assert.equal(wiki?.operatorPreviewPack.questions.totalQuestions, 1);
   assert.equal(wiki?.operatorPreviewPack.questions.blockingQuestions, 1);
   assert.equal(wiki?.operatorPreviewPack.questions.items[0]?.id, "question:approval:approval-pending-1");
+  assert.equal(wiki?.operatorPreviewPack.remediation.focusId, "question:approval:approval-pending-1");
+  assert.equal(wiki?.operatorPreviewPack.remediation.draft?.kind, "approval_brief");
   assert.equal(wiki?.operatorPreviewPack.timeline.totalEntries, wiki?.timeline.length);
   assert.equal(wiki?.operatorPreviewPack.timeline.latestEntries[0]?.kind, "session");
+  assert.equal(wiki?.auditLog.some((item) => item.source === "approval" && item.newValue === "pending"), true);
+  assert.equal(wiki?.operatorPreviewPack.audit.totalEntries, wiki?.auditLog.length);
+  assert.equal(wiki?.operatorPreviewPack.audit.latestEntries.some((item) => item.source === "approval"), true);
 });

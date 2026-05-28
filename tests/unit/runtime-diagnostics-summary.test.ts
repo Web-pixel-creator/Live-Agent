@@ -126,6 +126,23 @@ test("runtime diagnostics summary stays healthy when all guardrails are nominal"
         strictPlaywright: true,
         simulateIfUnavailable: false,
         registeredDeviceNodes: 2,
+        browserWorkers: {
+          runtime: {
+            enabled: true,
+          },
+          queue: {
+            running: 0,
+            paused: 0,
+            failed: 0,
+            checkpointReady: 0,
+          },
+          recovery: {
+            retryCount: 2,
+            resumedCheckpointCount: 1,
+            staleRefCount: 3,
+            healedRefCount: 2,
+          },
+        },
         sandbox: {
           mode: "enforce",
           networkPolicy: "same_origin",
@@ -156,6 +173,28 @@ test("runtime diagnostics summary stays healthy when all guardrails are nominal"
         },
       },
     ],
+    events: [
+      {
+        eventId: "event-case-wiki-routing",
+        sessionId: "session-workflow-healthy",
+        runId: "run-workflow-healthy",
+        type: "workflow.stage",
+        source: "orchestrator",
+        createdAt: "2026-03-06T00:00:02.000Z",
+        route: "live-agent",
+        intent: "conversation",
+        metadata: {
+          routingContextSource: "case_wiki",
+          routingContextIngressSource: "gateway_hydrated_case_wiki",
+          routingContextFocusId: "question:passport-scan",
+          routingContextBlocker: "Passport scan is still missing from the case.",
+          routingContextNextAction: "Request passport scan",
+          routingMode: "deterministic",
+          routingRequestedIntent: "conversation",
+          routingRoutedIntent: "conversation",
+        },
+      },
+    ],
     skillsCatalog: baseCatalog,
     skillsRuntimeSummary: baseRuntimeSummary,
   });
@@ -170,6 +209,11 @@ test("runtime diagnostics summary stays healthy when all guardrails are nominal"
   assert.equal(summary.uiExecutor.sandboxAllowedWriteRootsCount, 1);
   assert.equal(summary.uiExecutor.sandboxBlockFileUrls, true);
   assert.equal(summary.uiExecutor.sandboxAllowLoopbackHosts, false);
+  assert.equal(summary.uiExecutor.browserWorkerCheckpointReady, 0);
+  assert.equal(summary.uiExecutor.browserWorkerRetryCount, 2);
+  assert.equal(summary.uiExecutor.browserWorkerResumedCheckpointCount, 1);
+  assert.equal(summary.uiExecutor.browserWorkerStaleRefCount, 3);
+  assert.equal(summary.uiExecutor.browserWorkerHealedRefCount, 2);
   assert.equal(summary.skillsRuntime?.activeCount, 1);
   assert.equal(summary.orchestrator.workflowControlPlaneOverrideActive, false);
   assert.equal(summary.orchestrator.assistiveRouterProvider, "gemini_api");
@@ -180,8 +224,125 @@ test("runtime diagnostics summary stays healthy when all guardrails are nominal"
   assert.equal(summary.orchestrator.workflowCurrentStage, "planning");
   assert.equal(summary.orchestrator.workflowActiveRole, "planner");
   assert.equal(summary.orchestrator.workflowRoute, "live-agent");
+  assert.deepEqual(summary.orchestrator.latestCaseWikiRoutingContext, {
+    observed: true,
+    updatedAt: "2026-03-06T00:00:02.000Z",
+    contextSource: "case_wiki",
+    ingressSource: "gateway_hydrated_case_wiki",
+    focusId: "question:passport-scan",
+    blocker: "Passport scan is still missing from the case.",
+    nextAction: "Request passport scan",
+    route: "live-agent",
+    mode: "deterministic",
+    requestedIntent: "conversation",
+    routedIntent: "conversation",
+  });
   assert.deepEqual(summary.orchestrator.assistiveRouterAllowIntents, ["conversation", "translation"]);
+  assert.equal(summary.apiBackend.evidenceSigning.enabled, false);
+  assert.equal(summary.apiBackend.evidenceSigning.keyState, "missing");
+  assert.equal(summary.apiBackend.evidenceSigning.expectedSignatureStatus, "unsigned");
+  assert.equal(summary.slo.status, "missing");
+  assert.equal(summary.slo.validated, true);
   assert.deepEqual(summary.activeSignals, []);
+});
+
+test("runtime diagnostics summary exposes latency SLO posture and breach signals", () => {
+  const summary = buildRuntimeDiagnosticsSummary({
+    services: [
+      {
+        name: "realtime-gateway",
+        healthy: true,
+        ready: true,
+        draining: false,
+        startupFailureCount: 0,
+        startupBlockingFailure: false,
+        profile: {},
+        metrics: {
+          totalCount: 12,
+          p95Ms: 1900,
+        },
+      },
+      {
+        name: "orchestrator",
+        healthy: true,
+        ready: true,
+        draining: false,
+        startupFailureCount: 0,
+        startupBlockingFailure: false,
+        profile: {},
+        metrics: {},
+      },
+      {
+        name: "ui-executor",
+        healthy: true,
+        ready: true,
+        draining: false,
+        startupFailureCount: 0,
+        startupBlockingFailure: false,
+        profile: {},
+        metrics: {
+          totalCount: 8,
+          p95Ms: 8000,
+        },
+      },
+      {
+        name: "api-backend",
+        healthy: true,
+        ready: true,
+        draining: false,
+        startupFailureCount: 0,
+        startupBlockingFailure: false,
+        profile: {},
+        metrics: {
+          totalCount: 10,
+          p95Ms: 900,
+          operations: [
+            {
+              operation: "GET /v1/runtime/case-wiki",
+              count: 3,
+              latencyMs: {
+                p95: 700,
+              },
+              lastUpdatedAt: "2026-03-06T00:00:05.000Z",
+            },
+          ],
+        },
+      },
+    ],
+    events: [
+      {
+        eventId: "event-live-first-audio",
+        sessionId: "session-slo",
+        type: "live.first_audio",
+        source: "direct_live",
+        createdAt: "2026-03-06T00:00:01.000Z",
+        route: "live-agent",
+        liveFirstAudioMs: 1400,
+      },
+      {
+        eventId: "event-ui-navigator",
+        sessionId: "session-slo",
+        type: "orchestrator.response",
+        source: "ui-navigator-agent",
+        createdAt: "2026-03-06T00:00:02.000Z",
+        route: "ui-navigator-agent",
+        latencyMs: 12000,
+      },
+    ],
+    skillsCatalog: baseCatalog,
+    sloThresholds: {
+      liveFirstAudioP95Ms: 2500,
+      navigatorStepP95Ms: 10000,
+      caseWikiQueryP95Ms: 1500,
+    },
+  });
+
+  assert.equal(summary.status, "degraded");
+  assert.equal(summary.slo.status, "breach");
+  assert.match(String(summary.slo.summary), /navigatorStepP95=12000ms\/10000ms/);
+  assert.equal(summary.slo.breachCount, 1);
+  assert.equal(summary.slo.observedCount, 3);
+  assert.equal(summary.activeSignals.some((item) => item.key === "runtime_slo_navigatorStepP95_breach"), true);
 });
 
 test("runtime diagnostics summary highlights active degradation signals", () => {
@@ -374,4 +535,65 @@ test("runtime diagnostics summary flags unrestricted ui-executor egress in enfor
   assert.equal(summary.status, "critical");
   assert.ok(summary.activeSignals.some((item) => item.key === "ui_executor_sandbox_network_open"));
   assert.equal(summary.uiExecutor.sandboxNetworkPolicy, "allow_all");
+});
+
+test("runtime diagnostics summary flags evidence signing when enabled without a valid key", () => {
+  const summary = buildRuntimeDiagnosticsSummary({
+    services: [
+      {
+        name: "realtime-gateway",
+        healthy: true,
+        ready: true,
+        draining: false,
+        startupFailureCount: 0,
+        startupBlockingFailure: false,
+        profile: {},
+        metrics: {},
+      },
+      {
+        name: "orchestrator",
+        healthy: true,
+        ready: true,
+        draining: false,
+        startupFailureCount: 0,
+        startupBlockingFailure: false,
+        profile: {},
+        metrics: {},
+      },
+      {
+        name: "ui-executor",
+        healthy: true,
+        ready: true,
+        draining: false,
+        startupFailureCount: 0,
+        startupBlockingFailure: false,
+        profile: {},
+        metrics: {},
+      },
+      {
+        name: "api-backend",
+        healthy: true,
+        ready: true,
+        draining: false,
+        startupFailureCount: 0,
+        startupBlockingFailure: false,
+        profile: {},
+        metrics: {},
+      },
+    ],
+    skillsCatalog: baseCatalog,
+    evidenceSigner: {
+      enabled: true,
+      privateKeyPem: "not-a-valid-private-key",
+      keyId: "broken-key",
+      signerId: "api-backend-test",
+    },
+  });
+
+  assert.equal(summary.status, "critical");
+  assert.equal(summary.apiBackend.evidenceSigning.enabled, true);
+  assert.equal(summary.apiBackend.evidenceSigning.keyState, "invalid");
+  assert.equal(summary.apiBackend.evidenceSigning.canSign, false);
+  assert.equal(summary.apiBackend.evidenceSigning.expectedSignatureStatus, "unsigned");
+  assert.ok(summary.activeSignals.some((item) => item.key === "evidence_signing_key_unavailable"));
 });

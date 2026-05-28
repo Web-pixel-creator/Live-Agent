@@ -19,8 +19,8 @@ Show one complete case lifecycle:
 
 Frontend:
 
-- local: `http://localhost:3000`
-- hosted: `https://live-agent-frontend-production.up.railway.app`
+- local: `http://localhost:3000/app`
+- hosted: `https://live-agent-frontend-production.up.railway.app/app`
 
 Main tab:
 

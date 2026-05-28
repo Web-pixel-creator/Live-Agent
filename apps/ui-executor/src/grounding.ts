@@ -32,6 +32,15 @@ export type UiGroundingTargetResolution = {
   status: "resolved" | "missing_ref" | "missing_selector";
 };
 
+export type UiGroundingRefRecoveryPlan = {
+  refId: string;
+  kind: UiGroundingRefKind;
+  label: string | null;
+  selectors: string[];
+  exactTexts: string[];
+  tokens: string[];
+};
+
 function normalizeText(value: string | null | undefined): string {
   return typeof value === "string" ? value.toLowerCase() : "";
 }
@@ -318,6 +327,157 @@ function refKindMatchesContext(ref: UiGroundingRefRecord, context: UiExecutorGro
     default:
       return selectorMatchesContext(ref.selector, context);
   }
+}
+
+function addRecoveryToken(target: Set<string>, value: string | null | undefined): void {
+  if (typeof value !== "string") {
+    return;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized.length === 0) {
+    return;
+  }
+  target.add(normalized);
+}
+
+function addRecoveryText(target: Set<string>, value: string | null | undefined): void {
+  if (typeof value !== "string") {
+    return;
+  }
+  const normalized = value.trim().replace(/\s+/g, " ");
+  if (normalized.length === 0) {
+    return;
+  }
+  target.add(normalized);
+}
+
+function addRecoverySelector(target: Set<string>, selector: string | null | undefined): void {
+  if (typeof selector !== "string") {
+    return;
+  }
+  const normalized = selector.trim();
+  if (normalized.length === 0) {
+    return;
+  }
+  target.add(normalized);
+}
+
+function isSimpleSelectorToken(value: string): boolean {
+  return /^[a-z0-9_-]+$/i.test(value);
+}
+
+function escapeAttributeSelectorValue(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function collectSelectorIdentifiers(selector: string): string[] {
+  const result = new Set<string>();
+  for (const match of selector.matchAll(/#([a-z0-9_-]+)/gi)) {
+    addRecoveryToken(result, match[1]);
+  }
+  for (const match of selector.matchAll(/\[name=(?:'|")?([a-z0-9_-]+)(?:'|")?\]/gi)) {
+    addRecoveryToken(result, match[1]);
+  }
+  return Array.from(result);
+}
+
+function collectRecoveryTokens(ref: UiGroundingRefRecord): string[] {
+  const tokens = new Set<string>();
+  addRecoveryToken(tokens, ref.id);
+  for (const alias of ref.aliases) {
+    addRecoveryToken(tokens, alias);
+  }
+  addRecoveryToken(tokens, ref.label);
+  for (const token of collectSelectorIdentifiers(ref.selector)) {
+    addRecoveryToken(tokens, token);
+  }
+  return Array.from(tokens);
+}
+
+function collectRecoveryTexts(ref: UiGroundingRefRecord): string[] {
+  const texts = new Set<string>();
+  addRecoveryText(texts, ref.label);
+  for (const alias of ref.aliases) {
+    addRecoveryText(texts, alias);
+  }
+  return Array.from(texts);
+}
+
+function buildRecoverySelectorsForRef(ref: UiGroundingRefRecord): string[] {
+  const selectors = new Set<string>();
+  addRecoverySelector(selectors, ref.selector);
+
+  for (const token of collectRecoveryTokens(ref)) {
+    if (isSimpleSelectorToken(token)) {
+      addRecoverySelector(selectors, `#${token}`);
+      addRecoverySelector(selectors, `[name="${escapeAttributeSelectorValue(token)}"]`);
+    }
+
+    if (ref.kind === "field") {
+      addRecoverySelector(selectors, `input[name="${escapeAttributeSelectorValue(token)}"]`);
+      addRecoverySelector(selectors, `textarea[name="${escapeAttributeSelectorValue(token)}"]`);
+      addRecoverySelector(selectors, `select[name="${escapeAttributeSelectorValue(token)}"]`);
+      addRecoverySelector(selectors, `input[id="${escapeAttributeSelectorValue(token)}"]`);
+      addRecoverySelector(selectors, `textarea[id="${escapeAttributeSelectorValue(token)}"]`);
+      addRecoverySelector(selectors, `select[id="${escapeAttributeSelectorValue(token)}"]`);
+    }
+  }
+
+  for (const text of collectRecoveryTexts(ref)) {
+    addRecoverySelector(selectors, `[aria-label="${escapeAttributeSelectorValue(text)}"]`);
+    if (ref.kind === "field") {
+      addRecoverySelector(selectors, `input[placeholder="${escapeAttributeSelectorValue(text)}"]`);
+      addRecoverySelector(selectors, `textarea[placeholder="${escapeAttributeSelectorValue(text)}"]`);
+      addRecoverySelector(selectors, `select[aria-label="${escapeAttributeSelectorValue(text)}"]`);
+    }
+  }
+
+  if (ref.kind === "submit") {
+    addRecoverySelector(selectors, `button[type="submit"]`);
+    addRecoverySelector(selectors, `input[type="submit"]`);
+  } else if (ref.kind === "button") {
+    addRecoverySelector(selectors, `button`);
+    addRecoverySelector(selectors, `[role="button"]`);
+    addRecoverySelector(selectors, `input[type="button"]`);
+  }
+
+  return Array.from(selectors);
+}
+
+export function buildGroundingRefRecoveryPlan(
+  target: string,
+  context: UiExecutorGroundingContext | undefined,
+): UiGroundingRefRecoveryPlan | null {
+  if (!context?.refMap) {
+    return null;
+  }
+
+  const resolved = resolveGroundingTarget(target, context);
+  if (resolved.mode !== "ref" || !resolved.refId) {
+    return null;
+  }
+
+  const ref = context.refMap[resolved.refId];
+  if (!ref) {
+    return null;
+  }
+
+  const selectors = buildRecoverySelectorsForRef(ref);
+  const exactTexts = collectRecoveryTexts(ref);
+  const tokens = collectRecoveryTokens(ref);
+
+  if (selectors.length === 0 && exactTexts.length === 0 && tokens.length === 0) {
+    return null;
+  }
+
+  return {
+    refId: ref.id,
+    kind: ref.kind,
+    label: ref.label,
+    selectors,
+    exactTexts,
+    tokens,
+  };
 }
 
 export function resolveGroundingTarget(

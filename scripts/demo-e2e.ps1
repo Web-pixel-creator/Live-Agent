@@ -27,7 +27,10 @@ param(
   [int]$ScenarioRetryBackoffMs = 900,
 
   [Parameter(Mandatory = $false)]
-  [string]$OutputPath = "artifacts/demo-e2e/summary.json"
+  [string]$OutputPath = "artifacts/demo-e2e/summary.json",
+
+  [Parameter(Mandatory = $false)]
+  [string]$RuntimeSurfaceSnapshotOutputPath = ""
 )
 
 Set-StrictMode -Version Latest
@@ -67,6 +70,29 @@ function Set-EnvValue {
   Set-Item -Path ("Env:" + $Name) -Value $Value
 }
 
+# Returns $true when DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT is unset
+# OR set to a value other than the falsy set ("0", "false", "no", "off",
+# case + whitespace insensitive). Returns $false ONLY when the env is
+# explicitly opted out.
+#
+# Mirrors the parsing rule from the visa-flows slice's
+# DEMO_E2E_VISA_FLOWS_ACCEPT_SIMULATION but inverted: this env names what
+# release-strict requires, so the default is $true. PR Quality opts out
+# (DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT="false") to skip the
+# real-DOM ref-healing assertions that simulateExecution() in
+# apps/ui-executor/src/index.ts cannot honestly satisfy. Release-strict
+# workflows leave the env unset so today's strict real-DOM ref-healing
+# requirement applies byte-identical. See
+# .kiro/specs/ui-executor-ref-healing-execution-mode-aware/.
+function Test-DemoE2eRefHealingRequiresRealPlaywright {
+  $envValue = [Environment]::GetEnvironmentVariable("DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT")
+  if ($null -eq $envValue) {
+    return $true
+  }
+  $normalized = $envValue.ToString().Trim().ToLowerInvariant()
+  return -not (@("0", "false", "no", "off") -contains $normalized)
+}
+
 function Write-Utf8NoBomFile {
   param(
     [Parameter(Mandatory = $true)]
@@ -82,6 +108,39 @@ function Write-Utf8NoBomFile {
 
   $encoding = New-Object System.Text.UTF8Encoding($false)
   [System.IO.File]::WriteAllText($Path, $Content, $encoding)
+}
+
+function Write-RuntimeSurfaceSnapshotArtifact {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$OutputPath
+  )
+
+  if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+    return
+  }
+
+  Write-Step ("Capturing runtime surface snapshot to " + $OutputPath)
+  Push-Location $script:RepoRoot
+  try {
+    & node --import tsx ./scripts/runtime-surface-snapshot.mjs --output $OutputPath
+    if ($LASTEXITCODE -ne 0) {
+      throw ("Runtime surface snapshot command failed with exit code " + $LASTEXITCODE)
+    }
+  } finally {
+    Pop-Location
+  }
+}
+
+function Initialize-DemoUiExecutorSandboxSetupMarker {
+  param(
+    [Parameter(Mandatory = $false)]
+    [string]$Version = "demo-e2e-enforce-v1"
+  )
+
+  $markerPath = Join-Path $script:RepoRoot "artifacts/runtime/ui-executor-sandbox/demo-e2e.marker"
+  Write-Utf8NoBomFile -Path $markerPath -Content ($Version + [Environment]::NewLine)
+  return $markerPath
 }
 
 function Get-FieldValue {
@@ -552,6 +611,42 @@ function Invoke-JsonRequestWithRetry {
   throw "Request retry loop exhausted for $Method $Uri."
 }
 
+function Wait-ForBrowserJobState {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$JobId,
+    [Parameter(Mandatory = $true)]
+    [string[]]$Statuses,
+    [Parameter(Mandatory = $false)]
+    [int]$TimeoutSec = 45,
+    [Parameter(Mandatory = $false)]
+    [int]$PollMs = 150
+  )
+
+  if ($Statuses.Count -eq 0) {
+    throw "Statuses must include at least one target state."
+  }
+
+  $deadline = [DateTime]::UtcNow.AddSeconds([Math]::Max(1, $TimeoutSec))
+  $lastResponse = $null
+
+  while ([DateTime]::UtcNow -lt $deadline) {
+    $response = Invoke-JsonRequest -Method GET -Uri ("http://localhost:8090/browser-jobs/" + [Uri]::EscapeDataString($JobId)) -TimeoutSec ([Math]::Min([Math]::Max(5, $TimeoutSec), 15))
+    $job = Get-FieldValue -Object $response -Path @("data", "job")
+    if ($null -ne $job) {
+      $lastResponse = $response
+      $status = [string](Get-FieldValue -Object $job -Path @("status"))
+      if ($Statuses -contains $status) {
+        return $response
+      }
+    }
+    Start-Sleep -Milliseconds ([Math]::Max(50, $PollMs))
+  }
+
+  $lastStatus = if ($null -ne $lastResponse) { [string](Get-FieldValue -Object $lastResponse -Path @("data", "job", "status")) } else { "unknown" }
+  throw ("Timed out waiting for browser job {0} to reach one of: {1}. Last status: {2}" -f $JobId, ($Statuses -join ", "), $lastStatus)
+}
+
 function Invoke-NodeJsonCommand {
   param(
     [Parameter(Mandatory = $true)]
@@ -837,6 +932,46 @@ function Get-DemoManagedServiceReuseMismatchReason {
     $forceSimulation = Convert-ToBooleanOrNull -Value (Get-FieldValue -Object $HealthPayload -Path @("forceSimulation"))
     if ($forceSimulation -ne $false) {
       return "forceSimulation=true"
+    }
+
+    $sandboxMode = [string](Get-FieldValue -Object $runtime -Path @("sandbox", "mode"))
+    if ($sandboxMode -ne "enforce") {
+      return "sandbox.mode=$sandboxMode"
+    }
+
+    $sandboxNetworkPolicy = [string](Get-FieldValue -Object $runtime -Path @("sandbox", "networkPolicy"))
+    if ($sandboxNetworkPolicy -ne "allow_list") {
+      return "sandbox.networkPolicy=$sandboxNetworkPolicy"
+    }
+
+    $sandboxAllowedOriginsCount = Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $runtime -Path @("sandbox", "allowedOriginsCount"))
+    if ($sandboxAllowedOriginsCount -le 0) {
+      return "sandbox.allowedOriginsCount=$sandboxAllowedOriginsCount"
+    }
+
+    $sandboxAllowedReadRootsCount = Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $runtime -Path @("sandbox", "allowedReadRootsCount"))
+    if ($sandboxAllowedReadRootsCount -le 0) {
+      return "sandbox.allowedReadRootsCount=$sandboxAllowedReadRootsCount"
+    }
+
+    $sandboxAllowedWriteRootsCount = Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $runtime -Path @("sandbox", "allowedWriteRootsCount"))
+    if ($sandboxAllowedWriteRootsCount -le 0) {
+      return "sandbox.allowedWriteRootsCount=$sandboxAllowedWriteRootsCount"
+    }
+
+    $sandboxBlockFileUrls = Convert-ToBooleanOrNull -Value (Get-FieldValue -Object $runtime -Path @("sandbox", "blockFileUrls"))
+    if ($sandboxBlockFileUrls -ne $true) {
+      return "sandbox.blockFileUrls=false"
+    }
+
+    $sandboxAllowLoopbackHosts = Convert-ToBooleanOrNull -Value (Get-FieldValue -Object $runtime -Path @("sandbox", "allowLoopbackHosts"))
+    if ($sandboxAllowLoopbackHosts -ne $true) {
+      return "sandbox.allowLoopbackHosts=false"
+    }
+
+    $sandboxSetupStatus = [string](Get-FieldValue -Object $runtime -Path @("sandbox", "setupMarker", "status"))
+    if ($sandboxSetupStatus -ne "current") {
+      return "sandbox.setupMarker.status=$sandboxSetupStatus"
     }
   }
 
@@ -1524,6 +1659,18 @@ function New-RuntimeGuardrailAction {
         buttonLabel       = "Jump to Live Bridge"
       }
     }
+    "ui_executor_sandbox_loopback_allowed" {
+      return [ordered]@{
+        kind              = "jump_card"
+        signalKey         = $signalKey
+        signalService     = $signalService
+        signalKeys        = @($signalKey)
+        signalDescriptors = @("$signalSeverity $signalKey@$signalService")
+        targetStatusId    = "operatorRuntimeGuardrailsStatus"
+        summaryText       = "Manual triage: loopback access remains enabled only for repo-owned local demo fixtures. Inspect Runtime Guardrails before judged flow."
+        buttonLabel       = "Jump to Runtime Guardrails"
+      }
+    }
     default {
       return $null
     }
@@ -1657,6 +1804,12 @@ function Build-RuntimeGuardrailsSignalPathsEvidence {
   $coverageStartupFailures = if ($null -ne $coverage) { Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $coverage -Path @("startupFailureServices")) } else { 0 }
   $coverageStartupBlocking = if ($null -ne $coverage) { Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $coverage -Path @("startupBlockingServices")) } else { 0 }
 
+  $slo = Get-FieldValue -Object $RuntimeDiagnostics -Path @("slo")
+  $sloSummary = if ($null -ne $slo) { [string](Get-FieldValue -Object $slo -Path @("summary")) } else { "" }
+  if ([string]::IsNullOrWhiteSpace($sloSummary)) {
+    $sloSummary = "missing"
+  }
+
   $uiExecutorRuntime = Get-FieldValue -Object $RuntimeDiagnostics -Path @("uiExecutor")
   $sandboxMode = if ($null -ne $uiExecutorRuntime) { [string](Get-FieldValue -Object $uiExecutorRuntime -Path @("sandboxMode")) } else { "" }
   if ([string]::IsNullOrWhiteSpace($sandboxMode)) {
@@ -1776,6 +1929,7 @@ function Build-RuntimeGuardrailsSignalPathsEvidence {
     -not [string]::IsNullOrWhiteSpace($statusText) -and
     -not [string]::IsNullOrWhiteSpace($signalsSummary) -and
     -not [string]::IsNullOrWhiteSpace($coverageSummary) -and
+    -not [string]::IsNullOrWhiteSpace($sloSummary) -and
     -not [string]::IsNullOrWhiteSpace($sandboxSummary) -and
     -not [string]::IsNullOrWhiteSpace($skillsSummary) -and
     -not [string]::IsNullOrWhiteSpace($topSignalText) -and
@@ -1789,6 +1943,7 @@ function Build-RuntimeGuardrailsSignalPathsEvidence {
     validated        = $snapshotValidated
     signalsSummary   = $signalsSummary
     coverageSummary  = $coverageSummary
+    sloSummary       = $sloSummary
     sandboxSummary   = $sandboxSummary
     skillsSummary    = $skillsSummary
     topSignal        = $topSignalText
@@ -1810,6 +1965,7 @@ if ([string]::IsNullOrWhiteSpace($resolvedOutputDir)) {
 }
 $resolvedDirectLiveBrowserSmokePath = Join-Path $resolvedOutputDir "direct-live-browser-smoke.json"
 $resolvedDirectLiveBrowserSmokeScreenshotPath = Join-Path $resolvedOutputDir "direct-live-browser-smoke.png"
+$resolvedNavigatorVisaFlowsPath = Join-Path $resolvedOutputDir "navigator-visa-flows.json"
 if (-not [string]::IsNullOrWhiteSpace($resolvedOutputDir)) {
   New-Item -ItemType Directory -Force -Path $resolvedOutputDir | Out-Null
 }
@@ -1845,9 +2001,21 @@ try {
   Set-EnvDefault -Name "UI_NAVIGATOR_EXECUTOR_MAX_RETRIES" -Value "1"
   Set-EnvDefault -Name "UI_NAVIGATOR_EXECUTOR_RETRY_BACKOFF_MS" -Value "300"
   Set-EnvValue -Name "UI_NAVIGATOR_GEMINI_TIMEOUT_MS" -Value "60000"
+  $uiExecutorSandboxSetupMarkerVersion = "demo-e2e-enforce-v1"
+  $uiExecutorSandboxSetupMarkerPath = Initialize-DemoUiExecutorSandboxSetupMarker -Version $uiExecutorSandboxSetupMarkerVersion
   Set-EnvDefault -Name "UI_EXECUTOR_STRICT_PLAYWRIGHT" -Value "true"
   Set-EnvDefault -Name "UI_EXECUTOR_SIMULATE_IF_UNAVAILABLE" -Value "false"
   Set-EnvDefault -Name "UI_EXECUTOR_FORCE_SIMULATION" -Value "false"
+  Set-EnvValue -Name "UI_EXECUTOR_DEFAULT_URL" -Value "https://example.com/app"
+  Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_MODE" -Value "enforce"
+  Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_NETWORK_POLICY" -Value "allow_list"
+  Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_ALLOWED_ORIGINS" -Value "https://example.com;http://localhost:3000;http://127.0.0.1:3000"
+  Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_ALLOWED_READ_ROOTS" -Value "artifacts;apps/demo-frontend/public"
+  Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_ALLOWED_WRITE_ROOTS" -Value "artifacts"
+  Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_BLOCK_FILE_URLS" -Value "true"
+  Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_ALLOW_LOOPBACK_HOSTS" -Value "true"
+  Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_SETUP_MARKER_PATH" -Value $uiExecutorSandboxSetupMarkerPath
+  Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_SETUP_MARKER_VERSION" -Value $uiExecutorSandboxSetupMarkerVersion
   Set-EnvDefault -Name "DEMO_E2E_SERVICE_START_MAX_ATTEMPTS" -Value "2"
   Set-EnvDefault -Name "DEMO_E2E_SERVICE_START_RETRY_BACKOFF_MS" -Value "1200"
   Set-EnvValue -Name "ANALYTICS_EXPORT_ENABLED" -Value "true"
@@ -2744,6 +2912,411 @@ try {
   } | Out-Null
 
   Invoke-Scenario `
+    -Name "ui.executor.ref_healing" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
+    if (-not $IncludeFrontend) {
+      Start-ManagedService -Name "demo-frontend" -HealthUrl "http://localhost:3000/healthz" -NodeArgs @("--import", "tsx", "apps/demo-frontend/src/server.ts")
+    }
+    $uiExecutorRequestTimeoutSec = [Math]::Max($RequestTimeoutSec, 60)
+    $fixtureUrl = "http://localhost:3000/ui-task-profile-settings-demo.html"
+    $request = [ordered]@{
+      actions = @(
+        [ordered]@{
+          id = "navigate-profile-settings"
+          type = "navigate"
+          target = $fixtureUrl
+        }
+        [ordered]@{
+          id = "verify-submit-disabled"
+          type = "verify"
+          target = 'css:button[type="submit"]:disabled'
+        }
+        [ordered]@{
+          id = "verify-email-visible"
+          type = "verify"
+          target = "ref:email"
+        }
+        [ordered]@{
+          id = "type-email"
+          type = "type"
+          target = "css:#email"
+          text = "agent@example.com"
+        }
+        [ordered]@{
+          id = "verify-submit-enabled"
+          type = "verify"
+          target = 'css:button[type="submit"]:not(:disabled)'
+        }
+        [ordered]@{
+          id = "verify-submit-ref"
+          type = "verify"
+          target = "ref:submit_primary"
+        }
+        [ordered]@{
+          id = "submit-profile"
+          type = "click"
+          target = "ref:submit_primary"
+        }
+      )
+      context = [ordered]@{
+        goal = "Fill the email field, verify the submit button unlocks, and submit the profile settings form."
+        url = $fixtureUrl
+        screenshotRef = "ui://demo/ref-healing"
+        domSnapshot = "<main><form id='profile-form' aria-label='Profile settings form'><label for='email'>Email<input id='email' name='email' type='email' autocomplete='email' placeholder='operator@example.com' /></label><p id='form-status' aria-live='polite'>Submit is disabled until the email field is filled.</p><div><button id='submit-profile' type='submit' disabled>Submit changes</button><button id='preview-card' type='button'>Preview profile card</button></div></form></main>"
+        accessibilityTree = "main > form[name=Profile settings form] > textbox[name=Email]; main > form[name=Profile settings form] > button[name=Submit changes]; main > form[name=Profile settings form] > button[name=Preview profile card]"
+        markHints = @(
+          "email_field@(404,244)"
+          "submit_changes@(416,348)"
+          "preview_profile_card@(600,348)"
+        )
+        refMap = [ordered]@{
+          email = [ordered]@{
+            selector = "#legacy-email"
+            kind = "field"
+            label = "Email"
+            aliases = @("email", "work email")
+          }
+          submit_primary = [ordered]@{
+            selector = "#legacy-submit"
+            kind = "submit"
+            label = "Submit changes"
+            aliases = @("submit", "save profile")
+          }
+        }
+      }
+    }
+
+    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8090/execute" -Body $request -TimeoutSec $uiExecutorRequestTimeoutSec
+
+    $finalStatus = [string](Get-FieldValue -Object $response -Path @("finalStatus"))
+    Assert-Condition -Condition ($finalStatus -eq "completed") -Message "UI executor ref-healing scenario did not complete."
+
+    $adapterMode = [string](Get-FieldValue -Object $response -Path @("adapterMode"))
+    Assert-Condition -Condition ($adapterMode -eq "remote_http") -Message "UI executor ref-healing scenario must use remote_http adapter."
+
+    $grounding = Get-FieldValue -Object $response -Path @("grounding")
+    Assert-Condition -Condition ($null -ne $grounding) -Message "UI executor ref-healing scenario is missing grounding metadata."
+
+    $healedRefTargets = @((Get-FieldValue -Object $grounding -Path @("healedRefTargets")))
+    $staleRefTargets = @((Get-FieldValue -Object $grounding -Path @("staleRefTargets")))
+    $refHealingRequireRealPlaywrightEnv = [Environment]::GetEnvironmentVariable("DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT")
+    $refHealingRequireRealPlaywrightEnvDisplay = if ($null -eq $refHealingRequireRealPlaywrightEnv) { "<unset>" } else { $refHealingRequireRealPlaywrightEnv }
+    if (Test-DemoE2eRefHealingRequiresRealPlaywright) {
+      Assert-Condition -Condition ($healedRefTargets -contains "email") -Message "UI executor ref-healing should recover the email ref."
+      Assert-Condition -Condition ($healedRefTargets -contains "submit_primary") -Message "UI executor ref-healing should recover the submit ref."
+    } else {
+      Write-Step ("ui.executor.ref_healing: skipping real-DOM ref-healing assertions because DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT=`"" + $refHealingRequireRealPlaywrightEnvDisplay + "`"; simulation lane does not exercise real-DOM ref healing.")
+    }
+    Assert-Condition -Condition (@($staleRefTargets).Count -eq 0) -Message "Recovered UI refs should not remain in staleRefTargets."
+
+    $trace = @((Get-FieldValue -Object $response -Path @("trace")))
+    Assert-Condition -Condition ($trace.Count -ge 5) -Message "UI executor ref-healing trace should include all expected steps."
+
+    $traceObservations = @(
+      $trace |
+      ForEach-Object { [string](Get-FieldValue -Object $_ -Path @("observation")) } |
+      Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }
+    )
+    $traceNotes = @(
+      $trace |
+      ForEach-Object { [string](Get-FieldValue -Object $_ -Path @("notes")) } |
+      Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }
+    )
+    $healingObservationSeen = @($traceObservations | Where-Object { [string]$_ -like "*grounding-healed ref:email*" -or [string]$_ -like "*grounding-healed ref:submit_primary*" }).Count -ge 2
+    $disabledSubmitSeen = @($traceObservations | Where-Object { [string]$_ -eq "submit state=disabled" }).Count -ge 1
+    $enabledSubmitSeen = @($traceObservations | Where-Object { [string]$_ -eq "submit state=enabled" }).Count -ge 1
+    $healingNoteSeen = @($traceNotes | Where-Object { [string]$_ -like "Recovered stale grounding ref*" }).Count -ge 2
+
+    if (Test-DemoE2eRefHealingRequiresRealPlaywright) {
+      Assert-Condition -Condition $disabledSubmitSeen -Message "UI executor ref-healing should observe the disabled submit state before typing."
+      Assert-Condition -Condition $enabledSubmitSeen -Message "UI executor ref-healing should observe the enabled submit state after typing."
+      Assert-Condition -Condition $healingObservationSeen -Message "UI executor ref-healing trace should record healed grounding observations."
+      Assert-Condition -Condition $healingNoteSeen -Message "UI executor ref-healing trace should record healed grounding notes."
+    } else {
+      Write-Step ("ui.executor.ref_healing: skipping real-DOM trace observation assertions because DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT=`"" + $refHealingRequireRealPlaywrightEnvDisplay + "`"; simulation lane does not exercise the real-DOM submit-state observations or healing trace notes.")
+    }
+
+    $inputApproxTokens = Estimate-ApproxTokensFromObject -Value $request
+    $outputApproxTokens = Estimate-ApproxTokensFromObject -Value $response
+
+    return [ordered]@{
+      finalStatus = $finalStatus
+      adapterMode = $adapterMode
+      healedRefTargets = $healedRefTargets
+      healedRefCount = @($healedRefTargets).Count
+      staleRefTargets = $staleRefTargets
+      staleRefCount = @($staleRefTargets).Count
+      traceCount = $trace.Count
+      retries = [int](Get-FieldValue -Object $response -Path @("retries"))
+      disabledSubmitSeen = $disabledSubmitSeen
+      enabledSubmitSeen = $enabledSubmitSeen
+      healingObservationSeen = $healingObservationSeen
+      healingNoteSeen = $healingNoteSeen
+      healingObservations = @($traceObservations | Where-Object { [string]$_ -like "*grounding-healed ref:*" })
+      timeoutSec = $uiExecutorRequestTimeoutSec
+      inputApproxTokens = $inputApproxTokens
+      outputApproxTokens = $outputApproxTokens
+    }
+  } | Out-Null
+
+  Invoke-Scenario `
+    -Name "ui.browser_worker.checkpoint_resume" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
+    if (-not $IncludeFrontend) {
+      Start-ManagedService -Name "demo-frontend" -HealthUrl "http://localhost:3000/healthz" -NodeArgs @("--import", "tsx", "apps/demo-frontend/src/server.ts")
+    }
+    $uiExecutorRequestTimeoutSec = [Math]::Max($RequestTimeoutSec, 60)
+    $fixtureUrl = "http://localhost:3000/ui-task-profile-settings-demo.html"
+    $submitRequest = [ordered]@{
+      sessionId = "browser-worker-demo-session-" + [Guid]::NewGuid().Guid
+      runId = "browser-worker-demo-run-" + [Guid]::NewGuid().Guid
+      actions = @(
+        [ordered]@{
+          id = "navigate-profile-settings"
+          type = "navigate"
+          target = $fixtureUrl
+        }
+        [ordered]@{
+          id = "verify-submit-disabled"
+          type = "verify"
+          target = 'css:button[type="submit"]:disabled'
+        }
+        [ordered]@{
+          id = "verify-email-visible"
+          type = "verify"
+          target = "ref:email"
+        }
+        [ordered]@{
+          id = "type-email"
+          type = "type"
+          target = "css:#email"
+          text = "agent@example.com"
+        }
+        [ordered]@{
+          id = "verify-submit-enabled"
+          type = "verify"
+          target = 'css:button[type="submit"]:not(:disabled)'
+        }
+        [ordered]@{
+          id = "verify-submit-ref"
+          type = "verify"
+          target = "ref:submit_primary"
+        }
+        [ordered]@{
+          id = "submit-profile"
+          type = "click"
+          target = "ref:submit_primary"
+        }
+      )
+      context = [ordered]@{
+        goal = "Run the repo-owned browser worker, pause at a checkpoint, resume the persistent session, and submit the profile settings form."
+        url = $fixtureUrl
+        screenshotRef = "ui://demo/browser-worker"
+        domSnapshot = "<main><form id='profile-form' aria-label='Profile settings form'><label for='email'>Email<input id='email' name='email' type='email' autocomplete='email' placeholder='operator@example.com' /></label><p id='form-status' aria-live='polite'>Submit is disabled until the email field is filled.</p><div><button id='submit-profile' type='submit' disabled>Submit changes</button><button id='preview-card' type='button'>Preview profile card</button></div></form></main>"
+        accessibilityTree = "main > form[name=Profile settings form] > textbox[name=Email]; main > form[name=Profile settings form] > button[name=Submit changes]; main > form[name=Profile settings form] > button[name=Preview profile card]"
+        markHints = @(
+          "email_field@(404,244)"
+          "submit_changes@(416,348)"
+          "preview_profile_card@(600,348)"
+        )
+        refMap = [ordered]@{
+          email = [ordered]@{
+            selector = "#legacy-email"
+            kind = "field"
+            label = "Email"
+            aliases = @("email", "work email")
+          }
+          submit_primary = [ordered]@{
+            selector = "#legacy-submit"
+            kind = "submit"
+            label = "Submit changes"
+            aliases = @("submit", "save profile")
+          }
+        }
+      }
+      options = [ordered]@{
+        checkpointEverySteps = 4
+        label = "demo browser worker checkpoint proof"
+        reason = "demo_browser_worker_checkpoint_resume"
+      }
+    }
+
+    $submitResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8090/browser-jobs" -Body $submitRequest -TimeoutSec $uiExecutorRequestTimeoutSec
+    $submittedJob = Get-FieldValue -Object $submitResponse -Path @("data", "job")
+    Assert-Condition -Condition ($null -ne $submittedJob) -Message "Browser worker submit response is missing job data."
+
+    $jobId = [string](Get-FieldValue -Object $submittedJob -Path @("jobId"))
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($jobId)) -Message "Browser worker submit response is missing jobId."
+
+    $pausedResponse = Wait-ForBrowserJobState -JobId $jobId -Statuses @("paused") -TimeoutSec $uiExecutorRequestTimeoutSec
+    $pausedJob = Get-FieldValue -Object $pausedResponse -Path @("data", "job")
+    $pausedRuntime = Get-FieldValue -Object $pausedResponse -Path @("data", "runtime")
+    Assert-Condition -Condition ($null -ne $pausedJob) -Message "Browser worker paused state is missing job data."
+    Assert-Condition -Condition ([string](Get-FieldValue -Object $pausedJob -Path @("status")) -eq "paused") -Message "Browser worker should pause at the configured checkpoint."
+    Assert-Condition -Condition ([int](Get-FieldValue -Object $pausedJob -Path @("replayBundle", "recovery", "checkpointCount")) -ge 1) -Message "Browser worker paused replay bundle must include at least one checkpoint."
+    Assert-Condition -Condition ([int](Get-FieldValue -Object $pausedJob -Path @("replayBundle", "recovery", "resumedCheckpointCount")) -eq 0) -Message "Paused browser worker should not report resumed checkpoints yet."
+    Assert-Condition -Condition ([int](Get-FieldValue -Object $pausedRuntime -Path @("queue", "checkpointReady")) -ge 1) -Message "Browser worker runtime should report a checkpoint-ready job while paused."
+
+    $resumeResponse = Invoke-JsonRequest -Method POST -Uri ("http://localhost:8090/browser-jobs/" + [Uri]::EscapeDataString($jobId) + "/resume") -Body @{
+      reason = "Resume browser worker from demo-e2e proof."
+    } -TimeoutSec $uiExecutorRequestTimeoutSec
+    $resumedJob = Get-FieldValue -Object $resumeResponse -Path @("data", "job")
+    Assert-Condition -Condition ($null -ne $resumedJob) -Message "Browser worker resume response is missing job data."
+
+    $completedResponse = Wait-ForBrowserJobState -JobId $jobId -Statuses @("completed") -TimeoutSec $uiExecutorRequestTimeoutSec
+    $completedJob = Get-FieldValue -Object $completedResponse -Path @("data", "job")
+    $completedRuntime = Get-FieldValue -Object $completedResponse -Path @("data", "runtime")
+    Assert-Condition -Condition ($null -ne $completedJob) -Message "Browser worker completed state is missing job data."
+
+    $finalStatus = [string](Get-FieldValue -Object $completedJob -Path @("status"))
+    $adapterMode = [string](Get-FieldValue -Object $completedJob -Path @("adapterMode"))
+    $recovery = Get-FieldValue -Object $completedJob -Path @("replayBundle", "recovery")
+    Assert-Condition -Condition ($null -ne $recovery) -Message "Browser worker replay bundle is missing recovery data."
+
+    $healedRefTargets = @((Get-FieldValue -Object $recovery -Path @("healedRefTargets")))
+    $staleRefTargets = @((Get-FieldValue -Object $recovery -Path @("staleRefTargets")))
+    $checkpointCount = [int](Get-FieldValue -Object $recovery -Path @("checkpointCount"))
+    $resumedCheckpointCount = [int](Get-FieldValue -Object $recovery -Path @("resumedCheckpointCount"))
+    $healedRefCount = [int](Get-FieldValue -Object $recovery -Path @("healedRefCount"))
+    $staleRefCount = [int](Get-FieldValue -Object $recovery -Path @("staleRefCount"))
+    $retryCount = [int](Get-FieldValue -Object $recovery -Path @("retryCount"))
+    $recoverySummary = [string](Get-FieldValue -Object $recovery -Path @("summary"))
+    $traceCount = @((Get-FieldValue -Object $completedJob -Path @("trace"))).Count
+    $runtimeRecovery = Get-FieldValue -Object $completedRuntime -Path @("recovery")
+    $runtimeRetryCount = [int](Get-FieldValue -Object $runtimeRecovery -Path @("retryCount"))
+    $runtimeResumedCheckpointCount = [int](Get-FieldValue -Object $runtimeRecovery -Path @("resumedCheckpointCount"))
+    $runtimeStaleRefCount = [int](Get-FieldValue -Object $runtimeRecovery -Path @("staleRefCount"))
+    $runtimeHealedRefCount = [int](Get-FieldValue -Object $runtimeRecovery -Path @("healedRefCount"))
+    $completedCheckpointReady = [int](Get-FieldValue -Object $completedRuntime -Path @("queue", "checkpointReady"))
+    $checkpointReadyCleared = ($completedCheckpointReady -eq 0)
+
+    Assert-Condition -Condition ($finalStatus -eq "completed") -Message "Browser worker checkpoint/resume scenario did not complete."
+    Assert-Condition -Condition ($adapterMode -eq "remote_http") -Message "Browser worker checkpoint/resume scenario must use remote_http adapter."
+    Assert-Condition -Condition ($checkpointCount -ge 1) -Message "Browser worker replay bundle should include at least one checkpoint."
+    Assert-Condition -Condition ($resumedCheckpointCount -ge 1) -Message "Browser worker replay bundle should include at least one resumed checkpoint."
+    $browserWorkerRefHealingRequireRealPlaywrightEnv = [Environment]::GetEnvironmentVariable("DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT")
+    $browserWorkerRefHealingRequireRealPlaywrightEnvDisplay = if ($null -eq $browserWorkerRefHealingRequireRealPlaywrightEnv) { "<unset>" } else { $browserWorkerRefHealingRequireRealPlaywrightEnv }
+    if (Test-DemoE2eRefHealingRequiresRealPlaywright) {
+      Assert-Condition -Condition ($healedRefTargets -contains "email") -Message "Browser worker recovery should heal the email ref."
+      Assert-Condition -Condition ($healedRefTargets -contains "submit_primary") -Message "Browser worker recovery should heal the submit ref."
+      Assert-Condition -Condition ($healedRefCount -ge 2) -Message "Browser worker recovery should record both healed refs."
+      Assert-Condition -Condition ($staleRefCount -ge $healedRefCount) -Message "Browser worker recovery should expose observed stale refs alongside healed refs."
+      Assert-Condition -Condition ($staleRefTargets -contains "email") -Message "Browser worker recovery should record email as an observed stale ref."
+      Assert-Condition -Condition ($staleRefTargets -contains "submit_primary") -Message "Browser worker recovery should record submit_primary as an observed stale ref."
+    } else {
+      Write-Step ("ui.browser_worker.checkpoint_resume: skipping real-DOM ref-healing assertions because DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT=`"" + $browserWorkerRefHealingRequireRealPlaywrightEnvDisplay + "`"; simulation lane does not exercise real-DOM ref healing.")
+    }
+    Assert-Condition -Condition ($traceCount -ge 7) -Message "Browser worker trace should include all expected actions."
+    Assert-Condition -Condition ($runtimeResumedCheckpointCount -ge $resumedCheckpointCount) -Message "Browser worker runtime recovery counters should include resumed checkpoints."
+    if (Test-DemoE2eRefHealingRequiresRealPlaywright) {
+      Assert-Condition -Condition ($runtimeHealedRefCount -ge $healedRefCount) -Message "Browser worker runtime recovery counters should include healed refs."
+      Assert-Condition -Condition ($runtimeStaleRefCount -ge $staleRefCount) -Message "Browser worker runtime recovery counters should include observed stale refs."
+    }
+    Assert-Condition -Condition $checkpointReadyCleared -Message "Browser worker runtime should clear checkpoint-ready queue entries after resume."
+
+    $inputApproxTokens = Estimate-ApproxTokensFromObject -Value $submitRequest
+    $outputApproxTokens =
+      (Estimate-ApproxTokensFromObject -Value $pausedResponse) +
+      (Estimate-ApproxTokensFromObject -Value $resumeResponse) +
+      (Estimate-ApproxTokensFromObject -Value $completedResponse)
+
+    return [ordered]@{
+      jobId = $jobId
+      finalStatus = $finalStatus
+      adapterMode = $adapterMode
+      checkpointCount = $checkpointCount
+      resumedCheckpointCount = $resumedCheckpointCount
+      healedRefTargets = $healedRefTargets
+      healedRefCount = $healedRefCount
+      staleRefTargets = $staleRefTargets
+      staleRefCount = $staleRefCount
+      traceCount = $traceCount
+      retryCount = $retryCount
+      recoverySummary = $recoverySummary
+      latestCheckpointRef = [string](Get-FieldValue -Object $completedJob -Path @("replayBundle", "latestCheckpointRef"))
+      latestResultRef = [string](Get-FieldValue -Object $completedJob -Path @("replayBundle", "latestResultRef"))
+      runtimeRetryCount = $runtimeRetryCount
+      runtimeResumedCheckpointCount = $runtimeResumedCheckpointCount
+      runtimeStaleRefCount = $runtimeStaleRefCount
+      runtimeHealedRefCount = $runtimeHealedRefCount
+      pausedCheckpointReady = [int](Get-FieldValue -Object $pausedRuntime -Path @("queue", "checkpointReady"))
+      completedCheckpointReady = $completedCheckpointReady
+      checkpointReadyCleared = $checkpointReadyCleared
+      timeoutSec = $uiExecutorRequestTimeoutSec
+      inputApproxTokens = $inputApproxTokens
+      outputApproxTokens = $outputApproxTokens
+    }
+  } | Out-Null
+
+  Invoke-Scenario `
+    -Name "ui.navigator.visa_vertical_flows" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
+    if (-not $IncludeFrontend) {
+      Start-ManagedService -Name "demo-frontend" -HealthUrl "http://localhost:3000/healthz" -NodeArgs @("--import", "tsx", "apps/demo-frontend/src/server.ts")
+    }
+
+    $navigatorVisaFlowData = Invoke-NodeJsonCommand -Args @(
+      "--import",
+      "tsx",
+      ".\\scripts\\demo-e2e-navigator-visa-flows.ts",
+      "--frontendBaseUrl",
+      "http://localhost:3000",
+      "--uiExecutorBaseUrl",
+      "http://localhost:8090",
+      "--timeoutMs",
+      ([string]([Math]::Max(($RequestTimeoutSec * 1000), 45000))),
+      "--output",
+      $resolvedNavigatorVisaFlowsPath
+    )
+
+    Assert-Condition -Condition ($null -ne $navigatorVisaFlowData) -Message "Navigator visa proof returned no data."
+
+    # Execution-mode-aware acceptance per
+    # `.kiro/specs/demo-e2e-visa-flows-execution-mode-aware-summary/design.md`
+    # "Downstream Gate Update" and bugfix.md R5 ("Downstream Gates Must Keep
+    # Their Meaning"):
+    #   - Default (env unset / off): require validationMode === "real_playwright"
+    #     AND validated === true. release-strict-final keeps today's strict
+    #     semantics byte-identical.
+    #   - DEMO_E2E_VISA_FLOWS_ACCEPT_SIMULATION truthy (PR Quality opt-in,
+    #     wired in a follow-up commit, not in this slice): also accept
+    #     validationMode === "simulated" with validated === true.
+    #   - "mixed" / "unknown" are rejected regardless of the env (per
+    #     design.md "Mixed Mode": no deliberate mixed-mode contract yet).
+    $navigatorVisaFlowsValidationMode = [string](Get-FieldValue -Object $navigatorVisaFlowData -Path @("validationMode"))
+    $navigatorVisaFlowsValidated = [bool](Get-FieldValue -Object $navigatorVisaFlowData -Path @("validated"))
+    $navigatorVisaFlowsAcceptSimulationEnv = [Environment]::GetEnvironmentVariable("DEMO_E2E_VISA_FLOWS_ACCEPT_SIMULATION")
+    $navigatorVisaFlowsAcceptSimulationEnvDisplay = if ($null -eq $navigatorVisaFlowsAcceptSimulationEnv) { "<unset>" } else { $navigatorVisaFlowsAcceptSimulationEnv }
+    $navigatorVisaFlowsAcceptSimulationEnabled = $false
+    if ($null -ne $navigatorVisaFlowsAcceptSimulationEnv) {
+      $navigatorVisaFlowsAcceptSimulationEnabled = (@("1", "true", "yes", "on") -contains $navigatorVisaFlowsAcceptSimulationEnv.ToString().Trim().ToLowerInvariant())
+    }
+
+    if ($navigatorVisaFlowsValidationMode -eq "real_playwright") {
+      Assert-Condition -Condition ($navigatorVisaFlowsValidated -eq $true) -Message ("Navigator visa proof must validate all configured flows. validationMode=" + $navigatorVisaFlowsValidationMode + ", validated=" + $navigatorVisaFlowsValidated)
+    } elseif ($navigatorVisaFlowsValidationMode -eq "simulated") {
+      Assert-Condition -Condition $navigatorVisaFlowsAcceptSimulationEnabled -Message ("Navigator visa proof reported simulated mode but DEMO_E2E_VISA_FLOWS_ACCEPT_SIMULATION is not enabled. validationMode=" + $navigatorVisaFlowsValidationMode + ", env=" + $navigatorVisaFlowsAcceptSimulationEnvDisplay)
+      Assert-Condition -Condition ($navigatorVisaFlowsValidated -eq $true) -Message ("Navigator visa proof simulation lane reported validated=false. validationMode=" + $navigatorVisaFlowsValidationMode + ", validated=" + $navigatorVisaFlowsValidated)
+    } else {
+      throw ("Navigator visa proof reported unsupported validationMode=" + $navigatorVisaFlowsValidationMode + ". Mixed and unknown modes are rejected regardless of DEMO_E2E_VISA_FLOWS_ACCEPT_SIMULATION (per design.md Mixed Mode). env=" + $navigatorVisaFlowsAcceptSimulationEnvDisplay)
+    }
+
+    Assert-Condition -Condition ([int](Get-FieldValue -Object $navigatorVisaFlowData -Path @("totalFlows")) -ge 3) -Message "Navigator visa proof must cover at least three flows."
+    Assert-Condition -Condition ([int](Get-FieldValue -Object $navigatorVisaFlowData -Path @("succeededFlows")) -eq [int](Get-FieldValue -Object $navigatorVisaFlowData -Path @("totalFlows"))) -Message "Navigator visa proof must succeed across all configured flows."
+
+    return $navigatorVisaFlowData
+  } | Out-Null
+
+  Invoke-Scenario `
     -Name "multi_agent.delegation" `
     -MaxAttempts $ScenarioRetryMaxAttempts `
     -InitialBackoffMs $ScenarioRetryBackoffMs `
@@ -2751,9 +3324,34 @@ try {
     -Action {
     $delegationRequestTimeoutSec = [Math]::Max($RequestTimeoutSec, 120)
     $runId = "demo-delegation-" + [Guid]::NewGuid().Guid
-    $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "conversation" -RequestInput @{
+    $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "conversation" -RequestInput ([ordered]@{
       text = "delegate story: write a short branch about a final contract handshake. text only. no images. no video. 2 scenes."
-    }
+      caseWiki = [ordered]@{
+        overview = [ordered]@{
+          summary = "Customer requested a short contract-handshake branch."
+          status = "ready"
+          currentStage = "closing_narrative"
+        }
+        workspacePack = [ordered]@{
+          defaultFocus = [ordered]@{
+            focusKind = "task"
+            focusId = "story:contract-handshake-branch"
+            focusLabel = "Short contract handshake branch"
+          }
+          summaryValue = "Customer requested a short contract-handshake branch."
+          nextActionValue = "Delegate the story-only branch."
+        }
+        highlights = [ordered]@{
+          topBlockingQuestion = [ordered]@{
+            question = "Can we produce a short story-only branch without images or video?"
+          }
+        }
+        recommendedNextAction = [ordered]@{
+          title = "Delegate the story-only branch."
+          summary = "Write a short contract-handshake branch with text only."
+        }
+      }
+    })
     $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $delegationRequestTimeoutSec
 
     $status = [string](Get-FieldValue -Object $response -Path @("payload", "status"))
@@ -2774,6 +3372,8 @@ try {
     $routingBudgetPolicy = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "budgetPolicy"))
     $routingPromptCaching = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "promptCaching"))
     $routingWatchlistEnabled = Get-FieldValue -Object $response -Path @("payload", "output", "routing", "watchlistEnabled")
+    $routingContextSource = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "contextSource"))
+    $routingContextIngressSource = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "contextIngressSource"))
     $routingConfidenceRaw = Get-FieldValue -Object $response -Path @("payload", "output", "routing", "confidence")
     $routingConfidence = $null
     if ($null -ne $routingConfidenceRaw -and -not [string]::IsNullOrWhiteSpace([string]$routingConfidenceRaw)) {
@@ -2813,10 +3413,319 @@ try {
       routingBudgetPolicy = $routingBudgetPolicy
       routingPromptCaching = $routingPromptCaching
       routingWatchlistEnabled = [bool]$routingWatchlistEnabled
+      routingContextSource = $routingContextSource
+      routingContextIngressSource = $routingContextIngressSource
       routingConfidence = $routingConfidence
       timeoutSec = $delegationRequestTimeoutSec
       inputApproxTokens = $inputApproxTokens
       outputApproxTokens = $outputApproxTokens
+    }
+  } | Out-Null
+
+  Invoke-Scenario `
+    -Name "orchestrator.case_wiki_routing_context" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
+    $caseWikiRoutingRequestTimeoutSec = [Math]::Max($RequestTimeoutSec, 120)
+    $runId = "demo-case-wiki-routing-" + [Guid]::NewGuid().Guid
+    $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "conversation" -RequestInput ([ordered]@{
+      text = "Continue with this case."
+      caseWiki = [ordered]@{
+        overview = [ordered]@{
+          summary = "Passport scan is still missing for this case."
+          status = "blocked"
+          currentStage = "document_collection"
+        }
+        highlights = [ordered]@{
+          topBlockingQuestion = "Do we have the passport scan?"
+        }
+        workspacePack = [ordered]@{
+          summaryValue = "Passport scan is still missing for this case."
+          blockerValue = "Do we have the passport scan?"
+          nextActionValue = "Request passport scan"
+          defaultFocus = [ordered]@{
+            focusKind = "question"
+            focusId = "question:passport-scan"
+            focusLabel = "Passport scan is missing"
+          }
+        }
+        recommendedNextAction = [ordered]@{
+          title = "Request passport scan"
+        }
+        routingPack = [ordered]@{
+          questions = @(
+            [ordered]@{
+              focusKind = "question"
+              focusId = "question:passport-scan"
+              focusLabel = "Passport scan is missing"
+              route = [ordered]@{
+                lane = "customer_followup"
+                owner = "customer"
+                priority = "high"
+                status = "open"
+                blocking = $true
+                approvalRequired = $false
+                dueBy = $null
+                summary = "Collect the missing document from the customer."
+              }
+              cta = [ordered]@{
+                actionId = "run_negotiation"
+                label = "Ask for passport scan"
+                hint = "Message the customer for the missing passport scan."
+                owner = "customer"
+                lane = "customer_followup"
+                approvalRequired = $false
+                blocking = $true
+                summary = "Run a customer follow-up request."
+              }
+            }
+          )
+        }
+      }
+    })
+    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $caseWikiRoutingRequestTimeoutSec
+
+    $status = [string](Get-FieldValue -Object $response -Path @("payload", "status"))
+    $route = [string](Get-FieldValue -Object $response -Path @("payload", "route"))
+    $routingMode = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "mode"))
+    $requestedIntent = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "requestedIntent"))
+    $routedIntent = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "routedIntent"))
+    $contextSource = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "contextSource"))
+    $contextIngressSource = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "contextIngressSource"))
+    $contextFocusId = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "contextFocusId"))
+    $contextBlocker = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "contextBlocker"))
+    $contextNextAction = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "contextNextAction"))
+
+    Assert-Condition -Condition ($status -eq "completed") -Message "Case Wiki routing request did not complete."
+    Assert-Condition -Condition ($route -eq "live-agent") -Message "Case Wiki routing request should stay on live-agent."
+    Assert-Condition -Condition ($requestedIntent -eq "conversation") -Message "Case Wiki routing request should preserve the requested conversation intent."
+    Assert-Condition -Condition ($contextSource -eq "case_wiki") -Message "Case Wiki routing context source should be case_wiki."
+    Assert-Condition -Condition ($contextFocusId -eq "question:passport-scan") -Message "Case Wiki routing focus id mismatch."
+    Assert-Condition -Condition ($contextBlocker -eq "Do we have the passport scan?") -Message "Case Wiki routing blocker mismatch."
+    Assert-Condition -Condition ($contextNextAction -eq "Request passport scan") -Message "Case Wiki routing next action mismatch."
+    Assert-Condition -Condition ($contextIngressSource -eq "preserved_input_case_wiki") -Message "Case Wiki routing ingress source should prove preserved input case wiki context."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($routingMode)) -Message "Case Wiki routing mode should be present."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($routedIntent)) -Message "Case Wiki routed intent should be present."
+
+    return [ordered]@{
+      route = $route
+      requestedIntent = $requestedIntent
+      routedIntent = $routedIntent
+      mode = $routingMode
+      contextSource = $contextSource
+      ingressSource = $contextIngressSource
+      focusId = $contextFocusId
+      blocker = $contextBlocker
+      nextAction = $contextNextAction
+      timeoutSec = $caseWikiRoutingRequestTimeoutSec
+    }
+  } | Out-Null
+
+  Invoke-Scenario `
+    -Name "gateway.websocket.case_wiki_hydration" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
+    $hydrationSessionCreateResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8081/v1/sessions" -Body @{
+      userId = $script:DemoUserId
+      mode = "multi"
+    } -TimeoutSec $RequestTimeoutSec
+    $hydrationSessionId = [string](Get-FieldValue -Object $hydrationSessionCreateResponse -Path @("data", "sessionId"))
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($hydrationSessionId)) -Message "Gateway Case Wiki hydration proof failed to create a fresh session."
+
+    $hydrationOperatorHeaders = @{ "x-operator-role" = "operator" }
+    $hydrationViewerHeaders = @{ "x-operator-role" = "viewer" }
+    $hydrationQuestionText = "Passport scan is still missing from the case."
+    $hydrationNextActionLabel = "Request passport scan"
+    $hydrationNoteRunId = "demo-case-wiki-hydration-note-" + [Guid]::NewGuid().Guid
+    $hydrationNoteResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8081/v1/runtime/case-wiki/notes" -Headers $hydrationOperatorHeaders -Body @{
+      sessionId = $hydrationSessionId
+      userId = $script:DemoUserId
+      runId = $hydrationNoteRunId
+      title = "Passport scan follow-up"
+      note = $hydrationQuestionText
+      priority = "high"
+      blocking = $true
+      owner = "customer"
+      suggestedNextStep = $hydrationNextActionLabel
+    } -TimeoutSec $RequestTimeoutSec
+    $hydrationNoteEventId = [string](Get-FieldValue -Object $hydrationNoteResponse -Path @("data", "eventId"))
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($hydrationNoteEventId)) -Message "Gateway Case Wiki hydration proof note append did not return an eventId."
+
+    $hydrationCaseWikiUri = "http://localhost:8081/v1/runtime/case-wiki?sessionId=$([Uri]::EscapeDataString([string]$hydrationSessionId))&sessionLimit=20&eventLimit=120&runLimit=120&approvalLimit=120&recentEventLimit=200"
+    $hydrationCaseWikiData = $null
+    $hydrationFocusId = $null
+    $hydrationBlocker = $null
+    $hydrationNextAction = $null
+    $hydrationQuestionId = $null
+    $hydrationQuestionSuggestedNextStep = $null
+    $hydrationNoteSourceRefSeen = $false
+    $hydrationQuestionMatched = $false
+    $hydrationSnapshotValidated = $false
+
+    for ($hydrationAttempt = 1; $hydrationAttempt -le 5; $hydrationAttempt += 1) {
+      $hydrationCaseWikiResponse = Invoke-JsonRequest -Method GET -Uri $hydrationCaseWikiUri -Headers $hydrationViewerHeaders -TimeoutSec $RequestTimeoutSec
+      $candidateCaseWikiData = Get-FieldValue -Object $hydrationCaseWikiResponse -Path @("data")
+      if ($null -eq $candidateCaseWikiData) {
+        if ($hydrationAttempt -lt 5) {
+          Start-Sleep -Milliseconds 250
+          continue
+        }
+        throw "Gateway Case Wiki hydration proof did not return a case wiki payload."
+      }
+
+      $candidateDefaultFocus = Get-FieldValue -Object $candidateCaseWikiData -Path @("workspacePack", "defaultFocus")
+      $candidateFocusIdRaw = if ($null -eq $candidateDefaultFocus) {
+        $null
+      } else {
+        Get-FieldValue -Object $candidateDefaultFocus -Path @("focusId")
+      }
+      $candidateFocusId = if ([string]::IsNullOrWhiteSpace([string]$candidateFocusIdRaw)) { $null } else { [string]$candidateFocusIdRaw }
+      $candidateBlockerRaw = Get-FieldValue -Object $candidateCaseWikiData -Path @("workspacePack", "blockerValue")
+      if ([string]::IsNullOrWhiteSpace([string]$candidateBlockerRaw)) {
+        $candidateBlockerRaw = Get-FieldValue -Object $candidateCaseWikiData -Path @("highlights", "topBlockingQuestion", "question")
+      }
+      $candidateBlocker = if ([string]::IsNullOrWhiteSpace([string]$candidateBlockerRaw)) { $null } else { [string]$candidateBlockerRaw }
+      $candidateNextActionRaw = Get-FieldValue -Object $candidateCaseWikiData -Path @("workspacePack", "nextActionValue")
+      if ([string]::IsNullOrWhiteSpace([string]$candidateNextActionRaw)) {
+        $candidateNextActionRaw = Get-FieldValue -Object $candidateCaseWikiData -Path @("recommendedNextAction", "title")
+      }
+      if ([string]::IsNullOrWhiteSpace([string]$candidateNextActionRaw)) {
+        $candidateNextActionRaw = Get-FieldValue -Object $candidateCaseWikiData -Path @("recommendedNextAction", "type")
+      }
+      $candidateNextAction = if ([string]::IsNullOrWhiteSpace([string]$candidateNextActionRaw)) { $null } else { [string]$candidateNextActionRaw }
+
+      $candidateOpenQuestionsRaw = Get-FieldValue -Object $candidateCaseWikiData -Path @("openQuestions")
+      if ($candidateOpenQuestionsRaw -is [System.Array]) {
+        $candidateOpenQuestions = @($candidateOpenQuestionsRaw)
+      }
+      elseif ($null -ne $candidateOpenQuestionsRaw) {
+        $candidateOpenQuestions = @($candidateOpenQuestionsRaw)
+      }
+      else {
+        $candidateOpenQuestions = @()
+      }
+      $candidateBlockingQuestion = $candidateOpenQuestions | Where-Object { (Get-FieldValue -Object $_ -Path @("blocking")) -eq $true } | Select-Object -First 1
+      if ($null -eq $candidateBlockingQuestion -and $candidateOpenQuestions.Count -gt 0) {
+        $candidateBlockingQuestion = $candidateOpenQuestions[0]
+      }
+      $candidateQuestionIdRaw = if ($null -eq $candidateBlockingQuestion) { $null } else { Get-FieldValue -Object $candidateBlockingQuestion -Path @("id") }
+      $candidateQuestionId = if ([string]::IsNullOrWhiteSpace([string]$candidateQuestionIdRaw)) { $null } else { [string]$candidateQuestionIdRaw }
+      $candidateQuestionTextRaw = if ($null -eq $candidateBlockingQuestion) { $null } else { Get-FieldValue -Object $candidateBlockingQuestion -Path @("question") }
+      $candidateQuestionText = if ([string]::IsNullOrWhiteSpace([string]$candidateQuestionTextRaw)) { $null } else { [string]$candidateQuestionTextRaw }
+      $candidateQuestionSuggestedNextStepRaw = if ($null -eq $candidateBlockingQuestion) { $null } else { Get-FieldValue -Object $candidateBlockingQuestion -Path @("suggestedNextStep") }
+      $candidateQuestionSuggestedNextStep = if ([string]::IsNullOrWhiteSpace([string]$candidateQuestionSuggestedNextStepRaw)) { $null } else { [string]$candidateQuestionSuggestedNextStepRaw }
+      $candidateQuestionSourceRefsRaw = if ($null -eq $candidateBlockingQuestion) { $null } else { Get-FieldValue -Object $candidateBlockingQuestion -Path @("sourceRefs") }
+      if ($candidateQuestionSourceRefsRaw -is [System.Array]) {
+        $candidateQuestionSourceRefs = @($candidateQuestionSourceRefsRaw)
+      }
+      elseif ($null -ne $candidateQuestionSourceRefsRaw) {
+        $candidateQuestionSourceRefs = @($candidateQuestionSourceRefsRaw)
+      }
+      else {
+        $candidateQuestionSourceRefs = @()
+      }
+      $candidateNoteSourceRefSeen = @($candidateQuestionSourceRefs | Where-Object { [string]$_ -like ("*" + $hydrationNoteEventId + "*") }).Count -ge 1
+      $candidateQuestionMatched = ($candidateQuestionText -eq $hydrationQuestionText)
+
+      $candidateSnapshotValidated = (
+        [string](Get-FieldValue -Object $candidateCaseWikiData -Path @("sessionId")) -eq $hydrationSessionId -and
+        -not [string]::IsNullOrWhiteSpace([string]$candidateFocusId) -and
+        -not [string]::IsNullOrWhiteSpace([string]$candidateBlocker) -and
+        -not [string]::IsNullOrWhiteSpace([string]$candidateNextAction) -and
+        -not [string]::IsNullOrWhiteSpace([string]$candidateQuestionId) -and
+        $candidateQuestionMatched -and
+        $candidateNoteSourceRefSeen -and
+        $candidateQuestionSuggestedNextStep -eq $hydrationNextActionLabel
+      )
+
+      if ($candidateSnapshotValidated) {
+        $hydrationCaseWikiData = $candidateCaseWikiData
+        $hydrationFocusId = $candidateFocusId
+        $hydrationBlocker = $candidateBlocker
+        $hydrationNextAction = $candidateNextAction
+        $hydrationQuestionId = $candidateQuestionId
+        $hydrationQuestionSuggestedNextStep = $candidateQuestionSuggestedNextStep
+        $hydrationNoteSourceRefSeen = $candidateNoteSourceRefSeen
+        $hydrationQuestionMatched = $candidateQuestionMatched
+        $hydrationSnapshotValidated = $true
+        break
+      }
+
+      if ($hydrationAttempt -lt 5) {
+        Start-Sleep -Milliseconds 250
+      }
+    }
+
+    Assert-Condition -Condition ($null -ne $hydrationCaseWikiData) -Message "Gateway Case Wiki hydration proof failed to resolve a compiled Case Wiki snapshot."
+    Assert-Condition -Condition $hydrationSnapshotValidated -Message "Gateway Case Wiki hydration proof snapshot did not compile the note into the expected focus/question state."
+
+    $hydrationRunId = "demo-gateway-case-wiki-hydration-" + [Guid]::NewGuid().Guid
+    $hydrationTimeoutMs = [Math]::Max(4000, $RequestTimeoutSec * 1000)
+    $hydrationResult = Invoke-NodeJsonCommand -Args @(
+      "scripts/gateway-ws-check.mjs",
+      "--url",
+      "ws://localhost:8080/realtime",
+      "--sessionId",
+      $hydrationSessionId,
+      "--runId",
+      $hydrationRunId,
+      "--userId",
+      $script:DemoUserId,
+      "--intent",
+      "conversation",
+      "--inputText",
+      "Continue with this case.",
+      "--expectTranslation",
+      "false",
+      "--timeoutMs",
+      [string]$hydrationTimeoutMs
+    )
+
+    $hydrationResponseStatus = [string](Get-FieldValue -Object $hydrationResult -Path @("responseStatus"))
+    $hydrationResponseRoute = [string](Get-FieldValue -Object $hydrationResult -Path @("responseRoute"))
+    $hydrationContextSource = [string](Get-FieldValue -Object $hydrationResult -Path @("routingContextSource"))
+    $hydrationContextIngressSource = [string](Get-FieldValue -Object $hydrationResult -Path @("routingContextIngressSource"))
+    $hydrationRoutingFocusId = [string](Get-FieldValue -Object $hydrationResult -Path @("routingFocusId"))
+    $hydrationRoutingBlocker = [string](Get-FieldValue -Object $hydrationResult -Path @("routingBlocker"))
+    $hydrationRoutingNextAction = [string](Get-FieldValue -Object $hydrationResult -Path @("routingNextAction"))
+    $hydrationRoutingMode = [string](Get-FieldValue -Object $hydrationResult -Path @("routingMode"))
+    $hydrationRequestedIntent = [string](Get-FieldValue -Object $hydrationResult -Path @("routingRequestedIntent"))
+    $hydrationRoutedIntent = [string](Get-FieldValue -Object $hydrationResult -Path @("routingRoutedIntent"))
+
+    Assert-Condition -Condition ($hydrationResponseStatus -eq "completed") -Message "Gateway Case Wiki hydration websocket response did not complete."
+    Assert-Condition -Condition ($hydrationResponseRoute -eq "live-agent") -Message "Gateway Case Wiki hydration websocket response should stay on live-agent."
+    Assert-Condition -Condition ($hydrationContextSource -eq "case_wiki") -Message "Gateway Case Wiki hydration websocket contextSource should be case_wiki."
+    Assert-Condition -Condition ($hydrationContextIngressSource -eq "gateway_hydrated_case_wiki") -Message "Gateway Case Wiki hydration websocket ingress source should be gateway_hydrated_case_wiki."
+    Assert-Condition -Condition ($hydrationRoutingFocusId -eq $hydrationFocusId) -Message "Gateway Case Wiki hydration websocket focusId did not match the compiled Case Wiki snapshot."
+    Assert-Condition -Condition ($hydrationRoutingBlocker -eq $hydrationBlocker) -Message "Gateway Case Wiki hydration websocket blocker did not match the compiled Case Wiki snapshot."
+    Assert-Condition -Condition ($hydrationRoutingNextAction -eq $hydrationNextAction) -Message "Gateway Case Wiki hydration websocket nextAction did not match the compiled Case Wiki snapshot."
+    Assert-Condition -Condition ($hydrationRequestedIntent -eq "conversation") -Message "Gateway Case Wiki hydration websocket should preserve the requested conversation intent."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($hydrationRoutedIntent)) -Message "Gateway Case Wiki hydration websocket should emit a routed intent."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($hydrationRoutingMode)) -Message "Gateway Case Wiki hydration websocket should emit a routing mode."
+
+    return [ordered]@{
+      sessionId = $hydrationSessionId
+      noteEventId = $hydrationNoteEventId
+      questionId = $hydrationQuestionId
+      questionMatched = $hydrationQuestionMatched
+      noteSourceRefSeen = $hydrationNoteSourceRefSeen
+      questionSuggestedNextStep = $hydrationQuestionSuggestedNextStep
+      snapshotValidated = $hydrationSnapshotValidated
+      responseRoute = $hydrationResponseRoute
+      contextSource = $hydrationContextSource
+      ingressSource = $hydrationContextIngressSource
+      focusId = $hydrationRoutingFocusId
+      blocker = $hydrationRoutingBlocker
+      nextAction = $hydrationRoutingNextAction
+      route = $hydrationResponseRoute
+      mode = $hydrationRoutingMode
+      requestedIntent = $hydrationRequestedIntent
+      routedIntent = $hydrationRoutedIntent
+      timeoutMs = $hydrationTimeoutMs
     }
   } | Out-Null
 
@@ -2826,6 +3735,17 @@ try {
     -InitialBackoffMs $ScenarioRetryBackoffMs `
     -RetryTransientFailures `
     -Action {
+    $gatewayRoundTripSessionResponse = Invoke-JsonRequest `
+      -Method POST `
+      -Uri "http://localhost:8081/v1/sessions" `
+      -Body @{
+        userId = $script:DemoUserId
+        mode = "multi"
+      } `
+      -TimeoutSec $RequestTimeoutSec
+    $gatewayRoundTripSessionId = [string](Get-FieldValue -Object $gatewayRoundTripSessionResponse -Path @("data", "sessionId"))
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($gatewayRoundTripSessionId)) -Message "Gateway websocket roundtrip sessionId is missing."
+
     $runId = "demo-gateway-ws-" + [Guid]::NewGuid().Guid
     $timeoutMs = [Math]::Max(4000, $RequestTimeoutSec * 1000)
     $warmupRunId = $runId + "-warmup"
@@ -2834,7 +3754,7 @@ try {
       "--url",
       "ws://localhost:8080/realtime",
       "--sessionId",
-      $sessionId,
+      $gatewayRoundTripSessionId,
       "--runId",
       $warmupRunId,
       "--userId",
@@ -2851,7 +3771,7 @@ try {
         "--url",
         "ws://localhost:8080/realtime",
         "--sessionId",
-        $sessionId,
+        $gatewayRoundTripSessionId,
         "--runId",
         $sampleRunId,
         "--userId",
@@ -2876,6 +3796,7 @@ try {
     Assert-Condition -Condition ($sessionStateCount -ge 3) -Message "Expected at least 3 session.state transitions."
 
     return [ordered]@{
+      sessionId = $gatewayRoundTripSessionId
       runId = [string](Get-FieldValue -Object $result -Path @("runId"))
       userId = [string](Get-FieldValue -Object $result -Path @("userId"))
       responseStatus = $responseStatus
@@ -4137,6 +5058,83 @@ try {
       Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace([string]$sessionReplayLiveTransportActiveMode)) -Message "Captured session replay live transport should expose activeMode."
     }
 
+    $caseWikiUri = "http://localhost:8081/v1/runtime/case-wiki?sessionId=$([Uri]::EscapeDataString([string]$sessionId))&sessionLimit=20&eventLimit=120&runLimit=120&approvalLimit=120&recentEventLimit=200"
+    $caseWikiResponse = Invoke-JsonRequest -Method GET -Uri $caseWikiUri -Headers $operatorHeaders -TimeoutSec $RequestTimeoutSec
+    $caseWikiData = Get-FieldValue -Object $caseWikiResponse -Path @("data")
+    Assert-Condition -Condition ($null -ne $caseWikiData) -Message "Runtime case wiki payload is missing."
+    $caseWikiCaseIdRaw = Get-FieldValue -Object $caseWikiData -Path @("caseId")
+    $caseWikiCaseId = if ([string]::IsNullOrWhiteSpace([string]$caseWikiCaseIdRaw)) { $null } else { [string]$caseWikiCaseIdRaw }
+    $caseWikiSessionId = [string](Get-FieldValue -Object $caseWikiData -Path @("sessionId"))
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($caseWikiCaseId)) -Message "Runtime case wiki should include caseId."
+    Assert-Condition -Condition ($caseWikiSessionId -eq $sessionId) -Message "Runtime case wiki should resolve the active demo session."
+    $caseWikiOverviewStatusRaw = Get-FieldValue -Object $caseWikiData -Path @("overview", "status")
+    $caseWikiOverviewStatus = if ([string]::IsNullOrWhiteSpace([string]$caseWikiOverviewStatusRaw)) { $null } else { [string]$caseWikiOverviewStatusRaw }
+    $caseWikiDefaultFocus = Get-FieldValue -Object $caseWikiData -Path @("workspacePack", "defaultFocus")
+    $caseWikiFocusKindRaw = Get-FieldValue -Object $caseWikiDefaultFocus -Path @("kind")
+    $caseWikiFocusKind = if ([string]::IsNullOrWhiteSpace([string]$caseWikiFocusKindRaw)) { $null } else { [string]$caseWikiFocusKindRaw }
+    $caseWikiFocusLabelRaw = Get-FieldValue -Object $caseWikiDefaultFocus -Path @("label")
+    $caseWikiFocusLabel = if ([string]::IsNullOrWhiteSpace([string]$caseWikiFocusLabelRaw)) { $null } else { [string]$caseWikiFocusLabelRaw }
+    $caseWikiRecommendedNextActionRaw = Get-FieldValue -Object $caseWikiData -Path @("recommendedNextAction", "title")
+    if ([string]::IsNullOrWhiteSpace([string]$caseWikiRecommendedNextActionRaw)) {
+      $caseWikiRecommendedNextActionRaw = Get-FieldValue -Object $caseWikiData -Path @("recommendedNextAction", "type")
+    }
+    $caseWikiRecommendedNextAction = if ([string]::IsNullOrWhiteSpace([string]$caseWikiRecommendedNextActionRaw)) { $null } else { [string]$caseWikiRecommendedNextActionRaw }
+    $caseWikiFocusPackSourceRefsRaw = Get-FieldValue -Object $caseWikiData -Path @("focusPack", "sourceRefs")
+    if ($caseWikiFocusPackSourceRefsRaw -is [System.Array]) {
+      $caseWikiFocusPackSourceRefs = @($caseWikiFocusPackSourceRefsRaw)
+    }
+    elseif ($null -ne $caseWikiFocusPackSourceRefsRaw) {
+      $caseWikiFocusPackSourceRefs = @($caseWikiFocusPackSourceRefsRaw)
+    }
+    else {
+      $caseWikiFocusPackSourceRefs = @()
+    }
+
+    $caseWikiEvidenceSignature = Get-FieldValue -Object $caseWikiData -Path @("evidenceSignature")
+    Assert-Condition -Condition ($null -ne $caseWikiEvidenceSignature) -Message "Runtime case wiki should include evidenceSignature."
+    $caseWikiEvidenceSignatureStatus = [string](Get-FieldValue -Object $caseWikiEvidenceSignature -Path @("status"))
+    $caseWikiEvidenceSignatureAlgorithm = [string](Get-FieldValue -Object $caseWikiEvidenceSignature -Path @("algorithm"))
+    $caseWikiEvidenceSignatureCanonicalization = [string](Get-FieldValue -Object $caseWikiEvidenceSignature -Path @("canonicalization"))
+    $caseWikiEvidenceSignaturePayloadHash = [string](Get-FieldValue -Object $caseWikiEvidenceSignature -Path @("payloadHash"))
+    $caseWikiEvidenceSignatureKeyIdRaw = Get-FieldValue -Object $caseWikiEvidenceSignature -Path @("keyId")
+    $caseWikiEvidenceSignatureKeyId = if ([string]::IsNullOrWhiteSpace([string]$caseWikiEvidenceSignatureKeyIdRaw)) { $null } else { [string]$caseWikiEvidenceSignatureKeyIdRaw }
+    $caseWikiEvidenceSignatureSignerId = [string](Get-FieldValue -Object $caseWikiEvidenceSignature -Path @("signerId"))
+    $caseWikiEvidenceSignatureSignedAt = [string](Get-FieldValue -Object $caseWikiEvidenceSignature -Path @("signedAt"))
+    $caseWikiEvidenceSignatureRaw = Get-FieldValue -Object $caseWikiEvidenceSignature -Path @("signature")
+    $caseWikiEvidenceSignaturePresent = -not [string]::IsNullOrWhiteSpace([string]$caseWikiEvidenceSignatureRaw)
+    Assert-Condition -Condition (@("signed", "unsigned") -contains $caseWikiEvidenceSignatureStatus) -Message "Runtime case wiki evidenceSignature.status is invalid."
+    Assert-Condition -Condition ($caseWikiEvidenceSignatureAlgorithm -eq "ed25519-sha256") -Message "Runtime case wiki evidenceSignature.algorithm is invalid."
+    Assert-Condition -Condition ($caseWikiEvidenceSignatureCanonicalization -eq "json-stable-v1") -Message "Runtime case wiki evidenceSignature.canonicalization is invalid."
+    Assert-Condition -Condition ($caseWikiEvidenceSignaturePayloadHash -match "^sha256:[a-f0-9]{64}$") -Message "Runtime case wiki evidenceSignature.payloadHash is invalid."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($caseWikiEvidenceSignatureSignerId)) -Message "Runtime case wiki evidenceSignature.signerId is missing."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($caseWikiEvidenceSignatureSignedAt)) -Message "Runtime case wiki evidenceSignature.signedAt is missing."
+    if ($caseWikiEvidenceSignatureStatus -eq "signed") {
+      Assert-Condition -Condition $caseWikiEvidenceSignaturePresent -Message "Signed runtime case wiki evidenceSignature should include signature bytes."
+    }
+    else {
+      Assert-Condition -Condition (-not $caseWikiEvidenceSignaturePresent) -Message "Unsigned runtime case wiki evidenceSignature should not include signature bytes."
+    }
+
+    $caseWikiSnapshot = [ordered]@{
+      caseId = $caseWikiCaseId
+      sessionId = $caseWikiSessionId
+      overviewStatus = $caseWikiOverviewStatus
+      focusKind = $caseWikiFocusKind
+      focusLabel = $caseWikiFocusLabel
+      nextAction = $caseWikiRecommendedNextAction
+      sourceRefsCount = @($caseWikiFocusPackSourceRefs).Count
+      evidenceSignature = [ordered]@{
+        status = $caseWikiEvidenceSignatureStatus
+        algorithm = $caseWikiEvidenceSignatureAlgorithm
+        canonicalization = $caseWikiEvidenceSignatureCanonicalization
+        payloadHash = $caseWikiEvidenceSignaturePayloadHash
+        keyId = $caseWikiEvidenceSignatureKeyId
+        signerId = $caseWikiEvidenceSignatureSignerId
+        signedAt = $caseWikiEvidenceSignatureSignedAt
+        signaturePresent = $caseWikiEvidenceSignaturePresent
+      }
+    }
+
     return [ordered]@{
       taskId = $taskId
       summaryActiveTasks = $activeTasks.Count
@@ -4291,6 +5289,7 @@ try {
       sessionReplayLiveTransportFallbackReason = $sessionReplayLiveTransportFallbackReason
       sessionReplayLiveTransportEvidenceSource = $sessionReplayLiveTransportEvidenceSource
       sessionReplayLiveTransportCapturedAt = $sessionReplayLiveTransportCapturedAt
+      caseWikiSnapshot = $caseWikiSnapshot
     }
   } | Out-Null
 
@@ -4536,12 +5535,70 @@ try {
     $policyEffectiveResponse = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/governance/policy" -Headers $viewerHeaders -TimeoutSec $RequestTimeoutSec
     $effectiveTemplate = [string](Get-FieldValue -Object $policyEffectiveResponse -Path @("data", "policy", "complianceTemplate"))
     $effectiveRawMediaDays = [int](Get-FieldValue -Object $policyEffectiveResponse -Path @("data", "policy", "retentionPolicy", "rawMediaDays"))
+    $effectiveAuditLogsDays = [int](Get-FieldValue -Object $policyEffectiveResponse -Path @("data", "policy", "retentionPolicy", "auditLogsDays"))
     $effectiveSessionsDays = [int](Get-FieldValue -Object $policyEffectiveResponse -Path @("data", "policy", "retentionPolicy", "sessionsDays"))
     $effectiveEventsDays = [int](Get-FieldValue -Object $policyEffectiveResponse -Path @("data", "policy", "retentionPolicy", "eventsDays"))
     Assert-Condition -Condition ($effectiveTemplate -eq "strict") -Message "Effective governance policy template should be strict."
     Assert-Condition -Condition ($effectiveRawMediaDays -eq 2) -Message "Effective governance rawMediaDays should be 2."
+    Assert-Condition -Condition ($effectiveAuditLogsDays -eq 540) -Message "Effective governance auditLogsDays should stay at strict default 540."
     Assert-Condition -Condition ($effectiveSessionsDays -eq 45) -Message "Effective governance sessionsDays should be 45."
     Assert-Condition -Condition ($effectiveEventsDays -eq 400) -Message "Effective governance eventsDays should be 400."
+
+    $governanceSessionCreateResponse = Invoke-JsonRequest `
+      -Method POST `
+      -Uri "http://localhost:8081/v1/sessions" `
+      -Headers $viewerHeaders `
+      -Body @{
+        userId = "governance-case-wiki"
+        mode = "multi"
+      } `
+      -TimeoutSec $RequestTimeoutSec
+    $governanceCaseWikiSessionId = [string](Get-FieldValue -Object $governanceSessionCreateResponse -Path @("data", "sessionId"))
+    $governanceCaseWikiSessionTenantId = [string](Get-FieldValue -Object $governanceSessionCreateResponse -Path @("data", "tenantId"))
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($governanceCaseWikiSessionId)) -Message "Governance-scoped sessionId is missing for case wiki compliance validation."
+    Assert-Condition -Condition ($governanceCaseWikiSessionTenantId -eq $governanceTenantId) -Message "Governance-scoped case wiki session should inherit tenant scope."
+
+    $governanceCaseWikiUri = "http://localhost:8081/v1/runtime/case-wiki?sessionId=$([System.Uri]::EscapeDataString([string]$governanceCaseWikiSessionId))&sessionLimit=20&eventLimit=120&runLimit=120&approvalLimit=120&recentEventLimit=200"
+    $governanceCaseWikiResponse = Invoke-JsonRequest -Method GET -Uri $governanceCaseWikiUri -Headers $viewerHeaders -TimeoutSec $RequestTimeoutSec
+    $governanceCaseWikiData = Get-FieldValue -Object $governanceCaseWikiResponse -Path @("data")
+    Assert-Condition -Condition ($null -ne $governanceCaseWikiData) -Message "Governance-scoped runtime case wiki payload is missing."
+    $governanceCaseWikiCompliance = Get-FieldValue -Object $governanceCaseWikiData -Path @("compliance")
+    Assert-Condition -Condition ($null -ne $governanceCaseWikiCompliance) -Message "Governance-scoped runtime case wiki should include compliance."
+    $caseWikiComplianceTemplateId = [string](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("templateId"))
+    $caseWikiComplianceRequestedTemplateId = [string](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("requestedTemplateId"))
+    $caseWikiComplianceSource = [string](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("source"))
+    $caseWikiComplianceFallbackApplied = [bool](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("fallbackApplied"))
+    $caseWikiCompliancePiiRedactionLevel = [string](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("controls", "piiRedactionLevel"))
+    $caseWikiComplianceCrossTenantAdminOnly = [bool](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("controls", "crossTenantAdminOnly"))
+    $caseWikiComplianceApprovalSlaEnforced = [bool](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("controls", "approvalSlaEnforced"))
+    $caseWikiComplianceAuditTrailRequired = [bool](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("controls", "auditTrailRequired"))
+    $caseWikiComplianceRawMediaDays = [int](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("retention", "rawMediaDays"))
+    $caseWikiComplianceAuditLogsDays = [int](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("retention", "auditLogsDays"))
+    $caseWikiComplianceEventsDays = [int](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("retention", "eventsDays"))
+    $caseWikiComplianceSessionsDays = [int](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("retention", "sessionsDays"))
+    $caseWikiComplianceEvidenceSigningEnabled = [bool](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("evidenceSigning", "enabled"))
+    $caseWikiComplianceExpectedSignatureStatus = [string](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("evidenceSigning", "expectedSignatureStatus"))
+    $caseWikiComplianceKeyState = [string](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("evidenceSigning", "keyState"))
+    $caseWikiComplianceSignerId = [string](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("evidenceSigning", "signerId"))
+    $caseWikiComplianceKeyIdRaw = Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("evidenceSigning", "keyId")
+    $caseWikiComplianceKeyId = if ([string]::IsNullOrWhiteSpace([string]$caseWikiComplianceKeyIdRaw)) { $null } else { [string]$caseWikiComplianceKeyIdRaw }
+    $caseWikiComplianceSummary = [string](Get-FieldValue -Object $governanceCaseWikiCompliance -Path @("summary"))
+    Assert-Condition -Condition ($caseWikiComplianceTemplateId -eq "strict") -Message "Governance-scoped case wiki compliance.templateId should be strict."
+    Assert-Condition -Condition ($caseWikiComplianceRequestedTemplateId -eq "strict") -Message "Governance-scoped case wiki compliance.requestedTemplateId should be strict."
+    Assert-Condition -Condition ($caseWikiComplianceSource -eq "tenant_override") -Message "Governance-scoped case wiki compliance.source should be tenant_override."
+    Assert-Condition -Condition (-not $caseWikiComplianceFallbackApplied) -Message "Governance-scoped case wiki compliance should not report fallbackApplied."
+    Assert-Condition -Condition ($caseWikiCompliancePiiRedactionLevel -eq "high") -Message "Governance-scoped case wiki compliance piiRedactionLevel should be high."
+    Assert-Condition -Condition ($caseWikiComplianceCrossTenantAdminOnly -eq $true) -Message "Governance-scoped case wiki compliance should enforce crossTenantAdminOnly."
+    Assert-Condition -Condition ($caseWikiComplianceApprovalSlaEnforced -eq $true) -Message "Governance-scoped case wiki compliance should enforce approval SLA."
+    Assert-Condition -Condition ($caseWikiComplianceAuditTrailRequired -eq $true) -Message "Governance-scoped case wiki compliance should require audit trail."
+    Assert-Condition -Condition ($caseWikiComplianceRawMediaDays -eq 2) -Message "Governance-scoped case wiki compliance rawMediaDays should be 2."
+    Assert-Condition -Condition ($caseWikiComplianceAuditLogsDays -eq 540) -Message "Governance-scoped case wiki compliance auditLogsDays should stay at strict default 540."
+    Assert-Condition -Condition ($caseWikiComplianceEventsDays -eq 400) -Message "Governance-scoped case wiki compliance eventsDays should be 400."
+    Assert-Condition -Condition ($caseWikiComplianceSessionsDays -eq 45) -Message "Governance-scoped case wiki compliance sessionsDays should be 45."
+    Assert-Condition -Condition (@("signed", "unsigned") -contains $caseWikiComplianceExpectedSignatureStatus) -Message "Governance-scoped case wiki compliance expectedSignatureStatus is invalid."
+    Assert-Condition -Condition (@("missing", "loaded", "invalid") -contains $caseWikiComplianceKeyState) -Message "Governance-scoped case wiki compliance keyState is invalid."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($caseWikiComplianceSignerId)) -Message "Governance-scoped case wiki compliance signerId is missing."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($caseWikiComplianceSummary)) -Message "Governance-scoped case wiki compliance summary is missing."
 
     $governanceSummaryResponse = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/governance/audit/summary?tenantId=$([System.Uri]::EscapeDataString($governanceTenantId))&operatorActionsLimit=200&approvalsLimit=100&sessionsLimit=100&bindingsLimit=100" -Headers $adminHeaders -TimeoutSec $RequestTimeoutSec
     $summaryTemplateId = [string](Get-FieldValue -Object $governanceSummaryResponse -Path @("data", "compliance", "templateId"))
@@ -4633,8 +5690,27 @@ try {
       policyVersion = $policyVersion
       effectiveTemplate = $effectiveTemplate
       effectiveRawMediaDays = $effectiveRawMediaDays
+      effectiveAuditLogsDays = $effectiveAuditLogsDays
       effectiveSessionsDays = $effectiveSessionsDays
       effectiveEventsDays = $effectiveEventsDays
+      caseWikiComplianceTemplateId = $caseWikiComplianceTemplateId
+      caseWikiComplianceRequestedTemplateId = $caseWikiComplianceRequestedTemplateId
+      caseWikiComplianceSource = $caseWikiComplianceSource
+      caseWikiComplianceFallbackApplied = $caseWikiComplianceFallbackApplied
+      caseWikiCompliancePiiRedactionLevel = $caseWikiCompliancePiiRedactionLevel
+      caseWikiComplianceCrossTenantAdminOnly = $caseWikiComplianceCrossTenantAdminOnly
+      caseWikiComplianceApprovalSlaEnforced = $caseWikiComplianceApprovalSlaEnforced
+      caseWikiComplianceAuditTrailRequired = $caseWikiComplianceAuditTrailRequired
+      caseWikiComplianceRawMediaDays = $caseWikiComplianceRawMediaDays
+      caseWikiComplianceAuditLogsDays = $caseWikiComplianceAuditLogsDays
+      caseWikiComplianceEventsDays = $caseWikiComplianceEventsDays
+      caseWikiComplianceSessionsDays = $caseWikiComplianceSessionsDays
+      caseWikiComplianceEvidenceSigningEnabled = $caseWikiComplianceEvidenceSigningEnabled
+      caseWikiComplianceExpectedSignatureStatus = $caseWikiComplianceExpectedSignatureStatus
+      caseWikiComplianceKeyState = $caseWikiComplianceKeyState
+      caseWikiComplianceSignerId = $caseWikiComplianceSignerId
+      caseWikiComplianceKeyId = $caseWikiComplianceKeyId
+      caseWikiComplianceSummary = $caseWikiComplianceSummary
       versionConflictCode = $versionConflictCode
       idempotencyConflictCode = $idempotencyConflictCode
       tenantScopeForbiddenCode = $tenantScopeForbiddenCode
@@ -5121,6 +6197,9 @@ try {
   $fatalError = $_.Exception.Message
   $overallSuccess = $false
 } finally {
+  if (-not [string]::IsNullOrWhiteSpace($RuntimeSurfaceSnapshotOutputPath)) {
+    Write-RuntimeSurfaceSnapshotArtifact -OutputPath $RuntimeSurfaceSnapshotOutputPath
+  }
   if ((-not $SkipServiceStart) -and (-not $KeepServices)) {
     Stop-ManagedServices
   } elseif ($KeepServices) {
@@ -5136,8 +6215,12 @@ $storyData = Get-ScenarioData -Name "storyteller.pipeline"
 $uiApproveData = Get-ScenarioData -Name "ui.approval.approve_resume"
 $uiSandboxData = Get-ScenarioData -Name "ui.sandbox.policy_modes"
 $uiVisualTestingData = Get-ScenarioData -Name "ui.visual_testing"
+$uiRefHealingData = Get-ScenarioData -Name "ui.executor.ref_healing"
+$uiBrowserWorkerRecoveryData = Get-ScenarioData -Name "ui.browser_worker.checkpoint_resume"
+$uiNavigatorVisaFlowsData = Get-ScenarioData -Name "ui.navigator.visa_vertical_flows"
 $delegationData = Get-ScenarioData -Name "multi_agent.delegation"
 $gatewayWsData = Get-ScenarioData -Name "gateway.websocket.roundtrip"
+$gatewayCaseWikiHydrationData = Get-ScenarioData -Name "gateway.websocket.case_wiki_hydration"
 $gatewayWsTaskData = Get-ScenarioData -Name "gateway.websocket.task_progress"
 $gatewayWsReplayData = Get-ScenarioData -Name "gateway.websocket.request_replay"
 $gatewayWsInterruptData = Get-ScenarioData -Name "gateway.websocket.interrupt_signal"
@@ -5155,13 +6238,18 @@ $skillsRegistryData = Get-ScenarioData -Name "skills.registry.lifecycle"
 $sessionVersioningData = Get-ScenarioData -Name "api.sessions.versioning"
 $runtimeLifecycleData = Get-ScenarioData -Name "runtime.lifecycle.endpoints"
 $runtimeMetricsData = Get-ScenarioData -Name "runtime.metrics.endpoints"
+$caseWikiRoutingContextData = Get-ScenarioData -Name "orchestrator.case_wiki_routing_context"
 $translationScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "live.translation" } | Select-Object -First 1)
 $researchScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "live.research" } | Select-Object -First 1)
 $negotiationScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "live.negotiation" } | Select-Object -First 1)
 $contextCompactionScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "live.context_compaction" } | Select-Object -First 1)
 $storytellerScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "storyteller.pipeline" } | Select-Object -First 1)
 $uiSandboxScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "ui.sandbox.policy_modes" } | Select-Object -First 1)
+$uiRefHealingScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "ui.executor.ref_healing" } | Select-Object -First 1)
+$uiBrowserWorkerRecoveryScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "ui.browser_worker.checkpoint_resume" } | Select-Object -First 1)
+$uiNavigatorVisaFlowsScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "ui.navigator.visa_vertical_flows" } | Select-Object -First 1)
 $gatewayRoundTripScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.roundtrip" } | Select-Object -First 1)
+$gatewayCaseWikiHydrationScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.case_wiki_hydration" } | Select-Object -First 1)
 $gatewayTaskProgressScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.task_progress" } | Select-Object -First 1)
 $gatewayRequestReplayScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.request_replay" } | Select-Object -First 1)
 $gatewayInterruptScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.interrupt_signal" } | Select-Object -First 1)
@@ -5172,6 +6260,7 @@ $gatewayBindingMismatchScenario = @($script:ScenarioResults | Where-Object { $_.
 $gatewayDrainingRejectionScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.draining_rejection" } | Select-Object -First 1)
 $frontendDirectLiveScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "frontend.live.direct_transport" } | Select-Object -First 1)
 $delegationScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "multi_agent.delegation" } | Select-Object -First 1)
+$caseWikiRoutingContextScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "orchestrator.case_wiki_routing_context" } | Select-Object -First 1)
 $operatorDeviceNodesScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "operator.device_nodes.lifecycle" } | Select-Object -First 1)
 $approvalsListScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "api.approvals.list" } | Select-Object -First 1)
 $approvalsInvalidIntentScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "api.approvals.resume.invalid_intent" } | Select-Object -First 1)
@@ -5194,6 +6283,88 @@ $uiExecutorLifecycleService = $null
 if ($null -ne $runtimeLifecycleData) {
   $uiExecutorLifecycleService = @($runtimeLifecycleData.services | Where-Object { $_.name -eq "ui-executor" }) | Select-Object -First 1
 }
+
+$caseWikiContextAdoptionObservations = @()
+if ($null -ne $delegationData -and -not [string]::IsNullOrWhiteSpace([string]$delegationData.routingContextSource)) {
+  $caseWikiContextAdoptionObservations += [ordered]@{
+    scenario = "multi_agent.delegation"
+    contextSource = [string]$delegationData.routingContextSource
+    ingressSource = [string]$delegationData.routingContextIngressSource
+  }
+}
+if ($null -ne $caseWikiRoutingContextData -and -not [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextData.contextSource)) {
+  $caseWikiContextAdoptionObservations += [ordered]@{
+    scenario = "orchestrator.case_wiki_routing_context"
+    contextSource = [string]$caseWikiRoutingContextData.contextSource
+    ingressSource = [string]$caseWikiRoutingContextData.ingressSource
+  }
+}
+if ($null -ne $gatewayCaseWikiHydrationData -and -not [string]::IsNullOrWhiteSpace([string]$gatewayCaseWikiHydrationData.contextSource)) {
+  $caseWikiContextAdoptionObservations += [ordered]@{
+    scenario = "gateway.websocket.case_wiki_hydration"
+    contextSource = [string]$gatewayCaseWikiHydrationData.contextSource
+    ingressSource = [string]$gatewayCaseWikiHydrationData.ingressSource
+  }
+}
+$caseWikiContextAdoptionObservedCount = @($caseWikiContextAdoptionObservations).Count
+$caseWikiContextAdoptionCaseWikiCount = @($caseWikiContextAdoptionObservations | Where-Object { [string]$_.contextSource -eq "case_wiki" }).Count
+$caseWikiContextAdoptionInputOnlyCount = @($caseWikiContextAdoptionObservations | Where-Object { [string]$_.contextSource -eq "input_only" }).Count
+$caseWikiContextAdoptionUnknownCount = @($caseWikiContextAdoptionObservations | Where-Object {
+  @("case_wiki", "input_only") -notcontains [string]$_.contextSource
+}).Count
+$caseWikiContextAdoptionRate = if ($caseWikiContextAdoptionObservedCount -gt 0) {
+  [Math]::Round(([double]$caseWikiContextAdoptionCaseWikiCount / [double]$caseWikiContextAdoptionObservedCount), 4)
+} else {
+  $null
+}
+$caseWikiContextAdoptionCountsConserved = (
+  ($caseWikiContextAdoptionCaseWikiCount + $caseWikiContextAdoptionInputOnlyCount + $caseWikiContextAdoptionUnknownCount) -eq
+  $caseWikiContextAdoptionObservedCount
+)
+$caseWikiContextAdoptionRateValid = (
+  $null -ne $caseWikiContextAdoptionRate -and
+  $caseWikiContextAdoptionRate -ge 0.95 -and
+  $caseWikiContextAdoptionRate -le 1
+)
+$caseWikiRoutingContextProofValid = if (
+  $null -ne $caseWikiRoutingContextData -and
+  [string]$caseWikiRoutingContextData.contextSource -eq "case_wiki" -and
+  [string]$caseWikiRoutingContextData.focusId -eq "question:passport-scan" -and
+  [string]$caseWikiRoutingContextData.blocker -eq "Do we have the passport scan?" -and
+  [string]$caseWikiRoutingContextData.nextAction -eq "Request passport scan" -and
+  [string]$caseWikiRoutingContextData.route -eq "live-agent" -and
+  [string]$caseWikiRoutingContextData.requestedIntent -eq "conversation" -and
+  -not [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextData.routedIntent) -and
+  -not [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextData.mode)
+) { $true } else { $false }
+$caseWikiGatewayHydrationProofValid = if (
+  $null -ne $gatewayCaseWikiHydrationData -and
+  [bool]$gatewayCaseWikiHydrationData.snapshotValidated -eq $true -and
+  [bool]$gatewayCaseWikiHydrationData.questionMatched -eq $true -and
+  [bool]$gatewayCaseWikiHydrationData.noteSourceRefSeen -eq $true -and
+  -not [string]::IsNullOrWhiteSpace([string]$gatewayCaseWikiHydrationData.sessionId) -and
+  -not [string]::IsNullOrWhiteSpace([string]$gatewayCaseWikiHydrationData.noteEventId) -and
+  -not [string]::IsNullOrWhiteSpace([string]$gatewayCaseWikiHydrationData.questionId) -and
+  -not [string]::IsNullOrWhiteSpace([string]$gatewayCaseWikiHydrationData.questionSuggestedNextStep) -and
+  [string]$gatewayCaseWikiHydrationData.contextSource -eq "case_wiki" -and
+  [string]$gatewayCaseWikiHydrationData.route -eq "live-agent" -and
+  [string]$gatewayCaseWikiHydrationData.requestedIntent -eq "conversation" -and
+  -not [string]::IsNullOrWhiteSpace([string]$gatewayCaseWikiHydrationData.focusId) -and
+  -not [string]::IsNullOrWhiteSpace([string]$gatewayCaseWikiHydrationData.blocker) -and
+  -not [string]::IsNullOrWhiteSpace([string]$gatewayCaseWikiHydrationData.nextAction) -and
+  -not [string]::IsNullOrWhiteSpace([string]$gatewayCaseWikiHydrationData.routedIntent) -and
+  -not [string]::IsNullOrWhiteSpace([string]$gatewayCaseWikiHydrationData.mode)
+) { $true } else { $false }
+$caseWikiContextAdoptionValidated = if (
+  $caseWikiContextAdoptionObservedCount -ge 3 -and
+  $caseWikiContextAdoptionCaseWikiCount -ge 1 -and
+  $caseWikiContextAdoptionInputOnlyCount -ge 0 -and
+  $caseWikiContextAdoptionUnknownCount -eq 0 -and
+  $caseWikiContextAdoptionCountsConserved -and
+  $caseWikiContextAdoptionRateValid -and
+  $caseWikiRoutingContextProofValid -and
+  $caseWikiGatewayHydrationProofValid
+) { $true } else { $false }
 
 function Get-ScenarioApproxTokenTotal {
   param(
@@ -5354,6 +6525,7 @@ $summary = [ordered]@{
   }
   frontendLiveDirectSmoke = $frontendDirectLiveData
   liveTransport = if ($null -ne $operatorActionsData) { $operatorActionsData.sessionReplayLiveTransport } else { $null }
+  caseWiki = if ($null -ne $operatorActionsData) { $operatorActionsData.caseWikiSnapshot } else { $null }
   costEstimate = $costEstimate
   tokensUsed = $tokensUsed
   services = $script:ServiceStatuses
@@ -5584,6 +6756,106 @@ $summary = [ordered]@{
       [int]$uiVisualTestingData.checksCount -ge 3 -and
       [int]$uiVisualTestingData.regressionCount -eq 0
     ) { $true } else { $false }
+    uiRefHealingFinalStatus = if ($null -ne $uiRefHealingData) { $uiRefHealingData.finalStatus } else { $null }
+    uiRefHealingAdapterMode = if ($null -ne $uiRefHealingData) { $uiRefHealingData.adapterMode } else { $null }
+    uiRefHealingHealedRefTargets = if ($null -ne $uiRefHealingData) { $uiRefHealingData.healedRefTargets } else { @() }
+    uiRefHealingHealedRefCount = if ($null -ne $uiRefHealingData) { $uiRefHealingData.healedRefCount } else { 0 }
+    uiRefHealingStaleRefTargets = if ($null -ne $uiRefHealingData) { $uiRefHealingData.staleRefTargets } else { @() }
+    uiRefHealingStaleRefCount = if ($null -ne $uiRefHealingData) { $uiRefHealingData.staleRefCount } else { 0 }
+    uiRefHealingTraceCount = if ($null -ne $uiRefHealingData) { $uiRefHealingData.traceCount } else { 0 }
+    uiRefHealingRetries = if ($null -ne $uiRefHealingData) { $uiRefHealingData.retries } else { $null }
+    uiRefHealingDisabledSubmitSeen = if ($null -ne $uiRefHealingData) { $uiRefHealingData.disabledSubmitSeen } else { $null }
+    uiRefHealingEnabledSubmitSeen = if ($null -ne $uiRefHealingData) { $uiRefHealingData.enabledSubmitSeen } else { $null }
+    uiRefHealingObservationSeen = if ($null -ne $uiRefHealingData) { $uiRefHealingData.healingObservationSeen } else { $null }
+    uiRefHealingNoteSeen = if ($null -ne $uiRefHealingData) { $uiRefHealingData.healingNoteSeen } else { $null }
+    uiRefHealingValidated = if (
+      $null -ne $uiRefHealingData -and
+      [string]$uiRefHealingData.finalStatus -eq "completed" -and
+      [string]$uiRefHealingData.adapterMode -eq "remote_http" -and
+      @($uiRefHealingData.healedRefTargets) -contains "email" -and
+      @($uiRefHealingData.healedRefTargets) -contains "submit_primary" -and
+      [int]$uiRefHealingData.healedRefCount -ge 2 -and
+      [int]$uiRefHealingData.staleRefCount -eq 0 -and
+      [int]$uiRefHealingData.traceCount -ge 5 -and
+      [bool]$uiRefHealingData.disabledSubmitSeen -eq $true -and
+      [bool]$uiRefHealingData.enabledSubmitSeen -eq $true -and
+      [bool]$uiRefHealingData.healingObservationSeen -eq $true -and
+      [bool]$uiRefHealingData.healingNoteSeen -eq $true
+    ) { $true } else { $false }
+    browserWorkerRecoveryFinalStatus = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.finalStatus } else { $null }
+    browserWorkerRecoveryAdapterMode = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.adapterMode } else { $null }
+    browserWorkerRecoveryCheckpointCount = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.checkpointCount } else { 0 }
+    browserWorkerRecoveryResumedCheckpointCount = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.resumedCheckpointCount } else { 0 }
+    browserWorkerRecoveryHealedRefTargets = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.healedRefTargets } else { @() }
+    browserWorkerRecoveryHealedRefCount = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.healedRefCount } else { 0 }
+    browserWorkerRecoveryStaleRefTargets = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.staleRefTargets } else { @() }
+    browserWorkerRecoveryStaleRefCount = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.staleRefCount } else { 0 }
+    browserWorkerRecoveryTraceCount = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.traceCount } else { 0 }
+    browserWorkerRecoveryRetryCount = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.retryCount } else { 0 }
+    browserWorkerRecoverySummary = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.recoverySummary } else { $null }
+    browserWorkerRecoveryRuntimeRetryCount = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.runtimeRetryCount } else { 0 }
+    browserWorkerRecoveryRuntimeResumedCheckpointCount = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.runtimeResumedCheckpointCount } else { 0 }
+    browserWorkerRecoveryRuntimeStaleRefCount = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.runtimeStaleRefCount } else { 0 }
+    browserWorkerRecoveryRuntimeHealedRefCount = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.runtimeHealedRefCount } else { 0 }
+    browserWorkerRecoveryCheckpointReadyCleared = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.checkpointReadyCleared } else { $null }
+    browserWorkerRecoveryValidated = if (
+      $null -ne $uiBrowserWorkerRecoveryData -and
+      [string]$uiBrowserWorkerRecoveryData.finalStatus -eq "completed" -and
+      [string]$uiBrowserWorkerRecoveryData.adapterMode -eq "remote_http" -and
+      [int]$uiBrowserWorkerRecoveryData.checkpointCount -ge 1 -and
+      [int]$uiBrowserWorkerRecoveryData.resumedCheckpointCount -ge 1 -and
+      @($uiBrowserWorkerRecoveryData.healedRefTargets) -contains "email" -and
+      @($uiBrowserWorkerRecoveryData.healedRefTargets) -contains "submit_primary" -and
+      [int]$uiBrowserWorkerRecoveryData.healedRefCount -ge 2 -and
+      [int]$uiBrowserWorkerRecoveryData.staleRefCount -ge [int]$uiBrowserWorkerRecoveryData.healedRefCount -and
+      @($uiBrowserWorkerRecoveryData.staleRefTargets) -contains "email" -and
+      @($uiBrowserWorkerRecoveryData.staleRefTargets) -contains "submit_primary" -and
+      [int]$uiBrowserWorkerRecoveryData.traceCount -ge 7 -and
+      [bool]$uiBrowserWorkerRecoveryData.checkpointReadyCleared -eq $true -and
+      [int]$uiBrowserWorkerRecoveryData.runtimeResumedCheckpointCount -ge [int]$uiBrowserWorkerRecoveryData.resumedCheckpointCount -and
+      [int]$uiBrowserWorkerRecoveryData.runtimeHealedRefCount -ge [int]$uiBrowserWorkerRecoveryData.healedRefCount -and
+      [int]$uiBrowserWorkerRecoveryData.runtimeStaleRefCount -ge [int]$uiBrowserWorkerRecoveryData.staleRefCount
+    ) { $true } else { $false }
+    navigatorVisaFlowsTotal = if ($null -ne $uiNavigatorVisaFlowsData) { [int]$uiNavigatorVisaFlowsData.totalFlows } else { 0 }
+    navigatorVisaFlowsSucceeded = if ($null -ne $uiNavigatorVisaFlowsData) { [int]$uiNavigatorVisaFlowsData.succeededFlows } else { 0 }
+    navigatorVisaFlowsSuccessRate = if ($null -ne $uiNavigatorVisaFlowsData) { [double]$uiNavigatorVisaFlowsData.successRate } else { 0.0 }
+    navigatorVisaFlowsPersistentSessionCount = if ($null -ne $uiNavigatorVisaFlowsData) { [int]$uiNavigatorVisaFlowsData.persistentSessionCount } else { 0 }
+    navigatorVisaFlowsReplayBundleCount = if ($null -ne $uiNavigatorVisaFlowsData) { [int]$uiNavigatorVisaFlowsData.replayBundleCount } else { 0 }
+    navigatorVisaFlowsVerifiedCount = if ($null -ne $uiNavigatorVisaFlowsData) { [int]$uiNavigatorVisaFlowsData.verifiedCount } else { 0 }
+    navigatorVisaFlowsStaleRecoveryObservedCount = if ($null -ne $uiNavigatorVisaFlowsData) { [int]$uiNavigatorVisaFlowsData.staleRecoveryObservedCount } else { 0 }
+    navigatorVisaFlowsHealedRecoveryObservedCount = if ($null -ne $uiNavigatorVisaFlowsData) { [int]$uiNavigatorVisaFlowsData.healedRecoveryObservedCount } else { 0 }
+    navigatorVisaFlowsResumedCheckpointCount = if ($null -ne $uiNavigatorVisaFlowsData) { [int]$uiNavigatorVisaFlowsData.resumedCheckpointCount } else { 0 }
+    navigatorVisaFlowsCheckpointReadyClearedCount = if ($null -ne $uiNavigatorVisaFlowsData) { [int]$uiNavigatorVisaFlowsData.checkpointReadyClearedCount } else { 0 }
+    navigatorVisaFlowsScenarioNames = if ($null -ne $uiNavigatorVisaFlowsData) { @($uiNavigatorVisaFlowsData.scenarioNames) } else { @() }
+    navigatorVisaFlowsSummary = if ($null -ne $uiNavigatorVisaFlowsData) { [string]$uiNavigatorVisaFlowsData.summary } else { $null }
+    # validationMode is the declared per-run execution mode emitted by
+    # `summarizeNavigatorVisaFlowResults()` per
+    # `.kiro/specs/demo-e2e-visa-flows-execution-mode-aware-summary/design.md`
+    # "Proposed Contract": "real_playwright" | "simulated" | "mixed" |
+    # "unknown". Downstream gates branch on this field after Task 3.2 lands.
+    navigatorVisaFlowsValidationMode = if ($null -ne $uiNavigatorVisaFlowsData) { [string]$uiNavigatorVisaFlowsData.validationMode } else { "unknown" }
+    navigatorVisaFlowsRealPlaywrightValidated = if ($null -ne $uiNavigatorVisaFlowsData) { [bool]$uiNavigatorVisaFlowsData.realPlaywrightValidated } else { $false }
+    navigatorVisaFlowsSimulatedValidated = if ($null -ne $uiNavigatorVisaFlowsData) { [bool]$uiNavigatorVisaFlowsData.simulatedValidated } else { $false }
+    # strictPersistentSessionValidated is the release-strict-only gate field
+    # (true iff every result has both persistentSessionReady AND
+    # persistentSessionReleased). Independent of validationMode. Honest
+    # simulation runs naturally report false because they hold no real
+    # persistent session.
+    navigatorVisaFlowsStrictPersistentSessionValidated = if ($null -ne $uiNavigatorVisaFlowsData) { [bool]$uiNavigatorVisaFlowsData.strictPersistentSessionValidated } else { $false }
+    # `validated` mirrors the artifact's `validated` field directly. After
+    # Task 3.1 of this slice, `summarizeNavigatorVisaFlowResults()` already
+    # makes the artifact's `validated` execution-mode-aware:
+    # real_playwright -> realPlaywrightValidated (today's strict criteria),
+    # simulated -> simulatedValidated (honest simulation contract),
+    # mixed/unknown -> false. Mirroring the artifact keeps the KPI honest
+    # for both lanes; the previous re-derivation that AND-ed every counter
+    # against `validated` collapsed simulation-mode runs into false because
+    # honest simulation reports zero persistent-session / replay-bundle
+    # counts. Release-strict gates use `navigatorVisaFlowsStrictPersistentSessionValidated`
+    # plus the new `navigatorVisaFlowsValidationMode` check (added by
+    # `scripts/demo-e2e-policy-check.mjs`) to require real proof regardless
+    # of the declared mode.
+    navigatorVisaFlowsValidated = if ($null -ne $uiNavigatorVisaFlowsData) { [bool]$uiNavigatorVisaFlowsData.validated } else { $false }
     scenarioRetriesUsedCount = $scenarioRetriedSet.Count
     scenarioRetriesUsedNames = @($scenarioRetriedSet | ForEach-Object { [string]$_.name })
     scenarioRetryableFailuresTotal = [int]$scenarioRetryableFailuresTotal
@@ -5593,7 +6865,11 @@ $summary = [ordered]@{
     liveContextCompactionScenarioAttempts = if ($contextCompactionScenario.Count -gt 0) { [int]$contextCompactionScenario[0].attempts } else { $null }
     storytellerPipelineScenarioAttempts = if ($storytellerScenario.Count -gt 0) { [int]$storytellerScenario[0].attempts } else { $null }
     uiSandboxPolicyModesScenarioAttempts = if ($uiSandboxScenario.Count -gt 0) { [int]$uiSandboxScenario[0].attempts } else { $null }
+    uiRefHealingScenarioAttempts = if ($uiRefHealingScenario.Count -gt 0) { [int]$uiRefHealingScenario[0].attempts } else { $null }
+    uiBrowserWorkerRecoveryScenarioAttempts = if ($uiBrowserWorkerRecoveryScenario.Count -gt 0) { [int]$uiBrowserWorkerRecoveryScenario[0].attempts } else { $null }
+    navigatorVisaFlowsScenarioAttempts = if ($uiNavigatorVisaFlowsScenario.Count -gt 0) { [int]$uiNavigatorVisaFlowsScenario[0].attempts } else { $null }
     gatewayWsRoundTripScenarioAttempts = if ($gatewayRoundTripScenario.Count -gt 0) { [int]$gatewayRoundTripScenario[0].attempts } else { $null }
+    gatewayCaseWikiHydrationScenarioAttempts = if ($gatewayCaseWikiHydrationScenario.Count -gt 0) { [int]$gatewayCaseWikiHydrationScenario[0].attempts } else { $null }
     gatewayTaskProgressScenarioAttempts = if ($gatewayTaskProgressScenario.Count -gt 0) { [int]$gatewayTaskProgressScenario[0].attempts } else { $null }
     gatewayRequestReplayScenarioAttempts = if ($gatewayRequestReplayScenario.Count -gt 0) { [int]$gatewayRequestReplayScenario[0].attempts } else { $null }
     gatewayInterruptSignalScenarioAttempts = if ($gatewayInterruptScenario.Count -gt 0) { [int]$gatewayInterruptScenario[0].attempts } else { $null }
@@ -5603,6 +6879,7 @@ $summary = [ordered]@{
     gatewayBindingMismatchScenarioAttempts = if ($gatewayBindingMismatchScenario.Count -gt 0) { [int]$gatewayBindingMismatchScenario[0].attempts } else { $null }
     gatewayDrainingRejectionScenarioAttempts = if ($gatewayDrainingRejectionScenario.Count -gt 0) { [int]$gatewayDrainingRejectionScenario[0].attempts } else { $null }
     multiAgentDelegationScenarioAttempts = if ($delegationScenario.Count -gt 0) { [int]$delegationScenario[0].attempts } else { $null }
+    caseWikiRoutingContextScenarioAttempts = if ($caseWikiRoutingContextScenario.Count -gt 0) { [int]$caseWikiRoutingContextScenario[0].attempts } else { $null }
     operatorDeviceNodesLifecycleScenarioAttempts = if ($operatorDeviceNodesScenario.Count -gt 0) { [int]$operatorDeviceNodesScenario[0].attempts } else { $null }
     approvalsListScenarioAttempts = if ($approvalsListScenario.Count -gt 0) { [int]$approvalsListScenario[0].attempts } else { $null }
     approvalsInvalidIntentScenarioAttempts = if ($approvalsInvalidIntentScenario.Count -gt 0) { [int]$approvalsInvalidIntentScenario[0].attempts } else { $null }
@@ -5627,6 +6904,38 @@ $summary = [ordered]@{
     assistiveRouterPromptCaching = if ($null -ne $delegationData) { $delegationData.routingPromptCaching } else { $null }
     assistiveRouterWatchlistEnabled = if ($null -ne $delegationData) { $delegationData.routingWatchlistEnabled } else { $null }
     assistiveRouterConfidence = if ($null -ne $delegationData) { $delegationData.routingConfidence } else { $null }
+    caseWikiRoutingContextSource = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.contextSource } else { $null }
+    caseWikiRoutingContextIngressSource = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.ingressSource } else { $null }
+    caseWikiRoutingContextFocusId = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.focusId } else { $null }
+    caseWikiRoutingContextBlocker = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.blocker } else { $null }
+    caseWikiRoutingContextNextAction = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.nextAction } else { $null }
+    caseWikiRoutingContextRoute = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.route } else { $null }
+    caseWikiRoutingContextMode = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.mode } else { $null }
+    caseWikiRoutingContextRequestedIntent = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.requestedIntent } else { $null }
+    caseWikiRoutingContextRoutedIntent = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.routedIntent } else { $null }
+    caseWikiRoutingContextValidated = $caseWikiRoutingContextProofValid
+    caseWikiGatewayHydrationSessionId = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.sessionId } else { $null }
+    caseWikiGatewayHydrationNoteEventId = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.noteEventId } else { $null }
+    caseWikiGatewayHydrationQuestionId = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.questionId } else { $null }
+    caseWikiGatewayHydrationQuestionMatched = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.questionMatched } else { $null }
+    caseWikiGatewayHydrationNoteSourceRefSeen = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.noteSourceRefSeen } else { $null }
+    caseWikiGatewayHydrationQuestionSuggestedNextStep = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.questionSuggestedNextStep } else { $null }
+    caseWikiGatewayHydrationContextSource = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.contextSource } else { $null }
+    caseWikiGatewayHydrationIngressSource = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.ingressSource } else { $null }
+    caseWikiGatewayHydrationFocusId = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.focusId } else { $null }
+    caseWikiGatewayHydrationBlocker = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.blocker } else { $null }
+    caseWikiGatewayHydrationNextAction = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.nextAction } else { $null }
+    caseWikiGatewayHydrationRoute = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.route } else { $null }
+    caseWikiGatewayHydrationMode = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.mode } else { $null }
+    caseWikiGatewayHydrationRequestedIntent = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.requestedIntent } else { $null }
+    caseWikiGatewayHydrationRoutedIntent = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.routedIntent } else { $null }
+    caseWikiGatewayHydrationValidated = $caseWikiGatewayHydrationProofValid
+    caseWikiContextAdoptionObservedCount = $caseWikiContextAdoptionObservedCount
+    caseWikiContextAdoptionCaseWikiCount = $caseWikiContextAdoptionCaseWikiCount
+    caseWikiContextAdoptionInputOnlyCount = $caseWikiContextAdoptionInputOnlyCount
+    caseWikiContextAdoptionUnknownCount = $caseWikiContextAdoptionUnknownCount
+    caseWikiContextAdoptionRate = $caseWikiContextAdoptionRate
+    caseWikiContextAdoptionValidated = $caseWikiContextAdoptionValidated
     assistiveRouterDiagnosticsValidated = if (
       $null -ne $delegationData -and
       @("deterministic", "assistive_override", "assistive_match", "assistive_fallback") -contains [string]$delegationData.routingMode -and
@@ -6041,6 +7350,7 @@ $summary = [ordered]@{
     governancePolicyVersion = if ($null -ne $governancePolicyData) { $governancePolicyData.policyVersion } else { $null }
     governancePolicyComplianceTemplate = if ($null -ne $governancePolicyData) { $governancePolicyData.effectiveTemplate } else { $null }
     governancePolicyRetentionRawMediaDays = if ($null -ne $governancePolicyData) { $governancePolicyData.effectiveRawMediaDays } else { $null }
+    governancePolicyRetentionAuditLogsDays = if ($null -ne $governancePolicyData) { $governancePolicyData.effectiveAuditLogsDays } else { $null }
     governancePolicyRetentionSessionsDays = if ($null -ne $governancePolicyData) { $governancePolicyData.effectiveSessionsDays } else { $null }
     governancePolicyRetentionEventsDays = if ($null -ne $governancePolicyData) { $governancePolicyData.effectiveEventsDays } else { $null }
     governancePolicyVersionConflictCode = if ($null -ne $governancePolicyData) { $governancePolicyData.versionConflictCode } else { $null }
@@ -6063,6 +7373,43 @@ $summary = [ordered]@{
       [string]$governancePolicyData.summarySource -eq "tenant_override" -and
       [bool]$governancePolicyData.summaryGovernanceActionSeen -eq $true -and
       [bool]$governancePolicyData.adminOverrideTenantSeen -eq $true
+    ) { $true } else { $false }
+    caseWikiComplianceTemplateId = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceTemplateId } else { $null }
+    caseWikiComplianceRequestedTemplateId = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceRequestedTemplateId } else { $null }
+    caseWikiComplianceSource = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceSource } else { $null }
+    caseWikiComplianceFallbackApplied = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceFallbackApplied } else { $null }
+    caseWikiCompliancePiiRedactionLevel = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiCompliancePiiRedactionLevel } else { $null }
+    caseWikiComplianceCrossTenantAdminOnly = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceCrossTenantAdminOnly } else { $null }
+    caseWikiComplianceApprovalSlaEnforced = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceApprovalSlaEnforced } else { $null }
+    caseWikiComplianceAuditTrailRequired = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceAuditTrailRequired } else { $null }
+    caseWikiComplianceRawMediaDays = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceRawMediaDays } else { $null }
+    caseWikiComplianceAuditLogsDays = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceAuditLogsDays } else { $null }
+    caseWikiComplianceEventsDays = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceEventsDays } else { $null }
+    caseWikiComplianceSessionsDays = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceSessionsDays } else { $null }
+    caseWikiComplianceEvidenceSigningEnabled = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceEvidenceSigningEnabled } else { $null }
+    caseWikiComplianceExpectedSignatureStatus = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceExpectedSignatureStatus } else { $null }
+    caseWikiComplianceKeyState = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceKeyState } else { $null }
+    caseWikiComplianceSignerId = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceSignerId } else { $null }
+    caseWikiComplianceKeyId = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceKeyId } else { $null }
+    caseWikiComplianceSummary = if ($null -ne $governancePolicyData) { $governancePolicyData.caseWikiComplianceSummary } else { $null }
+    caseWikiComplianceValidated = if (
+      $null -ne $governancePolicyData -and
+      [string]$governancePolicyData.caseWikiComplianceTemplateId -eq "strict" -and
+      [string]$governancePolicyData.caseWikiComplianceRequestedTemplateId -eq "strict" -and
+      [string]$governancePolicyData.caseWikiComplianceSource -eq "tenant_override" -and
+      [bool]$governancePolicyData.caseWikiComplianceFallbackApplied -eq $false -and
+      [string]$governancePolicyData.caseWikiCompliancePiiRedactionLevel -eq "high" -and
+      [bool]$governancePolicyData.caseWikiComplianceCrossTenantAdminOnly -eq $true -and
+      [bool]$governancePolicyData.caseWikiComplianceApprovalSlaEnforced -eq $true -and
+      [bool]$governancePolicyData.caseWikiComplianceAuditTrailRequired -eq $true -and
+      [int]$governancePolicyData.caseWikiComplianceRawMediaDays -eq 2 -and
+      [int]$governancePolicyData.caseWikiComplianceAuditLogsDays -eq 540 -and
+      [int]$governancePolicyData.caseWikiComplianceEventsDays -eq 400 -and
+      [int]$governancePolicyData.caseWikiComplianceSessionsDays -eq 45 -and
+      @("signed", "unsigned") -contains [string]$governancePolicyData.caseWikiComplianceExpectedSignatureStatus -and
+      @("missing", "loaded", "invalid") -contains [string]$governancePolicyData.caseWikiComplianceKeyState -and
+      -not [string]::IsNullOrWhiteSpace([string]$governancePolicyData.caseWikiComplianceSignerId) -and
+      -not [string]::IsNullOrWhiteSpace([string]$governancePolicyData.caseWikiComplianceSummary)
     ) { $true } else { $false }
     skillsRegistryTenantId = if ($null -ne $skillsRegistryData) { $skillsRegistryData.tenantId } else { $null }
     skillsRegistrySkillId = if ($null -ne $skillsRegistryData) { $skillsRegistryData.skillId } else { $null }

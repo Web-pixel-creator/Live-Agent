@@ -69,7 +69,7 @@ test("operator console maps placeholder status/value text to demo-friendly label
     "<strong>From Tasks</strong>",
     "<strong>SLA Watch/Breach</strong>",
     "Refresh summary to inspect approval backlog and time limits.",
-    "No active queue pressure yet. Run one scenario and refresh.",
+    "No compiled operator queue yet. Refresh summary after one case run.",
     "Startup checks not sampled yet. Refresh Summary to pull fresh probe evidence.",
     "No gateway error yet. Refresh after a live run.",
     "No UI safety event yet. Run UI task, then refresh.",

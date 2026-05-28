@@ -1,0 +1,527 @@
+# Quality Simplification Plan
+
+This document records the implementation plan for making `AI Action Desk`
+understandable and useful within seven minutes.
+
+Use it together with `AGENTS.md`, `README.md`, and
+`docs/product-master-plan.md`. If this document conflicts with the master plan,
+follow the master plan.
+
+## Goal
+
+A new immigration operator, agency owner, or evaluator should understand the
+product and see a complete case outcome in seven minutes:
+
+1. open the Action Desk,
+2. start the visa-intake demo path,
+3. review lead qualification,
+4. review missing-document follow-up,
+5. review consultation readiness,
+6. review CRM or human handoff,
+7. open the evidence bundle.
+
+The product promise is not a general multimodal agent platform. The product
+promise is:
+
+`AI Action Desk for immigration teams`
+
+The next commercial-expansion plan is intentionally separate:
+`docs/local-services-action-desk-spec.md`. That document is the source of truth
+for the local-services dispatcher wedge and should prevent scattered notes about
+HVAC, plumbing, cleaning, restaurants, hotels, and dentistry from cluttering the
+seven-minute immigration path.
+
+The first implementation path for that expansion is
+`/app?demo=local-services-dispatch&service=ac-repair-dispatch`. It should stay
+phone-first and operator-approved: the AI assistant collects the request,
+prepares estimate and slot inputs, drafts confirmation, and produces a
+master/operator handoff without autonomous dispatch. That route now also uses a
+local-services product-mode sidebar (`AI Dispatcher`, `Service workspace`,
+`Dispatcher`, `Requests`, `Schedule / Dispatch`, `Customers`,
+`Knowledge & Setup`, `Reviews`, `Advanced / Runtime`) so the first scan reads
+as a service-business product instead of a judge/runtime dashboard. The route
+also switches top chrome to `AI Dispatcher` and hides old runtime/SLA alerts,
+visa demo, case filters, case search, and `New case` from the local-services
+header. The detail panel also opens
+`Open dispatch drawer`, `Open customer drawer`, and `Open handoff drawer`, where
+the operator can switch between `Human-readable` and `JSON` exports before
+copying the dispatch, customer-confirmation, or master handoff payload. The same
+detail panel includes `Telegram intake prototype` to prove message intake uses
+the same job-card contract as phone intake. It now opens `Open intake evidence`
+and `Transcript + evidence` into a `Saved intake evidence` drawer with
+`Intake transcript + evidence link`, `Transcript preview`,
+`Evidence export mode`, `Copy intake evidence`, `local_services_intake_evidence`,
+and `transcript_evidence_link`, so the demo can prove the saved transcript and
+evidence link without adding live channel storage. It now also includes `Pilot readiness`,
+`One-page offer`, `90-second demo script`, `Outreach focus`, a `Launch checklist`,
+and tracked `Pilot metrics` so the first Tashkent pilot can be explained
+without leaving `/app`.
+The same block now includes `Agent setup / training state`, a 7-minute setup
+path for `Business profile`, `Knowledge sources`, `Agent behavior`,
+`Test call/message`, and `Ready for test call/message`. `Open setup checklist`
+opens `Training cards`, `Copy setup brief`, and
+`local_services_agent_setup_training` as a deterministic setup artifact; it
+does not activate phone, Telegram, WhatsApp, CRM, analytics, or billing.
+This setup path should now be deep-linkable through `?setup=7min`: show
+`7-minute setup wizard` and `Setup path`, expose `Open setup checklist`,
+`Open day-one setup`, and `Copy setup brief`, then hide outreach tables and
+scorecard controls so the first seven-minute explanation stays focused.
+It should also behave like a real onboarding checklist: store
+`setupStepCompletionByService` and `setupReadyByService` in
+`liveDesk:localServicesPilotWorkspace:v1`, expose `Setup progress`,
+`Saved setup state`, `Mark complete`, `Mark ready for pilot test`, and
+`Ready for pilot test`, and keep the whole flow browser-local.
+The same view now exposes `Next setup action` and
+`Setup validation checklist` with the current step, `Required inputs`,
+`Validation rule`, `Side-effect boundary`, and `Complete current step` so the
+setup path reads like an onboarding wizard rather than a passive checklist.
+After that ready gate, the setup route now has a `Test call/message panel` with
+`Sample inbound`, `Expected extracted fields`, `Pass/fail checklist`,
+`Mark check passed`, `Record test passed`, `Test call passed`, and
+`Reset test call`. It stores `testCallChecklistByService` and
+`testCallPassedByService` beside setup state so a founder can prove one dry run
+without connecting live channels.
+The shell now includes a fourth P0 demo card, `Measurement visit booking`, for
+windows, doors, ceilings, blinds, and fit-out requests. This is the approved
+construction-adjacent expansion because it is still a dispatcher workflow:
+collect scope, district, photos, approximate sizes, and a manager-approved
+measurer slot. Construction-material stock, delivery, payment, and substitution
+rules remain outside P0.
+The same block now includes a 4-step `Pilot outreach wizard` with
+`Offer preview`, `Audience from outreach list`, `Message/test preview`, and
+`Operator confirmation`, keeping first outreach preparation inside the shell
+while real sends remain outside the autonomous path.
+The `Message/test preview` step now opens a `Preview / Test message modal` with
+`Human-readable` / `JSON` modes, `Copy test message`, and
+`Copy test message preview`, so the operator can inspect the exact text without
+creating an external send.
+It now also shows an `Operator outcome log` with `Preview reviewed`,
+`Copied`, and `Contacted manually` outcomes. Those map to
+`messagePreviewReviewedByProspectKey`, `contactPacketCopiedByProspectKey`, and
+`contactProofByProspectKey.manualMessageSent` / `contacted_manually`, keeping
+the 4-step flow measurable without adding any Telegram, WhatsApp, phone, CRM,
+booking, billing, dispatch, or outbound-send side effect.
+The same bookkeeping now flows into `Outreach outcome trail` /
+`outreach_outcome_trail` in pilot export, communication preview, and batch
+review so the operator can audit selected draft, preview-reviewed, copied,
+contacted-manually, scorecard row, and batch handoff state before private sync.
+It now also shows `Channel variants` with `Telegram variant`, `WhatsApp
+variant`, and `Phone script variant`, plus `Copy Telegram variant`, `Copy
+WhatsApp variant`, and `Copy phone script`. This keeps the outreach flow useful
+for real manual work while preserving the hard no-send/no-CRM/no-scorecard
+boundary.
+It also shows `Selected outreach channel`; `Select Telegram`,
+`Select WhatsApp`, and `Select phone script` update `Channel selected` in
+`selectedChannelByProspectKey`, then confirmation/export use that exact channel
+draft.
+The `Operator confirmation` step now opens an `Operator confirmation summary`
+with `Ready for manual outreach`, selected company, channel, exact message,
+approval checklist, and `Copy confirmation summary`.
+The wizard now includes `Wizard progress` and `Record ready for manual outreach`;
+that action sets the selected company to `Draft ready` in browser-local state
+and shows `Ready for manual outreach recorded`, still with no outbound send.
+The wizard now also includes an `Outreach readiness rail` with `Next outreach
+action`, a step-count `Wizard progress`, and `Mark preview reviewed`. Its
+`Manual outreach boundary` explicitly blocks outbound send, CRM write,
+scorecard mutation, and calendar event side effects.
+The wizard now also includes `AI analyst` / `Ask AI about pilot`: a
+deterministic operator-assist sheet with `Suggested questions`, `Best candidate`,
+`Bottleneck`, `Next message`, `Copy analyst brief`, and
+`local_services_pilot_ai_analyst`. This keeps the useful "Ask AI" dashboard
+pattern without adding an external LLM dependency or autonomous outreach.
+It now continues into `Pilot scorecard action`: select a company from the
+repo-owned outreach list, review the message, and `Record scorecard draft` as a
+demo-session `Not contacted` entry. This gives the operator a real next action
+without creating an external send or CRM write.
+The same scorecard card now includes `First request outcome` and
+`Manual outcome state`: `Qualified`, `Needs follow-up`, `Rejected`, and
+`Booked manually` are stored in `firstRequestOutcomeByProspectKey` only. This
+keeps the pilot loop concrete without creating a booking, CRM write, or
+Markdown scorecard mutation. `Outcome chain summary` keeps the proof path
+visible from `Scorecard draft` to `Daily log`, `Week-one review`, and
+`Evidence pack`.
+That state is now persisted in browser `localStorage` with
+`liveDesk:localServicesPilotWorkspace:v1`, covering the selected outreach
+candidate and the operator-only statuses `Draft ready`, `Contacted manually`,
+`Reply received`, and `Rejected for now`.
+The same shell now adds `Pilot funnel summary` with `All candidates`,
+per-status counts, and `Next manual batch`, which turns the first pilot from a
+single selected account into a small visible funnel without adding CRM scope.
+The same funnel now adds `Outreach list filters` and `Column settings`:
+`Service filter`, `Status filter`, `Filtered candidates`,
+`Filtered outreach list`, `All services`, `All statuses`, `Clear filters`, and
+`View only, no send`. This brings the useful table/filter pattern into the
+pilot shell while keeping the action manual-only.
+That same funnel now adds `Pilot execution checklist`: `Pass test call/message`,
+`Needs test call passed`, `Prepare first manual batch`,
+`Ready for first manual batch`, `Record ready drafts`, `Log manual contact`,
+`Book discovery call`, `Start metric capture`, `Founder/operator validation`,
+`No autonomous send`, and `Open pilot runbook`. Its header shows
+`Pilot checklist progress`, `Dry run required` / `Dry run passed`, and
+`Manual launch blocked` / `Manual launch ready`, so first contact stays gated
+on the dry run and a ready draft. `Open launch packet` now opens `Pilot launch
+packet` / `Launch packet preview` with `First manual contact checklist`,
+`Launch readiness`, `Dry-run gate`, `Selected company`, `Draft status`,
+`Next action`, `Copy launch packet`, and
+`local_services_pilot_launch_packet` before any human sends the first manual
+message. The visible path is now a compact `Launch packet readiness card` with
+`Manual launch checklist`, `Manual execution guardrails`, and collapsed `Launch
+support details` instead of a JSON-heavy primary scan. The drawer mirrors that
+ordering with `Pilot launch packet readiness rail`, `First manual contact
+packet`, `Manual contact copy preview`, `First manual contact checklist`,
+`Launch packet guardrails`, and collapsed `Launch packet support details`.
+The checklist now includes `Open Preview / Test message`, so launch readiness
+can hand the operator directly into the existing copy-only Telegram / WhatsApp /
+phone-script preview instead of forcing them to hunt for the modal elsewhere.
+This turns the 14-day pilot runbook into a visible operating loop without
+adding autonomous outreach or CRM scope.
+That operating loop now also includes `Manual activity log`,
+`Last manual action`, `Copy activity log`, and
+`local_services_manual_activity_log`. It records browser-local scorecard,
+selected-channel, and metric events only, includes `Selected outreach channel`
+and `selectedChannelByProspectKey`, with `No external side effects`: no outreach send, CRM
+write, calendar event, analytics sync, billing action, or Markdown mutation.
+The next small operating layer is now `Open discovery prep`: it opens
+`Discovery call prep` with `Questions to ask`, `Pilot success criteria`,
+`Copy discovery call prep`, and the structured
+`local_services_discovery_call_prep` payload. This keeps the first replied
+company call inside the operator workflow without adding calendar, CRM,
+analytics, or outbound-message scope.
+The next linked setup layer is now `Open day-one setup`: it opens
+`Day-one setup brief` with `Business profile lock`, `Setup tasks`,
+`Test call plan`, `Copy day-one setup brief`, and the structured
+`local_services_day_one_setup_brief` payload. This turns the discovery call into
+pilot setup work without adding live channel activation, billing, CRM,
+analytics, calendar, or customer-message scope.
+That funnel now has `Open pilot export`, which opens a `Pilot workspace export
+drawer` with `Human-readable` / `JSON` modes and `Copy pilot workspace export`.
+The export now includes the latest `Manual activity log` / `Last manual action`
+and selected channel per candidate so reviewed scorecard and metric events
+travel with the funnel snapshot. It is
+intentionally manual-only: no outbound message, no CRM write, and no Markdown
+scorecard mutation.
+The same browser-local state now has `Open metrics tracker`, which opens a
+`Pilot metrics tracker` with `Human-readable` / `JSON` modes and
+`Copy pilot metrics tracker`. This closes the first pilot measurement loop while
+remaining manual-only: no analytics sync, no CRM write, and no Markdown
+scorecard mutation.
+The same measurement area now has `Open daily log`, which opens `Pilot daily
+log` with `Daily capture fields`, `Daily operating loop`,
+`Copy pilot daily log`, and the structured `local_services_pilot_daily_log`
+payload. This creates a reviewed daily operating-loop note without analytics
+sync, CRM write, calendar booking, customer send, or Markdown mutation. It now
+also carries the selected company, pilot status, `First request outcome`, and
+`firstRequestOutcomeByProspectKey` so the first observed result is captured
+before weekly scorecard sync.
+The same pilot area now has `Open week-one review`, which opens `Pilot week-one
+review` with `Continue / stop decision`, `Copy week-one review`, and the
+structured `local_services_pilot_week_one_review` payload. This keeps the first
+continue/pause/stop decision owner-reviewed and manual-only, with no CRM write,
+billing change, customer send, or Markdown mutation. It now also carries
+`First request outcome` and `firstRequestOutcomeByProspectKey`, so the first
+observed request result is part of the reviewed week-one decision. It now adds
+`Owner-ready summary`, `Decision readiness`, `Latest manual signal`, and
+`day_one_recap_to_week_one_review` so the week-one review is readable by the
+business owner without opening raw logs first. `Week-one owner decision state`,
+`Record continue`, `Record pause`, `Record stop`, and
+`weekOneOwnerDecisionByProspectKey` keep the decision browser-local before the
+evidence pack.
+The final manual proof layer is now `Open evidence pack`: it opens
+`Pilot evidence pack` with `Week-two evidence pack`, `Copy evidence pack`, and
+the structured `local_services_pilot_evidence_pack` payload. This gives the
+founder a redacted day-14 proof pack for paid-pilot readiness or a clean stop
+decision without private customer data in public docs, CRM write, billing
+change, customer send, or Markdown mutation. It now also carries
+`First request outcome` and `firstRequestOutcomeByProspectKey`, so paid-pilot
+readiness includes the first observed request result. It also carries
+`Week-one owner decision` through `week_one_owner_decision_to_evidence_pack` so
+the proof pack reflects the recorded owner decision.
+That same block should link to repo-owned pilot artifacts through
+`/workspace-docs/local-services-pilot-offer.md` and
+`/workspace-docs/local-services-demo-script.md`.
+The same artifact layer should now include `Open recording checklist` and
+`/workspace-docs/local-services-demo-recording-checklist.md`, so the first
+90-second video can be recorded from one bounded shot list with explicit
+do-not-claim rules.
+The shell should also support `?recording=90s` as a narrow recording posture:
+show `90-second recording mode` and `Recording path`, then hide outreach tables
+and scorecard controls while keeping proof, pilot readiness, and evidence pack
+visible.
+The next execution layer should also stay repo-owned through
+`/workspace-docs/local-services-outreach-list.md` and
+`/workspace-docs/local-services-pilot-scorecard.md`.
+The real execution checklist now lives in `docs/local-services-pilot-runbook.md`
+and is served at `/workspace-docs/local-services-pilot-runbook.md`. It should
+remain outside the app shell until real pilots prove which actions deserve
+product UI.
+The first-contact execution pack now lives in
+`docs/local-services-outreach-execution-pack.md` and is served at
+`/workspace-docs/local-services-outreach-execution-pack.md`. It stays as a
+manual founder worksheet with message templates, discovery-call questions, a
+Manual Execution Table, and Do-Not-Send Rules.
+The shell now exposes that document through `Open outreach execution pack`
+beside the outreach list and scorecard, so the pilot UI can open the first
+manual messages without creating an autonomous send path.
+The same support layer now exposes `Open founder execution log` and
+`/workspace-docs/local-services-founder-execution-log.md`, a redacted
+first-10-contact worksheet for real pilot evidence capture. It stays outside
+autonomous send, CRM, calendar, billing, analytics, and public customer-data
+storage.
+The product shell now mirrors that worksheet with an in-app `First 10 contacts
+workspace`, `Pilot proof checklist`, `Stop / Continue decision gate`,
+`Open batch review`, `First contact batch review drawer`, `Copy batch review`,
+and `Copy founder workspace`. The drawer now has `First-contact batch review
+rows` with `Account -> Lane -> Scorecard row -> Batch handoff -> Proof ->
+Decision`, backed by `review_decision`, `scorecard_row_copied`, and
+`batch_handoff_copied`, and `outreach_outcome_trail`, so the 7-minute path
+explains the batch review without reading Markdown. It now adds `Pilot ops today`,
+`Copy pilot ops handoff`, `Open ops confirmation`,
+`Open communication preview`, `local_services_pilot_ops_today`,
+`local_services_pilot_ops_confirmation`,
+`local_services_pilot_communication_preview`,
+`Current account picker`, `local_services_current_account_picker`,
+`Auto next account`, `Select account`,
+`Current account prep checklist`,
+`local_services_current_account_prep_checklist`, `Prep status`,
+`Channel verified`, `Message preview reviewed`, `Proof marker selected`,
+`Manual-only guardrail`, `Mark preview reviewed`, `Reset preview review`,
+`Prep complete`, `messagePreviewReviewedByProspectKey`,
+`Prep gate`, `local_services_current_account_prep_gate`, `Blocked by prep`,
+`Current account contact packet`,
+`local_services_current_account_contact_packet`, `Ready for manual contact`,
+`Copy contact packet`, `Packet copied`, `Reset packet review`,
+`contactPacketCopiedByProspectKey`, `Packet needed`,
+`Current account action path`, `local_services_current_account_action_path`,
+`Current account outcome capture`,
+`local_services_current_account_outcome_capture`,
+`firstRequestOutcomeByProspectKey`,
+`Current account scorecard sync preview`,
+`local_services_current_account_scorecard_sync_preview`,
+`Copy scorecard row`, `Scorecard row copied`,
+`Reset scorecard row review`, `scorecardRowCopiedByProspectKey`,
+`scorecard_row_copy_required_for_batch_review`,
+`Current account batch review handoff`,
+`local_services_current_account_batch_review_handoff`,
+`Copy batch handoff`, `Batch handoff copied`,
+`Reset batch handoff review`, `batchReviewHandoffCopiedByProspectKey`,
+`Pilot proof update rail`, `local_services_pilot_proof_update_rail`,
+`Current account mini-audit`, `local_services_current_account_mini_audit`,
+`Open account history`, and `local_services_account_history_drawer` so the live
+manual pilot has one current account, one next manual action,
+browser-local account override, phone/Telegram/WhatsApp preview,
+channel/message/proof/guardrail prep checklist, an account -> preview ->
+manual contact -> proof -> continue gate path, latest account-local proof
+events, and one browser-local proof marker to update after the real action. It
+now adds `Daily pilot briefing`, `Copy daily briefing`, and
+`local_services_daily_pilot_briefing` as a manual-only scheduled-task preview
+for founder/operator daily review; it is not a real cron and cannot send Slack,
+Telegram, WhatsApp, phone, CRM, analytics, billing, or Markdown side effects. It
+now adds `Category pilot score`,
+`Leading category`, and `No category expansion without proof` so AC, plumbing,
+cleaning, and measurement are ranked from observed proof. `Leading category
+action layer` converts that rank into `Next manual batch`, `Discovery
+questions`, `Pilot setup checklist`, `Integration hold`, and `Focus leading
+category`. `Pilot setup readiness` adds a `Paid pilot gate` so the shell can say
+`Ready for first paid pilot` or `Not ready for paid pilot` from proof, setup,
+dry-run, owner-conversation, metric, and `Week-one owner decision` gates. Only
+`Continue` can move the lane toward `Paid pilot proposal`; `Pause`, `Stop`, or
+no recorded owner decision keep the path blocked. `Readiness action plan`,
+`Continue setup/test path`, and `Copy readiness action plan` are the next
+operator shortcut layer: they turn the gate into one blocker-specific action
+without adding channel activation. `Open proof drawer`, `Readiness proof
+drawer`, `Copy readiness proof`, and `local_services_readiness_proof_drawer`
+are the evidence layer for that shortcut: one compact view of manual sends,
+replies, discovery, setup/test state, and metric baseline. `Open proposal
+preview`, `Paid pilot proposal preview`, `Copy proposal preview`, and
+`local_services_paid_pilot_proposal_preview` are the next gated layer: a private
+operator proposal draft that stays blocked until readiness proof is complete.
+`Open approval handoff`, `Proposal approval handoff`, `Copy approval handoff`,
+and `local_services_proposal_approval_handoff` are the final manual approval
+layer before external execution: price, scope, owner send, CRM payload, booking
+policy, and billing-disabled state must be confirmed outside automation. The
+shell now records this as `Proposal approval state` in browser-local
+`proposalApprovalByService`; `Approve proposal handoff` is the only state that
+can move kickoff forward, while `Needs changes`, `Block proposal`, or reset keep
+the pilot blocked.
+`Open kickoff gate`, `Pilot kickoff gate`, `Copy kickoff gate`, and
+`local_services_pilot_kickoff_gate` turn that approval layer into a day-one
+decision without adding automation: proceed to setup only when proof, proposal
+approval, setup, dry-run, owner conversation, and metric baseline are ready.
+`Kickoff decision state`, `Mark kickoff ready`, `Needs more prep`,
+`Block kickoff`, `Reset kickoff decision`, and browser-local
+`kickoffDecisionByService` keep that day-one decision explicit; `Open run
+sheet` remains a worksheet, not activation, and stays blocked until the kickoff
+state is ready.
+`Open run sheet`, `Day-one operator run sheet`, `Copy run sheet`, and
+`local_services_day_one_operator_run_sheet` then turn the gate into a
+first-day operator worksheet with `manual_day_one_operator_run_sheet`, sample
+inbound, owner script, expected fields, approval pauses, metric capture, and
+manual result logging. `day_one_run_sheet_outcome_capture` links that worksheet
+to `Open daily log` so the actual first request result is captured before any
+weekly scorecard sync. `Day-one outcome capture gate`, `Reset day-one outcome`,
+`Weekly scorecard sync gate`, and `manual_weekly_scorecard_sync_gate` now make
+that leading-category outcome explicit and keep weekly scorecard sync blocked
+until `firstRequestOutcomeByProspectKey` is recorded and metrics are
+review-ready. `Open day-one recap`, `Day-one recap`,
+`Copy day-one recap`, and `local_services_day_one_recap` then create the
+reviewed first-day recap and `day_one_recap_to_week_one_review` handoff before
+week-one review.
+`Open weekly sync checklist`, `Weekly scorecard sync checklist`,
+`Copy weekly sync checklist`, and
+`local_services_weekly_scorecard_sync_checklist` sit between that gate and the
+private tracker: they give the operator one reviewed manual copy packet without
+Markdown mutation, CRM write, analytics sync, booking, billing, or customer
+message. `Record weekly sync reviewed`, `Reset weekly sync review`, and
+`weeklyScorecardSyncReviewedByService` then keep only browser-local proof that
+the private scorecard was manually updated. `Pilot week-one review` and
+`Pilot evidence pack` now read the same proof as `Weekly sync reviewed`, and
+`Evidence readiness` remains blocked until that manual private scorecard sync
+has been reviewed. The evidence pack carries the selected outreach channel as
+`selected_channel_id`, `selected_channel`, and `selected_channel_state_key`.
+This is the current
+simplification target: prove demand through 10 manual contacts before adding
+more integrations. The target product remains a NEWO-style AI employee platform
+for selected service categories; the manual batch is the category validation
+gate, not the final product shape.
+
+## Success Criteria
+
+The seven-minute path is successful when:
+
+1. the first screen reads as an immigration operator desk,
+2. one primary case path is visible without runtime setup,
+3. lead qualification, document chase, booking, CRM handoff, approval, and
+   evidence are visible as one workflow,
+4. runtime, replay, signing, diagnostics, and raw artifacts stay available in
+   support surfaces instead of dominating the first scan,
+5. the demo can be completed without provider credentials,
+6. docs explain the product before release machinery.
+
+## Implementation Order
+
+### P0 - Seven-Minute Product Path
+
+Add a dedicated demo posture:
+
+`/app?demo=visa-intake`
+
+It should use the existing workspace case model and show one guided immigration
+case path:
+
+1. `Lead qualification`
+2. `Missing documents`
+3. `Consultation`
+4. `CRM handoff`
+5. `Human approval`
+6. `Evidence bundle`
+
+The path should avoid creating a separate mock universe when existing case,
+console, bundle, evidence, and Case Vault surfaces can be reused.
+
+### P0 - First-Screen Simplification
+
+Keep `/app` product-first:
+
+1. active cases,
+2. next operator action,
+3. document and approval status,
+4. clear links to console, bundle, evidence, and Case Vault.
+
+Move deeper runtime details to:
+
+1. `/app/console`,
+2. `/app/console/runtime`,
+3. `/bundle/:id`,
+4. `/evidence/:id`.
+
+### P0 - Outcome Summary
+
+Every product demo should end with a compact `Case Outcome Summary`:
+
+1. qualified lead,
+2. missing documents requested,
+3. consultation ready,
+4. CRM handoff prepared,
+5. approval required or completed,
+6. evidence bundle available.
+
+### P0 - Docs Simplification
+
+Create or update:
+
+1. `README.md` product-first introduction,
+2. `docs/getting-started-7-min.md`,
+3. `docs/operator-guide.md` seven-minute demo note,
+4. `docs/evidence-and-trust.md` for replay, signing, and release detail. Done
+   as the support document for proof depth outside the first product scan.
+
+### P1 - Templates
+
+Add reusable immigration playbook templates:
+
+1. `Visa Lead Qualification`,
+2. `Missing Document Follow-up`,
+3. `Consultation Booking Prep`,
+4. `CRM Handoff Summary`.
+
+Each template should include:
+
+1. sample input,
+2. expected outcome,
+3. approval policy,
+4. evidence output,
+5. CRM fields.
+
+Current shell note:
+
+The first pass should live in the main `/app` shell as productized launch cards,
+not as a separate builder. Use existing runtime cases and support surfaces so
+the templates stay grounded in the same case, approval, bundle, evidence, and
+Case Vault flows. Each card should preview `Outcome`, `Approval`, `Evidence`,
+and `Deliverable` before the operator opens the lane. The selected lane should
+also expose `Sample input`, `Approval policy`, `Evidence output`, and `CRM
+fields` inline, with a deep-linkable `?playbook=` state. The same panel should
+show a repo-owned `Payload preview`, the canonical `Surface path`, and a
+`Copy payload` action derived from the active case and available Case Wiki.
+It should also provide an `Open export drawer` action so the CRM and
+consultation lanes have an integration-ready review surface before any external
+connector exists: `CRM payload drawer` for the Case Vault route and
+`Consultation handoff drawer` for the Presentation Bundle route. Both drawers
+should expose `Human-readable` and `JSON` modes plus an operator checklist.
+
+### P1 - Integrations
+
+Prioritize integrations that close the current wedge:
+
+1. Google Calendar or Calendly,
+2. HubSpot or Airtable CRM,
+3. Gmail draft or send with approval,
+4. document upload,
+5. Telegram or WhatsApp intake.
+
+## Non-Goals For This Cycle
+
+Do not move these into the critical path:
+
+1. disconnected vertical products before the local-services dispatcher spec has
+   a complete seven-minute path and pilot signal,
+2. broad model-portfolio work,
+3. Storyteller as the main product surface,
+4. generic browser-agent positioning,
+5. marketplace work before first repeatable playbooks,
+6. autonomous legal advice or filing.
+
+## Validation
+
+For UI and docs changes:
+
+```bash
+npm run test:unit
+npm run build
+```
+
+For release-impacting evidence or artifact changes:
+
+```bash
+npm run verify:release
+```

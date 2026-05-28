@@ -78,6 +78,10 @@ jobs:
       RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
       RAILWAY_API_SERVICE_ID: ${{ secrets.RAILWAY_API_SERVICE_ID }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      RUNTIME_EVIDENCE_SIGNING_ENABLED: ${{ secrets.RUNTIME_EVIDENCE_SIGNING_ENABLED }}
+      RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64: ${{ secrets.RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64 }}
+      RUNTIME_EVIDENCE_SIGNING_KEY_ID: ${{ secrets.RUNTIME_EVIDENCE_SIGNING_KEY_ID }}
+      RUNTIME_EVIDENCE_SIGNING_SIGNER_ID: ${{ secrets.RUNTIME_EVIDENCE_SIGNING_SIGNER_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -228,7 +232,11 @@ jobs:
             ("Railway API deploy summary path: " + $summaryPath) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
             ("Railway API deploy summary status: " + [string]$summary.status) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
             ("Railway API deploy summary deployment id: " + [string]$summary.deploymentId) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Railway API deploy summary requested public URL: " + [string]$summary.requestedPublicUrl) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
             ("Railway API deploy summary public URL: " + [string]$summary.effectivePublicUrl) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Railway API deploy summary resolved service public URL: " + [string]$summary.resolvedServicePublicUrl) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Railway API deploy summary public URL source: " + [string]$summary.publicUrlSource) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Railway API deploy summary requested public URL matches service domain: " + [string]$summary.requestedPublicUrlMatchesServiceDomain) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
             if ($null -ne $summary.checks -and $null -ne $summary.checks.liveCapabilities) {
               ("Railway API live capabilities active mode: " + [string]$summary.checks.liveCapabilities.activeMode) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
               ("Railway API live capabilities preferred mode: " + [string]$summary.checks.liveCapabilities.preferredMode) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

@@ -78,6 +78,23 @@ export type BrowserJobReplayVerification = {
   summary: string;
 };
 
+export type BrowserJobGroundingRecovery = {
+  staleRefTargets: string[];
+  healedRefTargets: string[];
+  recoveryHint: string | null;
+};
+
+export type BrowserJobReplayRecovery = {
+  retryCount: number;
+  checkpointCount: number;
+  resumedCheckpointCount: number;
+  staleRefCount: number;
+  healedRefCount: number;
+  staleRefTargets: string[];
+  healedRefTargets: string[];
+  summary: string;
+};
+
 export type BrowserJobReplayStepSummary = {
   index: number;
   actionId: string;
@@ -106,6 +123,7 @@ export type BrowserJobReplayBundle = {
   latestCheckpointRef: string | null;
   latestResultRef: string | null;
   latestScreenshotRef: string | null;
+  recovery: BrowserJobReplayRecovery;
   verification: BrowserJobReplayVerification;
   stepSummaries: BrowserJobReplayStepSummary[];
 };
@@ -167,6 +185,7 @@ export type BrowserJobRecord = {
 type InternalBrowserJob = Omit<BrowserJobRecord, "replayBundle"> & {
   actions: BrowserJobAction[];
   context: BrowserJobContext;
+  grounding: BrowserJobGroundingRecovery;
 };
 
 type BrowserJobWorkerSlot = {
@@ -204,6 +223,12 @@ export type BrowserJobRuntimeSnapshot = {
     checkpointReady: number;
     oldestQueuedAgeMs: number | null;
   };
+  recovery: {
+    retryCount: number;
+    resumedCheckpointCount: number;
+    staleRefCount: number;
+    healedRefCount: number;
+  };
   workers: Array<{
     workerId: string;
     activeJobId: string | null;
@@ -237,6 +262,7 @@ export type BrowserJobExecutionResult = {
   adapterMode: "remote_http";
   adapterNotes: string[];
   deviceNode: BrowserJobDeviceNode | null;
+  grounding?: BrowserJobGroundingRecovery | null;
   verification?: BrowserJobReplayVerification | null;
   session?: Partial<BrowserJobSessionRecord> | null;
 };
@@ -306,6 +332,58 @@ function cloneBrowserJobSessionRecord(session: BrowserJobSessionRecord): Browser
     ...session,
     notes: [...session.notes],
   };
+}
+
+function cloneBrowserJobGroundingRecovery(
+  recovery: BrowserJobGroundingRecovery | null | undefined,
+): BrowserJobGroundingRecovery {
+  return {
+    staleRefTargets: Array.isArray(recovery?.staleRefTargets) ? [...recovery.staleRefTargets] : [],
+    healedRefTargets: Array.isArray(recovery?.healedRefTargets) ? [...recovery.healedRefTargets] : [],
+    recoveryHint:
+      typeof recovery?.recoveryHint === "string" && recovery.recoveryHint.trim().length > 0
+        ? recovery.recoveryHint.trim()
+        : null,
+  };
+}
+
+function mergeUniqueStrings(existing: string[], additions: string[] | null | undefined): string[] {
+  const merged = new Set<string>();
+  for (const value of existing) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      merged.add(value.trim());
+    }
+  }
+  for (const value of additions ?? []) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      merged.add(value.trim());
+    }
+  }
+  return Array.from(merged);
+}
+
+function mergeBrowserJobGroundingRecovery(
+  current: BrowserJobGroundingRecovery,
+  update: BrowserJobGroundingRecovery | null | undefined,
+): BrowserJobGroundingRecovery {
+  if (!update) {
+    return cloneBrowserJobGroundingRecovery(current);
+  }
+
+  const merged = {
+    staleRefTargets: mergeUniqueStrings(current.staleRefTargets, update.staleRefTargets),
+    healedRefTargets: mergeUniqueStrings(current.healedRefTargets, update.healedRefTargets),
+    recoveryHint:
+      typeof update.recoveryHint === "string" && update.recoveryHint.trim().length > 0
+        ? update.recoveryHint.trim()
+        : current.recoveryHint,
+  };
+
+  if (merged.healedRefTargets.length > 0 && merged.staleRefTargets.length === 0) {
+    merged.recoveryHint = null;
+  }
+
+  return merged;
 }
 
 function createBrowserJobSessionRecord(jobId: string, params: {
@@ -472,6 +550,54 @@ function buildBrowserJobReplayVerification(job: InternalBrowserJob): BrowserJobR
   };
 }
 
+function buildBrowserJobReplayRecovery(job: InternalBrowserJob): BrowserJobReplayRecovery {
+  const grounding = cloneBrowserJobGroundingRecovery(job.grounding);
+  const observedStaleRefTargets = mergeUniqueStrings(grounding.staleRefTargets, grounding.healedRefTargets);
+  const retryCount = Math.max(
+    typeof job.retries === "number" && Number.isFinite(job.retries) && job.retries > 0 ? Math.floor(job.retries) : 0,
+    job.trace.filter((step) => step.status === "retry").length,
+  );
+  const checkpointCount = job.checkpoints.length;
+  const resumedCheckpointCount = job.checkpoints.filter((item) => item.status === "resumed").length;
+  const staleRefCount = observedStaleRefTargets.length;
+  const healedRefCount = grounding.healedRefTargets.length;
+
+  let summary = "No grounding recovery or resume activity recorded.";
+  if (staleRefCount > 0 || healedRefCount > 0 || resumedCheckpointCount > 0 || retryCount > 0) {
+    const parts: string[] = [];
+    if (healedRefCount > 0) {
+      parts.push(`healed ${healedRefCount} stale grounding ref${healedRefCount === 1 ? "" : "s"}`);
+    }
+    if (staleRefCount > healedRefCount) {
+      const unresolvedCount = staleRefCount - healedRefCount;
+      parts.push(`left ${unresolvedCount} grounding ref${unresolvedCount === 1 ? "" : "s"} unresolved`);
+    } else if (staleRefCount > 0 && healedRefCount === 0) {
+      parts.push(`observed ${staleRefCount} stale grounding ref${staleRefCount === 1 ? "" : "s"}`);
+    }
+    if (resumedCheckpointCount > 0) {
+      parts.push(`resumed ${resumedCheckpointCount} checkpoint${resumedCheckpointCount === 1 ? "" : "s"}`);
+    }
+    if (retryCount > 0) {
+      parts.push(`recorded ${retryCount} retr${retryCount === 1 ? "y" : "ies"}`);
+    }
+    summary = `${parts.join("; ")}.`;
+    if (grounding.recoveryHint) {
+      summary = `${summary} ${grounding.recoveryHint}`;
+    }
+  }
+
+  return {
+    retryCount,
+    checkpointCount,
+    resumedCheckpointCount,
+    staleRefCount,
+    healedRefCount,
+    staleRefTargets: observedStaleRefTargets,
+    healedRefTargets: grounding.healedRefTargets,
+    summary,
+  };
+}
+
 function buildBrowserJobReplayBundle(job: InternalBrowserJob): BrowserJobReplayBundle {
   const actionTargetUrl = job.actions.find((action) => action.type === "navigate" && /^https?:\/\//i.test(action.target))?.target ?? null;
   const screenshotRefs = Array.from(
@@ -509,6 +635,7 @@ function buildBrowserJobReplayBundle(job: InternalBrowserJob): BrowserJobReplayB
     latestCheckpointRef,
     latestResultRef,
     latestScreenshotRef,
+    recovery: buildBrowserJobReplayRecovery(job),
     verification: buildBrowserJobReplayVerification(job),
     stepSummaries: job.trace.map((step) => ({
       index: step.index,
@@ -722,6 +849,7 @@ async function executeJob(slot: BrowserJobWorkerSlot, jobId: string): Promise<vo
     latest.adapterMode = result.adapterMode;
     latest.adapterNotes = [...result.adapterNotes];
     latest.deviceNode = cloneDeviceNode(result.deviceNode);
+    latest.grounding = mergeBrowserJobGroundingRecovery(latest.grounding, result.grounding);
     latest.session = applyBrowserJobSessionUpdate(latest.session, result.session);
     latest.currentWorkerId = null;
     latest.updatedAt = nowIso();
@@ -933,6 +1061,11 @@ export function submitBrowserJob(params: SubmitBrowserJobParams): BrowserJobReco
       refMap: params.context?.refMap && typeof params.context.refMap === "object" ? { ...params.context.refMap } : undefined,
       cursor: params.context?.cursor ? { ...params.context.cursor } : null,
     },
+    grounding: {
+      staleRefTargets: [],
+      healedRefTargets: [],
+      recoveryHint: null,
+    },
   };
   jobs.set(record.jobId, record);
   pendingQueue.push(record.jobId);
@@ -1020,6 +1153,22 @@ export function getBrowserJobRuntimeSnapshot(): BrowserJobRuntimeSnapshot {
     .filter((value) => Number.isFinite(value))
     .sort((left, right) => left - right)[0];
   const nowMs = Date.now();
+  const recovery = allJobs.reduce(
+    (accumulator, job) => {
+      const summary = buildBrowserJobReplayRecovery(job);
+      accumulator.retryCount += summary.retryCount;
+      accumulator.resumedCheckpointCount += summary.resumedCheckpointCount;
+      accumulator.staleRefCount += summary.staleRefCount;
+      accumulator.healedRefCount += summary.healedRefCount;
+      return accumulator;
+    },
+    {
+      retryCount: 0,
+      resumedCheckpointCount: 0,
+      staleRefCount: 0,
+      healedRefCount: 0,
+    },
+  );
   return {
     runtime: {
       enabled: config.enabled,
@@ -1041,6 +1190,7 @@ export function getBrowserJobRuntimeSnapshot(): BrowserJobRuntimeSnapshot {
       checkpointReady: paused,
       oldestQueuedAgeMs: Number.isFinite(oldestQueued) ? Math.max(0, nowMs - oldestQueued) : null,
     },
+    recovery,
     workers: workerSlots.map((worker) => ({
       workerId: worker.workerId,
       activeJobId: worker.activeJobId,

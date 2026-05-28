@@ -10,7 +10,7 @@ import {
 } from "@mla/contracts";
 
 const DEFAULT_LIVE_PROVIDER = "gemini_live_api";
-const DEFAULT_LIVE_MODEL_ID = "gemini-live-2.5-flash-native-audio";
+const DEFAULT_LIVE_MODEL_ID = "gemini-3.1-flash-live-preview";
 const DEFAULT_LIVE_DIRECT_TOKEN_TTL_SECONDS = 300;
 const DEFAULT_LIVE_DIRECT_TOKEN_USES = 1;
 

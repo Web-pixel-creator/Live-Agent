@@ -1,5 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import { applyRuntimeProfile, RollingMetrics } from "./contracts/index.js";
 import {
   clearUiExecutorRuntimeControlPlaneOverride,
@@ -28,6 +29,7 @@ import {
   type BrowserJobSessionRecord,
 } from "./browser-jobs.js";
 import {
+  buildGroundingRefRecoveryPlan,
   listGroundingRefIds,
   normalizeGroundingRefMap,
   resolveGroundingObservation,
@@ -109,6 +111,7 @@ type ExecuteResponse = {
     refMapCount: number;
     actionableRefIds: string[];
     staleRefTargets: string[];
+    healedRefTargets: string[];
     recoveryHint: string | null;
   };
   verification: {
@@ -624,6 +627,12 @@ function simulateExecution(
   note: string,
   deviceNode: DeviceNodeDescriptor | null,
   sandbox: UiExecutorSandboxEvaluation,
+  sessionLocals: {
+    requestedSessionKey: string | null;
+    persistenceRequested: boolean;
+    persistenceEnabled: boolean;
+    persistAfterRun: boolean;
+  },
 ): ExecuteResponse {
   const screenshotSeed = request.context?.screenshotRef || `ui://executor/${Date.now()}`;
   const trace: TraceStep[] = request.actions.map((action, idx) => ({
@@ -635,9 +644,24 @@ function simulateExecution(
     screenshotRef: `${screenshotSeed}/sim-step-${idx + 1}.png`,
     notes: "Simulated execution step.",
   }));
+  const finalStatus = "completed" as ExecuteResponse["finalStatus"];
+  const { requestedSessionKey, persistenceRequested, persistenceEnabled, persistAfterRun } = sessionLocals;
+  // Mirror the real-Playwright session shape (lines ~1373-1389) so the
+  // browser-job session record reaches a deterministic terminal state in
+  // simulation. The simulation lane never holds a real persistent session;
+  // the explicit `notes` marker plus the simulation-mode adapterNotes let
+  // downstream consumers (inferExecutionMode, judge artifacts) detect that
+  // distinction without schema drift.
+  const sessionStatus: BrowserJobSessionRecord["status"] = !persistenceEnabled
+    ? "ephemeral"
+    : !persistAfterRun || finalStatus === "failed"
+      ? finalStatus === "failed"
+        ? "closed"
+        : "released"
+      : "ready";
   return {
     trace,
-    finalStatus: "completed",
+    finalStatus,
     retries: 0,
     executor: "ui-executor-service",
     adapterMode: "remote_http",
@@ -650,7 +674,17 @@ function simulateExecution(
     deviceNode,
     sandbox: sandboxResponse(sandbox),
     grounding: groundingResponse(request),
-    verification: buildExecutionVerificationSummary(request.actions, trace, "completed"),
+    verification: buildExecutionVerificationSummary(request.actions, trace, finalStatus),
+    session: {
+      mode: persistenceRequested ? "resumable" : "ephemeral",
+      key: persistenceEnabled ? requestedSessionKey : null,
+      persistenceRequested,
+      persistenceEnabled,
+      status: sessionStatus,
+      reuseCount: 0,
+      lastPageUrl: null,
+      notes: ["Simulated browser session: no real persistent session was held."],
+    },
   };
 }
 
@@ -732,18 +766,254 @@ async function assertResolvedActionTarget(
   }
 }
 
+function buildGroundingHealingObservation(refId: string, selector: string): string {
+  return `grounding-healed ref:${refId} selector:${selector}`;
+}
+
+function appendGroundingHealingObservation(observation: string | null, refId: string, selector: string): string {
+  const healingObservation = buildGroundingHealingObservation(refId, selector);
+  return observation && observation.trim().length > 0 ? `${healingObservation}; ${observation}` : healingObservation;
+}
+
+async function recoverGroundingRefSelector(
+  page: PlaywrightPageHandle,
+  target: string,
+  context: ExecuteRequest["context"],
+): Promise<{ refId: string; selector: string } | null> {
+  const recoveryPlan = buildGroundingRefRecoveryPlan(target, context);
+  if (!recoveryPlan) {
+    return null;
+  }
+
+  for (const selector of recoveryPlan.selectors) {
+    if (typeof selector !== "string" || selector.trim().length === 0) {
+      continue;
+    }
+
+    try {
+      await page.waitForSelector(selector, {
+        timeout: 250,
+        state: "visible",
+      });
+      return {
+        refId: recoveryPlan.refId,
+        selector,
+      };
+    } catch {
+      // Try the next candidate selector.
+    }
+  }
+
+  return await page.evaluate((plan) => {
+    const toLower = (value: string | null | undefined): string => (typeof value === "string" ? value.trim().toLowerCase() : "");
+    const collapse = (value: string | null | undefined): string =>
+      typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
+    const visible = (element: Element | null): element is HTMLElement => {
+      if (!(element instanceof HTMLElement)) {
+        return false;
+      }
+      const style = window.getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
+    };
+    const kindMatches = (element: HTMLElement, kind: string): boolean => {
+      const tagName = element.tagName.toLowerCase();
+      const role = toLower(element.getAttribute("role"));
+      if (kind === "field") {
+        return tagName === "input" || tagName === "textarea" || tagName === "select";
+      }
+      if (kind === "submit") {
+        return (
+          (tagName === "button" && toLower((element as HTMLButtonElement).type || element.getAttribute("type")) === "submit") ||
+          (tagName === "input" && toLower((element as HTMLInputElement).type || element.getAttribute("type")) === "submit")
+        );
+      }
+      if (kind === "button") {
+        return tagName === "button" || role === "button" || (tagName === "input" && toLower(element.getAttribute("type")) === "button");
+      }
+      if (kind === "table") {
+        return tagName === "table" || role === "table" || role === "grid";
+      }
+      if (kind === "dialog") {
+        return tagName === "dialog" || role === "dialog";
+      }
+      if (kind === "heading") {
+        return /^h[1-6]$/.test(tagName) || role === "heading";
+      }
+      return true;
+    };
+    const collectTexts = (element: HTMLElement): string[] => {
+      const texts = new Set<string>();
+      const add = (value: string | null | undefined) => {
+        const normalized = collapse(value);
+        if (normalized.length > 0) {
+          texts.add(normalized);
+        }
+      };
+      add(element.textContent);
+      add(element.getAttribute("aria-label"));
+      add(element.getAttribute("placeholder"));
+      const labelList = "labels" in element ? (element as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement).labels : null;
+      if (labelList) {
+        for (const label of Array.from(labelList)) {
+          add(label?.textContent);
+        }
+      }
+      return Array.from(texts);
+    };
+    const cssEscape = (value: string): string => {
+      const escapeFn = typeof CSS !== "undefined" && typeof CSS.escape === "function" ? CSS.escape : null;
+      if (escapeFn) {
+        return escapeFn(value);
+      }
+      return value.replace(/[^a-zA-Z0-9_-]/g, "\\$&");
+    };
+    const attributeEscape = (value: string): string => value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    const buildSelector = (element: HTMLElement): string | null => {
+      const id = collapse(element.id);
+      if (id.length > 0) {
+        return `#${cssEscape(id)}`;
+      }
+      const tagName = element.tagName.toLowerCase();
+      const name = collapse(element.getAttribute("name"));
+      if (name.length > 0) {
+        return `${tagName}[name="${attributeEscape(name)}"]`;
+      }
+      const ariaLabel = collapse(element.getAttribute("aria-label"));
+      if (ariaLabel.length > 0) {
+        return `${tagName}[aria-label="${attributeEscape(ariaLabel)}"]`;
+      }
+      const placeholder = collapse(element.getAttribute("placeholder"));
+      if (placeholder.length > 0 && (tagName === "input" || tagName === "textarea")) {
+        return `${tagName}[placeholder="${attributeEscape(placeholder)}"]`;
+      }
+      if (tagName === "button" && toLower((element as HTMLButtonElement).type || element.getAttribute("type")) === "submit") {
+        return `button[type="submit"]`;
+      }
+      if (tagName === "input" && toLower((element as HTMLInputElement).type || element.getAttribute("type")) === "submit") {
+        return `input[type="submit"]`;
+      }
+      return null;
+    };
+
+    for (const selector of plan.selectors) {
+      if (typeof selector !== "string" || selector.trim().length === 0) {
+        continue;
+      }
+      let candidate: Element | null = null;
+      try {
+        candidate = document.querySelector(selector);
+      } catch {
+        candidate = null;
+      }
+      if (visible(candidate) && kindMatches(candidate, plan.kind)) {
+        const selectorValue = buildSelector(candidate);
+        if (selectorValue) {
+          return {
+            refId: plan.refId,
+            selector: selectorValue,
+          };
+        }
+      }
+    }
+
+    const exactTexts = new Set((plan.exactTexts ?? []).map((item) => collapse(item).toLowerCase()).filter((item) => item.length > 0));
+    const tokens = new Set((plan.tokens ?? []).map((item) => toLower(item)).filter((item) => item.length > 0));
+    let bestScore = 0;
+    let bestSelector: string | null = null;
+
+    for (const node of Array.from(document.querySelectorAll("input,textarea,select,button,[role='button'],[role='dialog'],dialog,table,[role='table'],[role='grid'],h1,h2,h3,h4,h5,h6,[role='heading']"))) {
+      if (!visible(node) || !kindMatches(node, plan.kind)) {
+        continue;
+      }
+      const selectorValue = buildSelector(node);
+      if (!selectorValue) {
+        continue;
+      }
+      const texts = collectTexts(node).map((item) => item.toLowerCase());
+      const id = toLower(node.id);
+      const name = toLower(node.getAttribute("name"));
+      const scoreTokens = [id, name, ...texts];
+      let score = 0;
+
+      for (const token of tokens) {
+        if (token.length === 0) {
+          continue;
+        }
+        if (id === token || name === token) {
+          score += 12;
+          continue;
+        }
+        if (scoreTokens.some((candidate) => candidate.includes(token))) {
+          score += 4;
+        }
+      }
+
+      for (const text of exactTexts) {
+        if (text.length === 0) {
+          continue;
+        }
+        if (texts.includes(text)) {
+          score += 10;
+          continue;
+        }
+        if (texts.some((candidate) => candidate.includes(text) || text.includes(candidate))) {
+          score += 5;
+        }
+      }
+
+      if (plan.kind === "submit" && selectorValue.includes('type="submit"')) {
+        score += 6;
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        bestSelector = selectorValue;
+      }
+    }
+
+    if (bestScore <= 0 || !bestSelector) {
+      return null;
+    }
+
+    return {
+      refId: plan.refId,
+      selector: bestSelector,
+    };
+  }, recoveryPlan);
+}
+
 async function executeRequestWithConfiguredAdapter(params: {
   config: ExecutorConfig;
   request: ExecuteRequest;
   selectedNode: DeviceNodeDescriptor | null;
   sandbox: UiExecutorSandboxEvaluation;
 }): Promise<ExecuteResponse> {
+  // Pre-compute persistent-session locals so both the real-Playwright path
+  // (executeWithPlaywright) and the simulation fallback (simulateExecution)
+  // see the same persistence intent. These mirror the locals computed
+  // inside executeWithPlaywright at lines ~1108-1112.
+  const requestedSessionKey =
+    typeof params.request.session?.key === "string" && params.request.session.key.trim().length > 0
+      ? params.request.session.key.trim()
+      : null;
+  const persistenceRequested =
+    params.request.session?.mode === "resumable" && requestedSessionKey !== null;
+  const persistenceEnabled = params.config.persistentBrowserSessions && persistenceRequested;
+  const persistAfterRun = persistenceEnabled && params.request.session?.persistAfterRun === true;
+  const sessionLocals = {
+    requestedSessionKey,
+    persistenceRequested,
+    persistenceEnabled,
+    persistAfterRun,
+  };
+
   if (params.config.forceSimulation) {
     return simulateExecution(
       params.request,
       "Forced simulation mode (UI_EXECUTOR_FORCE_SIMULATION=true)",
       params.selectedNode,
       params.sandbox,
+      sessionLocals,
     );
   }
 
@@ -761,6 +1031,7 @@ async function executeRequestWithConfiguredAdapter(params: {
     "Playwright unavailable in ui-executor, simulation fallback used",
     params.selectedNode,
     params.sandbox,
+    sessionLocals,
   );
 }
 
@@ -950,18 +1221,41 @@ async function executeWithPlaywright(
 
   const trace: TraceStep[] = [];
   const staleRefTargets = new Set<string>();
+  const healedRefTargets = new Set<string>();
+  const healedRefSelectors = new Map<string, string>();
   let retries = 0;
   let finalStatus: "completed" | "failed" = "completed";
 
-  const runAction = async (action: UiAction): Promise<string | null> => {
+  const runAction = async (action: UiAction): Promise<{ observation: string | null; note: string | null }> => {
     let observation: string | null = null;
+    let note: string | null = null;
     try {
       const resolvedTarget = resolveGroundingTarget(action.target, request.context);
       if (resolvedTarget.mode === "ref" && resolvedTarget.status !== "resolved") {
         throw missingGroundingRefError(action.target);
       }
-      if ((action.type === "click" || action.type === "type" || action.type === "verify") && resolvedTarget.selector) {
-        await assertResolvedActionTarget(page, resolvedTarget.selector, resolvedTarget.refId);
+      let effectiveSelector = resolvedTarget.selector;
+      if (resolvedTarget.refId && healedRefSelectors.has(resolvedTarget.refId)) {
+        effectiveSelector = healedRefSelectors.get(resolvedTarget.refId) ?? effectiveSelector;
+      }
+      if ((action.type === "click" || action.type === "type" || action.type === "verify") && effectiveSelector) {
+        try {
+          await assertResolvedActionTarget(page, effectiveSelector, resolvedTarget.refId);
+        } catch (error) {
+          if (resolvedTarget.refId) {
+            const healed = await recoverGroundingRefSelector(page, action.target, request.context);
+            if (healed?.selector) {
+              effectiveSelector = healed.selector;
+              healedRefSelectors.set(healed.refId, healed.selector);
+              healedRefTargets.add(healed.refId);
+              note = `Recovered stale grounding ref ${healed.refId} with selector ${healed.selector}.`;
+            } else {
+              throw error;
+            }
+          } else {
+            throw error;
+          }
+        }
       }
       if (action.type === "navigate") {
         const navigateTarget =
@@ -970,15 +1264,15 @@ async function executeWithPlaywright(
             : config.defaultNavigationUrl;
         await page.goto(navigateTarget, { waitUntil: "domcontentloaded", timeout: 15000 });
       } else if (action.type === "click") {
-        if (resolvedTarget.selector) {
-          await page.click(resolvedTarget.selector, { timeout: config.actionTimeoutMs });
+        if (effectiveSelector) {
+          await page.click(effectiveSelector, { timeout: config.actionTimeoutMs });
         } else {
           await page.click(action.target, { timeout: config.actionTimeoutMs });
         }
       } else if (action.type === "type") {
         const value = action.text ?? "";
-        if (resolvedTarget.selector) {
-          await page.fill(resolvedTarget.selector, value, { timeout: config.actionTimeoutMs });
+        if (effectiveSelector) {
+          await page.fill(effectiveSelector, value, { timeout: config.actionTimeoutMs });
         } else {
           await page.fill(action.target, value, { timeout: config.actionTimeoutMs });
         }
@@ -994,14 +1288,17 @@ async function executeWithPlaywright(
         if (isVirtualVerifyTarget(action.target)) {
           await page.waitForTimeout(120);
           observation = `${action.target.toLowerCase()} observed`;
-          return observation;
+          if (resolvedTarget.refId && effectiveSelector && healedRefTargets.has(resolvedTarget.refId)) {
+            observation = appendGroundingHealingObservation(observation, resolvedTarget.refId, effectiveSelector);
+          }
+          return { observation, note };
         }
-        if (resolvedTarget.selector) {
-          await page.waitForSelector(resolvedTarget.selector, {
+        if (effectiveSelector) {
+          await page.waitForSelector(effectiveSelector, {
             timeout: config.actionTimeoutMs,
             state: "visible",
           });
-          const verifyTarget = action.target.startsWith("ref:") ? `css:${resolvedTarget.selector}` : action.target;
+          const verifyTarget = action.target.startsWith("ref:") ? `css:${effectiveSelector}` : action.target;
           const verifyObservation = await collectVerifyObservation(page, verifyTarget);
           observation =
             verifyObservation ?? (resolvedTarget.refId ? `ref-visible ${resolvedTarget.refId}` : null);
@@ -1009,7 +1306,10 @@ async function executeWithPlaywright(
           await page.waitForTimeout(120);
         }
       }
-      return observation;
+      if (resolvedTarget.refId && effectiveSelector && healedRefTargets.has(resolvedTarget.refId)) {
+        observation = appendGroundingHealingObservation(observation, resolvedTarget.refId, effectiveSelector);
+      }
+      return { observation, note };
     } catch (error) {
       if (action.target.startsWith("ref:")) {
         const refId = resolveGroundingTarget(action.target, request.context).refId ?? action.target.slice(4);
@@ -1020,7 +1320,7 @@ async function executeWithPlaywright(
       }
       const groundingObservation = resolveGroundingObservation(action.target, request.context);
       if (groundingObservation) {
-        return groundingObservation;
+        return { observation: groundingObservation, note };
       } else {
         throw error;
       }
@@ -1033,7 +1333,7 @@ async function executeWithPlaywright(
       const stepIndex = index + 1;
       const screenshotRef = `${screenshotSeed}/pw-step-${stepIndex}.png`;
       try {
-        const observation = await runAction(action);
+        const execution = await runAction(action);
 
         trace.push({
           index: stepIndex,
@@ -1042,8 +1342,8 @@ async function executeWithPlaywright(
           target: action.target,
           status: "ok",
           screenshotRef,
-          notes: "Executed by ui-executor playwright mode.",
-          observation,
+          notes: execution.note ?? "Executed by ui-executor playwright mode.",
+          observation: execution.observation,
         });
       } catch (error) {
         retries += 1;
@@ -1060,7 +1360,7 @@ async function executeWithPlaywright(
 
         try {
           await page.waitForTimeout(220);
-          const retryObservation = await runAction(action);
+          const retryExecution = await runAction(action);
           trace.push({
             index: stepIndex,
             actionId: action.id,
@@ -1068,8 +1368,8 @@ async function executeWithPlaywright(
             target: `${action.target} (retry)`,
             status: "ok",
             screenshotRef: `${screenshotSeed}/pw-step-${stepIndex}-retry.png`,
-            notes: "Retry passed in ui-executor playwright mode.",
-            observation: retryObservation,
+            notes: retryExecution.note ?? "Retry passed in ui-executor playwright mode.",
+            observation: retryExecution.observation,
           });
         } catch (retryError) {
           trace.push({
@@ -1120,7 +1420,7 @@ async function executeWithPlaywright(
     ],
     deviceNode,
     sandbox: sandboxResponse(sandbox),
-    grounding: groundingResponse(request, staleRefTargets),
+    grounding: groundingResponse(request, staleRefTargets, healedRefTargets),
     verification: buildExecutionVerificationSummary(request.actions, trace, finalStatus),
     session: {
       mode: persistenceRequested ? "resumable" : "ephemeral",
@@ -1145,14 +1445,17 @@ async function executeWithPlaywright(
 function groundingResponse(
   request: ExecuteRequest,
   staleRefTargets: Iterable<string> = [],
+  healedRefTargets: Iterable<string> = [],
 ): ExecuteResponse["grounding"] {
   const allRefIds = listGroundingRefIds(request.context?.refMap);
   const actionableRefIds = allRefIds.slice(0, 20);
   const staleTargets = Array.from(new Set(Array.from(staleRefTargets))).sort();
+  const healedTargets = Array.from(new Set(Array.from(healedRefTargets))).sort();
   return {
     refMapCount: allRefIds.length,
     actionableRefIds,
     staleRefTargets: staleTargets,
+    healedRefTargets: healedTargets,
     recoveryHint:
       staleTargets.length > 0
         ? `Refresh snapshot and rerun. Stale grounding refs detected: ${staleTargets.join(", ")}.`
@@ -1168,8 +1471,14 @@ async function canUsePlaywright(): Promise<boolean> {
     "return import(specifier)",
   ) as (specifier: string) => Promise<unknown>;
   try {
-    await dynamicImport("playwright");
-    return true;
+    const playwrightModule = (await dynamicImport("playwright")) as {
+      chromium?: { executablePath?: () => string };
+    };
+    const executablePath =
+      typeof playwrightModule?.chromium?.executablePath === "function"
+        ? playwrightModule.chromium.executablePath()
+        : "";
+    return typeof executablePath === "string" && executablePath.trim().length > 0 && existsSync(executablePath);
   } catch {
     return false;
   }
@@ -1267,6 +1576,11 @@ setBrowserJobRunner(async (input): Promise<BrowserJobExecutionResult> => {
             : [],
         }
       : null,
+    grounding: {
+      staleRefTargets: [...response.grounding.staleRefTargets],
+      healedRefTargets: [...response.grounding.healedRefTargets],
+      recoveryHint: response.grounding.recoveryHint,
+    },
     verification: response.verification,
     session: response.session,
   };

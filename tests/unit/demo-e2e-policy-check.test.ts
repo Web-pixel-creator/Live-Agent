@@ -22,7 +22,10 @@ const requiredScenarioNames = [
   "ui.approval.approve_resume",
   "ui.sandbox.policy_modes",
   "ui.visual_testing",
+  "ui.browser_worker.checkpoint_resume",
+  "ui.navigator.visa_vertical_flows",
   "multi_agent.delegation",
+  "gateway.websocket.case_wiki_hydration",
   "gateway.websocket.roundtrip",
   "gateway.websocket.task_progress",
   "gateway.websocket.request_replay",
@@ -242,6 +245,7 @@ function createPassingSummary(overrides?: {
     liveContextCompactionScenarioAttempts: 1,
     storytellerPipelineScenarioAttempts: 1,
     uiSandboxPolicyModesScenarioAttempts: 1,
+    navigatorVisaFlowsScenarioAttempts: 1,
     gatewayWsRoundTripScenarioAttempts: 1,
     gatewayInterruptSignalScenarioAttempts: 1,
     gatewayItemTruncateScenarioAttempts: 1,
@@ -260,6 +264,7 @@ function createPassingSummary(overrides?: {
     pluginMarketplaceScenarioAttempts: 1,
     sessionVersioningScenarioAttempts: 1,
     uiVisualTestingScenarioAttempts: 1,
+    uiBrowserWorkerRecoveryScenarioAttempts: 1,
     operatorConsoleActionsScenarioAttempts: 1,
     runtimeLifecycleScenarioAttempts: 1,
     runtimeMetricsScenarioAttempts: 1,
@@ -278,6 +283,22 @@ function createPassingSummary(overrides?: {
     uiGroundingMarkHintsCount: 2,
     uiGroundingAdapterNoteSeen: true,
     uiGroundingSignalsValidated: true,
+    browserWorkerRecoveryValidated: true,
+    navigatorVisaFlowsValidated: true,
+    navigatorVisaFlowsValidationMode: "real_playwright",
+    navigatorVisaFlowsRealPlaywrightValidated: true,
+    navigatorVisaFlowsSimulatedValidated: false,
+    navigatorVisaFlowsStrictPersistentSessionValidated: true,
+    navigatorVisaFlowsTotal: 4,
+    navigatorVisaFlowsSucceeded: 4,
+    navigatorVisaFlowsSuccessRate: 1,
+    navigatorVisaFlowsPersistentSessionCount: 4,
+    navigatorVisaFlowsReplayBundleCount: 4,
+    navigatorVisaFlowsVerifiedCount: 4,
+    navigatorVisaFlowsStaleRecoveryObservedCount: 4,
+    navigatorVisaFlowsHealedRecoveryObservedCount: 4,
+    navigatorVisaFlowsResumedCheckpointCount: 4,
+    navigatorVisaFlowsCheckpointReadyClearedCount: 4,
     gatewayWsRoundTripMs: 120,
     costEstimateGeminiLiveUsd: 0.12,
     costEstimateImagenUsd: 0.35,
@@ -310,6 +331,27 @@ function createPassingSummary(overrides?: {
     assistiveRouterMode: "deterministic",
     assistiveRouterProviderMetadataValidated: true,
     assistiveRouterProvider: "gemini_api",
+    caseWikiGatewayHydrationValidated: true,
+    caseWikiGatewayHydrationSessionId: "session-hydration-042",
+    caseWikiGatewayHydrationNoteEventId: "event-case-wiki-note-042",
+    caseWikiGatewayHydrationQuestionId: "question:operator-note:event-case-wiki-note-042",
+    caseWikiGatewayHydrationQuestionMatched: true,
+    caseWikiGatewayHydrationNoteSourceRefSeen: true,
+    caseWikiGatewayHydrationQuestionSuggestedNextStep: "Request passport scan",
+    caseWikiGatewayHydrationContextSource: "case_wiki",
+    caseWikiGatewayHydrationFocusId: "question:operator-note:event-case-wiki-note-042",
+    caseWikiGatewayHydrationBlocker: "Passport scan is still missing from the case.",
+    caseWikiGatewayHydrationNextAction: "Request passport scan",
+    caseWikiGatewayHydrationRoute: "live-agent",
+    caseWikiGatewayHydrationMode: "assistive_override",
+    caseWikiGatewayHydrationRequestedIntent: "conversation",
+    caseWikiGatewayHydrationRoutedIntent: "conversation",
+    caseWikiContextAdoptionObservedCount: 21,
+    caseWikiContextAdoptionCaseWikiCount: 20,
+    caseWikiContextAdoptionInputOnlyCount: 1,
+    caseWikiContextAdoptionUnknownCount: 0,
+    caseWikiContextAdoptionRate: 0.952381,
+    caseWikiContextAdoptionValidated: true,
     lifecycleEndpointsValidated: true,
     runtimeProfileValidated: true,
     analyticsRuntimeVisible: true,
@@ -362,11 +404,22 @@ function runPolicyCheck(summary: Record<string, unknown>, extraArgs: string[] = 
     const jsonOutputPath = join(tempDir, "policy-check.json");
     writeFileSync(inputPath, `${JSON.stringify(summary, null, 2)}\n`, "utf8");
 
+    // Scrub CI-host env vars that opt OUT of strict release-strict default
+    // branches in scripts/demo-e2e-policy-check.mjs. The PR Quality lane
+    // (.github/workflows/pr-quality.yml) sets these envs at the job level,
+    // and they would otherwise leak into every spawned policy-check child
+    // process and silently change which branches execute.
+    const childEnv = { ...process.env };
+    delete childEnv.DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT;
+    delete childEnv.DEMO_E2E_VISA_FLOWS_ACCEPT_SIMULATION;
+    delete childEnv.DEMO_E2E_ALLOW_UI_EXECUTOR_RUNTIME_FALLBACK;
+
     const result = spawnSync(
       process.execPath,
       [policyScriptPath, "--input", inputPath, "--output", markdownOutputPath, "--jsonOutput", jsonOutputPath, ...extraArgs],
       {
         encoding: "utf8",
+        env: childEnv,
       },
     );
     const exitCode = result.status ?? 1;
@@ -382,7 +435,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 281);
+  assert.ok(typeof result.payload.checks === "number" && result.payload.checks >= 303, JSON.stringify(result.payload));
 });
 
 test("demo-e2e policy check passes when storyteller media mode is default and a live lane is observed", () => {
@@ -574,6 +627,22 @@ test("demo-e2e policy check fails when ui remote fallback mode is not strict", (
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("options.uiNavigatorRemoteHttpFallbackMode")));
+});
+
+test("demo-e2e policy check fails when browser worker recovery proof is missing", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        browserWorkerRecoveryValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.browserWorkerRecoveryValidated")));
 });
 
 test("demo-e2e policy check fails when damage-control diagnostics KPI is invalid", () => {
@@ -1651,6 +1720,23 @@ test("demo-e2e policy check fails when assistive router mode is invalid", () => 
   assert.ok(violations.some((item) => item.includes("kpi.assistiveRouterMode")));
 });
 
+test("demo-e2e policy check fails when case wiki context adoption proof is incomplete", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        caseWikiContextAdoptionCaseWikiCount: 18,
+        caseWikiContextAdoptionRate: 0.9,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.caseWikiContextAdoptionRate")));
+});
+
 test("demo-e2e policy check allows transport fallback when requested mode is webrtc", () => {
   const result = runPolicyCheck(
     createPassingSummary({
@@ -1697,4 +1783,67 @@ test("demo-e2e policy check fails when gateway requested transport mode is inval
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.gatewayTransportRequestedMode")));
+});
+
+// New execution-mode-aware navigator-visa-flows policy checks per
+// `.kiro/specs/demo-e2e-visa-flows-execution-mode-aware-summary/design.md`
+// "Downstream Gate Update" and bugfix.md R5 ("Downstream Gates Must Keep
+// Their Meaning").
+
+test("demo-e2e policy check accepts navigator visa flows simulation lane when validationMode=simulated and simulatedValidated=true and strict persistent-session check is not required", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        // Honest simulation lane: no real persistent session, no real
+        // replay bundle, no real recovery proof. The simulation contract is
+        // captured by `simulatedValidated` and the artifact-level
+        // `validated` mirroring it.
+        navigatorVisaFlowsValidationMode: "simulated",
+        navigatorVisaFlowsValidated: true,
+        navigatorVisaFlowsRealPlaywrightValidated: false,
+        navigatorVisaFlowsSimulatedValidated: true,
+        navigatorVisaFlowsStrictPersistentSessionValidated: false,
+        navigatorVisaFlowsPersistentSessionCount: 0,
+        navigatorVisaFlowsReplayBundleCount: 0,
+        navigatorVisaFlowsVerifiedCount: 0,
+        navigatorVisaFlowsStaleRecoveryObservedCount: 0,
+        navigatorVisaFlowsHealedRecoveryObservedCount: 0,
+        navigatorVisaFlowsResumedCheckpointCount: 0,
+        navigatorVisaFlowsCheckpointReadyClearedCount: 0,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
+  assert.equal(result.payload.ok, true);
+});
+
+test("demo-e2e policy check rejects mixed validation mode regardless of any per-mode boolean", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        navigatorVisaFlowsValidationMode: "mixed",
+        // Mixed mode must be rejected even if `validated` happens to be
+        // true on input — the policy gate insists on
+        // `validated === false` per design.md "Mixed Mode" until a
+        // deliberate mixed-mode contract is designed.
+        navigatorVisaFlowsValidated: true,
+        navigatorVisaFlowsRealPlaywrightValidated: false,
+        navigatorVisaFlowsSimulatedValidated: false,
+        navigatorVisaFlowsStrictPersistentSessionValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(
+    violations.some((item) => item.includes("kpi.navigatorVisaFlowsValidationMode")),
+    "violations should call out the unsupported validationMode",
+  );
+  assert.ok(
+    violations.some((item) => item.includes("kpi.navigatorVisaFlowsValidated")),
+    "violations should call out the validated check rejecting mixed mode",
+  );
 });

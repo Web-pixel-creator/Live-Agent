@@ -100,6 +100,24 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /device_nodes_status=/);
   assert.match(source, /agent_usage_status=/);
   assert.match(source, /live_transport_status=/);
+  assert.match(source, /case_wiki_evidence_signature_status=/);
+  assert.match(source, /case_wiki_routing_context_status=/);
+  assert.match(source, /case_wiki_routing_context_source=/);
+  assert.match(source, /case_wiki_routing_context_focus_id=/);
+  assert.match(source, /case_wiki_routing_context_blocker=/);
+  assert.match(source, /case_wiki_routing_context_next_action=/);
+  assert.match(source, /case_wiki_routing_context_route=/);
+  assert.match(source, /case_wiki_routing_context_mode=/);
+  assert.match(source, /case_wiki_routing_context_requested_intent=/);
+  assert.match(source, /case_wiki_routing_context_routed_intent=/);
+  assert.match(source, /case_wiki_runtime_surface_ingress_status=/);
+  assert.match(source, /case_wiki_runtime_surface_ingress_context_source=/);
+  assert.match(source, /case_wiki_runtime_surface_ingress_ingress_source=/);
+  assert.match(source, /case_wiki_runtime_surface_ingress_focus_id=/);
+  assert.match(source, /case_wiki_runtime_surface_ingress_blocker=/);
+  assert.match(source, /case_wiki_runtime_surface_ingress_next_action=/);
+  assert.match(source, /case_wiki_runtime_surface_ingress_route=/);
+  assert.match(source, /case_wiki_runtime_surface_ingress_updated_at=/);
   assert.match(source, /live_transport_session_mode=/);
   assert.match(source, /live_transport_runtime_mode=/);
   assert.match(source, /live_transport_evidence_source=/);
@@ -111,6 +129,15 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /report\.statuses\.pluginMarketplaceStatus/);
   assert.match(source, /report\.statuses\.deviceNodeUpdatesStatus/);
   assert.match(source, /report\.statuses\.liveTransportStatus/);
+  assert.match(source, /report\.statuses\.caseWikiRoutingContextStatus/);
+  assert.match(source, /report\.statuses\.caseWikiRuntimeSurfaceIngressStatus/);
+  assert.match(source, /report\.caseWikiRuntimeSurfaceIngress\.contextSource/);
+  assert.match(source, /report\.caseWikiRuntimeSurfaceIngress\.ingressSource/);
+  assert.match(source, /report\.caseWikiRuntimeSurfaceIngress\.focusId/);
+  assert.match(source, /report\.caseWikiRuntimeSurfaceIngress\.blocker/);
+  assert.match(source, /report\.caseWikiRuntimeSurfaceIngress\.nextAction/);
+  assert.match(source, /report\.caseWikiRuntimeSurfaceIngress\.route/);
+  assert.match(source, /report\.caseWikiRuntimeSurfaceIngress\.updatedAt/);
   assert.match(source, /report\.statuses\.providerUsageStatus/);
   assert.match(source, /Badge details present: \$\{\{\s*steps\.collect_release_evidence\.outputs\.badge_details_present\s*\}\}/);
   assert.match(source, /Turn-truncation status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.turn_truncation_status\s*\}\}/);
@@ -122,6 +149,24 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /Device-nodes status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.device_nodes_status\s*\}\}/);
   assert.match(source, /Agent-usage status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.agent_usage_status\s*\}\}/);
   assert.match(source, /Live-transport status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.live_transport_status\s*\}\}/);
+  assert.match(source, /Case-wiki-evidence-signature status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.case_wiki_evidence_signature_status\s*\}\}/);
+  assert.match(source, /Case-wiki-routing-context status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.case_wiki_routing_context_status\s*\}\}/);
+  assert.match(source, /Case-wiki-routing-context source \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.case_wiki_routing_context_source\s*\}\}/);
+  assert.match(source, /Case-wiki-routing-context focus id \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.case_wiki_routing_context_focus_id\s*\}\}/);
+  assert.match(source, /Case-wiki-routing-context blocker \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.case_wiki_routing_context_blocker\s*\}\}/);
+  assert.match(source, /Case-wiki-routing-context next action \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.case_wiki_routing_context_next_action\s*\}\}/);
+  assert.match(source, /Case-wiki-routing-context route \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.case_wiki_routing_context_route\s*\}\}/);
+  assert.match(source, /Case-wiki-routing-context mode \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.case_wiki_routing_context_mode\s*\}\}/);
+  assert.match(source, /Case-wiki-routing-context requested intent \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.case_wiki_routing_context_requested_intent\s*\}\}/);
+  assert.match(source, /Case-wiki-routing-context routed intent \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.case_wiki_routing_context_routed_intent\s*\}\}/);
+  assert.match(source, /Case-wiki-runtime-surface-ingress status \(release evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.case_wiki_runtime_surface_ingress_status\s*\}\}/);
+  assert.match(source, /Case-wiki-runtime-surface-ingress context source \(release evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.case_wiki_runtime_surface_ingress_context_source\s*\}\}/);
+  assert.match(source, /Case-wiki-runtime-surface-ingress ingress source \(release evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.case_wiki_runtime_surface_ingress_ingress_source\s*\}\}/);
+  assert.match(source, /Case-wiki-runtime-surface-ingress focus id \(release evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.case_wiki_runtime_surface_ingress_focus_id\s*\}\}/);
+  assert.match(source, /Case-wiki-runtime-surface-ingress blocker \(release evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.case_wiki_runtime_surface_ingress_blocker\s*\}\}/);
+  assert.match(source, /Case-wiki-runtime-surface-ingress next action \(release evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.case_wiki_runtime_surface_ingress_next_action\s*\}\}/);
+  assert.match(source, /Case-wiki-runtime-surface-ingress route \(release evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.case_wiki_runtime_surface_ingress_route\s*\}\}/);
+  assert.match(source, /Case-wiki-runtime-surface-ingress updated at \(release evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.case_wiki_runtime_surface_ingress_updated_at\s*\}\}/);
   assert.match(source, /Live-transport session mode \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.live_transport_session_mode\s*\}\}/);
   assert.match(source, /Live-transport runtime mode \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.live_transport_runtime_mode\s*\}\}/);
   assert.match(source, /Live-transport evidence source \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.live_transport_evidence_source\s*\}\}/);
@@ -146,6 +191,11 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /Direct-live proof API URL:/);
   assert.match(source, /Direct-live proof requested session:/);
   assert.match(source, /Direct-live proof transport:/);
+  assert.match(source, /Direct-live proof latency:/);
+  assert.match(source, /Direct-live proof fallback events:/);
+  assert.match(source, /Direct-live proof runtime evidence expectation:/);
+  assert.match(source, /Direct-live proof case-wiki signature expectation:/);
+  assert.match(source, /Direct-live proof case-wiki signature observed:/);
   assert.match(source, /Direct-live proof was not generated\./);
   assert.match(source, /Release evidence report JSON: \$\{\{\s*steps\.release_evidence_report\.outputs\.report_json_path\s*\}\}/);
   assert.match(source, /Release evidence report Markdown: \$\{\{\s*steps\.release_evidence_report\.outputs\.report_md_path\s*\}\}/);
@@ -185,6 +235,18 @@ test("release strict workflow publishes release-critical artifacts", () => {
   assert.match(source, /artifacts\/evals\/latest-run\.json/);
 });
 
+test("release strict workflow installs playwright before the strict gate runs", () => {
+  const workflowPath = resolve(process.cwd(), ".github", "workflows", "release-strict-final.yml");
+  const source = readFileSync(workflowPath, "utf8");
+
+  const installIndex = source.indexOf("- name: Install Playwright Browser");
+  const gateIndex = source.indexOf("- name: Run Release Strict Final Gate");
+
+  assert.notEqual(installIndex, -1);
+  assert.notEqual(gateIndex, -1);
+  assert.ok(installIndex < gateIndex);
+});
+
 test("strict release npm script stays aligned with release-readiness strict flag", () => {
   const packagePath = resolve(process.cwd(), "package.json");
   const pkgRaw = readFileSync(packagePath, "utf8");
@@ -217,6 +279,7 @@ test("readme documents optional release-strict railway deploy path", () => {
   assert.match(readme, /pluginMarketplace/);
   assert.match(readme, /deviceNodes/);
   assert.match(readme, /agentUsage/);
+  assert.match(readme, /caseWikiRuntimeSurfaceIngress/);
   assert.match(readme, /artifacts\/deploy\/railway-deploy-summary\.json/);
   assert.match(readme, /artifacts\/deploy\/production-smoke\.json/);
   assert.match(readme, /artifacts\/release-evidence\/report\.json/);

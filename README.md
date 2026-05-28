@@ -1,12 +1,15 @@
 # AI Action Desk
 
-Production-oriented AI Action Desk for visa and relocation agencies.
+Production-oriented AI Action Desk for immigration, visa, and relocation
+intake teams.
 
 Primary product wedge:
 
-- qualify inbound leads for visa and relocation services
+- qualify inbound leads for immigration-heavy services
 - book consultations or appointments
 - collect documents and form data safely
+- follow up on missing documents and form data safely
+- prepare CRM updates and human handoff actions
 - execute safe UI actions with approvals and replay evidence
 
 Supporting product surfaces:
@@ -14,6 +17,564 @@ Supporting product surfaces:
 - `Live Agent` for realtime conversation, translation, negotiation, and grounded research
 - `Simulation Lab` for scenario rehearsal, story timelines, and multimodal training flows
 - `UI Navigator` for safe browser actions with approvals and replay evidence
+
+Commercial rule:
+
+- sell one product: `AI Action Desk for immigration teams`
+- keep `Simulation Lab`, broad storyteller demos, and general multimodal depth as
+  internal or secondary support surfaces, not the main startup SKU
+
+Current commercial focus:
+
+- `lead qualification`
+- `consultation booking`
+- `missing-document follow-up`
+- `CRM prep and human handoff`
+
+Seven-minute product path:
+
+- open `/app` and click `Start 7-minute demo`
+- or open `/app?demo=visa-intake` directly
+- review `Case Outcome Summary`
+- approve the protected missing-document follow-up
+- open the per-case evidence or presentation bundle
+- keep runtime, replay, signing, and raw artifact detail in support surfaces
+  such as `docs/evidence-and-trust.md`
+
+Live Desk also exposes four productized playbook templates:
+
+- `Visa lead qualification`
+- `Missing-document follow-up`
+- `Consultation booking prep`
+- `CRM handoff summary`
+
+Each card previews `Outcome`, `Approval`, `Evidence`, and `Deliverable` so the
+first scan explains the workflow before the operator opens deeper support
+surfaces.
+
+Selecting a template opens an inline detail panel with `Sample input`,
+`Approval policy`, `Evidence output`, and `CRM fields`. The focused detail can
+also be deep-linked with `/app?playbook=<lane-id>`.
+
+The same panel now renders a real `Payload preview`, `Surface path`, and
+`Copy payload` action using the current case record plus available Case Wiki
+state.
+
+The detail panel also opens an `Open export drawer` action. `CRM handoff
+summary` uses a `CRM payload drawer`, while `Consultation booking prep` uses a
+`Consultation handoff drawer`; both drawers provide `Human-readable` and `JSON`
+modes, a review checklist, and a canonical surface jump back to `Case Vault` or
+`Presentation bundle`.
+
+See `docs/getting-started-7-min.md` and
+`docs/quality-simplification-plan.md`.
+
+Local-services expansion spec:
+
+- `docs/local-services-action-desk-spec.md` is the canonical plan for the next
+  market-test wedge: one `AI Dispatcher for local service businesses`, with
+  HVAC/AC repair, plumbing, cleaning, and measurement visits as P0 service workflows.
+- `/app?demo=local-services-dispatch&service=ac-repair-dispatch` opens the P0
+  local-services demo path with `AC repair dispatch`, `Plumbing emergency`,
+  `Cleaning quote and booking`, and `Measurement visit booking` cards.
+- that route now switches the sidebar into local-services product mode:
+  `AI Dispatcher`, `Service workspace`, `Dispatcher`, `Requests`,
+  `Schedule / Dispatch`, `Customers`, `Knowledge & Setup`, `Reviews`, and a
+  quieter `Advanced / Runtime` group. Runtime/judge pages stay reachable, but
+  `VIP cases`, `Judge artifacts`, `Presentation Bundle`, and visa case refs do
+  not occupy the first scan for this wedge.
+- Dispatcher queue interaction is explicit: a row click selects the right
+  preview only. `Enter`, double-click, the context menu, or the row open icon
+  opens the full console/task detail. Scrolling the queue does not auto-swap the
+  selected case.
+- Product view states: `view=requests` opens `Requests inbox`,
+  `view=schedule` opens `Schedule / Dispatch board`, `view=customers` opens
+  `Customer directory`, `setup=7min&view=setup` opens `Knowledge setup state`,
+  and `view=reviews` opens `Review queue`. These states are view-only product
+  panels layered over the same operator-approved payload, evidence, setup, and
+  review drawers; they do not send, book, dispatch, or write CRM.
+  `path=7min&view=requests` opens the `7-minute launch path`: a guided
+  `Request intake -> Approval-ready slot -> Customer confirmation -> Setup and
+  dry run -> Founder review` stepper that jumps between those same views and
+  copies a manual-only launch summary. `path=7min&view=requests&packet=launch`
+  opens the same path with the launch packet drawer already visible for
+  issue-aware handoff links. It also shows `Recorded N/5` progress and uses
+  `Record current step reviewed`, `Reset launch path progress`, and
+  browser-local `launchPathStepCompletionByService` state for operator notes.
+  The same guide now includes a `Launch packet bridge` that rolls those notes
+  into the existing `local_services_pilot_launch_packet` surface with
+  `Open launch packet`, `Copy launch packet`, `Path recorded`, `Schedule
+  approval`, `Customer confirmation`, `Setup + dry run`, and `Founder review`
+  rows. The bridge is now shown as a compact `Launch packet readiness card`:
+  the visible operator layer shows `Manual launch checklist` and `Manual
+  execution guardrails`, while `Launch support details` keeps state-key rows
+  collapsed until a developer or owner needs them. The opened `Pilot launch
+  packet` drawer now uses the same bridge as its source, including
+  `7-minute gate` and the structured
+  `operator_approved_manual_contact_packet_with_7_minute_bridge` payload.
+  `Requests inbox` also includes an `Operator action rail` that records only
+  browser-local `statusByProspectKey` and `firstRequestOutcomeByProspectKey`
+  notes for the selected pilot account.
+  `Schedule / Dispatch board` is now an `Approval-ready slot planner`: KPI cards
+  show confirmed slots, approval-ready slots, same-day/ASAP routes, and
+  conflicts; `Schedule compact slot planner` rows select only the slot preview;
+  `Open schedule drawer` and `Open in Dispatcher` are the explicit full
+  actions. The `Schedule approval rail` still owns
+  `dispatchApprovalByService`, `Customer confirmation draft`,
+  `Master handoff draft`, `Booking handoff preview`, and the compact
+  `Workspace record` mirrored to `operatorDecisionByCaseRef` through the
+  local-services workspace API. It now carries `Schedule rail compact stack`:
+  a bounded right rail, accent approval card, separate customer/master drafts,
+  and collapsed schedule support details for workspace record plus booking
+  handoff preview. It remains a manual approval surface, not a live appointment,
+  customer send, technician dispatch, CRM write, payment, or channel activation.
+  `Customer directory` is now a compact customer workspace:
+  KPI cards show contactable customers, active 30-day demo cases, honest
+  `Сумма заявок` midpoint estimates, and district coverage; the
+  `Customer compact directory` uses `LAST = service + ref`, row click selects
+  preview only, and `Open customer drawer` is the explicit full action.
+  `Customer confirmation rail`, `customerConfirmationByService` decisions, and
+  a `Consent-safe confirmation preview` are mirrored to the same
+  operator-decision boundary, but remain manual review notes, not customer
+  sends or CRM writes. It now carries `Customer rail compact stack`: bounded
+  rail chrome, accent consent action, separate request/preview cards, and a
+  collapsed `Customer support details` block for `Workspace record` plus the
+  confirmation payload. Both rails now show a compact `Workspace record` signal
+  with `operatorDecisionByCaseRef`, `API + local fallback`, and the latest
+  recorded case-decision timestamp so operators can see what was persisted
+  without opening developer tools.
+  The default `Dispatcher` view is now the primary workbench: `Main dispatcher
+  compact queue` sits next to `Main dispatcher full-height decision rail`; row
+  click updates the preview, `Explicit full task open` stays on the row action,
+  the queue rows use a two-line compact row contract with a fixed right action
+  lane, and the footer uses the operator-facing guardrail
+  `Контроль · оператор · автоотправка выкл.`.
+  The main dispatcher now reserves a `520-540px` decision rail and an
+  `188-204px` row-action lane. The two-column queue/rail layout only turns on
+  at `min-width: 1600px`; below that, the rail stacks instead of hiding off
+  canvas. On wide screens, the queue and rail are viewport-locked so they scroll
+  independently instead of stretching or colliding.
+  The main rail now carries `Decision rail compact stack`: a dense `bg-card`
+  L1 shell, accent AI recommendation, separate customer request card, collapsed
+  case details by default, and a footer where the primary dispatch action
+  remains visually dominant over edit/reject.
+  The `Requests` view mirrors that rail contract too: `Selected request
+  decision rail` now has a bounded viewport, its own scroll body, and a
+  non-overlapping sticky action footer. It carries `Request rail compact stack`:
+  dense rail chrome, accent AI packet, separate customer card, collapsed
+  status/outcome controls, and a dominant explicit open action.
+  `Review queue` includes a `Review queue decision rail`, local
+  `weekOneOwnerDecisionByProspectKey` and
+  `weeklyScorecardSyncReviewedByService` gates, and a `Copy review queue
+  summary` action. It carries `Review rail compact stack`: bounded rail chrome,
+  accent scorecard packet, sticky review actions, and collapsed `Review support details`;
+  these are founder review notes, not CRM, billing, customer message,
+  or autonomous pilot actions.
+- the same route switches the top chrome and first heading to `AI Dispatcher`
+  and hides the old runtime alerts, visa demo button, case filters, case search,
+  and `New case` action from the local-services header.
+- that path is phone-first: the AI assistant collects the request and prepares
+  estimate, slot, evidence, and handoff payloads, while booking and dispatch
+  stay operator-approved.
+- the local-services detail panel now has `Open dispatch drawer`, `Open customer
+  drawer`, and `Open handoff drawer` actions with `Human-readable` and `JSON`
+  modes for dispatcher, customer-confirmation, and master handoff exports.
+- the same panel includes a `Telegram intake prototype` that normalizes a
+  customer message into the same approval-gated job-card payload.
+- the same panel now opens `Open intake evidence` / `Transcript + evidence`:
+  a `Saved intake evidence` drawer with `Intake transcript + evidence link`,
+  `Transcript preview`, `Evidence export mode`, `Copy intake evidence`,
+  `local_services_intake_evidence`, and `transcript_evidence_link`. It keeps the
+  proof manual-only and does not write Telegram, CRM, phone storage, or scorecards.
+- the same panel now also exposes `Pilot readiness` with a `One-page offer`,
+  `90-second demo script`, `Outreach focus`, a `Launch checklist`, and tracked
+  `Pilot metrics`.
+- `Pilot readiness` now includes `Agent setup / training state`: a 7-minute
+  setup path for `Business profile`, `Knowledge sources`, `Agent behavior`,
+  `Test call/message`, and `Ready for test call/message`. `Open setup checklist`
+  opens a reviewed setup sheet with `Training cards`, `Copy setup brief`, and
+  `local_services_agent_setup_training`; it does not activate phone, Telegram,
+  WhatsApp, CRM, analytics, or billing integrations.
+- the same local-services route now supports `?setup=7min`. In that posture the
+  shell shows `7-minute setup wizard`, `Setup path`, `Open setup checklist`,
+  `Open day-one setup`, and `Copy setup brief`, while outreach tables and
+  scorecard controls are hidden so the first demo stays focused on setup.
+  The wizard now stores `setupStepCompletionByService`, `setupReadyByService`,
+  and bounded `setupEvents` inside the local-services workspace API with
+  browser `localStorage` fallback, shows `Setup progress`, `Saved setup state`,
+  `Latest setup record`, `Mark complete`, `Mark ready for pilot test`, and
+  `Ready for pilot test`. It now also exposes `Next setup action` and
+  `Setup validation checklist` so the operator sees the current step,
+  `Required inputs`, `Validation rule`, `Side-effect boundary`, and a
+  `Complete current step` action without hunting through the full drawer.
+- after `Ready for pilot test`, the same setup route shows a
+  `Test call/message panel` with `Sample inbound`, `Expected extracted fields`,
+  `Pass/fail checklist`, `Mark check passed`, `Record test passed`,
+  `Test call passed`, and `Reset test call`. It stores
+  `testCallChecklistByService`, `testCallPassedByService`, and setup/test-call
+  events in the same workspace state and still activates no live phone,
+  Telegram, WhatsApp, CRM, calendar, analytics, billing, or customer send.
+- `Pilot readiness` now also includes a `Pilot outreach wizard`:
+  `Offer preview` -> `Audience from outreach list` -> `Message/test preview` ->
+  `Operator confirmation`. It is now rendered as a 4-step outreach wizard and
+  remains an operator-approved planning surface, not an autonomous send path.
+- `Message/test preview` now opens a `Preview / Test message modal` with
+  `Human-readable` / `JSON` modes, the exact `Copy test message` action, and
+  `Copy test message preview`; it is still a review artifact and does not send
+  outreach.
+- the same modal now includes an `Operator outcome log`: `Preview reviewed`
+  writes `messagePreviewReviewedByProspectKey`, `Copied` writes
+  `contactPacketCopiedByProspectKey`, and `Contacted manually` writes
+  `contactProofByProspectKey.manualMessageSent` / moves the pilot funnel to
+  `contacted_manually`. These are browser-local bookkeeping outcomes only:
+  no Telegram, WhatsApp, phone, CRM, dispatch, booking, billing, or external
+  send is triggered.
+- the workspace export and batch review now reuse that same
+  `Outreach outcome trail` / `outreach_outcome_trail`: selected draft,
+  preview-reviewed, copied, contacted-manually, scorecard row, and batch
+  handoff states are visible before a human syncs the pilot scorecard or CRM.
+- the same modal now includes `Channel variants`: `Telegram variant`,
+  `WhatsApp variant`, and `Phone script variant`, with `Copy Telegram variant`,
+  `Copy WhatsApp variant`, and `Copy phone script`. These are copy-only
+  operator drafts; they do not trigger Telegram, WhatsApp, phone, CRM,
+  scorecard, or calendar side effects.
+- the modal now also persists a `Selected outreach channel`: `Select Telegram`,
+  `Select WhatsApp`, or `Select phone script` records `Channel selected` under
+  `selectedChannelByProspectKey` and resets only the preview review for that
+  company. Confirmation/export use the selected draft, and the selected channel
+  is also carried into `Manual activity log`, workspace export, and
+  `Pilot evidence pack`, still with no send.
+- `Operator confirmation` now opens an `Operator confirmation summary` with
+  `Ready for manual outreach`, selected company, channel, exact message,
+  approval checklist, and `Copy confirmation summary`; it is still manual-only.
+- the wizard now shows `Wizard progress`; `Record ready for manual outreach`
+  changes the browser-local scorecard state to `Draft ready` and shows
+  `Ready for manual outreach recorded` without sending outreach or writing CRM.
+- the same wizard now includes an `Outreach readiness rail`: `Wizard progress`
+  is shown as a step count, `Next outreach action` points to the first blocking
+  step, `Mark preview reviewed` records `messagePreviewReviewedByProspectKey`,
+  and `Manual outreach boundary` states the hard rule: no outbound send, no CRM
+  write, no scorecard mutation, and no calendar event from this rail.
+- the same wizard now includes `AI analyst` / `Ask AI about pilot`: a
+  deterministic operator-assist sheet with `Suggested questions`,
+  `Best candidate`, `Bottleneck`, `Next message`, `Copy analyst brief`, and
+  `local_services_pilot_ai_analyst`; it makes no external LLM call and does not
+  send outreach.
+- the wizard now supports an operator-local `Pilot scorecard action`: choose a
+  company from the repo-owned outreach list, review the test message, and
+  `Record scorecard draft` as `Not contacted` / demo-session evidence before
+  any real outreach happens.
+- the same scorecard action now exposes `First request outcome` and records the
+  first manual request outcome in
+  `firstRequestOutcomeByProspectKey`: `Qualified`, `Needs follow-up`,
+  `Rejected`, or `Booked manually`. This is browser-local `Manual outcome state`
+  only; it does not create bookings, write CRM, or mutate the Markdown
+  scorecard. The same block now shows `Outcome chain summary` so the operator
+  can see that one local outcome flowing into `Scorecard draft`, `Daily log`,
+  `Week-one review`, and `Evidence pack`.
+- the same pilot workspace state now hydrates through the local-services
+  workspace adapter and syncs to the repo-owned `/v1/local-services/workspace`
+  pilot API, with browser `localStorage` fallback under
+  `liveDesk:localServicesPilotWorkspace:v1`. The operator can return to the demo
+  and still see `Draft ready`, `Contacted manually`, `Reply received`, or
+  `Rejected for now` for each selected outreach candidate.
+- the shared local-services workspace boundary now lives in
+  `apps/demo-frontend/app-shell/src/lib/local-services-workspace-adapter.ts`.
+  It owns the storage key, static/browser-local/API/hybrid adapter
+  constructors, and the `/v1/local-services/*` endpoint names so the dashboard
+  can move from demo state to API-backed persistence without burying more
+  storage logic inside `LiveDesk.tsx`.
+- the first backend boundary lives in
+  `apps/api-backend/src/local-services-workspace.ts` and is mounted from
+  `apps/api-backend/src/index.ts`. It stores an in-memory pilot workspace per
+  tenant for setup events, operator decisions, scenario overrides, and pilot
+  export. It is not CRM, analytics, billing, or durable production storage yet.
+- dispatcher approval, customer confirmation, setup/dry-run recording, and
+  scenario override actions now call that adapter directly through
+  `updateCaseDecision`, `recordSetupStep`, and `saveScenarioOverrides`; the
+  full snapshot sync remains the recovery layer and browser fallback.
+- the four fixed local-services scenarios now live in
+  `apps/demo-frontend/app-shell/src/lib/local-services-scenarios.ts`.
+  `DEFAULT_LOCAL_SERVICES_SCENARIOS` is zod-validated, keeps AC repair,
+  plumbing, cleaning, and measurement visits as the only P0 lanes for now, and
+  supports bounded `scenarioOverrides` through the workspace adapter without
+  opening full scenario CRUD.
+- each local-services lane now exposes a `Scenario modal` /
+  `local_services_scenario_modal` from the service card. It shows the scenario
+  as `Chat dialogue`, `Structured job card`, and `Final handoff and approval
+  state`, then allows `Export scenarios JSON`, `Import scenario JSON`, and
+  `Reset overrides` for the four fixed lanes only. These edits sync through the
+  local-services workspace boundary; they do not create/delete scenarios, send
+  outreach, dispatch masters, book slots, write CRM, or mutate docs.
+- the demo also shows a `Pilot funnel summary` across all outreach candidates:
+  `All candidates`, per-status counts, and a `Next manual batch` list that jumps
+  the operator back to the relevant service/company pair.
+- the same funnel now has `Outreach list filters` and `Column settings`:
+  `Service filter`, `Status filter`, `Filtered candidates`,
+  `Filtered outreach list`, `All services`, `All statuses`, `Clear filters`,
+  and `View only, no send`. It lets an operator choose a pilot company from the
+  shell without turning the product into CRM or autonomous outreach.
+- the same funnel now includes a `Pilot execution checklist`: a 14-day pilot
+  operating loop with `Pass test call/message`, `Needs test call passed`,
+  `Prepare first manual batch`, `Ready for first manual batch`,
+  `Record ready drafts`, `Log manual contact`, `Book discovery call`,
+  `Start metric capture`, `Founder/operator validation`, `No autonomous send`, and
+  `Open pilot runbook`. Its header shows `Pilot checklist progress`,
+  `Dry run required` / `Dry run passed`, and `Manual launch blocked` /
+  `Manual launch ready`, so first contact stays gated on the dry run and a
+  ready draft. `Open launch packet` opens `Pilot launch packet` /
+  `Launch packet preview` with `First manual contact checklist`,
+  `Launch readiness`, `Dry-run gate`, `Selected company`, `Draft status`,
+  `Next action`, `Copy launch packet`, and
+  `local_services_pilot_launch_packet`. The drawer is now ordered as
+  `Pilot launch packet readiness rail` -> `First manual contact packet` /
+  `Manual contact copy preview` -> `First manual contact checklist` ->
+  `Launch packet guardrails`; `Launch packet support details` keeps the
+  Human/JSON payload and source keys secondary. The checklist also exposes
+  `Open Preview / Test message`, which closes the launch packet and opens the
+  existing copy-only Telegram / WhatsApp / phone-script preview before any
+  manual contact. It still does not send outreach,
+  create calendar events, write CRM, or mutate docs. It mirrors
+  browser-local statuses only. The same checklist now also shows
+  `Manual activity log`, `Last manual action`, `Copy activity log`, and
+  `local_services_manual_activity_log` for browser-local scorecard and metric
+  events; it includes `Selected outreach channel` and
+  `selectedChannelByProspectKey`, records `No external side effects`, and does
+  not send outreach,
+  create calendar events, write CRM, sync analytics, bill, or mutate docs. The same
+  checklist now opens `Discovery call prep` through `Open discovery prep`; that
+  call brief exposes `Questions to ask`, `Pilot success criteria`,
+  `Copy discovery call prep`, and `local_services_discovery_call_prep` without
+  creating a calendar event, sending follow-up, or writing CRM.
+- after the discovery call, the same pilot loop opens `Day-one setup brief`
+  through `Open day-one setup`; it exposes `Business profile lock`,
+  `Setup tasks`, `Test call plan`, `Copy day-one setup brief`, and
+  `local_services_day_one_setup_brief` so the operator can prepare the first
+  real pilot day without activating phone, Telegram, WhatsApp, CRM, analytics,
+  billing, calendar, or customer send.
+- the funnel summary now opens a `Pilot workspace export drawer` with
+  `Human-readable` and `JSON` modes plus `Copy pilot workspace export`; it is a
+  browser-local planning artifact that includes the latest `Manual activity log`
+  / `Last manual action`, `Outreach outcome trail`, and
+  `outreach_outcome_trail` JSON plus the selected channel and selected draft
+  for each candidate; it does not send outreach or write CRM.
+- the same funnel now opens `Workspace API export drawer` through
+  `Open workspace API export`. It calls the local-services workspace export
+  boundary, exposes `workspace API + local fallback`, `Copy workspace API
+  export`, `local_services_workspace_api`, and `browser_local_preview`, and
+  stays an inspection/export surface only: no outreach, dispatch, booking, CRM
+  write, analytics sync, billing, or customer send.
+- the same browser-local pilot state now includes a `Pilot metrics tracker`:
+  `Open metrics tracker` exposes `Human-readable` / `JSON` modes and
+  `Copy pilot metrics tracker` for manual weekly scorecard sync, with no
+  analytics sync or CRM write.
+- the same metrics area now opens `Pilot daily log` through `Open daily log`;
+  it exposes `Daily capture fields`, `Daily operating loop`,
+  `Copy pilot daily log`, and `local_services_pilot_daily_log` so the operator
+  can record each pilot day manually without analytics sync, CRM write, calendar
+  booking, or customer send. The daily log now also carries the selected
+  company, pilot status, `First request outcome`, and
+  `firstRequestOutcomeByProspectKey` so the first observed result is reviewed
+  before weekly scorecard sync.
+- the same pilot area now opens `Pilot week-one review` through
+  `Open week-one review`; it exposes `Continue / stop decision`,
+  `Copy week-one review`, and `local_services_pilot_week_one_review` so week-one
+  continuation decisions stay owner-reviewed and manual-only. It now carries
+  `First request outcome` / `firstRequestOutcomeByProspectKey` into the
+  decision pack before any continue, pause, or stop decision. The drawer now
+  includes `Owner-ready summary`, `Decision readiness`,
+  `Latest manual signal`, and the `day_one_recap_to_week_one_review` handoff so
+  the owner sees one concise week-one decision packet. The shell now records
+  `Week-one owner decision state` through `Record continue`, `Record pause`,
+  `Record stop`, and `weekOneOwnerDecisionByProspectKey` before the evidence
+  handoff.
+- it now closes the 14-day loop with `Open evidence pack`, `Pilot evidence
+  pack`, `Week-two evidence pack`, `Copy evidence pack`, and
+  `local_services_pilot_evidence_pack`; this is a redacted manual proof pack,
+  not CRM, billing, or customer-message automation. It now carries
+  `First request outcome` / `firstRequestOutcomeByProspectKey` plus
+  `Week-one owner decision` / `week_one_owner_decision_to_evidence_pack` into
+  the paid-pilot readiness proof pack.
+- the pilot metrics/export controls now sit in one bounded
+  `Pilot metric and evidence export actions` rail, so `Open metrics tracker`,
+  `Open daily log`, `Open week-one review`, and `Open evidence pack` remain
+  clickable without overlapping the adjacent handoff/export column.
+- `Pilot readiness` now links to repo-owned pilot artifacts at
+  `/workspace-docs/local-services-pilot-offer.md` and
+  `/workspace-docs/local-services-demo-script.md`. It now also exposes
+  `Open recording checklist` for the repo-owned
+  `/workspace-docs/local-services-demo-recording-checklist.md`, so the first
+  90-second product walkthrough can be recorded without inventing claims.
+- the same local-services route now supports `?recording=90s`. In that posture
+  the shell shows `90-second recording mode`, `Recording path`, and
+  `Open recording checklist`, while the outreach table and scorecard controls
+  are hidden during recording.
+- the repo-owned product shell intentionally does not expose a public `/dev`
+  route. Lovable/design-workbench `/dev` screens are internal lab references;
+  useful patterns should be ported back into
+  `/app?demo=local-services-dispatch...`, collapsed support drawers, or
+  `/workspace-docs/*`, not into product navigation.
+- the same support layer now also links to
+  `/workspace-docs/local-services-outreach-list.md` and
+  `/workspace-docs/local-services-pilot-scorecard.md` for pilot execution.
+- the same support layer now includes `Open founder execution log` and
+  `/workspace-docs/local-services-founder-execution-log.md`, a redacted
+  first-10-contact worksheet for real pilot evidence capture; it is not CRM,
+  outreach send, booking, billing, or public customer-data storage.
+- the `/app?demo=local-services-dispatch&service=ac-repair-dispatch` shell now
+  also exposes `First 10 contacts workspace`, `Pilot proof checklist`, and
+  `Stop / Continue decision gate`, `Open batch review` / `Copy batch review` /
+  `Copy founder workspace` so the first manual validation batch can be tracked
+  and exported as a reviewed browser-local note before touching private CRM or
+  spreadsheets. The first-contact batch review drawer now includes
+  `First-contact batch review rows` with `Account -> Lane -> Scorecard row ->
+  Batch handoff -> Proof -> Decision`, plus JSON fields `review_decision`,
+  `scorecard_row_copied`, `batch_handoff_copied`, and
+  `outreach_outcome_trail`. It also shows
+  `Pilot ops today`, `Copy pilot ops handoff`,
+  `Open ops confirmation`, `Open communication preview`,
+  `local_services_pilot_ops_today`, `local_services_pilot_ops_confirmation`,
+  `local_services_pilot_communication_preview`, `Current account picker`,
+  `local_services_current_account_picker`, `Auto next account`, `Select account`,
+  `Current account prep checklist`,
+  `local_services_current_account_prep_checklist`, `Prep status`,
+  `Channel verified`, `Message preview reviewed`, `Proof marker selected`,
+  `Manual-only guardrail`, `Mark preview reviewed`, `Reset preview review`,
+  `Prep complete`, `messagePreviewReviewedByProspectKey`,
+  `Prep gate`, `local_services_current_account_prep_gate`, `Blocked by prep`,
+  `Current account contact packet`,
+  `local_services_current_account_contact_packet`, `Ready for manual contact`,
+  `Copy contact packet`, `Packet copied`, `Reset packet review`,
+  `contactPacketCopiedByProspectKey`, `Packet needed`,
+  `Current account action path`, `local_services_current_account_action_path`,
+  `Current account outcome capture`,
+  `local_services_current_account_outcome_capture`,
+  `firstRequestOutcomeByProspectKey`,
+  `Current account scorecard sync preview`,
+  `local_services_current_account_scorecard_sync_preview`,
+  `Copy scorecard row`, `Scorecard row copied`,
+  `Reset scorecard row review`, `scorecardRowCopiedByProspectKey`,
+  `scorecard_row_copy_required_for_batch_review`,
+  `Current account batch review handoff`,
+  `local_services_current_account_batch_review_handoff`,
+  `Copy batch handoff`, `Batch handoff copied`,
+  `Reset batch handoff review`, `batchReviewHandoffCopiedByProspectKey`,
+  `Pilot proof update rail`, and
+  `local_services_pilot_proof_update_rail`, `Current account mini-audit`, and
+  `local_services_current_account_mini_audit`, plus `Open account history` /
+  `local_services_account_history_drawer`: one current account, one next
+  manual action, browser-local manual account override, phone/Telegram/WhatsApp
+  preview, channel/message/proof/guardrail prep checklist, the account ->
+  preview -> manual contact -> proof -> continue gate path, latest account-local
+  proof events, and the browser-local proof marker to update after the real
+  action happens. `Daily pilot briefing`, `Copy daily briefing`, and
+  `local_services_daily_pilot_briefing` add a manual-only scheduled-task preview
+  for the founder/operator review; it is not a real cron and cannot send Slack,
+  Telegram, WhatsApp, phone, CRM, analytics, billing, or Markdown side effects.
+  It also
+  shows `Category pilot score`, `Leading category`, and
+  `No category expansion without proof` so AC, plumbing, cleaning, and
+  measurement are ranked by proof rather than preference. `Leading category
+  action layer` then turns the top lane into `Next manual batch`, `Discovery
+  questions`, `Pilot setup checklist`, `Integration hold`, and
+  `Focus leading category` actions. `Pilot setup readiness`, `Paid pilot gate`,
+  `Ready for first paid pilot`, and `Not ready for paid pilot` make the first
+  paid pilot posture explicit before any live channel, CRM, analytics, billing,
+  or customer-send integration is activated. The gate now includes `Week-one
+  owner decision`: only `Continue` can move the lane toward `Paid pilot proposal`,
+  while `Pause`, `Stop`, or no recorded decision keep proposal work blocked.
+  `Readiness action plan`,
+  `Continue setup/test path`, `Copy readiness action plan`, and
+  `local_services_readiness_action_plan` connect the gate back to the exact
+  setup/test surface instead of leaving the operator with a static blocker.
+  `Open proof drawer`, `Readiness proof drawer`, `Copy readiness proof`, and
+  `local_services_readiness_proof_drawer` summarize the proof snippets behind
+  the gate in one browser-local evidence view. `Open proposal preview`,
+  `Paid pilot proposal preview`, `Copy proposal preview`, and
+  `local_services_paid_pilot_proposal_preview` then show the first paid-pilot
+  offer as a private operator-approved draft; it still cannot send, book, write
+  CRM, sync analytics, bill, or activate channels. `Open approval handoff`,
+  `Proposal approval handoff`, `Copy approval handoff`, and
+  `local_services_proposal_approval_handoff` add the manual price, scope,
+  owner approval, CRM payload, booking-policy, and billing-disabled checklist
+  before any paid-pilot proposal leaves the shell. `Proposal approval state`,
+  `Approve proposal handoff`, `Needs changes`, `Block proposal`,
+  `Reset proposal approval`, and `proposalApprovalByService` now record the
+  operator's browser-local approval decision; only the approved state can move
+  kickoff forward. `Open kickoff gate`,
+  `Pilot kickoff gate`, `Copy kickoff gate`, and
+  `local_services_pilot_kickoff_gate` decide whether the proposal can move into
+  manual day-one setup while keeping phone, messaging, CRM, analytics, billing,
+  booking, and customer-send actions disabled. `Kickoff decision state`,
+  `Mark kickoff ready`, `Needs more prep`, `Block kickoff`,
+  `Reset kickoff decision`, and `kickoffDecisionByService` now keep that
+  day-one decision browser-local; the run sheet stays blocked until kickoff is
+  ready. `Open run sheet`,
+  `Day-one operator run sheet`, `Copy run sheet`, and
+  `local_services_day_one_operator_run_sheet` then give the operator a
+  first-day worksheet for sample inbound, owner script, expected fields,
+  approval pauses, metric capture, and manual result logging. Its JSON contract
+  is `manual_day_one_operator_run_sheet`; `day_one_run_sheet_outcome_capture`
+  links the sheet to `Open daily log` so the first manual request gets recorded
+  before weekly scorecard sync. `Day-one outcome capture gate`,
+  `Reset day-one outcome`, `Weekly scorecard sync gate`, and
+  `manual_weekly_scorecard_sync_gate` now make that leading-category outcome
+  explicit: the scorecard remains a manual blocked sync until
+  `firstRequestOutcomeByProspectKey` is recorded and metrics are review-ready.
+  `Open weekly sync checklist`, `Weekly scorecard sync checklist`,
+  `Copy weekly sync checklist`, and
+  `local_services_weekly_scorecard_sync_checklist` then turn the ready/blocking
+  state into a reviewed copy packet for the private scorecard; it still does
+  not mutate Markdown, CRM, analytics, billing, bookings, or messages.
+  `Record weekly sync reviewed`, `Reset weekly sync review`, and
+  `weeklyScorecardSyncReviewedByService` store only the browser-local proof that
+  a human copied the reviewed packet into the private scorecard. `Pilot
+  week-one review` and `Pilot evidence pack` now read the same proof as
+  `Weekly sync reviewed`; `Evidence readiness` stays blocked until that manual
+  private scorecard sync is reviewed. The evidence pack also carries
+  `Selected outreach channel`, `selected_channel_id`, `selected_channel`, and
+  `selected_channel_state_key` for the operator-approved manual channel.
+  `Open day-one recap`, `Day-one recap`,
+  `Copy day-one recap`, and `local_services_day_one_recap` then summarize the
+  first real run and hand it into `day_one_recap_to_week_one_review`. It still
+  cannot activate phone, Telegram, WhatsApp, bookings, CRM, analytics, billing,
+  or customer sends.
+  The frame stays NEWO-style AI
+  employee platform expansion by category; the manual batch is a validation
+  gate, not a solo-only product scope.
+- real pilot execution is now guided by `docs/local-services-pilot-runbook.md`;
+  it defines day-minus-one prep, manual outreach, discovery calls, pilot setup,
+  daily metrics, week-one review, week-two review, and the evidence pack.
+- first manual outreach execution is captured in
+  `docs/local-services-outreach-execution-pack.md`; it gives the four-account
+  first batch, service-specific messages, discovery-call template, manual
+  execution table, and do-not-send rules.
+- the shell now exposes `Open outreach execution pack` wherever pilot outreach
+  is reviewed, so the first manual messages are available from `/app` without
+  adding autonomous send behavior.
+- restaurants stay as a secondary demo path until local services has real pilot
+  signal.
+- construction-material quote and delivery stays out of P0; the first
+  construction-adjacent lane is measurement booking because it preserves the
+  same dispatcher workflow without stock, payment, or substitution complexity.
+- immigration remains the trust-heavy proof surface for approval, evidence,
+  replay, and operator-safe handoff.
+
+What we are not building now:
+
+- a general AI platform for every workflow
+- disconnected vertical products before a single local-services dispatcher path
+  is understandable in seven minutes
+- autonomous legal advice or final eligibility decisions
+- broad browser automation beyond narrow operator-safe admin actions
+- voice/video richness as the main reason to buy
+
+Priority decision filter:
+
+- does this improve qualification, booking, document chase, or CRM handoff?
+- does this help the primary ICP right now?
+- does this reduce manual operator work?
+- if not, it should not be on the current critical path
 
 ![PR Quality Gate](https://github.com/Web-pixel-creator/Live-Agent/actions/workflows/pr-quality.yml/badge.svg)
 ![Demo E2E](https://github.com/Web-pixel-creator/Live-Agent/actions/workflows/demo-e2e.yml/badge.svg)
@@ -44,8 +605,11 @@ Supporting product surfaces:
 - Public runtime status:
   - Cloud Run proof: `artifacts/deploy/gcp-cloud-run-summary.json`
   - Firestore proof: `artifacts/deploy/gcp-firestore-summary.json`
-  - Runtime proof: `artifacts/release-evidence/gcp-runtime-proof.json`
-  - Submission refresh status: `artifacts/release-evidence/submission-refresh-status.json`
+- Runtime proof: `artifacts/release-evidence/gcp-runtime-proof.json`
+- Action Desk workflow KPI: `artifacts/release-evidence/action-desk-kpi-report.json`
+- Consultation booking proof: `artifacts/release-evidence/consultation-booking-proof.json`
+- Consultation booking approved artifact: `artifacts/demo-e2e/consultation-booking-approved.json`
+- Submission refresh status: `artifacts/release-evidence/submission-refresh-status.json`
   - Legacy Railway badge remains a fallback public mirror, not the primary judge proof.
 - Submission-safe summary criteria:
   - `liveApiEnabled=true`
@@ -57,7 +621,15 @@ Supporting product surfaces:
 
 - Architecture: `docs/architecture.md`
 - Product Master Plan: `docs/product-master-plan.md`
+- Local Services Action Desk Spec: `docs/local-services-action-desk-spec.md`
+- Local Services Developer Map: `docs/local-services-developer-map.md`
+- Local Services Agent Handoff: `docs/local-services-agent-handoff.md`
+- Current Local Services Agent Handoff:
+  `docs/current-local-services-agent-handoff.md`
+- Local Services Pilot Runbook: `docs/local-services-pilot-runbook.md`
+- Local Services Outreach Execution Pack: `docs/local-services-outreach-execution-pack.md`
 - Product Backlog: `docs/product-backlog.md`
+- Startup Wedge 90 Days: `docs/startup-wedge-90-day-plan.md`
 - Visa Sales Demo Package: `docs/visa-sales-demo-package.md`
 - Visa Operator Walkthrough: `docs/visa-operator-walkthrough.md`
 - Visa Client One-Pager: `docs/visa-client-one-pager.md`
@@ -70,6 +642,8 @@ Supporting product surfaces:
 - Worker Roles: `docs/worker-roles.md`
 - Eval Plane: `docs/evals.md`
 - Operator Guide: `docs/operator-guide.md`
+- External Adoption Priorities: `docs/external-adoption-priorities.md`
+- hello-friend Parity Audit: `docs/hello-friend-parity-audit.md`
 - Judge Quickstart: `docs/judge-quickstart.md`
 - Judge Runbook (alias): `docs/judge-runbook.md`
 - Canonical Challenge Runbook: `docs/challenge-demo-runbook.md`
@@ -95,7 +669,8 @@ Supporting product surfaces:
 3. For submission, deploy the GCP path with `pwsh ./infra/gcp/prepare-judge-runtime.ps1 -ProjectId "<your-project-id>" -Region "us-central1" -FirestoreLocation "nam5" -DatasetId "agent_analytics" -ImageTag "<release-tag>"`. The wrapper now syncs runtime secrets from env / repo-local `.env` into Secret Manager, builds the three Cloud Run images through Cloud Build, and then deploys Cloud Run.
 4. Rebuild the judged pack with `pwsh ./infra/gcp/refresh-submission-pack.ps1 -ProjectId "<your-project-id>" -Region "us-central1" -DatasetId "agent_analytics" -ImageTag "<release-tag>"`.
 5. If `gcloud` is unavailable in the current shell, the wrapper can now read repo-local `.env`; if `.env` only contains Gemini-style keys it will reuse that key for `LIVE_API_API_KEY` and default `LIVE_API_AUTH_HEADER` to `x-goog-api-key`. You can still pass `-GoogleGenAiApiKey`, `-LiveApiApiKey`, and `-LiveApiAuthHeader` explicitly when needed.
-6. Open `artifacts/release-evidence/submission-refresh-status.md` and `artifacts/demo-e2e/badge-details.json` for judge-facing evidence lanes.
+6. Open `artifacts/release-evidence/submission-refresh-status.md` and `artifacts/demo-e2e/badge-details.json` for judge-facing evidence lanes. Release evidence now also expects a dedicated `caseWikiGatewayHydration` proof block plus aggregate `caseWikiContextAdoption` counters with at least three observed routing samples and `caseWikiRate >= 0.95`.
+7. For the UI Navigator reliability lane, inspect `artifacts/demo-e2e/navigator-visa-flows.json` and confirm the `booking`, `reminder`, `handoff`, and `escalation` browser-worker flows all completed with persistent session, replay bundle, verification, stale-ref recovery, and checkpoint resume evidence. For the booking lane specifically, also inspect `artifacts/demo-e2e/consultation-booking-approved.json` for the approval-safe booked-consultation artifact that closes the current repo-owned booking proof posture without claiming calendar writeback.
 
 ## Autoresearch
 
@@ -145,18 +720,185 @@ npm run dev:gateway
 npm run dev:api
 npm run dev:ui-executor
 ```
+`realtime-gateway` now enriches `orchestrator.request` traffic with compiled Case Wiki context from `api-backend`. When the API is not running on `http://localhost:8081`, set `API_BACKEND_BASE_URL` before starting `npm run dev:gateway`.
 
 4. Run demo frontend:
 ```bash
 npm run dev:frontend
 ```
-Open `http://localhost:3000`.
+Open `http://localhost:3000/app`.
+`/` now redirects to the new Action Desk app shell at `/app`, while the legacy
+runtime-safe dashboard remains available on `/legacy` only as a compatibility
+surface for fallback checks and older walkthroughs. The legacy shell now
+labels itself as `AI Action Desk Legacy Dashboard` and links operators back to
+`/app` instead of posing as a second primary frontend. On `/legacy`, the shell
+now defaults to `Operator Console` and keeps `Device Nodes` as the remaining
+runtime fallback tab, while `Live` and `Simulation Lab` stay in the new `/app`
+workspace, with the hidden live/story panels no longer running their legacy
+render loops or binding their compatibility-only controls in the background.
+Legacy quick-start actions that still depend on those primary surfaces now
+redirect operators back into `/app` instead of trying to revive hidden legacy
+flows.
+The direct-live proof query explicitly opts the legacy live bindings back in
+for hosted smoke evidence only (`?debugLive=true` or
+`?livePreferredMode=direct_live`); normal `/legacy` visits keep those bindings
+off.
+Judge/demo evidence surfaces stay at `/bundle/:id` and
+`/evidence/:id`.
+Inside that app shell, `Live Desk`, `Operator Console`, runtime chrome, and
+node detail rails now prefer repo-owned runtime data from
+`/v1/operator/summary`, `/v1/sessions`, `/v1/runtime/case-wiki`, and
+`/v1/device-nodes`. The app shell resolves those routes through `/config.json`
+and `FRONTEND_API_BASE_URL` when the frontend runs standalone, while still
+falling back to the design-mock data when the local stack is only partially
+running.
+`/bundle/:id` and `/evidence/:id` now follow the same rule: when compiled
+`Case Wiki` memory exists, the new shell derives judge-facing bundle/evidence
+copy from repo-owned `GET /v1/runtime/case-wiki` plus `GET /v1/runtime/session-replay`
+and only falls back to curated `presentationBundles` when runtime case data is
+missing.
+`/app/simulation` now follows that runtime-first migration too: the replay
+sheet and baseline run grid prefer repo-owned `WorkspaceCase` runtime data and
+seed deterministic current-policy replay cards from live case state, while
+keeping curated `simulationRuns` as the fallback when the runtime shell is
+still operating without backend case memory.
+`Live Desk` row actions/context menus and `Operator Console` hero quick actions
+now use the same repo-owned case-artifact link helper, so jumps into
+`/bundle/:id` and `/evidence/:id` prefer runtime `caseId/sessionId` targets and
+only fall back to legacy refs when no runtime case identifier exists.
+`/app/console` now stays approval-first and matches the transferred design
+`1:1`: the main console stops after the approval hero, message card, actions,
+and `Case history` / `Documents` block. The deeper repo-owned runtime moat now
+lives on `/app/console/runtime`, so `Case Wiki`, `Session Boundary`,
+`Operator Session Ops`, `Workflow Runtime`, `Runtime Guardrails`,
+`Bootstrap Doctor`, and `Browser Workers` keep their functionality without
+changing the main console layout.
+`/app/console/runtime` now owns the repo-backed support surfaces: it fetches
+`GET /v1/runtime/session-replay` for replay state, approval gate, proof
+ingress (`contextSource` / `ingressSource`), recovery path, and structured
+`After refresh` follow-up paths; keeps `Refresh replay`, `Refresh Case Wiki`,
+`Export Markdown`, and `Export JSON` inside the same operator support route;
+and preserves the same compliance/export gate semantics by returning the
+repo-owned blocked reason when `compliance.enforcement.exportReady=false`.
+That support route also carries the deeper runtime control plane that used to
+live only in `/legacy`: `Workflow Runtime`, `Runtime Guardrails`,
+`Bootstrap Doctor`, and `Browser Workers` prefer repo-owned routes
+(`GET /v1/runtime/workflow-config`,
+`POST /v1/runtime/workflow-control-plane-override`,
+`GET /v1/runtime/bootstrap-status`, `GET /v1/runtime/auth-profiles`,
+`POST /v1/runtime/auth-profiles/rotate`, `GET /v1/runtime/browser-jobs`, and
+`POST /v1/runtime/browser-jobs/:jobId/resume|cancel`).
+That same support route now includes an `Artifact Viewer` section backed by
+read-only debug artifact routes from `demo-frontend`. It indexes repo-owned
+JSON artifacts from `artifacts/demo-e2e`, `artifacts/runtime`, and
+`artifacts/release-evidence` so replay, runtime, and release evidence can be
+inspected inside the support workspace without opening raw files manually. The
+viewer now also pins quick-view tabs for `report.json`, `manifest.json`,
+`runtime-proof-report.json`, `action-desk-kpi-report.json`,
+`consultation-booking-proof.json`, and `badge-details.json`, with a structured
+snapshot above the raw JSON dump. `Case Wiki`, `/bundle/:id`, and
+`/evidence/:id` now deep-link into that viewer with an `artifact=` query so
+support opens on the relevant proof/report tab instead of landing on the
+generic artifact catalog first. Issue-aware support links now also carry a
+`section=` query so the viewer can jump to the relevant repo-owned subsection
+anchor inside the structured snapshot, not just the right file. The same
+viewer is also linked from
+`Session Boundary`, `Operator Session Ops`, and `Runtime Guardrails` cards on
+`/app/console/runtime`, so replay/export/debug inspection keeps one repo-owned
+support path instead of splitting across ad hoc debug links.
+That same support route now also includes a `Case Vault` section: a Rowboat-style
+inspectable projection of compiled `Case Wiki` memory that keeps linked
+entities, open threads, ref families, and recent memory trail available in one
+secondary support surface without pushing that deeper memory graph back into
+the primary operator shell. That same `Case Vault` now also carries repo-owned
+projection modes for `Operator handoff` and `CRM prep`, plus `Copy` / `Export`
+actions that reuse the same compiled compliance/export gate instead of leaking
+handoff text while `exportReady=false`. `Live Desk`, `Operator Console`, and
+`Case Wiki` now all deep-link into that same case-scoped vault support route
+instead of leaving it discoverable only through the generic runtime catalog.
+snapshot layer above the raw JSON dump for faster operator/judge forensics.
+Operator helper entries now match the transferred `hello-friend` shell `1:1`:
+`Live activity` opens `/app`, `Action queue` opens `/app/console`,
+`Connections` and `Health check` open `/app/nodes`, and `Safety rules` opens
+`/app/simulation`. The deeper runtime support route at `/app/console/runtime`
+remains available as a secondary/internal surface through direct links and the
+command palette.
+`/app/console` now only shows a compact runtime-support strip when repo-owned
+support posture needs attention (`Export blocked|waiting`, `Proof pending`,
+`Replay waiting`, or `Gate pending`), and the CTA text becomes issue-specific
+(`Inspect export block`, `Inspect missing proof`, `Inspect replay gate`, or
+`Inspect replay`) so the main approval-first screen stays clean while problem
+cases still expose one direct path into `/app/console/runtime`.
+When the `Case Wiki` already carries a remediation draft or an unsigned
+evidence signature, that CTA becomes `Inspect raw artifact blocker`,
+`Inspect signature pending`, or `Inspect unsigned proof` and deep-links
+straight to the `Case Wiki` support section instead of a generic runtime
+landing point. When the blocker comes from repo-owned compliance remediation,
+the strip also shows a compact inline hint built from `operatorActionLabel`
+and `blockingRef`, so the operator can see the next safe step before opening
+the deeper support lane.
+The `Case Wiki` support section now mirrors that same remediation posture
+inside `Compliance & remediation`, adding quiet `Raw artifact blocker` /
+`Signature pending` pills plus a compact `Next repo-owned step` hint from
+`operatorActionLabel` and `blockingRef` so the blocker reads clearly before
+the operator reaches for deeper draft/export actions.
+`Case Vault` now mirrors the same quiet remediation posture inside its
+handoff/CRM projection card, so support operators see the same `Raw artifact
+blocker` / `Signature pending` state and `Next repo-owned step` hint before
+copying handoff text or exporting Markdown. Those support-lane remediation
+hints now also open the `Artifact Viewer` with an issue-aware `artifact=...`,
+`issue=...`, and `section=...` query, so `Raw artifact blocker`,
+`Signature pending`, `Unsigned proof`, and export posture each land on the
+right proof/report lane and jump to the right structured subsection instead of
+dropping operators into a generic debug catalog. Inside the viewer, the
+matching structured section is now highlighted as the focused evidence
+lane, so support operators land on the right proof card and the right proof
+summary at the same time. That same viewer now also lifts a compact issue
+summary above the structured snapshot, exposing repo-owned fields like
+signature status, blocker, next action, and proof posture for the current
+issue without forcing operators to parse the raw JSON first. The same focused
+lane is now rendered first in the structured snapshot, while the raw JSON pane
+keeps a quiet focus cue without rewriting the underlying payload. That focused
+card now also embeds compact `Focus fields`, so the most relevant repo-owned
+values stay inside the prioritized evidence card instead of living only in the
+summary above it. The focused subsection now also gets a stable support-lane
+anchor, so the viewer can jump directly to the relevant structured card before
+operators start reading the raw payload, and issue-aware row emphasis quietly
+marks the structured rows that matter most for that blocker inside the focused
+card itself. When a focused section exists, the same viewer now also offers a
+quiet `Show focused only` mode so support can temporarily collapse the
+structured snapshot to one prioritized lane while keeping the raw JSON fallback
+unchanged; that posture is now query-backed with `focusedOnly=1`, so a copied
+support link can reopen the viewer in the same focused-only lane when an
+`artifact=` + `issue=` + `section=` focus already exists.
+`Operator Session Ops` now mirrors that same remediation posture in its export
+lane, so blocked session exports show the same `Raw artifact blocker` /
+`Signature pending` pills and `Next repo-owned step` hint before operators try
+to download Markdown or JSON.
+`Runtime Guardrails` on `/app/console/runtime` now mirrors that same quiet
+repo-owned remediation posture, so support operators see `Raw artifact blocker`
+ / `Signature pending` plus the same `Next repo-owned step` hint while triaging
+runtime safety state.
+`Workflow Runtime` now mirrors that same quiet remediation posture, so the
+control-plane card shows `Raw artifact blocker` / `Signature pending` plus the
+same `Next repo-owned step` hint before operators clear overrides or inspect the
+report lane.
+`Simulation Lab` now also overlays the live `policy-current` snapshot from
+repo-owned governance runtime data (`/v1/governance/policy`) and the real
+template catalog (`/v1/governance/compliance-template`) before it falls back to
+curated policy metadata, so replay labels, candidate templates, and the drawer
+blurb stay aligned with the active operator-desk compliance template instead of
+drifting back to static demo copy. When a runtime template candidate is
+selected, the drawer promote action now routes through `POST /v1/governance/policy`
+and refreshes the live policy/history lanes instead of showing a placeholder toast.
+`GET /v1/operator/queue` now exposes the repo-owned operator queue compiled from `Case Wiki`, so the frontend `Active Queue` can prefer backend-prioritized remediation/approval/runtime actions and fall back to local `Case Wiki` inference only when the queue route is unavailable. The same queue snapshot now also carries compact compliance enforcement posture (`enforcementStatus`, `exportReady`, `blockingReasons`) and escalates compiled compliance blockers into the first operator queue lane instead of hiding them inside deep case memory only.
+`GET /v1/operator/summary` now also returns that same compiled queue snapshot as `data.operatorQueue`, so a normal summary refresh can hydrate the `Operator Queue` card and `Active Queue` without forcing an extra queue-only roundtrip.
 Frontend `Intent Request -> Send Conversation Item` supports multimodal parts: text + optional image + optional audio attachment.
 Frontend `Live Controls -> Apply Live Setup` can send runtime `live.setup` overrides (`model`, `voice`, `activityHandling`, `systemInstruction`).
 Frontend `Intent Request` also supports `intent=research` for citation-bearing answers; runtime and artifact outputs preserve `answer`, `citations`, and `sourceUrls`.
 Translation and research responses now also expose display-safe `payload.output.text` for the reading rail; research keeps provenance in debug summary events and asks a clarification question before grounding very short ambiguous key-like queries.
 Translation result meta now resolves the selected speech-language label correctly as well, so the live rail shows the chosen spoken-language name instead of leaking a raw browser select element.
-UI task responses now also expose display-safe `payload.output.text`; simulated runs explicitly say when no real browser actions were performed, while real executor runs explain that they happened in an isolated automation browser, summarize the executed steps and target page, and when available include short observed UI evidence plus one inferred safe next action from the verified page controls. Ungrounded requests now stay in generic verification mode instead of inventing a submit click from button-label wording alone. Rule-based UI checks now also understand common form-gating prompts such as `Submit stays disabled until email is filled` when a real page URL or grounding is provided. Stable local fixture pages for UI-task validation also ship at `/ui-task-billing-demo.html`, `/ui-task-profile-settings-demo.html`, `/ui-task-visa-intake-demo.html`, `/ui-task-visa-follow-up-demo.html`, `/ui-task-visa-reminder-demo.html`, `/ui-task-visa-escalation-demo.html`, and `/ui-task-visa-handoff-demo.html`, and the live first fold plus the active-task queue now include one-click `Start New Visa Case`, `See Intake Summary`, `Request Missing Documents`, `See Follow-up Summary`, `Prepare Consultation Reminder`, `See Reminder Summary`, `Escalate to Specialist`, `See Escalation Summary`, `Prepare CRM Update`, `See CRM Summary`, and `Start Over` controls with a visible draft-vs-result explainer, a deterministic completion snapshot in the live rail, a short operator handoff note, and a one-click `Copy operator summary` action once the approved result path lands. When the demo frontend is hosted, all visa presets now target the current frontend origin instead of hard-coding `127.0.0.1`, so the public Railway flow can open the hosted fixtures directly.
+UI task responses now also expose display-safe `payload.output.text`; simulated runs explicitly say when no real browser actions were performed, while real executor runs explain that they happened in an isolated automation browser, summarize the executed steps and target page, and when available include short observed UI evidence plus one inferred safe next action from the verified page controls. Ungrounded requests now stay in generic verification mode instead of inventing a submit click from button-label wording alone. Rule-based UI checks now also understand common form-gating prompts such as `Submit stays disabled until email is filled` when a real page URL or grounding is provided. Stable local fixture pages for UI-task validation also ship at `/ui-task-billing-demo.html`, `/ui-task-profile-settings-demo.html`, `/ui-task-visa-intake-demo.html`, `/ui-task-visa-follow-up-demo.html`, `/ui-task-visa-booking-demo.html`, `/ui-task-visa-reminder-demo.html`, `/ui-task-visa-escalation-demo.html`, and `/ui-task-visa-handoff-demo.html`, and the live first fold plus the active-task queue now include one-click `Start New Visa Case`, `See Intake Summary`, `Request Missing Documents`, `See Follow-up Summary`, `Prepare Consultation Reminder`, `See Reminder Summary`, `Escalate to Specialist`, `See Escalation Summary`, `Prepare CRM Update`, `See CRM Summary`, and `Start Over` controls with a visible draft-vs-result explainer, a deterministic completion snapshot in the live rail, a short operator handoff note, and a one-click `Copy operator summary` action once the approved result path lands. When the demo frontend is hosted, all visa presets now target the current frontend origin instead of hard-coding `127.0.0.1`, so the public Railway flow can open the hosted fixtures directly.
 The live reading rail now also hard-wraps long URLs and evidence text, so the right-hand result pane does not expand over the center compose CTA cluster after a seeded visa demo run.
 The visa CTA cluster now uses a two-column desktop layout, so `See Intake Summary` and `Start Over` stay clickable after the live rail fills with result text.
 The demo frontend now also ships a public static route at `/ai-action-desk.html`, so the visa/relocation wedge can be shared as a lightweight product page without opening the full operator dashboard first.
@@ -362,7 +1104,7 @@ That same `Lane Radar` also ships in that shelf posture from first paint, so the
 On desktop, that quiet `Lane Radar` state now keeps only the top three jump chips plus a quiet `More` toggle by default, so the left first fold stays readable without losing access to the rest of the watch lanes.
 On desktop, when fail/watch lanes stack up, that same `Lane Radar` now also keeps only the top four active jump cards plus `More` and uses the same collapsed quiet shell, so active incidents do not reopen a second mini-board above the deep lanes.
 On desktop, that same compact `Lane Radar` state now also shortens visible jump-status pills (`blocking 2`, `request wait`, `proof`) and drops the secondary stable-count/meta line in collapsed fail posture, so the strip reads like a jump rail instead of another compressed board.
-`Triage Summary` now behaves like an `Active Queue`: the top of that surface lists the next operator actions, while live counters move into a quieter `Board Visibility` footer so filter scope stays visible without competing with incident signals.
+`Triage Summary` now behaves like an `Active Queue`: the top of that surface lists the next operator actions, while live counters move into a quieter `Board Visibility` footer so filter scope stays visible without competing with incident signals. When `Case Wiki` is hydrated with a real blocker or follow-up draft, that same queue now lifts the compiled remediation into the first scan path with `Open Remediation` and `Copy Draft`, so operators can jump straight into the focused case follow-up instead of re-reading the whole board first. If the backend queue marks a `Compliance blocker`, the same `Active Queue` now rewrites that item into plain export-blocking language (`Clear export blocker`, raw refs/signing reason) instead of leaving the operator to decode compliance posture from deep case memory or raw metadata.
 That `Board Visibility` footer now behaves more like a compact chip ledger than a second mini-dashboard, so scope stays legible without adding another stacked row of counters; the queue and recovery helper copy were shortened in the same pass.
 On desktop, that same `Board Visibility` footer now drops its heading, hides the redundant `Total` chip, and relabels `Neutral` as `Watch`, so the lower triage meta reads as a short `Visible / Fail / Watch / Ok / Hidden` ledger instead of another summary block.
 That `Active Queue` now stamps next actions as `P1/P2/P3`, and each lane header renders chip-based visibility counters instead of one long inline string, so the first scan looks more like a real observability console than a stacked admin list.
@@ -407,13 +1149,14 @@ Inside that drawer, the collapsible `Runtime Drill Runner` panel loads `GET /v1/
 Inside that drawer, the collapsible `Workflow Control Panel` loads `GET /v1/runtime/workflow-config`, applies `POST /v1/runtime/workflow-control-plane-override`, exposes redacted workflow/store snapshots, and reports assistive-router posture as `provider/model/budgetPolicy/promptCaching/watchlistEnabled` plus `apiKeyConfigured` instead of returning the raw key.
 Inside that drawer, the collapsible `Bootstrap Doctor & Auth Profiles` panel loads `GET /v1/runtime/bootstrap-status`, `GET /v1/runtime/live/capabilities`, and `GET /v1/runtime/auth-profiles`, shows provider/device/fallback posture plus repo-owned live direct bootstrap mode/capabilities, and lets admins rotate repo-owned runtime credentials through `POST /v1/runtime/auth-profiles/rotate` without leaving the console.
 Inside that drawer, the collapsible `Browser Worker Control` panel loads `GET /v1/runtime/browser-jobs`, inspects `GET /v1/runtime/browser-jobs/:jobId`, and lets operator/admin roles resume or cancel repo-owned checkpointed background browser worker jobs through `POST /v1/runtime/browser-jobs/:jobId/resume|cancel`.
-Inside that drawer, the collapsible `Operator Session Ops` panel stores a repo-owned purpose declaration for high-risk actions, refreshes compact session replay from `GET /v1/runtime/session-replay`, hydrates compiled case memory from `GET /v1/runtime/case-wiki`, appends repo-owned operator notes through `POST /v1/runtime/case-wiki/notes`, and refreshes cross-agent discovery from `GET /v1/skills/personas` plus `GET /v1/skills/recipes`. The replay card now surfaces `resume-ready`, `blocked-by`, a human-readable `next operator action`, an explicit `next action target`, the `next operator workspace`, a repo-owned `primary step`, `step progress`, a phase-aware `step path` (`active` + `queued`), `remaining steps`, a short repo-owned `checklist`, the latest verified proof pointer and stage, compact booking/follow-up/handoff posture, a workflow boundary summary, a boundary owner view, an approval gate summary, a recovery path/handoff, a repo-owned `recovery drill` summary for failed workflow boundaries, and a compact `live transport` summary when the selected session is the active frontend session or replay evidence already carries `direct_live` source markers. The same drawer now also keeps `Case Wiki Overview`, `Case Wiki Evidence`, `Case Wiki Focused Handoff`, `Case Wiki Focused Routing`, `Case Wiki Open Questions`, and `Case Wiki Timeline` snapshots visible next to the replay/discovery surfaces, so operators can read one compiled case state, inspect the top proof/entity pair, inspect a compact repo-owned `evidencePack` (`proofs`, `entities`, `questions`, `sourceRefs`), inspect one backend-built `handoffPack` for compact proof/question handoff posture, inspect one backend-built `detailPack` for proof/question detail rows and per-item badges, inspect one backend-built `routingPack` for compact proof/question route + CTA posture, inspect one backend-built `actionPack` for copy-ready handoff/refs mini-actions, inspect one backend-built `focusPack` for focus summaries, drilldowns, chip labels, chip titles, and handoff previews, inspect one backend-built `previewPack` for compact pack/ref/proof/question/handoff summaries, inspect one backend-built `workspacePack` for the top `Case Workspace` card model plus compact open-question and timeline summaries, inspect one backend-built `operatorPreviewPack` for compact overview/evidence/question/timeline operator snapshots, inspect a source-linked handoff preview, inspect a focus-aware handoff block when a proof or question chip is selected, inspect/copy a focused routing rail with explicit lane, owner, priority, blocking, approval posture, and one ready-to-run one-click CTA action, and append blocking notes without leaving Operator Console. That same compiled memory now also surfaces as a compact `Case Wiki` card inside `Case Workspace`, so the live product view can show known state, top blocker, next action, a short evidence-pack count/ref summary, compact open-question and timeline summaries, a compact proof/question drilldown, clickable proof/question focus chips sourced from backend-built `focusPack`, expandable proof/question detail rows, compact per-item badges for status/priority/owner/refs, source-aware `Copy handoff` / `Copy refs` mini-actions from the backend-built `actionPack` for the selected proof or question, focus-aware drilldown/handoff text from the backend-built `focusPack`, compact pack/ref/proof/question summary strings from the backend-built `previewPack`, and the compact status/summary/blocker/next-action/proof/entity/question/timeline card values from the backend-built `workspacePack`, plus one-tap `Open in Operator Ops` jumps that carry the current focus into the operator focused routing block, plus one `top proof` and one `key entity` from repo-owned `highlights` without reopening Operator Console. The same mirror now also emits a structured repo-owned `refresh recovery followup path`, so exports and future UI slices can consume one compact recovery ladder without depending on every flat `refresh escalation ...` field individually, and the replay preview now exposes that ladder as a structured summary instead of leaving it buried inside one giant stale-refresh object.
+Inside that drawer, the collapsible `Operator Session Ops` panel stores a repo-owned purpose declaration for high-risk actions, refreshes compact session replay from `GET /v1/runtime/session-replay`, hydrates compiled case memory from `GET /v1/runtime/case-wiki`, appends repo-owned operator notes through `POST /v1/runtime/case-wiki/notes`, and refreshes cross-agent discovery from `GET /v1/skills/personas` plus `GET /v1/skills/recipes`. The replay card now surfaces `resume-ready`, `blocked-by`, a human-readable `next operator action`, an explicit `next action target`, the `next operator workspace`, a repo-owned `primary step`, `step progress`, a phase-aware `step path` (`active` + `queued`), `remaining steps`, a short repo-owned `checklist`, the latest verified proof pointer and stage, the latest turn `contextSource/contextIngressSource`, the latest verified proof `contextSource/contextIngressSource`, compact booking/follow-up/handoff posture, a workflow boundary summary, a boundary owner view, an approval gate summary, a recovery path/handoff, a repo-owned `recovery drill` summary for failed workflow boundaries, and a compact `live transport` summary when the selected session is the active frontend session or replay evidence already carries `direct_live` source markers. That `live transport` block now also carries the latest observed first-audio/first-output latency and a compact fallback-event count so direct-live proof is readable without reopening raw events. The same replay snapshot now also carries a tamper-evident root `evidenceSignature` envelope with canonical SHA256 and an Ed25519 signature when the runtime evidence signer is enabled with a valid key; when compiled memory is in play, the proof pointer now also preserves whether that `Case Wiki` context came from `preserved_input_case_wiki` or `gateway_hydrated_case_wiki` instead of forcing operators to infer ingress from raw request shape. The same drawer now also keeps `Case Wiki Overview`, `Case Wiki Evidence`, `Case Wiki Focused Handoff`, `Case Wiki Focused Routing`, `Case Wiki Focused Remediation`, `Case Wiki Open Questions`, `Case Wiki Compliance`, `Case Wiki Audit`, and `Case Wiki Timeline` snapshots visible next to the replay/discovery surfaces, so operators can read one compiled case state, inspect the top proof/entity pair, inspect a compact repo-owned `evidencePack` (`proofs`, `entities`, `questions`, `sourceRefs`), inspect one backend-built `handoffPack` for compact proof/question handoff posture, inspect one backend-built `detailPack` for proof/question detail rows and per-item badges, inspect one backend-built `routingPack` for compact proof/question route + CTA posture, inspect one backend-built `actionPack` for copy-ready handoff/refs mini-actions plus per-focus `remediationDraft` payloads, inspect one backend-built `focusPack` for focus summaries, drilldowns, chip labels, chip titles, and handoff previews, inspect one backend-built `previewPack` for compact pack/ref/proof/question/handoff summaries, inspect one backend-built `workspacePack` for the top `Case Workspace` card model plus compact open-question and timeline summaries, inspect one backend-built `operatorPreviewPack` for compact overview/evidence/question/remediation/compliance/audit/timeline operator snapshots, inspect the compiled `compliance` posture for template/redaction/retention/signing state, inspect the compiled `auditLog` for fact changes, inspect a source-linked handoff preview, inspect a focus-aware handoff block when a proof or question chip is selected, inspect/copy a focused routing rail with explicit lane, owner, priority, blocking, approval posture, and one ready-to-run one-click CTA action, inspect/copy a focused remediation draft when the operator needs a ready-to-send customer/operator brief, and append blocking notes without leaving Operator Console. That same compiled memory now also surfaces as a compact `Case Wiki` card inside `Case Workspace`, so the live product view can show known state, top blocker, next action, a short evidence-pack count/ref summary, compact open-question and timeline summaries, a compact proof/question drilldown, clickable proof/question focus chips sourced from backend-built `focusPack`, expandable proof/question detail rows, compact per-item badges for status/priority/owner/refs, source-aware `Copy handoff` / `Copy refs` mini-actions from the backend-built `actionPack` for the selected proof or question, focus-aware drilldown/handoff text from the backend-built `focusPack`, compact pack/ref/proof/question summary strings from the backend-built `previewPack`, and the compact status/summary/blocker/next-action/proof/entity/question/timeline card values from the backend-built `workspacePack`, plus one-tap `Open in Operator Ops` jumps that carry the current focus into the operator focused routing block, plus one `top proof` and one `key entity` from repo-owned `highlights` without reopening Operator Console. The same mirror now also emits a structured repo-owned `refresh recovery followup path`, so exports and future UI slices can consume one compact recovery ladder without depending on every flat `refresh escalation ...` field individually, and the replay preview now exposes that ladder as a structured summary instead of leaving it buried inside one giant stale-refresh object.
+`GET /v1/runtime/case-wiki` now also returns a repo-owned `compliance` posture plus `auditLog`, and `operatorPreviewPack` now includes compact `Compliance` and `Audit` panes so exports and operator tooling can explain which governance template/redaction level/retention/signing posture currently governs the case, who changed a Case Wiki fact, why it changed, and which approval/operator-note/workflow/runtime source produced that change without reopening raw replay lines. `compliance` now also carries a repo-owned `enforcement` verdict (`status`, `snapshotMode`, `rawRefCount`, `redactionSatisfied`, `signatureSatisfied`, `exportReady`, `blockingReasons`) plus `artifactPosture` (`raw`, `redacted`, `signed`, `blockingRefs`) and `remediation` (`primaryAction`, `operatorActionLabel`, `blockingRef`, `requiredPosture`) so signed-vs-unsigned posture and raw-artifact redaction drift become an explicit operator/export gate instead of a documentation-only policy note.
 Case Workspace now also chooses its default Case Wiki focus from backend-built `workspacePack.defaultFocus` (derived from repo-owned `highlights` plus `focusPack`) when the operator has not explicitly selected a proof/question chip, so its drilldown, handoff preview, copy/open actions, and active chip state open on the same compiled blocker/proof posture as the operator snapshot while keeping frontend fallback only for older snapshots.
 High-risk operator POSTs can carry optional `operatorPurpose` metadata; the frontend purpose gate applies it before auth-profile rotation, workflow overrides, runtime drill execution, browser-worker resume/cancel, and `POST /v1/operator/actions`, and the same purpose/replay/discovery snapshots are included in Markdown/JSON session exports.
 Operator summary also surfaces that control-plane posture directly in a `Workflow Runtime` card plus a mirrored `Workflow` signal-strip tile, so override state, assistive-router provider selection, readiness, and the current workflow stage/active role are visible without opening setup panels.
 Operator summary also surfaces `bootstrap doctor` posture directly in a `Bootstrap Doctor` card, so provider readiness, auth-profile rotation state, device-node bootstrap readiness, fallback-path coverage, plus compact `Live Mode` and `Live Bootstrap` rows for `relay` vs `direct_live` posture are visible without opening setup panels.
 Operator summary also surfaces `background browser worker` posture directly in a `Browser Workers` card, so queued/running/paused/failed counts, latest job, and checkpoint-ready backlog are visible without opening the support panel.
-Operator summary also surfaces consolidated `runtimeDiagnostics` in a `Runtime Guardrails` card plus a mirrored `Guardrails` signal-strip tile, so active degradation signals, service coverage, sandbox posture, and skills/runtime warnings are visible without reading raw summary JSON.
+Operator summary also surfaces consolidated `runtimeDiagnostics` in a `Runtime Guardrails` card plus a mirrored `Guardrails` signal-strip tile, so active degradation signals, service coverage, latency SLO posture, sandbox posture, and skills/runtime warnings are visible without reading raw summary JSON.
 When active runtime signals map to repo-owned recovery paths, the `Runtime Guardrails` card also exposes direct CTA buttons such as `Plan Recovery Drill` or `Open Workflow Clear Path` and now renders a `Signal Paths` list so multiple recovery or triage routes can be staged without hunting through support panels. Each path also carries frontend-owned lifecycle state (`active`, `staged`, `planned`, `executed`, `cleared`, `failed`), and that path history is persisted locally across reloads with a `Clear Path History` reset control.
 Top operator toolbar keeps only primary triage controls visible (`Demo/Full`, `Refresh`, `Focus Critical`, `Issues Only`); reset/collapse/cancel controls are moved into a collapsed `Board Actions` block.
 Operator Console secondary copy (mode hints, quick-start helper text, lane playbook notes, and health metadata labels) now uses elevated contrast for judge-facing readability over gradient/video backgrounds.
@@ -471,7 +1214,7 @@ Frontend `Intent Request` shows `ui_task` grounding fields only when `intent=ui_
 Frontend `Connection` panel uses a single `Export Session` dropdown with `Markdown` / `JSON` / `Audio (WAV)` evidence exports.
 `Export Session` dropdown keeps a live `Last export` line, format icon badges (`MD/JS/WAV`), and a rolling `Recent exports` history (last 3 items); audio export is enabled only when assistant audio evidence is available.
 Session Markdown/JSON exports now also carry structured `runtimeGuardrailsSignalPaths` evidence from the operator board, including current guardrail status, path lifecycle counts, primary recovery path, and the visible `Signal Paths` trail.
-Session Markdown/JSON exports also carry `operatorPurpose`, `operatorSessionReplay`, `operatorCaseWiki`, and `operatorDiscovery` snapshots from `Operator Session Ops` for operator audit/replay provenance, including the active `liveTransport` posture (`relay` vs `direct_live`, provider/model, bootstrap state, and fallback reason when available). The `operatorCaseWiki` export block now also carries a compact `topProof`, `topEntity`, one backend-built `handoffPack`, one backend-built `detailPack`, one backend-built `routingPack`, one backend-built `actionPack`, one backend-built `focusPack`, one backend-built `previewPack`, one backend-built `workspacePack`, one backend-built `operatorPreviewPack`, one focused handoff block, and one focused routing block so compiled case evidence survives outside the browser UI.
+Session Markdown/JSON exports also carry `operatorPurpose`, `operatorSessionReplay`, `operatorCaseWiki`, and `operatorDiscovery` snapshots from `Operator Session Ops` for operator audit/replay provenance, including the active `liveTransport` posture (`relay` vs `direct_live`, provider/model, bootstrap state, and fallback reason when available). The `operatorCaseWiki` export block now also carries a compact `topProof`, `topEntity`, one backend-built `handoffPack`, one backend-built `detailPack`, one backend-built `routingPack`, one backend-built `actionPack`, one backend-built `focusPack`, one backend-built `previewPack`, one backend-built `workspacePack`, one backend-built `operatorPreviewPack`, the compact `remediationPreview`, the top-level `compliance`, the top-level `auditLog`, one focused handoff block, one focused routing block, and one focused remediation draft so compiled case evidence survives outside the browser UI. When `compliance.enforcement.exportReady=false`, the frontend keeps Session Markdown/JSON export, focused handoff/export payload controls, and `Case Workspace` `Copy handoff` / `Copy refs` mini-actions disabled and returns the same compliance-blocked reason at runtime instead of leaking raw refs or unsigned handoff payloads through copy/export fallbacks; that reason now points at repo-owned `artifactPosture.blockingRefs` when raw runtime artifacts still block export, and `compliance.enforcement.remediation.primaryAction` now supplies the exact next unblock step the operator should take.
 Custom dropdown controls support keyboard navigation (`ArrowUp/ArrowDown/Home/End`, `Enter/Space`, `Escape`) and combobox/listbox ARIA semantics (`aria-controls`, `aria-expanded`, `aria-activedescendant`) for judge/operator accessibility; once enhanced, native `<select>` chrome is suppressed to prevent OS-level fallback popups, and dynamically injected selects are auto-upgraded by a DOM observer.
 Image/audio uploads use themed file pickers (`Choose image` / `Choose audio` with inline selected filename) so Live Controls and Intent Request avoid native browser file-input chrome.
 Live status strip renders a concise export pill label (`exported markdown/json/audio`, `no audio`) while preserving the full export status in dropdown metadata/history.
@@ -683,7 +1426,7 @@ Artifacts:
 - `artifacts/judge-visual-evidence/gallery.md`
 - `artifacts/judge-visual-evidence/presentation.md`
 - `artifacts/demo-e2e/epic-summary.json`
-- `presentation.md` now also surfaces optional deploy provenance from `artifacts/deploy/railway-deploy-summary.json` and `artifacts/deploy/repo-publish-summary.json` when those artifacts exist.
+- `presentation.md` now also surfaces optional deploy provenance from `artifacts/deploy/railway-deploy-summary.json` and `artifacts/deploy/repo-publish-summary.json` when those artifacts exist, including the compact top-level `caseWikiRuntimeSurfaceIngress` tuple from `repo-publish-summary.json` when publish provenance is available.
 
 5. Optional runtime integrations:
 - Firestore adapter (orchestrator): set `FIRESTORE_ENABLED=true` and `GOOGLE_CLOUD_PROJECT`.
@@ -705,7 +1448,8 @@ Artifacts:
 - API -> orchestrator request resilience: configure `API_ORCHESTRATOR_TIMEOUT_MS`, `API_ORCHESTRATOR_MAX_RETRIES`, `API_ORCHESTRATOR_RETRY_BACKOFF_MS`.
 - Orchestrator workflow runtime defaults are repo-owned in `configs/orchestrator.workflow.json`; override via `ORCHESTRATOR_WORKFLOW_CONFIG_PATH`, `ORCHESTRATOR_WORKFLOW_CONFIG_JSON`, and hot-reload cadence `ORCHESTRATOR_WORKFLOW_REFRESH_MS`.
 - Orchestrator idempotency cache tuning: `ORCHESTRATOR_IDEMPOTENCY_TTL_MS` (still supported as an override for the workflow-config dedupe window).
-- Orchestrator assistive LLM router (feature-flagged): `ORCHESTRATOR_ASSISTIVE_ROUTER_ENABLED`, `ORCHESTRATOR_ASSISTIVE_ROUTER_PROVIDER`, `ORCHESTRATOR_ASSISTIVE_ROUTER_MODEL`, `ORCHESTRATOR_ASSISTIVE_ROUTER_API_KEY`, `ORCHESTRATOR_ASSISTIVE_ROUTER_BASE_URL`, `ORCHESTRATOR_ASSISTIVE_ROUTER_TIMEOUT_MS`, `ORCHESTRATOR_ASSISTIVE_ROUTER_MIN_CONFIDENCE`, `ORCHESTRATOR_ASSISTIVE_ROUTER_ALLOW_INTENTS`, `ORCHESTRATOR_ASSISTIVE_ROUTER_BUDGET_POLICY`, `ORCHESTRATOR_ASSISTIVE_ROUTER_PROMPT_CACHING`, `ORCHESTRATOR_ASSISTIVE_ROUTER_WATCHLIST_ENABLED`; supported providers are `gemini_api`, `openai`, `anthropic`, `deepseek`, and watchlist `moonshot` (details: `docs/assistive-router.md`).
+- Orchestrator assistive LLM router (feature-flagged): `ORCHESTRATOR_ASSISTIVE_ROUTER_ENABLED`, `ORCHESTRATOR_ASSISTIVE_ROUTER_PROVIDER`, `ORCHESTRATOR_ASSISTIVE_ROUTER_MODEL`, `ORCHESTRATOR_ASSISTIVE_ROUTER_API_KEY`, `ORCHESTRATOR_ASSISTIVE_ROUTER_BASE_URL`, `ORCHESTRATOR_ASSISTIVE_ROUTER_TIMEOUT_MS`, `ORCHESTRATOR_ASSISTIVE_ROUTER_MIN_CONFIDENCE`, `ORCHESTRATOR_ASSISTIVE_ROUTER_ALLOW_INTENTS`, `ORCHESTRATOR_ASSISTIVE_ROUTER_BUDGET_POLICY`, `ORCHESTRATOR_ASSISTIVE_ROUTER_PROMPT_CACHING`, `ORCHESTRATOR_ASSISTIVE_ROUTER_WATCHLIST_ENABLED`; supported providers are `gemini_api`, `openai`, `anthropic`, `deepseek`, and watchlist `moonshot` (details: `docs/assistive-router.md`). When compiled `Case Wiki` memory is present, assistive routing also consumes the case summary/default focus/blocker/next action before raw user text and emits `contextSource/contextIngressSource/contextFocusId/contextBlocker/contextNextAction` in routing diagnostics so release evidence can distinguish preserved input snapshots from gateway-hydrated snapshots.
+- Orchestrator Case Wiki cost guard: `ORCHESTRATOR_COST_GUARD_ENABLED`, `ORCHESTRATOR_COST_GUARD_MAX_CASE_USD`, `ORCHESTRATOR_COST_GUARD_MAX_CASE_TOKENS`, `ORCHESTRATOR_COST_GUARD_DEGRADE_AT_RATIO`, and `ORCHESTRATOR_COST_GUARD_REQUIRE_APPROVAL` make `workspacePack.costSummary` part of route admission. Soft-limit cases keep deterministic routing and ask downstream agents for `short_context`; hard-limit cases pause at an approval gate before route execution when approval is required.
 - Operator-facing workflow control proxy: `GET /v1/runtime/workflow-config` and `POST /v1/runtime/workflow-control-plane-override` expose the workflow-store/assistive-router runtime contract through `api-backend`, but redact `assistiveRouter.apiKey` into `apiKeyConfigured` for UI/audit safety.
 - Orchestrator retry classification overrides: `ORCHESTRATOR_CONTINUATION_STATUS_CODE`, `ORCHESTRATOR_CONTINUATION_RETRY_BACKOFF_MS`, `ORCHESTRATOR_TRANSIENT_ERROR_CODES`, `ORCHESTRATOR_TRANSIENT_ERROR_PATTERNS`, `ORCHESTRATOR_TERMINAL_ERROR_CODES`, `ORCHESTRATOR_TERMINAL_ERROR_PATTERNS`.
 - Live-agent text features (translation/conversation): Gemini remains the default path via `GEMINI_API_KEY` (or `LIVE_AGENT_GEMINI_API_KEY`) and now runs through the official Google `@google/genai` SDK in the judged reasoning path; Moonshot/Kimi 2.5 can still be enabled additively with `LIVE_AGENT_TEXT_PROVIDER=moonshot`, `LIVE_AGENT_MOONSHOT_API_KEY` (or `MOONSHOT_API_KEY`), `LIVE_AGENT_MOONSHOT_BASE_URL`, and optional `LIVE_AGENT_MOONSHOT_TRANSLATION_MODEL` / `LIVE_AGENT_MOONSHOT_CONVERSATION_MODEL` (default `kimi-k2.5`). For `kimi-k2.5`, the adapter pins `temperature=1` and you can raise latency budget with `LIVE_AGENT_MOONSHOT_TIMEOUT_MS` when you want live API responses instead of fallback.
@@ -729,9 +1473,10 @@ Artifacts:
 - Shared local credential store for managed integrations: `CREDENTIAL_STORE_FILE`, `CREDENTIAL_STORE_MASTER_KEY`; direct env values still work, but `*_AUTH_CREDENTIAL` / `*_SIGNING_KEYS_CREDENTIAL` lets runtime resolve secrets from the encrypted local store with atomic file writes and separated metadata.
 - Repo-owned auth-profile rotation for runtime indexes: `AUTH_PROFILE_STORE_FILE` stores active profile selection, while `SKILLS_MANAGED_INDEX_AUTH_PROFILE` and `UI_NAVIGATOR_DEVICE_NODE_INDEX_AUTH_PROFILE` let managed-skills and device-node index auth resolve through stable profile IDs instead of ad hoc env switching.
 - Managed-skill signature helper: `npm run skills:plugin:sign -- --input skills/workspace/calendar-assistant/managed-skill-signing-input.sample.json --secret <secret>`.
-- Remote UI executor service: run `npm run dev:ui-executor`; endpoint `/execute` is used when `UI_NAVIGATOR_EXECUTOR_MODE=remote_http`, repo-owned runtime control surface is exposed via `GET /runtime/config` + `POST /runtime/control-plane-override` for force-simulation/sandbox drills, and long-horizon background browser worker execution is exposed via `POST /browser-jobs` plus `GET /browser-jobs/:jobId` and `POST /browser-jobs/:jobId/resume|cancel` for repo-owned resume/cancel actions.
+- Runtime evidence signing bootstrap helper: `npm run runtime:evidence:keygen -- --outputDir ./.credentials/runtime-evidence-signing --keyId local-dev-key`; writes an Ed25519 keypair, a base64 private-key file for secret-manager input, and a ready-to-paste `runtime-evidence.env` snippet without committing secrets.
+- Remote UI executor service: run `npm run dev:ui-executor`; endpoint `/execute` is used when `UI_NAVIGATOR_EXECUTOR_MODE=remote_http`, repo-owned runtime control surface is exposed via `GET /runtime/config` + `POST /runtime/control-plane-override` for force-simulation/sandbox drills, and long-horizon background browser worker execution is exposed via `POST /browser-jobs` plus `GET /browser-jobs/:jobId` and `POST /browser-jobs/:jobId/resume|cancel` for repo-owned resume/cancel actions. Stable `ref:` targets now also attempt one stale-selector recovery pass from ref id/name/label hints before surfacing `staleRefTargets`, successful recoveries are reported through `grounding.healedRefTargets`, and browser-worker replay/runtime snapshots now aggregate retry counts plus stale/healed/resume totals for operator proof.
 - UI Executor device-node registry knobs: `UI_EXECUTOR_DEFAULT_DEVICE_NODE_ID`, `UI_EXECUTOR_DEVICE_NODES_JSON`.
-- UI Executor sandbox/runtime guardrails: `UI_EXECUTOR_SANDBOX_MODE=off|audit|enforce`, `UI_EXECUTOR_SANDBOX_NETWORK_POLICY=allow_all|allow_list|same_origin`, `UI_EXECUTOR_SANDBOX_ALLOWED_ORIGINS`, `UI_EXECUTOR_SANDBOX_ALLOWED_READ_ROOTS`, `UI_EXECUTOR_SANDBOX_ALLOWED_WRITE_ROOTS`, `UI_EXECUTOR_SANDBOX_BLOCK_FILE_URLS`, `UI_EXECUTOR_SANDBOX_ALLOW_LOOPBACK_HOSTS`, `UI_EXECUTOR_SANDBOX_SETUP_MARKER_PATH`, `UI_EXECUTOR_SANDBOX_SETUP_MARKER_VERSION`.
+- UI Executor sandbox/runtime guardrails: `UI_EXECUTOR_SANDBOX_MODE=off|audit|enforce`, `UI_EXECUTOR_SANDBOX_NETWORK_POLICY=allow_all|allow_list|same_origin`, `UI_EXECUTOR_SANDBOX_ALLOWED_ORIGINS`, `UI_EXECUTOR_SANDBOX_ALLOWED_READ_ROOTS`, `UI_EXECUTOR_SANDBOX_ALLOWED_WRITE_ROOTS`, `UI_EXECUTOR_SANDBOX_BLOCK_FILE_URLS`, `UI_EXECUTOR_SANDBOX_ALLOW_LOOPBACK_HOSTS`, `UI_EXECUTOR_SANDBOX_SETUP_MARKER_PATH`, `UI_EXECUTOR_SANDBOX_SETUP_MARKER_VERSION`. Runtime latency SLO knobs: `RUNTIME_SLO_LIVE_FIRST_AUDIO_P95_MS`, `RUNTIME_SLO_NAVIGATOR_STEP_P95_MS`, `RUNTIME_SLO_CASE_WIKI_QUERY_P95_MS`.
 - UI Executor background browser worker runtime: `UI_EXECUTOR_BROWSER_WORKER_ENABLED`, `UI_EXECUTOR_BROWSER_WORKER_CONCURRENCY`, `UI_EXECUTOR_BROWSER_WORKER_POLL_MS`, `UI_EXECUTOR_BROWSER_WORKER_RETENTION_MS`.
 - Approval SLA tuning in API backend: `APPROVAL_SOFT_TIMEOUT_MS`, `APPROVAL_HARD_TIMEOUT_MS`, `APPROVAL_SWEEP_LIMIT`.
 - Local-first profile for offline iteration: set `LOCAL_FIRST_PROFILE=true` and `APP_ENV=dev` (guardrail blocks local-first in `staging/prod`). Profile details: `docs/local-first-profile.md`.
@@ -806,17 +1551,17 @@ Session mutation concurrency controls:
 
 10. Operator console APIs (RBAC via `x-operator-role: viewer|operator|admin`):
 - `Runtime surface inventory` is the repo-owned snapshot of what the platform can expose right now: skills/playbooks, orchestrator routes, control-plane surfaces, evidence outputs, and UI/runtime capabilities. It is not a second skills system; it is the operator-facing mirror over the existing runtime/catalog layers.
-- `Runtime surface readiness` is the companion posture snapshot that tells operators whether that surface is ready, degraded, or critical by combining bootstrap doctor, diagnostics, service coverage, device readiness, and evidence posture into one `safeToRun` verdict.
+- `Runtime surface readiness` is the companion posture snapshot that tells operators whether that surface is ready, degraded, or critical by combining bootstrap doctor, diagnostics, service coverage, device readiness, evidence posture, and compact Case Wiki ingress provenance into one `safeToRun` verdict.
 - `GET /v1/operator/summary` -> active tasks, approvals snapshot, service runtime/health summary, execution trace rollup with per-run verification fields (`verificationState`, `verificationFailureClass`, `verificationSummary`, `verifySteps`) on UI runs, judge-facing lifecycle evidence lanes (`skillsRegistryLifecycle`, `pluginMarketplaceLifecycle`, `governancePolicyLifecycle`, `deviceNodeUpdates`, `agentUsage`, `costEstimate`), and consolidated `runtimeDiagnostics` (transport/workflow/sandbox/catalog guardrails + active degradation signals).
 - `GET /v1/runtime/surface` (`x-operator-role`) -> runtime surface inventory snapshot for agents, routes, control-plane APIs, evidence lanes, UI capabilities, playbooks, and runtime skill overlays.
-- `GET /v1/runtime/surface/readiness` (`x-operator-role`) -> runtime surface readiness snapshot with `ready/degraded/critical`, `safeToRun`, top degraded reason, service/device coverage, skills posture, and evidence readiness.
-- `GET /v1/runtime/session-replay` (`x-operator-role`) -> compact session replay mirror for one selected session plus the current operator-safe workflow boundary; combines session status, recent runs/events, approvals, replay counters, resume-ready / blocked-by posture, a human-readable next operator action, an explicit next action target, the next operator workspace, a repo-owned primary step, step progress, a phase-aware step path (`active` + `queued`), remaining steps, a short repo-owned checklist, latest verified proof pointer and stage, compact booking/follow-up/handoff metadata, a workflow boundary summary, boundary owner, approval gate, recovery path hint, recovery handoff, a repo-owned recovery drill summary for failed workflow boundaries, a nullable structured `liveTransport` summary for the actually used `relay` vs `direct_live` path, a structured refresh state (`action`, `targetState`, summary hints, `followupPath`, `followupTree`, compatibility metadata), and current workflow linkage without stitching `/v1/sessions`, `/v1/events`, `/v1/runs`, and `/v1/runtime/workflow-config` by hand.
-- `GET /v1/runtime/case-wiki` (`x-operator-role`) -> repo-owned compiled case memory for one selected session; turns sessions, runs, approvals, workflow posture, operator notes, and recent runtime evidence into one structured `CaseWiki` snapshot (`overview`, `entities`, `timeline`, `proofs`, `openQuestions`, `recommendedNextAction`, `handoffPack`, `detailPack`, `routingPack`, `actionPack`, `focusPack`, `previewPack`, `workspacePack`, `operatorPreviewPack`) without making the operator re-stitch raw logs. `workspacePack.defaultFocus` now carries the backend-owned Case Workspace default proof/question focus, and `operatorPreviewPack` carries compact `overview`, `evidence`, `questions`, and `timeline` panes for `Operator Session Ops`.
+- `GET /v1/runtime/surface/readiness` (`x-operator-role`) -> runtime surface readiness snapshot with `ready/degraded/critical`, `safeToRun`, top degraded reason, service/device coverage, skills posture, evidence readiness, and compact `summary.workflow.caseWikiIngress` provenance sourced from recent runtime events for Case Wiki ingress provenance.
+- `GET /v1/runtime/session-replay` (`x-operator-role`) -> compact session replay mirror for one selected session plus the current operator-safe workflow boundary; combines session status, recent runs/events, approvals, replay counters, resume-ready / blocked-by posture, a human-readable next operator action, an explicit next action target, the next operator workspace, a repo-owned primary step, step progress, a phase-aware step path (`active` + `queued`), remaining steps, a short repo-owned checklist, latest verified proof pointer and stage, latest turn `contextSource/contextIngressSource`, latest verified proof `contextSource/contextIngressSource`, compact booking/follow-up/handoff metadata, a workflow boundary summary, boundary owner, approval gate, recovery path hint, recovery handoff, a repo-owned recovery drill summary for failed workflow boundaries, a nullable structured `liveTransport` summary for the actually used `relay` vs `direct_live` path, the latest first-audio/first-output latency, a fallback-event count, a structured refresh state (`action`, `targetState`, summary hints, `followupPath`, `followupTree`, compatibility metadata), and current workflow linkage without stitching `/v1/sessions`, `/v1/events`, `/v1/runs`, and `/v1/runtime/workflow-config` by hand. The snapshot also emits a root `evidenceSignature` field for tamper-evident replay exports, using the same runtime signer posture as `GET /v1/runtime/case-wiki`; when `contextSource=case_wiki`, replay proof metadata also preserves the ingress path as `preserved_input_case_wiki` vs `gateway_hydrated_case_wiki`.
+- `GET /v1/runtime/case-wiki` (`x-operator-role`) -> repo-owned compiled case memory for one selected session; turns sessions, runs, approvals, workflow posture, operator notes, and recent runtime evidence into one structured `CaseWiki` snapshot (`overview`, `entities`, `timeline`, `compliance`, `auditLog`, `proofs`, `openQuestions`, `recommendedNextAction`, `handoffPack`, `detailPack`, `routingPack`, `actionPack`, `focusPack`, `previewPack`, `workspacePack`, `operatorPreviewPack`) without making the operator re-stitch raw logs. `actionPack` now also carries one `remediationDraft` per proof/question focus item for ready-to-copy customer/operator follow-up text, `workspacePack.defaultFocus` now carries the backend-owned Case Workspace default proof/question focus, `workspacePack.costSummary` adds a per-session token/live/ui/storage cost ledger for unit-economics proof and feeds the orchestrator cost guard when the snapshot is passed into an agent turn, `workspacePack.costValue` adds the compact card string for product/operator UI, `compliance` carries the active governance template, PII redaction level, retention posture, evidence-signing expectation, and repo-owned `enforcement` verdict for the case, `operatorPreviewPack` carries compact `overview`, `evidence`, `questions`, `remediation`, `compliance`, `audit`, and `timeline` panes for `Operator Session Ops`, and `evidenceSignature` carries canonical SHA256 tamper evidence plus an Ed25519 signature when `RUNTIME_EVIDENCE_SIGNING_ENABLED=true` and `RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM` or `RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64` is configured. Frontend/gateway ingress treat `caseWiki`, `caseWikiSnapshot`, `runtimeCaseWiki`, `compiledCaseWiki`, and `context.caseWiki` as the same compiled-memory contract and only hydrate a fresh repo-owned snapshot when the current-session context is missing or stale.
 - `POST /v1/runtime/case-wiki/notes` (`x-operator-role`) -> append a repo-owned operator case note for a session; writes an `operator.note` event into backend evidence so later `Case Wiki` reads can surface operator notes in timeline/open-question flows.
-- `npm run runtime:surface:snapshot` -> writes `artifacts/runtime/runtime-surface-snapshot.json` with the repo-owned runtime surface inventory plus readiness snapshot; pass `-- --offline true` when you want a deterministic local/CI artifact without live service or device-node probing.
+- `npm run runtime:surface:snapshot` -> writes `artifacts/runtime/runtime-surface-snapshot.json` with the repo-owned runtime surface inventory plus readiness snapshot; the live artifact prefers the repo-owned `/v1/runtime/surface/readiness` API so compact Case Wiki ingress provenance in `readiness.summary.workflow.caseWikiIngress` stays aligned with the active runtime process, while `-- --offline true` keeps a deterministic local/CI artifact without live service or device-node probing.
 - `npm run runtime:surface:parity` -> validates `artifacts/runtime/runtime-surface-snapshot.json` against `configs/runtime-surface-manifest.json` and writes `artifacts/runtime/runtime-surface-parity.json`; use it to catch missing runtime-surface agents, routes, control-plane entries, UI capabilities, evidence lanes, or required ready playbooks.
 - `npm run runtime:surface:doc-drift` -> validates that `README.md`, `docs/architecture.md`, `docs/operator-guide.md`, and `package.json` still describe the same runtime-surface routes, scripts, and artifacts backed by `artifacts/runtime/runtime-surface-snapshot.json` and `configs/runtime-surface-manifest.json`; writes `artifacts/runtime/runtime-surface-doc-drift.json`.
-- `GET /v1/runtime/diagnostics` (`x-operator-role`) -> standalone consolidated runtime diagnostics snapshot (service coverage, startup probe issues, transport fallback, workflow-store/assistive-router state, ui-executor sandbox posture, and skills-catalog warnings). Optional `agentId` overlays skills runtime readiness for that agent.
+- `GET /v1/runtime/diagnostics` (`x-operator-role`) -> standalone consolidated runtime diagnostics snapshot (service coverage, startup probe issues, transport fallback, workflow-store/assistive-router state, latest repo-owned `Case Wiki` routing ingress provenance from recent runtime events, latency SLOs for `liveFirstAudioP95`, `navigatorStepP95`, and `caseWikiQueryP95`, ui-executor sandbox posture, runtime evidence signing posture, and skills-catalog warnings). Optional `agentId` overlays skills runtime readiness for that agent; optional `eventLimit` controls recent runtime-event samples used by the SLO rollup. When runtime evidence signing is enabled without a usable key, diagnostics raise the `evidence_signing_key_unavailable` signal.
 - `GET /v1/runtime/workflow-config` (`x-operator-role`) -> operator-facing redacted workflow-store/assistive-router snapshot proxied from orchestrator, with `summary` fields for source, `fingerprint`, last-known-good status, control-plane override state, and `apiKeyConfigured` instead of the raw assistive-router key.
 - `POST /v1/runtime/workflow-control-plane-override` (`x-operator-role: admin`) -> apply or clear repo-owned orchestrator workflow overrides through `api-backend`; accepts `workflow`, `rawJson`, or `clear=true`, records redacted audit previews, and returns the same redacted snapshot contract.
 - `GET /v1/runtime/bootstrap-status` (`x-operator-role`) -> repo-owned bootstrap doctor snapshot for provider readiness, auth-profile posture, device-node bootstrap readiness, and safe fallback coverage.
@@ -828,21 +1573,21 @@ Session mutation concurrency controls:
 - `GET /v1/runtime/browser-jobs` (`x-operator-role`) -> operator-facing proxy for repo-owned `ui-executor` background browser worker runtime, including queue counters, workers, and recent jobs for checkpoint/backlog inspection.
 - `GET /v1/runtime/browser-jobs/:jobId` (`x-operator-role`) -> load the latest repo-owned browser worker detail, including trace, checkpoints, artifacts, and runtime snapshot for the selected job.
 - `POST /v1/runtime/browser-jobs/:jobId/resume|cancel` (`x-operator-role: operator|admin`) -> resume a checkpoint-ready background browser worker or cancel a queued/running job through the operator control plane; actions are audited in operator history.
-- Browser worker snapshots also expose a compact replay bundle with target URL, verification posture, screenshot refs, and result/checkpoint artifacts so operators can inspect a UI run without opening raw logs first.
+- Browser worker snapshots also expose a compact replay bundle with target URL, verification posture, screenshot refs, result/checkpoint artifacts, and recovery proof (`retryCount`, stale refs observed/healed, resumed checkpoints, summary) so operators can inspect a UI run without opening raw logs first.
 - `GET /v1/runtime/fault-profiles` (`x-operator-role`) -> repo-owned catalog of controlled fault-injection drills (`service`, `category` filters) with expected signals, scenarios, evidence artifacts, and per-profile execution metadata (`activation`, `recovery`, `apiExecutable`).
 - `POST /v1/runtime/fault-profiles/execute` (`x-operator-role: admin`) -> plan (`dryRun=true`) or execute (`phase=activation|recovery`) a repo-owned fault profile. Control-plane drills call mapped services directly, request-scoped/operator drills expose repo-owned request or script templates, accept optional `context`, and can return `followUpContext` for chained recovery.
 - Demo frontend operator console includes a `Runtime Drill Runner` panel for the same catalog/execute contract, including dry-run planning, live execute, auto-refresh of operator summary after live drills, and `followUpContext` reuse for chained recovery from the UI.
 - Demo frontend operator console includes a `Workflow Control Panel` for the same runtime workflow contract, including `Refresh Runtime`, preset assistive-router overrides, JSON apply/clear actions, and redacted `apiKeyConfigured` visibility for operator-safe inspection.
 - Demo frontend operator console includes a `Bootstrap Doctor & Auth Profiles` panel for the same runtime bootstrap contract, including `Refresh Doctor`, live direct posture inspection from `/v1/runtime/live/capabilities`, and admin-only auth-profile rotation against `/v1/runtime/bootstrap-status` + `/v1/runtime/auth-profiles`.
 - Demo frontend operator console includes a `Browser Worker Control` panel for the same repo-owned browser-worker contract, including `Refresh Runtime`, `Inspect Job`, `Resume Job`, and `Cancel Job` against `/v1/runtime/browser-jobs`, plus raw runtime/job previews for trace and checkpoint review.
-- Demo frontend operator summary board also includes a `Workflow Runtime` card and `Workflow` signal tile, mirroring workflow-store override state, fingerprint, last error, assistive-router posture, and the live workflow stage/active role from `summary.runtimeDiagnostics`, including provider/model/budget-policy metadata for non-judged routing adapters.
+- Demo frontend operator summary board also includes a `Workflow Runtime` card and `Workflow` signal tile, mirroring workflow-store override state, fingerprint, last error, assistive-router posture, the live workflow stage/active role, and the latest repo-owned `Case Wiki` routing ingress provenance from `summary.runtimeDiagnostics`, including provider/model/budget-policy metadata for non-judged routing adapters.
 - Demo frontend operator summary board also includes a `Bootstrap Doctor` card, mirroring `summary.bootstrapDoctor` so provider posture, auth-profile readiness, device-node bootstrap coverage, fallback coverage, repo-owned `relay` vs `direct_live` mode posture, and the top blocking check are visible without opening setup panels.
-- Demo frontend Operator Console also includes a compact `Runtime Surface` card, mirroring `/v1/runtime/surface` plus `/v1/runtime/surface/readiness` so operators can confirm inventory, missing capability posture, playbooks, evidence lanes, and skills readiness before drilling into the deeper runtime cards; `Refresh Summary` silently rehydrates that card, while `Refresh Surface` reruns only the runtime-surface snapshot pair.
-- Demo frontend Operator Console also includes a compact `Session Boundary` card, mirroring the latest loaded `GET /v1/runtime/session-replay` snapshot so operators can keep selected-session replay posture, workflow boundary state, `Boundary Owner`, `Approval Gate`, `Next Action`, `First Step`, `After refresh`, `Step Progress`, `Checklist`, `Latest Proof`, `Recovery`, `Handoff`, and current `live transport` posture visible without reopening the deeper `Operator Session Ops` drawer.
+- Demo frontend Operator Console also includes a compact `Runtime Surface` card, mirroring `/v1/runtime/surface` plus `/v1/runtime/surface/readiness` so operators can confirm inventory, missing capability posture, playbooks, evidence lanes, skills readiness, and compact Case Wiki ingress provenance before drilling into the deeper runtime cards; `Refresh Summary` silently rehydrates that card, while `Refresh Surface` reruns only the runtime-surface snapshot pair.
+- Demo frontend Operator Console also includes a compact `Session Boundary` card, mirroring the latest loaded `GET /v1/runtime/session-replay` snapshot so operators can keep selected-session replay posture, workflow boundary state, `Boundary Owner`, `Approval Gate`, `Next Action`, `First Step`, `After refresh`, `Step Progress`, `Checklist`, `Latest Proof`, `Recovery`, `Handoff`, current `live transport` posture, and compact `Case Wiki` proof/turn ingress provenance visible without reopening the deeper `Operator Session Ops` drawer.
 - Stale-refresh recovery is now documented and rendered through the structured `refreshState` contract: `action`, `targetState`, summary hints, `followupPath`, `followupTree`, and compatibility metadata. Frontend read-models prefer `refreshState.followupTree` / `refreshState.followupPath`, render the ladder below `After refresh`, include it in Session Ops metadata/export, and keep the flat `refreshEscalation...` fields only as a transitional legacy projection.
 - The first-step CTA still switches between `Refresh first`, `Open first step`, and `Run first step` from the repo-owned primary-step contract, follows the repo-owned next action target (`Approvals`, `Session Ops`, `Workflow Control`, or `Runtime Drill Runner`), and switches the matching operator workspace posture before opening that deeper surface.
 - Demo frontend operator summary board also includes a `Browser Workers` card, mirroring `summary.browserWorkers` so paused checkpoint backlog and latest background job IDs are visible without opening setup panels.
-- Demo frontend operator summary board also includes a `Runtime Guardrails` card and `Guardrails` signal tile, mirroring consolidated `runtimeDiagnostics` status, active signals, service coverage, ui-executor sandbox posture, and skills/runtime warnings.
+- Demo frontend operator summary board also includes a `Runtime Guardrails` card and `Guardrails` signal tile, mirroring consolidated `runtimeDiagnostics` status, active signals, service coverage, latency SLO posture, ui-executor sandbox posture, and skills/runtime warnings.
 - The `Runtime Guardrails` card now attaches direct recovery CTAs to actionable signals: `Plan Recovery Drill` stages repo-owned fault-profile recovery in `Runtime Drill Runner`, `Open Workflow Clear Path` jumps to `Workflow Control Panel` when the guardrail points at an active orchestrator override, and a `Signal Paths` list keeps multiple active recovery or triage routes visible at once with per-path lifecycle state (`staged`, `planned`, `executed`, `cleared`, `failed`). The same list also restores recent path history from local storage and exposes `Clear Path History` to reset staged/executed evidence on the operator workstation.
   - Session evidence exports now serialize that same trail as `runtimeGuardrailsSignalPaths`, so operator-side recovery history is captured in Markdown/JSON exports instead of living only in browser-local UI state.
   - Repo-generated demo/release artifacts now also serialize the current runtime snapshot as `evidence.runtimeGuardrailsSignalPaths`, so `badge-details.json` and unified release evidence report the active recovery paths without depending on browser-local history.
@@ -859,7 +1604,7 @@ Session mutation concurrency controls:
 - `GET /v1/governance/policy` (`x-operator-role: viewer|operator|admin`) -> effective tenant policy; admin can query `tenantId=all` for overrides snapshot.
 - `GET /v1/governance/policy/{tenantId}` (`x-operator-role: viewer|operator|admin`) -> tenant override detail (`404 API_GOVERNANCE_POLICY_NOT_FOUND` when override is absent).
 - `GET /v1/governance/policy/{tenantId}/updates` (`x-operator-role: viewer|operator|admin`) -> tenant-scoped governance policy mutation history (`update_governance_policy` audit lane).
-- `POST /v1/governance/policy` (`x-operator-role: admin`) -> mutate tenant compliance/retention policy with optimistic versioning (`expectedVersion`) + idempotency key (`idempotencyKey` or `x-idempotency-key`); all mutations are audited via `operator_actions`.
+- `POST /v1/governance/policy` (`x-operator-role: admin`) -> mutate tenant compliance/retention policy with optimistic versioning (`expectedVersion`) + idempotency key (`idempotencyKey` or `x-idempotency-key`); when `complianceTemplate` changes, unspecified retention fields inherit the new template defaults before the explicit patch is applied, and all mutations are audited via `operator_actions`.
 - `GET /v1/governance/audit/operator-actions` -> tenant-scoped operator audit stream (`viewer|operator|admin`); non-admin cross-tenant queries are rejected.
 - `GET /v1/governance/audit/summary` -> centralized tenant audit dashboard snapshot (operator actions, approvals, sessions, channel bindings). Admin can query `tenantId=all`.
 
@@ -877,7 +1622,7 @@ Session mutation concurrency controls:
 
 ## Automated Demo E2E
 
-Run a full judge-oriented smoke scenario (translation + negotiation + storyteller with async video jobs + UI approval/reject/approve + UI visual testing report + delegation + WebSocket gateway roundtrip + session/run/user binding checks + WebSocket task-progress contract check + WebSocket interruption signal contract check + WebSocket invalid-envelope error contract check + approvals resume invalid-intent REST contract check with normalized error `API_INVALID_INTENT` + `traceId` + lifecycle status/version/warmup/drain checks + runtime metrics endpoint checks):
+Run a full judge-oriented smoke scenario (translation + negotiation + storyteller with async video jobs + UI approval/reject/approve + UI visual testing report + deterministic UI stale-ref healing proof via `/execute` + delegation + WebSocket gateway roundtrip + session/run/user binding checks + WebSocket task-progress contract check + WebSocket interruption signal contract check + WebSocket invalid-envelope error contract check + approvals resume invalid-intent REST contract check with normalized error `API_INVALID_INTENT` + `traceId` + lifecycle status/version/warmup/drain checks + runtime metrics endpoint checks):
 
 ```powershell
 npm run demo:e2e
@@ -896,7 +1641,7 @@ npm run demo:e2e:fast
 
 `demo:e2e:fast` now follows the active Storyteller runtime media mode by default (`DEMO_E2E_STORYTELLER_MEDIA_MODE` still overrides it when needed) and keeps the UI executor in real Playwright remote-http mode unless you explicitly force simulation in the shell.
 
-For the browser lane, run `npm run demo:e2e -- -IncludeFrontend`. That path now opens the real `demo-frontend`, forces `?livePreferredMode=direct_live` for the smoke window, opens the visible `Voice` tray, populates the session fields, clicks `Connect`, and records `artifacts/demo-e2e/direct-live-browser-smoke.json` plus `.png`. On hosted builds the helper now falls back to a repo-owned DOM click when Playwright pointer clicks are intercepted by the long voice tray layout, so the smoke still verifies backend replay evidence instead of timing out on UI chrome. If direct live is unsupported in the current runtime it reports `skipped`; if it is supported, the smoke requires backend replay evidence from repo-owned `session_events`. `verify:release` now appends `-IncludeFrontend` automatically when direct-live bootstrap is configured (`LIVE_API_ENABLED=true`, `LIVE_DIRECT_MODE_ENABLED=true`, `LIVE_EPHEMERAL_TOKENS_ENABLED=true`, Gemini live key present). That autodetect now reads both process env and repo-local `.env`, so the release wrapper matches the same local config that `demo:e2e` imports. Override it with `DEMO_E2E_INCLUDE_FRONTEND=true|false|auto`.
+For the browser lane, run `npm run demo:e2e -- -IncludeFrontend`. That path now opens the real `demo-frontend`, forces `?livePreferredMode=direct_live` for the smoke window, opens the visible `Voice` tray, populates the session fields, clicks `Connect`, and records `artifacts/demo-e2e/direct-live-browser-smoke.json` plus `.png`. On hosted builds the helper now first tries the primary `/app` shell and automatically falls back to `/legacy` when the live-proof controls only exist on the compatibility surface; it also keeps the repo-owned DOM click fallback when Playwright pointer clicks are intercepted by the long voice tray layout, so the smoke still verifies backend replay evidence instead of timing out on shell chrome. If direct live is unsupported in the current runtime it reports `skipped`; if it is supported, the smoke requires backend replay evidence from repo-owned `session_events`. `verify:release` now appends `-IncludeFrontend` automatically when direct-live bootstrap is configured (`LIVE_API_ENABLED=true`, `LIVE_DIRECT_MODE_ENABLED=true`, `LIVE_EPHEMERAL_TOKENS_ENABLED=true`, Gemini live key present). That autodetect now reads both process env and repo-local `.env`, so the release wrapper matches the same local config that `demo:e2e` imports. Override it with `DEMO_E2E_INCLUDE_FRONTEND=true|false|auto`.
 
 Fast mode with built-in full-run retry (demo-only, skips policy/badge/perf gates):
 
@@ -938,10 +1683,25 @@ npm run verify:release
 Note: `verify:release` reuses the prebuilt workspace and runs `demo:e2e:fast` with `RequestTimeoutSec=45` for stability of long approval-resume paths. If `DEMO_E2E_STORYTELLER_MEDIA_MODE` is not already `default` or `simulated`, the release wrapper defaults it to `simulated` so repo-local `.env` fallback profiles do not fail the release policy gate. When direct-live bootstrap is configured, the release wrapper also appends `-IncludeFrontend` so the browser lane can emit repo-owned replay proof; otherwise it keeps the browser lane off by default. `DEMO_E2E_INCLUDE_FRONTEND=true|false|auto` overrides that decision explicitly. When `DEMO_E2E_ALLOW_UI_EXECUTOR_RUNTIME_FALLBACK=true`, the policy gate also accepts the explicit fallback-safe `remote_http` UI executor profile (`strictPlaywright=false`, `simulateIfUnavailable=true`, `forceSimulation=false`) instead of requiring live Playwright runtime validation. The release policy allows `fallback`, `gemini`, or `google_translate` translation providers because CI can expose Google provider keys for promptfoo without forcing the demo runtime into one provider. The gate also syncs `artifacts/demo-e2e/badge*.json` into `public/demo-e2e/` for runtime badge endpoints.
 The WebSocket roundtrip KPI uses a warmup plus a compact best-of-three measured sample set, preserving all sample latencies in scenario evidence while gating on the steady-state sample against the release threshold. The release wrapper's default policy budget is `6000ms` to tolerate real provider latency when repo-local Gemini credentials are present; the standalone GitHub Demo E2E workflow still passes an explicit `1800ms` gate for fallback-speed CI smoke. The perf-load fast profile keeps UI/gateway budgets unchanged but uses a `4500ms` live p95 budget for provider-backed local release verification.
 
+Signed local release gate (same flow, but it bootstraps runtime evidence signing from the git-ignored local bundle at `./.credentials/runtime-evidence-signing/runtime-evidence.env` so `caseWikiEvidenceSignature` must end in `pass/signed` instead of `warn/unsigned`):
+
+```powershell
+npm run runtime:evidence:keygen -- --outputDir ./.credentials/runtime-evidence-signing --keyId local-release-key
+npm run verify:release:signed
+```
+
+If runtime signing is already configured through process env or repo-local `.env`, the signed alias leaves that configuration in place and skips bundle bootstrap.
+
 Strict final pre-submission gate (one demo-run attempt, zero accepted scenario retries):
 
 ```powershell
 npm run verify:release:strict
+```
+
+Strict final gate with the same local signing bundle bootstrap:
+
+```powershell
+npm run verify:release:strict:signed
 ```
 
 Strict gate with existing perf artifacts (skip perf rerun):
@@ -956,7 +1716,9 @@ Artifact-only revalidation (no build/test/demo reruns, validates existing artifa
 npm run verify:release:artifact-only
 ```
 This gate requires `artifacts/release-artifact-revalidation/source-run.json` (provenance manifest). The recommended path is `npm run verify:release:artifact:revalidate` or workflow `.github/workflows/release-artifact-revalidation.yml`, both of which generate the manifest automatically. If GitHub API access is unavailable but local evidence was just refreshed, run `npm run verify:release:artifact:refresh-local-source` first.
-`verify:release`, `verify:release:strict`, and artifact revalidation flows now also emit unified release evidence inventory files: `artifacts/release-evidence/manifest.json` and `artifacts/release-evidence/manifest.md`.
+`verify:release`, `verify:release:strict`, and artifact revalidation flows now also emit unified release evidence inventory files: `artifacts/release-evidence/manifest.json` and `artifacts/release-evidence/manifest.md`. The same helper now publishes an operator-facing runtime proof summary at `artifacts/release-evidence/runtime-proof-report.json` and `artifacts/release-evidence/runtime-proof-report.md`, condensing the current direct-live, Case Wiki, and navigator proof train into one pass/fail surface. It also publishes `artifacts/release-evidence/consultation-booking-proof.json` / `.md` so the consultation booking lane can distinguish repo-owned playbook/staged readiness from missing calendar writeback proof before the Action Desk KPI claims that workflow as `proof_ready`.
+When `verify:release` runs the demo lane, it now captures `artifacts/runtime/runtime-surface-snapshot.json` inside `demo:e2e` before managed services are torn down, so `caseWikiRuntimeSurfaceIngress` is sourced from the same live demo/runtime pass instead of an older offline snapshot or a post-teardown probe. The live runtime surface path also preserves the latest orchestrator Case Wiki routing context from repo-owned runtime state, so local in-memory demo runs do not lose that ingress proof just because services are not sharing an external event store.
+When `badge-details.json` carries `evidence.caseWikiEvidenceSignature`, the release gate now also checks its signed-vs-unsigned counts against the effective runtime signing configuration, so dev runs can stay deterministically `unsigned` while keyed environments must prove `signedArtifacts=totalArtifacts`. The evidence block is structurally `validated=true` in both modes, but unsigned local/dev artifacts are now surfaced as `status=warn` instead of `pass`, while signed keyed artifacts stay `status=pass`; this keeps report/manifest semantics aligned with the actual cryptographic posture instead of masking unsigned evidence as a clean pass. When hosted direct-live proof is present and proves a runtime-diagnostics-backed `signed` signer posture, unified release evidence now promotes the top-level `caseWikiEvidenceSignature` snapshot to that hosted result and tags it with `source=hosted_direct_live_proof`, so strict summaries stop reporting a misleading local `warn/unsigned` state after a successful hosted signed deploy. The same hosted promotion now also rebuilds `caseWikiCompliance.summary` from the effective release posture, so the human-readable summary cannot drift away from the promoted `expectedSignatureStatus`/`observedSignatureStatus` fields. The same release evidence lane now also requires `evidence.caseWikiRoutingContext` to stay `pass` with `contextSource=case_wiki`, explicit `ingressSource` (`preserved_input_case_wiki` or `gateway_hydrated_case_wiki`), a non-empty focus/blocker/next-action tuple, and emitted routing metadata (`route`, `mode`, `requestedIntent`, `routedIntent`), so compiled memory routing adoption is proved instead of inferred and the ingress path is repo-owned evidence instead of guesswork. Unified release evidence now also reads `artifacts/runtime/runtime-surface-snapshot.json` and mirrors `readiness.summary.workflow.caseWikiIngress` into dedicated `caseWikiRuntimeSurfaceIngress` report/manifest/runtime-proof blocks, so release-facing artifacts can distinguish the compact runtime-surface ingress path from badge-derived routing and gateway-hydration proof without opening the full runtime-surface snapshot. `demo-e2e`/policy artifacts now also publish aggregate `evidence.caseWikiContextAdoption` counts (`observedCount`, `caseWikiObservedCount`, `inputOnlyObservedCount`, `unknownObservedCount`, `caseWikiRate`) and the public-badge/release gates now require that proof to stay `pass` with conserved counts and `caseWikiRate >= 0.95`, so hosted evidence must show compiled-memory adoption at aggregate level instead of only one synthetic success. The same badge/release evidence set now also carries `evidence.uiRefHealing`, proving that the real `ui-executor` can recover stale `ref:` targets on the repo-owned profile-settings fixture, surface the healed ids, and show the disabled-to-enabled submit transition before submit.
 
 Local source-run refresh (rebuilds `source-run.json` from current local artifacts without GitHub API calls):
 
@@ -1007,7 +1769,7 @@ Optional local helper flags:
 - `-- -SkipPerfLoadGate` - legacy alias for `-- -PerfGateMode without_perf` (deprecated).
 - `-- -SkipArtifactOnlyGate` - restore artifacts without running release gate.
 - Perf gate is auto-skipped when downloaded bundle has no `artifacts/perf-load/*` (for example `pr-quality-artifacts`).
-- Helper writes source provenance manifest to `artifacts/release-artifact-revalidation/source-run.json`, including compact runtime-guardrails snapshot fields (`badgeEvidenceRuntimeGuardrailsSignalPathsStatus`, `badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus`, `badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths`, `badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath`), compact provider snapshot fields (`badgeEvidenceProviderUsageStatus`, `badgeEvidenceProviderUsageValidated`, `badgeEvidenceProviderUsageActiveSecondaryProviders`, `badgeEvidenceProviderUsageEntriesCount`, `badgeEvidenceProviderUsagePrimaryEntry`), and optional deploy/publish provenance snapshot fields (`railwayDeploySummary*`, `repoPublishSummary*`) when the downloaded source bundle carries `artifacts/deploy/railway-deploy-summary.json` and/or `artifacts/deploy/repo-publish-summary.json`.
+- Helper writes source provenance manifest to `artifacts/release-artifact-revalidation/source-run.json`, including compact runtime-guardrails snapshot fields (`badgeEvidenceRuntimeGuardrailsSignalPathsStatus`, `badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus`, `badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths`, `badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath`), compact provider snapshot fields (`badgeEvidenceProviderUsageStatus`, `badgeEvidenceProviderUsageValidated`, `badgeEvidenceProviderUsageActiveSecondaryProviders`, `badgeEvidenceProviderUsageEntriesCount`, `badgeEvidenceProviderUsagePrimaryEntry`), and optional deploy/publish provenance snapshot fields (`railwayDeploySummary*`, `railwayDeploySummaryCaseWikiRuntimeSurfaceIngress*`, `repoPublishSummary*`, `repoPublishSummaryCaseWikiRuntimeSurfaceIngress*`) when the source artifacts carry `artifacts/deploy/railway-deploy-summary.json` and/or `artifacts/deploy/repo-publish-summary.json`. The `railwayDeploySummaryCaseWikiRuntimeSurfaceIngress*` and `repoPublishSummaryCaseWikiRuntimeSurfaceIngress*` sets are sourced from the top-level `caseWikiRuntimeSurfaceIngress` object in the corresponding deploy/publish summary, so downstream automation can read compact deploy-owned runtime ingress provenance without reopening the full release-evidence report.
 - Local no-network fallback for stale provenance: `npm run verify:release:artifact:refresh-local-source`, then rerun `npm run verify:release:artifact-only`.
 
 Optional faster local pass (skip build):
@@ -1172,7 +1934,7 @@ Runtime public endpoint validation (GCP-first for submission, Railway mirror opt
 npm run badge:public:check
 ```
 
-By default, `badge:public:check` is strict and requires judge-facing evidence blocks to report `status=pass`.
+By default, `badge:public:check` is strict and requires judge-facing evidence blocks to report `status=pass`; this now includes aggregate `evidence.caseWikiContextAdoption` proof with `caseWikiRate >= 0.95`.
 Use `-- -AllowFailingEvidence` only for schema/debug checks when you intentionally do not want deployment gating.
 
 Optional endpoint overrides:
@@ -1193,6 +1955,9 @@ npm run badge:public:check
 - `liveTransport` (`status`, `runtime`, `session`, `summary`) to distinguish gateway runtime transport posture from the actual observed session path (`relay` vs `direct_live`) when the demo captured transport evidence
   - `demo-e2e` now seeds top-level `summary.liveTransport` from repo-owned `GET /v1/runtime/session-replay` when the selected session replay carries transport proof, so `badge-details.json` prefers backend replay evidence before falling back to inferred relay markers.
 - `providerUsage` (`status`, `validated`, `activeSecondaryProviders`, `entries[]`) for adapter provenance such as storyteller `tts` provider/model selection, optional `image_edit` continuity passes, and live-agent `research` provenance with citation/source-url counts
+- `evidence.caseWikiEvidenceSignature` (`status`, `validated`, `totalArtifacts`, `signedArtifacts`, `unsignedArtifacts`, `signatureStatus`, `signerId`, `signedAt`, `payloadHash`) for the compiled `Case Wiki` signer envelope captured from the backend runtime
+- `evidence.caseWikiRoutingContext` (`status`, `validated`, `observed`, `contextSource`, `ingressSource`, `focusId`, `blocker`, `nextAction`, `route`, `mode`, `requestedIntent`, `routedIntent`) for the orchestrator route that was executed with compiled `Case Wiki` memory as primary routing context
+- `evidence.caseWikiContextAdoption` (`status`, `validated`, `observed`, `observedCount`, `caseWikiObservedCount`, `inputOnlyObservedCount`, `unknownObservedCount`, `caseWikiRate`) for aggregate routing-context proof across both compiled-memory and baseline `input_only` observations
 - `evidence.operatorTurnTruncation`
 - `evidence.operatorTurnDelete`
 - `evidence.damageControl`
@@ -1354,10 +2119,10 @@ Behavior:
 - Runs release verification before deploy (`verify:release` by default).
 - Railway deploy helper now stages uploads from a temporary clean git worktree, so local `.tmp/`, `output/`, `_external/`, and other untracked artifacts do not bloat or break the upload.
 - When the target service resolves to `Live-Agent-Orchestrator`, the helper automatically applies the service-specific manifest template from `infra/railway/manifests/orchestrator.railway.json` so the service keeps the orchestrator start command instead of falling back to the root gateway manifest.
-- repo publish surfaces local release-evidence report/manifest paths after pre-publish verification so the validated artifact set is explicit before any push/deploy step.
+- repo publish surfaces local release-evidence report/runtime-proof-report/manifest paths after pre-publish verification so the validated artifact set is explicit before any push/deploy step.
 - repo publish also emits `artifacts/deploy/repo-publish-summary.json` with the verified artifact set and enabled publish/deploy steps.
-- In automation contexts, repo publish also writes `repo_publish_summary_path` and related provenance flags to `GITHUB_OUTPUT`, and appends the same high-level state to `GITHUB_STEP_SUMMARY`.
-- Runs auth preflight (`railway whoami`) before deploy; helper scripts now try `RAILWAY_API_TOKEN` first, then retry `RAILWAY_TOKEN`/`RAILWAY_LEGACY_TOKEN` as a legacy account-token fallback, and only then fall back to `RAILWAY_PROJECT_TOKEN`. Account-token attempts keep `RAILWAY_TOKEN` unset for CLI precedence safety; project-token fallback clears `RAILWAY_API_TOKEN` and exposes `RAILWAY_PROJECT_TOKEN` as `RAILWAY_TOKEN`, matching Railway CLI project-token auth. In project-token fallback mode, clean worktree link failures are treated as non-fatal because deploy still uses explicit project/service/environment flags; environment variable mutations such as `DEMO_FRONTEND_PUBLIC_URL` are skipped and the existing Railway environment value is reused.
+- In automation contexts, repo publish also writes `repo_publish_summary_path` and related provenance flags to `GITHUB_OUTPUT`, and appends the same high-level state to `GITHUB_STEP_SUMMARY`; when unified release evidence already carries `caseWikiRuntimeSurfaceIngress`, the same publish summary now also prints the compact runtime-surface tuple (`status`, `contextSource`, `ingressSource`, `focusId`, `blocker`, `nextAction`, `route`, `updatedAt`) for pre-push first-scan review. `artifacts/deploy/repo-publish-summary.json` now also carries the same compact `caseWikiRuntimeSurfaceIngress` object as a top-level repo-owned field for offline automation consumers, and the pre-push `GITHUB_OUTPUT` / `GITHUB_STEP_SUMMARY` fields now read that tuple from the top-level `repo-publish-summary.json` field instead of reopening the nested release-evidence snapshot.
+- Runs auth preflight (`railway whoami`) before deploy; helper scripts now try `RAILWAY_API_TOKEN` first, then retry `RAILWAY_TOKEN`/`RAILWAY_LEGACY_TOKEN` as a legacy account-token fallback, then reuse an active local `railway login` session when one exists, and only then fall back to `RAILWAY_PROJECT_TOKEN`. Account-token attempts keep `RAILWAY_TOKEN` unset for CLI precedence safety; active CLI-session fallback clears both token env vars so the cached local Railway auth can win cleanly; project-token fallback clears `RAILWAY_API_TOKEN` and exposes `RAILWAY_PROJECT_TOKEN` as `RAILWAY_TOKEN`, matching Railway CLI project-token auth. In project-token fallback mode, clean worktree link failures are treated as non-fatal because deploy still uses explicit project/service/environment flags; environment variable mutations such as `DEMO_FRONTEND_PUBLIC_URL` are skipped and the existing Railway environment value is reused.
 - Links local directory to Railway project/service when both `-ProjectId` and `-ServiceId` are provided.
 - If `-ProjectId/-ServiceId` are omitted, reuses existing Railway linked context for this workspace.
 - Triggers deployment (`railway up`) and waits until terminal status.
@@ -1370,7 +2135,7 @@ Behavior:
   - If `-DemoFrontendPublicUrl` is omitted and `FRONTEND_PUBLIC_URL` is set, combined helper auto-uses `FRONTEND_PUBLIC_URL` as gateway `uiUrl` contract target.
 - Runs post-deploy public badge endpoint check (`badge:public:check` helper logic) after successful deploy.
 - Railway deploy helper prints effective public badge and badge-details URLs after successful verification so the verified hosted evidence endpoints are explicit in the deploy log.
-- Railway deploy helper also emits `artifacts/deploy/railway-deploy-summary.json` with deployment id, effective public URL, and root-descriptor/badge verification posture.
+- Railway deploy helper also emits `artifacts/deploy/railway-deploy-summary.json` with deployment id, effective public URL, root-descriptor/badge verification posture, and when unified release evidence already carries `caseWikiRuntimeSurfaceIngress`, the same compact runtime-surface tuple (`status`, `contextSource`, `ingressSource`, `focusId`, `blocker`, `nextAction`, `route`, `updatedAt`) is mirrored into a top-level `caseWikiRuntimeSurfaceIngress` field plus matching `GITHUB_OUTPUT` / `GITHUB_STEP_SUMMARY` keys for deploy-facing automation.
 - In `-- -NoWait` mode, post-deploy gateway root descriptor and badge endpoint checks are not executed (trigger-only flow).
 
 Fast contract-only dry gate for Railway deploy/repo-publish wiring:
@@ -1475,6 +2240,7 @@ All GitHub workflow jobs that rely on JavaScript-based actions now use Node 24-c
 - Triggered on pull requests.
 - Manual API deploy workflow: `.github/workflows/railway-deploy-api.yml`
   Uses Railway secrets plus `Live-Agent-API` service targeting to keep the public API revision aligned with frontend `FRONTEND_API_BASE_URL`.
+  Set repo secret `RAILWAY_API_SERVICE_ID` to the Railway service id so the workflow does not fall back to an ambiguous service name.
 - Runs `npm run verify:deploy:railway:dry` (deploy/repo-publish contract checks) before `npm run verify:pr` (build + unit + profile smoke + monitoring validate + demo policy/badge gate).
 - Uploads demo artifacts for PR review.
 
@@ -1493,7 +2259,7 @@ All GitHub workflow jobs that rely on JavaScript-based actions now use Node 24-c
 - Optional repository variable: `FRONTEND_PUBLIC_URL` (used by verify-only fallback frontend health check; default fallback URL is `https://live-agent-frontend-production.up.railway.app`).
 - Job summary also surfaces `artifacts/deploy/railway-deploy-summary.json` when a real gateway deploy emits it, and the workflow uploads the same file as artifact bundle `railway-deploy-all-artifacts`.
 - After a successful real deploy or verify-only fallback, the workflow also runs `verify:deploy:production-smoke` and uploads `artifacts/deploy/production-smoke.json` plus `artifacts/deploy/production-smoke.md`.
-- The same deploy workflows now also run `verify:deploy:direct-live-proof`, producing `artifacts/deploy/direct-live-proof.json`, `artifacts/deploy/direct-live-proof.md`, and `artifacts/deploy/direct-live-proof.png` from the hosted browser lane. When the runtime does not support direct live, that artifact is allowed to report `skipped`; when supported, it must prove `direct_live` via backend replay `session_events`.
+- The same deploy workflows now also run `verify:deploy:direct-live-proof`, producing `artifacts/deploy/direct-live-proof.json`, `artifacts/deploy/direct-live-proof.md`, and `artifacts/deploy/direct-live-proof.png` from the hosted browser lane. When the runtime does not support direct live, that artifact is allowed to report `skipped`; when supported, it must prove `direct_live` via backend replay `session_events`. The browser proof now sends one hosted `conversation.item.create` turn after connect so first-audio/first-output latency is measured instead of inferred from an idle socket, captures compact fallback-event counts plus runtime case wiki evidence signature metadata for the observed session, and reads `/v1/runtime/diagnostics` so hosted proof auto-detects whether the selected runtime is expected to emit `signed` or `unsigned` case-wiki evidence without relying on manually threaded workflow flags.
 
 - Full workflow: `.github/workflows/demo-e2e.yml`
 - Triggered on push to `main`/`master` and manual dispatch.
@@ -1523,10 +2289,12 @@ All GitHub workflow jobs that rely on JavaScript-based actions now use Node 24-c
 - For the strict promptfoo red-team gate, configure `GOOGLE_API_KEY` (it can mirror the Gemini key value); the workflow maps Google provider aliases into the release environment so CI can generate `artifacts/evals/latest-run.json` without globally enabling Gemini live-agent latency inside the demo runtime.
 - The strict workflow clears Google/Gemini provider env vars only around nested unit-test execution, then restores them for promptfoo/release gates; it also sets `DEMO_E2E_ALLOW_UI_EXECUTOR_RUNTIME_FALLBACK=true` so fallback-safe `remote_http` UI executor posture is accepted in CI while still rejecting forced simulation.
 - Same auth-resilience path is enabled for strict manual deploys: `verify_only_fallback_on_auth_failure=true` triggers verify-only public endpoint checks when Railway auth probe fails.
-- Job summary includes strict badge evidence statuses from unified report `artifacts/release-evidence/report.json`: `operatorTurnTruncation`, `operatorTurnDelete`, `operatorDamageControl`, `governancePolicy`, `skillsRegistry`, `pluginMarketplace`, `deviceNodes`, `agentUsage`, `runtimeGuardrailsSignalPaths`, `liveTransport`, `providerUsage`, and derived updates-lane signal `deviceNodeUpdatesStatus`.
+- Job summary includes strict badge evidence statuses from unified report `artifacts/release-evidence/report.json`: `operatorTurnTruncation`, `operatorTurnDelete`, `operatorDamageControl`, `governancePolicy`, `skillsRegistry`, `pluginMarketplace`, `deviceNodes`, `agentUsage`, `runtimeGuardrailsSignalPaths`, `liveTransport`, `caseWikiEvidenceSignature`, `caseWikiRoutingContext`, `caseWikiRuntimeSurfaceIngress`, `caseWikiContextAdoption`, `providerUsage`, and derived updates-lane signal `deviceNodeUpdatesStatus`. For `caseWikiRoutingContext`, the summary now also prints the compact routing tuple (`contextSource`, `ingressSource`, `focusId`, `blocker`, `nextAction`, `route`, `mode`, `requestedIntent`, `routedIntent`); for `caseWikiRuntimeSurfaceIngress`, it prints the compact runtime-surface tuple (`contextSource`, `ingressSource`, `focusId`, `blocker`, `nextAction`, `route`, `updatedAt`); and for `caseWikiContextAdoption` it prints aggregate adoption counters (`observedCount`, `caseWikiObservedCount`, `inputOnlyObservedCount`, `unknownObservedCount`, `caseWikiRate`) so both release routing proof and runtime-surface ingress proof are readable directly from the workflow summary.
 - When the strict workflow also performs a real Railway deploy, job summary surfaces `artifacts/deploy/railway-deploy-summary.json` fields (`status`, `deploymentId`, `effectivePublicUrl`, `badgeEndpoint`, `badgeDetailsEndpoint`) and the uploaded bundle includes that artifact.
 - After a successful strict Railway deploy or verify-only fallback, the strict workflow also runs `verify:deploy:production-smoke`, publishes smoke status to job summary, and uploads `artifacts/deploy/production-smoke.json` plus `artifacts/deploy/production-smoke.md`.
-- The strict workflow also uploads hosted browser direct-live proof artifacts (`artifacts/deploy/direct-live-proof.json`, `.md`, `.png`) and adds their status, API URL source, session mapping, and replay transport source to the GitHub Actions job summary.
+- The strict workflow also uploads hosted browser direct-live proof artifacts (`artifacts/deploy/direct-live-proof.json`, `.md`, `.png`) and adds their status, API URL source, session mapping, replay transport source, first-audio/first-output latency, compact fallback-event counts, runtime evidence-signing expectation, and runtime case wiki evidence signature status to the GitHub Actions job summary; the browser smoke now enables `debugLive=true` to access the temporary `window.__liveDebug` hook for a direct `live.text` send before falling back to the UI service item button.
+- For hosted runtime case wiki evidence signature proof, configure repo secrets `RUNTIME_EVIDENCE_SIGNING_ENABLED`, `RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64`, `RUNTIME_EVIDENCE_SIGNING_KEY_ID`, and `RUNTIME_EVIDENCE_SIGNING_SIGNER_ID`, then deploy `api-backend` through `.github/workflows/railway-deploy-api.yml` so the API lane can publish those values into Railway before rollout.
+- The dedicated API deploy summary now records `requestedPublicUrl`, `resolvedServicePublicUrl`, `resolvedServicePublicUrls`, `publicUrlSource`, and `requestedPublicUrlMatchesServiceDomain` so hosted proofs can detect when a manually supplied public URL does not belong to the Railway service that was just deployed.
 - Strict workflow also builds unified release evidence artifacts:
   - `artifacts/release-evidence/report.json`
   - `artifacts/release-evidence/report.md`
@@ -1576,7 +2344,7 @@ npm run workflow:dispatch -- -Workflow railway_deploy_all -DryRun
   - `allow_any_source_branch=true|false` to allow non-`main/master` source runs (default `false`).
 - Workflow auto-detects presence of `artifacts/perf-load/*`: with perf artifacts it runs `npm run verify:release:artifact-only`; without perf artifacts (for example `pr-quality-artifacts`) it runs `release-readiness.ps1` with `-SkipPerfLoad`.
 - Workflow writes source provenance manifest to `artifacts/release-artifact-revalidation/source-run.json` and includes the path in job summary.
-- Job summary includes badge evidence statuses for `operatorTurnTruncation`, `operatorTurnDelete`, `operatorDamageControl`, `governancePolicy`, `skillsRegistry`, `pluginMarketplace`, `deviceNodes`, `agentUsage`, `runtimeGuardrailsSignalPaths`, `liveTransport`, `providerUsage`, and derived updates-lane signal `deviceNodeUpdatesStatus` from unified report `artifacts/release-evidence/report.json`; the same summary also surfaces optional `railway-deploy-summary` / `repo-publish-summary` provenance when those files are present in the downloaded artifact bundle.
+- Job summary includes badge evidence statuses for `operatorTurnTruncation`, `operatorTurnDelete`, `operatorDamageControl`, `governancePolicy`, `skillsRegistry`, `pluginMarketplace`, `deviceNodes`, `agentUsage`, `runtimeGuardrailsSignalPaths`, `liveTransport`, `caseWikiEvidenceSignature`, `caseWikiRoutingContext`, `caseWikiRuntimeSurfaceIngress`, `caseWikiContextAdoption`, `providerUsage`, and derived updates-lane signal `deviceNodeUpdatesStatus` from unified report `artifacts/release-evidence/report.json`; for `caseWikiRoutingContext` it also prints the compact routing tuple (`contextSource`, `ingressSource`, `focusId`, `blocker`, `nextAction`, `route`, `mode`, `requestedIntent`, `routedIntent`), for `caseWikiRuntimeSurfaceIngress` it prints the compact runtime-surface tuple (`contextSource`, `ingressSource`, `focusId`, `blocker`, `nextAction`, `route`, `updatedAt`), for `caseWikiContextAdoption` it prints aggregate adoption counters (`observedCount`, `caseWikiObservedCount`, `inputOnlyObservedCount`, `unknownObservedCount`, `caseWikiRate`), and the same summary also surfaces optional `railway-deploy-summary` / `repo-publish-summary` provenance when those files are present in the downloaded artifact bundle.
 - Upload bundle now preserves optional deploy provenance artifacts `artifacts/deploy/railway-deploy-summary.json` and `artifacts/deploy/repo-publish-summary.json` alongside release evidence and `source-run.json`.
 - Revalidation and strict release bundles also preserve `artifacts/evals/latest-run.json` so promptfoo red-team proof survives source-bundle handoff.
 - Artifact revalidation also builds unified release evidence artifacts:

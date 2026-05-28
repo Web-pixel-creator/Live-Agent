@@ -262,6 +262,167 @@ export type CaseWikiEvidencePack = {
   sourceRefs: string[];
 };
 
+export type EvidenceSignatureStatus = "signed" | "unsigned";
+
+export type EvidenceSignature = {
+  schemaVersion: 1;
+  status: EvidenceSignatureStatus;
+  algorithm: "ed25519-sha256";
+  canonicalization: "json-stable-v1";
+  payloadHash: string;
+  signature: string | null;
+  keyId: string | null;
+  signerId: string;
+  signedAt: string;
+};
+
+export const CASE_WIKI_AUDIT_SOURCES = [
+  "approval",
+  "operator_note",
+  "workflow",
+  "runtime",
+] as const;
+
+export type CaseWikiAuditSource = (typeof CASE_WIKI_AUDIT_SOURCES)[number];
+
+export type CaseWikiAuditEntry = {
+  id: string;
+  ts: string;
+  actor: string | null;
+  source: CaseWikiAuditSource;
+  action: string;
+  field: string | null;
+  summary: string;
+  reason: string | null;
+  oldValue: string | null;
+  newValue: string | null;
+  sourceRefs: string[];
+};
+
+export const CASE_WIKI_COMPLIANCE_TEMPLATES = ["baseline", "strict", "regulated"] as const;
+
+export type CaseWikiComplianceTemplate = (typeof CASE_WIKI_COMPLIANCE_TEMPLATES)[number];
+
+export const CASE_WIKI_COMPLIANCE_SOURCES = ["template_default", "tenant_override"] as const;
+
+export type CaseWikiComplianceSource = (typeof CASE_WIKI_COMPLIANCE_SOURCES)[number];
+
+export const CASE_WIKI_PII_REDACTION_LEVELS = ["standard", "high"] as const;
+
+export type CaseWikiPiiRedactionLevel = (typeof CASE_WIKI_PII_REDACTION_LEVELS)[number];
+
+export const CASE_WIKI_EVIDENCE_SIGNING_KEY_STATES = ["missing", "loaded", "invalid"] as const;
+
+export type CaseWikiEvidenceSigningKeyState = (typeof CASE_WIKI_EVIDENCE_SIGNING_KEY_STATES)[number];
+
+export const CASE_WIKI_COMPLIANCE_ENFORCEMENT_STATUSES = ["pass", "warn", "fail"] as const;
+
+export type CaseWikiComplianceEnforcementStatus =
+  (typeof CASE_WIKI_COMPLIANCE_ENFORCEMENT_STATUSES)[number];
+
+export const CASE_WIKI_COMPLIANCE_SNAPSHOT_MODES = ["compiled_operator_safe", "raw_ref_review"] as const;
+
+export type CaseWikiComplianceSnapshotMode = (typeof CASE_WIKI_COMPLIANCE_SNAPSHOT_MODES)[number];
+
+export type CaseWikiComplianceArtifactPosture = "raw" | "redacted" | "signed";
+
+export type CaseWikiComplianceArtifactEntry = {
+  ref: string;
+  posture: CaseWikiComplianceArtifactPosture;
+  source: "source_ref" | "artifact_ref" | "screenshot_ref" | "replay_artifact" | "case_wiki_signature";
+  blocking: boolean;
+  summary: string;
+};
+
+export type CaseWikiComplianceArtifactSummary = {
+  totalArtifacts: number;
+  rawArtifacts: number;
+  redactedArtifacts: number;
+  signedArtifacts: number;
+  blockingArtifacts: number;
+  blockingRefs: string[];
+  items: CaseWikiComplianceArtifactEntry[];
+};
+
+export const CASE_WIKI_COMPLIANCE_REMEDIATION_ACTION_KINDS = [
+  "redact_artifact",
+  "attach_case_wiki_signature",
+] as const;
+
+export type CaseWikiComplianceRemediationActionKind =
+  (typeof CASE_WIKI_COMPLIANCE_REMEDIATION_ACTION_KINDS)[number];
+
+export const CASE_WIKI_COMPLIANCE_REMEDIATION_SURFACES = ["export", "handoff", "queue"] as const;
+
+export type CaseWikiComplianceRemediationSurface =
+  (typeof CASE_WIKI_COMPLIANCE_REMEDIATION_SURFACES)[number];
+
+export type CaseWikiComplianceRemediationRequiredPosture =
+  | CaseWikiComplianceArtifactPosture
+  | "signed_case_wiki";
+
+export type CaseWikiComplianceRemediationAction = {
+  id: string;
+  kind: CaseWikiComplianceRemediationActionKind;
+  title: string;
+  summary: string;
+  blockingRef: string | null;
+  requiredPosture: CaseWikiComplianceRemediationRequiredPosture;
+  affects: CaseWikiComplianceRemediationSurface[];
+  operatorActionLabel: string;
+};
+
+export type CaseWikiComplianceRemediationSummary = {
+  totalActions: number;
+  primaryAction: CaseWikiComplianceRemediationAction | null;
+  actions: CaseWikiComplianceRemediationAction[];
+};
+
+export type CaseWikiComplianceEnforcement = {
+  status: CaseWikiComplianceEnforcementStatus;
+  snapshotMode: CaseWikiComplianceSnapshotMode;
+  rawRefCount: number;
+  rawRefsPreview: string[];
+  redactionRequired: boolean;
+  redactionSatisfied: boolean;
+  signingRequired: boolean;
+  observedSignatureStatus: EvidenceSignatureStatus;
+  signatureSatisfied: boolean;
+  exportReady: boolean;
+  blockingReasons: string[];
+  artifactPosture?: CaseWikiComplianceArtifactSummary;
+  remediation?: CaseWikiComplianceRemediationSummary;
+  summary: string;
+};
+
+export type CaseWikiComplianceSummary = {
+  templateId: CaseWikiComplianceTemplate;
+  requestedTemplateId: string;
+  fallbackApplied: boolean;
+  source: CaseWikiComplianceSource;
+  controls: {
+    piiRedactionLevel: CaseWikiPiiRedactionLevel;
+    crossTenantAdminOnly: boolean;
+    approvalSlaEnforced: boolean;
+    auditTrailRequired: boolean;
+  };
+  retention: {
+    rawMediaDays: number;
+    auditLogsDays: number;
+    eventsDays: number;
+    sessionsDays: number;
+  };
+  evidenceSigning: {
+    enabled: boolean;
+    keyState: CaseWikiEvidenceSigningKeyState;
+    expectedSignatureStatus: EvidenceSignatureStatus;
+    signerId: string;
+    keyId: string | null;
+  };
+  enforcement: CaseWikiComplianceEnforcement;
+  summary: string;
+};
+
 export const CASE_WIKI_DETAIL_BADGE_TONES = ["neutral", "ok", "watch"] as const;
 
 export type CaseWikiDetailBadgeTone = (typeof CASE_WIKI_DETAIL_BADGE_TONES)[number];
@@ -296,6 +457,7 @@ export type CaseWikiActionPackItem = {
   refs: string[];
   refsText: string | null;
   focusSummary: string | null;
+  remediationDraft: CaseWikiRemediationDraft | null;
 };
 
 export type CaseWikiActionPack = {
@@ -333,6 +495,45 @@ export type CaseWikiPreviewPack = {
   handoffValue: string | null;
 };
 
+export type CaseWikiCostSummary = {
+  status: "observed" | "missing";
+  source: "operator_summary" | "case_wiki";
+  summaryStatus: string;
+  summarySource: string;
+  summaryAuthority: string;
+  aggregationMode: string;
+  estimationMode: "tokens_only" | "token_rate_estimate" | "runtime_rate_estimate";
+  observationMode: "usage_rollup" | "event_span_estimate";
+  pricingConfigured: boolean;
+  currency: "USD";
+  inputTokens: number;
+  outputTokens: number;
+  derivedTotalTokens: number;
+  totalTokens: number;
+  tokenConsistency: boolean;
+  tokenDriftTokens: number;
+  inputUsd: number;
+  outputUsd: number;
+  liveUsd: number;
+  uiExecutorUsd: number;
+  storageUsd: number;
+  totalUsd: number;
+  liveMinutes: number;
+  uiExecutorMinutes: number;
+  storageMb: number;
+  pricePer1kInputUsd: number;
+  pricePer1kOutputUsd: number;
+  pricePerLiveMinuteUsd: number;
+  pricePerUiExecutorMinuteUsd: number;
+  pricePerStorageMbUsd: number;
+  models: string[];
+  uniqueModels: number;
+  unknownSourceCount: number;
+  latestSeenAt: string | null;
+  sourceRefs: string[];
+  validated: boolean;
+};
+
 export type CaseWikiWorkspacePack = {
   defaultFocus: CaseWikiDefaultFocus | null;
   statusValue: string | null;
@@ -349,6 +550,8 @@ export type CaseWikiWorkspacePack = {
   timelineValue: string | null;
   drilldownValue: string | null;
   handoffValue: string | null;
+  costValue?: string | null;
+  costSummary?: CaseWikiCostSummary | null;
 };
 
 export type CaseWikiOperatorOverviewPreview = {
@@ -432,11 +635,60 @@ export type CaseWikiOperatorTimelinePreview = {
   }>;
 };
 
+export type CaseWikiOperatorAuditPreview = {
+  totalEntries: number;
+  latestEntries: Array<{
+    id: string | null;
+    ts: string | null;
+    actor: string | null;
+    source: CaseWikiAuditSource | null;
+    action: string | null;
+    field: string | null;
+    summary: string | null;
+    reason: string | null;
+    oldValue: string | null;
+    newValue: string | null;
+    sourceRefs: string[];
+  }>;
+};
+
+export const CASE_WIKI_REMEDIATION_KINDS = [
+  "customer_message",
+  "approval_brief",
+  "workflow_resume",
+  "operator_brief",
+] as const;
+
+export type CaseWikiRemediationKind = (typeof CASE_WIKI_REMEDIATION_KINDS)[number];
+
+export type CaseWikiRemediationDraft = {
+  kind: CaseWikiRemediationKind;
+  actionType: CaseWikiNextActionType | null;
+  title: string;
+  targetLabel: string | null;
+  owner: string | null;
+  dueBy: string | null;
+  summary: string;
+  body: string;
+  checklist: string[];
+  sourceRefs: string[];
+};
+
+export type CaseWikiOperatorRemediationPreview = {
+  focusKind: CaseWikiRoutingFocusKind | null;
+  focusId: string | null;
+  focusLabel: string | null;
+  draft: CaseWikiRemediationDraft | null;
+};
+
 export type CaseWikiOperatorPreviewPack = {
   overview: CaseWikiOperatorOverviewPreview;
   evidence: CaseWikiOperatorEvidencePreview;
   questions: CaseWikiOperatorQuestionsPreview;
+  remediation: CaseWikiOperatorRemediationPreview;
   timeline: CaseWikiOperatorTimelinePreview;
+  audit: CaseWikiOperatorAuditPreview;
+  compliance: CaseWikiComplianceSummary;
 };
 
 export type CaseWikiRoutingRoute = {
@@ -535,6 +787,8 @@ export type CaseWiki = {
   overview: CaseWikiOverview;
   highlights: CaseWikiHighlights;
   evidencePack: CaseWikiEvidencePack;
+  compliance: CaseWikiComplianceSummary;
+  evidenceSignature?: EvidenceSignature;
   handoffPack: CaseWikiHandoffPack;
   detailPack: CaseWikiDetailPack;
   routingPack: CaseWikiRoutingPack;
@@ -545,9 +799,129 @@ export type CaseWiki = {
   operatorPreviewPack: CaseWikiOperatorPreviewPack;
   entities: CaseWikiEntity[];
   timeline: CaseWikiTimelineEntry[];
+  auditLog: CaseWikiAuditEntry[];
   proofs: CaseWikiProof[];
   openQuestions: CaseWikiOpenQuestion[];
   recommendedNextAction: CaseWikiNextAction | null;
+};
+
+export const RUNTIME_OPERATOR_QUEUE_TONES = ["neutral", "ok", "watch", "fail", "stale"] as const;
+
+export type RuntimeOperatorQueueTone = (typeof RUNTIME_OPERATOR_QUEUE_TONES)[number];
+
+export const RUNTIME_OPERATOR_QUEUE_PRIORITIES = ["critical", "high", "medium"] as const;
+
+export type RuntimeOperatorQueuePriority = (typeof RUNTIME_OPERATOR_QUEUE_PRIORITIES)[number];
+
+export const RUNTIME_OPERATOR_QUEUE_ACTION_IDS = [
+  "refresh_summary",
+  "open_quick_start",
+  "open_playbook",
+  "open_workflow_control",
+  "open_case_wiki_remediation",
+  "copy_case_wiki_remediation_draft",
+  "run_runtime_guardrail_path",
+  "show_all_cards",
+  "full_ops_view",
+  "open_device_nodes",
+  "run_negotiation",
+  "run_story",
+  "run_ui_task",
+  "saved_view_incidents",
+  "saved_view_runtime",
+  "saved_view_approvals",
+  "saved_view_audit",
+  "jump_status_card",
+] as const;
+
+export type RuntimeOperatorQueueActionId = (typeof RUNTIME_OPERATOR_QUEUE_ACTION_IDS)[number];
+
+export type RuntimeOperatorQueueAction = {
+  label: string;
+  actionId: RuntimeOperatorQueueActionId;
+  kind?: "secondary";
+  shortLabel?: string | null;
+  targetStatusId?: string | null;
+};
+
+export type RuntimeOperatorQueueFocus = {
+  kind: CaseWikiRoutingFocusKind | null;
+  id: string | null;
+  label: string | null;
+  summary: string | null;
+};
+
+export type RuntimeOperatorQueueQuestionPreview = {
+  id: string | null;
+  priority: CaseWikiPriority | null;
+  blocking: boolean;
+  owner: string | null;
+  question: string | null;
+  suggestedNextStep: string | null;
+};
+
+export type RuntimeOperatorQueueRoutePreview = {
+  lane: CaseWikiRoutingLane | null;
+  owner: string | null;
+  priority: CaseWikiPriority | null;
+  status: string | null;
+  blocking: boolean;
+  approvalRequired: boolean;
+  dueBy: string | null;
+  summary: string | null;
+};
+
+export type RuntimeOperatorQueueNextActionPreview = {
+  type: CaseWikiNextActionType | null;
+  title: string | null;
+  owner: string | null;
+  summary: string | null;
+  dueBy: string | null;
+  blocking: boolean;
+};
+
+export type RuntimeOperatorQueueCompliancePreview = {
+  templateId: CaseWikiComplianceTemplate;
+  piiRedactionLevel: CaseWikiPiiRedactionLevel;
+  expectedSignatureStatus: EvidenceSignatureStatus;
+  enforcementStatus: CaseWikiComplianceEnforcementStatus;
+  exportReady: boolean;
+  blockingReasons: string[];
+  artifactPosture?: CaseWikiComplianceArtifactSummary | null;
+  remediation?: CaseWikiComplianceRemediationSummary | null;
+};
+
+export type RuntimeOperatorQueueItem = {
+  id: string;
+  key: string;
+  source: "case_wiki";
+  generatedAt: string;
+  caseId: string;
+  sessionId: string | null;
+  tone: RuntimeOperatorQueueTone;
+  priority: RuntimeOperatorQueuePriority;
+  blocking: boolean;
+  kicker: string;
+  title: string;
+  meta: string;
+  focus: RuntimeOperatorQueueFocus | null;
+  question: RuntimeOperatorQueueQuestionPreview | null;
+  route: RuntimeOperatorQueueRoutePreview | null;
+  remediation: CaseWikiOperatorRemediationPreview | null;
+  recommendedNextAction: RuntimeOperatorQueueNextActionPreview | null;
+  compliance: RuntimeOperatorQueueCompliancePreview;
+  primary: RuntimeOperatorQueueAction | null;
+  secondary: RuntimeOperatorQueueAction | null;
+  sourceRefs: string[];
+};
+
+export type RuntimeOperatorQueueSnapshot = {
+  schemaVersion: 1;
+  generatedAt: string;
+  tenantId: string;
+  totalItems: number;
+  blockingItems: number;
+  items: RuntimeOperatorQueueItem[];
 };
 
 export type RuntimeLiveSessionEventIngestRequest = {
@@ -620,6 +994,7 @@ export type UiVerificationEvidence = {
     refMapCount: number;
     actionableRefIds: string[];
     staleRefTargets: string[];
+    healedRefTargets: string[];
   };
   visualChecks: number;
   visualRegressions: number;

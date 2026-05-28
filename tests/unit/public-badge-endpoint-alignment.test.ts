@@ -216,6 +216,7 @@ test("tracked public badge details embed badge payload", () => {
   assert.equal(typeof runtimeGuardrailsSignalPaths.summaryStatus, "string");
   assert.equal(typeof runtimeGuardrailsSignalPaths.signalsSummary, "string");
   assert.equal(typeof runtimeGuardrailsSignalPaths.coverageSummary, "string");
+  assert.equal(typeof runtimeGuardrailsSignalPaths.sloSummary, "string");
   assert.equal(typeof runtimeGuardrailsSignalPaths.sandboxSummary, "string");
   assert.equal(typeof runtimeGuardrailsSignalPaths.skillsSummary, "string");
   assert.equal(typeof runtimeGuardrailsSignalPaths.topSignal, "string");

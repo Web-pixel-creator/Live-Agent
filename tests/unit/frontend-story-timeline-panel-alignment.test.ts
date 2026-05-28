@@ -259,7 +259,9 @@ test("demo frontend wires prompt-first storyteller studio across UI/runtime/docs
     "frontend runtime missing Story Studio compact mobile delivery helper",
   );
   assert.ok(
-    app.includes("renderStoryModeRail();\n    renderStorySignalStrip();"),
+    app.includes(
+      "if (shouldBindLegacyStorySurface) {\n      renderStoryModeRail();\n      renderStorySignalStrip();\n    }",
+    ),
     "frontend runtime missing Story Studio responsive copy rerender on resize",
   );
   assert.ok(
@@ -1143,7 +1145,7 @@ test("demo frontend wires prompt-first storyteller studio across UI/runtime/docs
     "frontend app missing Story Studio language-switch default refresh",
   );
   assert.ok(
-    app.includes('function renderLiveIntentExperience() {\n  const intent = el.intent instanceof HTMLSelectElement ? el.intent.value : state.lastRequestedIntent;\n  const normalizedIntent = typeof intent === "string" && intent.trim().length > 0 ? intent.trim() : "conversation";'),
+    app.includes('function renderLiveIntentExperience() {\n  if (!shouldRenderLegacyCompatibilitySurface("live-negotiator")) {\n    return;\n  }\n  const intent = el.intent instanceof HTMLSelectElement ? el.intent.value : state.lastRequestedIntent;\n  const normalizedIntent = typeof intent === "string" && intent.trim().length > 0 ? intent.trim() : "conversation";'),
     "frontend app missing live intent normalization before composer-specific visibility toggles",
   );
   assert.ok(

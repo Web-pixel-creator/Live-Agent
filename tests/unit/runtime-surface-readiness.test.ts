@@ -7,7 +7,7 @@ import {
   rotateAuthProfile,
   upsertCredentialStoreEntry,
 } from "../../shared/skills/src/index.js";
-import type { DeviceNodeRecord } from "../../apps/api-backend/src/firestore.js";
+import type { DeviceNodeRecord, EventListItem } from "../../apps/api-backend/src/firestore.js";
 import { buildRuntimeSurfaceReadinessSnapshot } from "../../apps/api-backend/src/runtime-surface-readiness.js";
 
 const readyDeviceNode: DeviceNodeRecord = {
@@ -24,6 +24,27 @@ const readyDeviceNode: DeviceNodeRecord = {
   updatedAt: "2026-04-01T00:00:10.000Z",
   lastSeenAt: "2026-04-01T00:00:10.000Z",
   metadata: {},
+};
+
+const readyCaseWikiEvent: EventListItem = {
+  eventId: "event-case-wiki-routing",
+  sessionId: "session-workflow-healthy",
+  runId: "run-workflow-healthy",
+  type: "workflow.stage",
+  source: "orchestrator",
+  createdAt: "2026-03-06T00:00:02.000Z",
+  route: "live-agent",
+  intent: "conversation",
+  metadata: {
+    routingContextSource: "case_wiki",
+    routingContextIngressSource: "gateway_hydrated_case_wiki",
+    routingContextFocusId: "question:passport-scan",
+    routingContextBlocker: "Passport scan is still missing from the case.",
+    routingContextNextAction: "Request passport scan",
+    routingMode: "deterministic",
+    routingRequestedIntent: "conversation",
+    routingRoutedIntent: "conversation",
+  },
 };
 
 test("runtime surface readiness reports ready posture when bootstrap and diagnostics are nominal", async () => {
@@ -194,6 +215,7 @@ test("runtime surface readiness reports ready posture when bootstrap and diagnos
         },
       ],
       deviceNodes: [readyDeviceNode],
+      events: [readyCaseWikiEvent],
     });
 
     assert.equal(snapshot.source, "repo_owned_runtime_surface_readiness");
@@ -205,6 +227,16 @@ test("runtime surface readiness reports ready posture when bootstrap and diagnos
     assert.equal(snapshot.summary.services.ready, 4);
     assert.equal(snapshot.summary.evidence.fullyValidated, true);
     assert.ok(snapshot.summary.skills.personaCount >= 1);
+    assert.deepEqual(snapshot.summary.workflow.caseWikiIngress, {
+      observed: true,
+      updatedAt: "2026-03-06T00:00:02.000Z",
+      contextSource: "case_wiki",
+      ingressSource: "gateway_hydrated_case_wiki",
+      focusId: "question:passport-scan",
+      blocker: "Passport scan is still missing from the case.",
+      nextAction: "Request passport scan",
+      route: "live-agent",
+    });
   } finally {
     rmSync(rootDir, { recursive: true, force: true });
   }
@@ -225,6 +257,7 @@ test("runtime surface readiness reports critical posture when primary provider a
   assert.equal(snapshot.status, "critical");
   assert.equal(snapshot.safeToRun, false);
   assert.equal(snapshot.summary.deviceNodes.ready, 0);
+  assert.equal(snapshot.summary.workflow.caseWikiIngress.observed, false);
   assert.ok(Array.isArray(snapshot.degradedReasons));
   assert.ok(snapshot.degradedReasons.length >= 1);
 });

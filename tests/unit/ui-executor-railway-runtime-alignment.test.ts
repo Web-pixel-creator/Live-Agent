@@ -45,6 +45,9 @@ test("ui executor falls back to simulation when playwright launch is unavailable
   const sourcePath = resolve(process.cwd(), "apps", "ui-executor", "src", "index.ts");
   const source = readFileSync(sourcePath, "utf8");
 
+  assert.match(source, /chromium\.executablePath\(\)/);
+  assert.match(source, /existsSync\(executablePath\)/);
+  assert.doesNotMatch(source, /await dynamicImport\("playwright"\)\s*;\s*return true;/);
   assert.match(
     source,
     /try \{[\s\S]*browser = await chromium\.launch\(\{ headless: true \}\);[\s\S]*\} catch \{[\s\S]*return null;[\s\S]*\}/,

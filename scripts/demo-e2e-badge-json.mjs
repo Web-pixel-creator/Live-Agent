@@ -638,6 +638,7 @@ function buildRuntimeGuardrailsSignalPathsEvidence(kpis) {
   const summaryStatus = toOptionalString(snapshot.status) ?? "coverage_incomplete";
   const signalsSummary = toOptionalString(snapshot.signalsSummary) ?? "n/a";
   const coverageSummary = toOptionalString(snapshot.coverageSummary) ?? "n/a";
+  const sloSummary = toOptionalString(snapshot.sloSummary) ?? "n/a";
   const sandboxSummary = toOptionalString(snapshot.sandboxSummary) ?? "n/a";
   const skillsSummary = toOptionalString(snapshot.skillsSummary) ?? "n/a";
   const topSignal = toOptionalString(snapshot.topSignal) ?? "n/a";
@@ -678,6 +679,7 @@ function buildRuntimeGuardrailsSignalPathsEvidence(kpis) {
     summaryStatus.length > 0 &&
     signalsSummary.length > 0 &&
     coverageSummary.length > 0 &&
+    sloSummary.length > 0 &&
     sandboxSummary.length > 0 &&
     skillsSummary.length > 0 &&
     topSignal.length > 0 &&
@@ -694,6 +696,7 @@ function buildRuntimeGuardrailsSignalPathsEvidence(kpis) {
     summaryStatus,
     signalsSummary,
     coverageSummary,
+    sloSummary,
     sandboxSummary,
     skillsSummary,
     topSignal,
@@ -837,6 +840,606 @@ function buildLiveTransport(summary, kpis) {
       connectedEventType,
     },
     summary: summaryParts.join(" | "),
+  };
+}
+
+function buildCaseWikiEvidenceSignature(summary) {
+  const caseWiki = isObject(summary.caseWiki) ? summary.caseWiki : {};
+  const evidenceSignature = isObject(caseWiki.evidenceSignature) ? caseWiki.evidenceSignature : {};
+  const signatureStatus = toOptionalString(evidenceSignature.status);
+  const algorithm = toOptionalString(evidenceSignature.algorithm);
+  const canonicalization = toOptionalString(evidenceSignature.canonicalization);
+  const payloadHash = toOptionalString(evidenceSignature.payloadHash);
+  const keyId = toOptionalString(evidenceSignature.keyId);
+  const signerId = toOptionalString(evidenceSignature.signerId);
+  const signedAt = toOptionalString(evidenceSignature.signedAt);
+  const signaturePresent = toBoolean(evidenceSignature.signaturePresent);
+  const totalArtifacts = signatureStatus !== null ? 1 : 0;
+  const signedArtifacts = signatureStatus === "signed" ? 1 : 0;
+  const unsignedArtifacts = signatureStatus === "unsigned" ? 1 : 0;
+  const payloadHashValid = payloadHash !== null && /^sha256:[a-f0-9]{64}$/.test(payloadHash);
+  const signedAtIsIso = signedAt !== null && isIsoTimestamp(signedAt);
+  const signatureStatusValid = signatureStatus !== null && ["signed", "unsigned"].includes(signatureStatus);
+  const algorithmValid = algorithm === "ed25519-sha256";
+  const canonicalizationValid = canonicalization === "json-stable-v1";
+  const signaturePresenceValid =
+    (signatureStatus === "signed" && signaturePresent === true) ||
+    (signatureStatus === "unsigned" && signaturePresent === false);
+  const validated =
+    totalArtifacts === 1 &&
+    signatureStatusValid &&
+    algorithmValid &&
+    canonicalizationValid &&
+    payloadHashValid &&
+    signerId !== null &&
+    signedAtIsIso &&
+    signaturePresenceValid;
+  const status = !validated ? "fail" : signatureStatus === "signed" ? "pass" : "warn";
+
+  return {
+    status,
+    validated,
+    totalArtifacts,
+    signedArtifacts,
+    unsignedArtifacts,
+    signatureStatus,
+    algorithm,
+    canonicalization,
+    payloadHash,
+    keyId,
+    signerId,
+    signedAt,
+    signedAtIsIso,
+    signaturePresent,
+    caseId: toOptionalString(caseWiki.caseId),
+    sessionId: toOptionalString(caseWiki.sessionId),
+    overviewStatus: toOptionalString(caseWiki.overviewStatus),
+    focusKind: toOptionalString(caseWiki.focusKind),
+    focusLabel: toOptionalString(caseWiki.focusLabel),
+    nextAction: toOptionalString(caseWiki.nextAction),
+    sourceRefsCount: Math.max(0, Math.trunc(toNumber(caseWiki.sourceRefsCount) ?? 0)),
+  };
+}
+
+function buildCaseWikiComplianceEvidence(summary, kpis) {
+  const caseWiki = isObject(summary.caseWiki) ? summary.caseWiki : {};
+  const evidenceSignature = isObject(caseWiki.evidenceSignature) ? caseWiki.evidenceSignature : {};
+  const observedSignatureStatus = toOptionalString(evidenceSignature.status);
+  const tenantId = toOptionalString(kpis.governancePolicyTenantId);
+  const validated = toBoolean(kpis.caseWikiComplianceValidated) === true;
+  const templateId = toOptionalString(kpis.caseWikiComplianceTemplateId);
+  const requestedTemplateId = toOptionalString(kpis.caseWikiComplianceRequestedTemplateId);
+  const source = toOptionalString(kpis.caseWikiComplianceSource);
+  const fallbackApplied = toBoolean(kpis.caseWikiComplianceFallbackApplied);
+  const piiRedactionLevel = toOptionalString(kpis.caseWikiCompliancePiiRedactionLevel);
+  const crossTenantAdminOnly = toBoolean(kpis.caseWikiComplianceCrossTenantAdminOnly);
+  const approvalSlaEnforced = toBoolean(kpis.caseWikiComplianceApprovalSlaEnforced);
+  const auditTrailRequired = toBoolean(kpis.caseWikiComplianceAuditTrailRequired);
+  const rawMediaDays = Math.max(0, Math.trunc(toNumber(kpis.caseWikiComplianceRawMediaDays) ?? 0));
+  const auditLogsDays = Math.max(0, Math.trunc(toNumber(kpis.caseWikiComplianceAuditLogsDays) ?? 0));
+  const eventsDays = Math.max(0, Math.trunc(toNumber(kpis.caseWikiComplianceEventsDays) ?? 0));
+  const sessionsDays = Math.max(0, Math.trunc(toNumber(kpis.caseWikiComplianceSessionsDays) ?? 0));
+  const evidenceSigningEnabled = toBoolean(kpis.caseWikiComplianceEvidenceSigningEnabled);
+  const expectedSignatureStatus = toOptionalString(kpis.caseWikiComplianceExpectedSignatureStatus);
+  const keyState = toOptionalString(kpis.caseWikiComplianceKeyState);
+  const signerId = toOptionalString(kpis.caseWikiComplianceSignerId);
+  const keyId = toOptionalString(kpis.caseWikiComplianceKeyId);
+  const summaryText = toOptionalString(kpis.caseWikiComplianceSummary);
+  const observed =
+    tenantId !== null ||
+    templateId !== null ||
+    requestedTemplateId !== null ||
+    source !== null ||
+    piiRedactionLevel !== null ||
+    expectedSignatureStatus !== null ||
+    keyState !== null ||
+    signerId !== null ||
+    summaryText !== null;
+  const signatureMatch =
+    expectedSignatureStatus !== null && observedSignatureStatus !== null
+      ? expectedSignatureStatus === observedSignatureStatus
+      : false;
+  const status =
+    validated &&
+    tenantId !== null &&
+    templateId === "strict" &&
+    requestedTemplateId === "strict" &&
+    source === "tenant_override" &&
+    fallbackApplied === false &&
+    piiRedactionLevel === "high" &&
+    crossTenantAdminOnly === true &&
+    approvalSlaEnforced === true &&
+    auditTrailRequired === true &&
+    rawMediaDays === 2 &&
+    auditLogsDays === 540 &&
+    eventsDays === 400 &&
+    sessionsDays === 45 &&
+    typeof evidenceSigningEnabled === "boolean" &&
+    expectedSignatureStatus !== null &&
+    ["signed", "unsigned"].includes(expectedSignatureStatus) &&
+    keyState !== null &&
+    ["missing", "loaded", "invalid"].includes(keyState) &&
+    signerId !== null &&
+    summaryText !== null &&
+    signatureMatch
+      ? "pass"
+      : observed
+        ? "fail"
+        : "unavailable";
+
+  return {
+    status,
+    validated,
+    observed,
+    tenantId,
+    templateId,
+    requestedTemplateId,
+    source,
+    fallbackApplied,
+    controls: {
+      piiRedactionLevel,
+      crossTenantAdminOnly,
+      approvalSlaEnforced,
+      auditTrailRequired,
+    },
+    retention: {
+      rawMediaDays,
+      auditLogsDays,
+      eventsDays,
+      sessionsDays,
+    },
+    evidenceSigning: {
+      enabled: evidenceSigningEnabled,
+      expectedSignatureStatus,
+      keyState,
+      signerId,
+      keyId,
+    },
+    observedSignatureStatus,
+    signatureMatch,
+    summary: summaryText,
+  };
+}
+
+function buildCaseWikiRoutingContextEvidence(kpis) {
+  const validated = toBoolean(kpis.caseWikiRoutingContextValidated) === true;
+  const contextSource = toOptionalString(kpis.caseWikiRoutingContextSource);
+  const ingressSource = toOptionalString(kpis.caseWikiRoutingContextIngressSource);
+  const focusId = toOptionalString(kpis.caseWikiRoutingContextFocusId);
+  const blocker = toOptionalString(kpis.caseWikiRoutingContextBlocker);
+  const nextAction = toOptionalString(kpis.caseWikiRoutingContextNextAction);
+  const route = toOptionalString(kpis.caseWikiRoutingContextRoute);
+  const mode = toOptionalString(kpis.caseWikiRoutingContextMode);
+  const requestedIntent = toOptionalString(kpis.caseWikiRoutingContextRequestedIntent);
+  const routedIntent = toOptionalString(kpis.caseWikiRoutingContextRoutedIntent);
+  const observed =
+    contextSource !== null ||
+    ingressSource !== null ||
+    focusId !== null ||
+    blocker !== null ||
+    nextAction !== null ||
+    route !== null ||
+    mode !== null ||
+    requestedIntent !== null ||
+    routedIntent !== null;
+  const modeValid =
+    mode !== null &&
+    ["deterministic", "assistive_override", "assistive_match", "assistive_fallback"].includes(mode);
+  const ingressValid =
+    ingressSource !== null &&
+    ["preserved_input_case_wiki", "gateway_hydrated_case_wiki"].includes(ingressSource);
+  const status =
+    validated &&
+    contextSource === "case_wiki" &&
+    ingressValid &&
+    focusId !== null &&
+    blocker !== null &&
+    nextAction !== null &&
+    route !== null &&
+    requestedIntent !== null &&
+    routedIntent !== null &&
+    modeValid
+      ? "pass"
+      : observed
+        ? "fail"
+        : "unavailable";
+
+  return {
+    status,
+    validated,
+    observed,
+    contextSource,
+    ingressSource,
+    focusId,
+    blocker,
+    nextAction,
+    route,
+    mode,
+    requestedIntent,
+    routedIntent,
+  };
+}
+
+function buildCaseWikiGatewayHydrationEvidence(kpis) {
+  const validated = toBoolean(kpis.caseWikiGatewayHydrationValidated) === true;
+  const sessionId = toOptionalString(kpis.caseWikiGatewayHydrationSessionId);
+  const noteEventId = toOptionalString(kpis.caseWikiGatewayHydrationNoteEventId);
+  const questionId = toOptionalString(kpis.caseWikiGatewayHydrationQuestionId);
+  const questionMatched = toBoolean(kpis.caseWikiGatewayHydrationQuestionMatched);
+  const noteSourceRefSeen = toBoolean(kpis.caseWikiGatewayHydrationNoteSourceRefSeen);
+  const questionSuggestedNextStep = toOptionalString(kpis.caseWikiGatewayHydrationQuestionSuggestedNextStep);
+  const contextSource = toOptionalString(kpis.caseWikiGatewayHydrationContextSource);
+  const ingressSource = toOptionalString(kpis.caseWikiGatewayHydrationIngressSource);
+  const focusId = toOptionalString(kpis.caseWikiGatewayHydrationFocusId);
+  const blocker = toOptionalString(kpis.caseWikiGatewayHydrationBlocker);
+  const nextAction = toOptionalString(kpis.caseWikiGatewayHydrationNextAction);
+  const route = toOptionalString(kpis.caseWikiGatewayHydrationRoute);
+  const mode = toOptionalString(kpis.caseWikiGatewayHydrationMode);
+  const requestedIntent = toOptionalString(kpis.caseWikiGatewayHydrationRequestedIntent);
+  const routedIntent = toOptionalString(kpis.caseWikiGatewayHydrationRoutedIntent);
+  const observed =
+    sessionId !== null ||
+    noteEventId !== null ||
+    questionId !== null ||
+    questionSuggestedNextStep !== null ||
+    contextSource !== null ||
+    ingressSource !== null ||
+    focusId !== null ||
+    blocker !== null ||
+    nextAction !== null ||
+    route !== null ||
+    mode !== null ||
+    requestedIntent !== null ||
+    routedIntent !== null;
+  const modeValid =
+    mode !== null &&
+    ["deterministic", "assistive_override", "assistive_match", "assistive_fallback"].includes(mode);
+  const status =
+    validated &&
+    questionMatched === true &&
+    noteSourceRefSeen === true &&
+    sessionId !== null &&
+    noteEventId !== null &&
+    questionId !== null &&
+    questionSuggestedNextStep !== null &&
+    contextSource === "case_wiki" &&
+    ingressSource === "gateway_hydrated_case_wiki" &&
+    focusId !== null &&
+    blocker !== null &&
+    nextAction !== null &&
+    route === "live-agent" &&
+    requestedIntent === "conversation" &&
+    routedIntent !== null &&
+    modeValid
+      ? "pass"
+      : observed
+        ? "fail"
+        : "unavailable";
+
+  return {
+    status,
+    validated,
+    observed,
+    sessionId,
+    noteEventId,
+    questionId,
+    questionMatched,
+    noteSourceRefSeen,
+    questionSuggestedNextStep,
+    contextSource,
+    ingressSource,
+    focusId,
+    blocker,
+    nextAction,
+    route,
+    mode,
+    requestedIntent,
+    routedIntent,
+  };
+}
+
+function buildCaseWikiContextAdoptionEvidence(kpis) {
+  const validated = toBoolean(kpis.caseWikiContextAdoptionValidated) === true;
+  const observedCount = Math.max(0, Math.trunc(toNumber(kpis.caseWikiContextAdoptionObservedCount) ?? 0));
+  const caseWikiObservedCount = Math.max(0, Math.trunc(toNumber(kpis.caseWikiContextAdoptionCaseWikiCount) ?? 0));
+  const inputOnlyObservedCount = Math.max(0, Math.trunc(toNumber(kpis.caseWikiContextAdoptionInputOnlyCount) ?? 0));
+  const unknownObservedCount = Math.max(0, Math.trunc(toNumber(kpis.caseWikiContextAdoptionUnknownCount) ?? 0));
+  const caseWikiRate = toNumber(kpis.caseWikiContextAdoptionRate);
+  const observed = observedCount > 0;
+  const countsConserved =
+    caseWikiObservedCount + inputOnlyObservedCount + unknownObservedCount === observedCount;
+  const rateValid =
+    caseWikiRate !== null &&
+    caseWikiRate >= 0 &&
+    caseWikiRate <= 1 &&
+    Math.abs(caseWikiRate - caseWikiObservedCount / Math.max(1, observedCount)) <= 0.0001;
+  const status =
+    validated &&
+    observedCount >= 3 &&
+    caseWikiObservedCount >= 1 &&
+    inputOnlyObservedCount >= 0 &&
+    unknownObservedCount === 0 &&
+    countsConserved &&
+    rateValid &&
+    caseWikiRate >= 0.95
+      ? "pass"
+      : observed
+        ? "fail"
+        : "unavailable";
+
+  return {
+    status,
+    validated,
+    observed,
+    observedCount,
+    caseWikiObservedCount,
+    inputOnlyObservedCount,
+    unknownObservedCount,
+    caseWikiRate,
+  };
+}
+
+function buildUiRefHealingEvidence(kpis) {
+  const validated = toBoolean(kpis.uiRefHealingValidated) === true;
+  const finalStatus = toOptionalString(kpis.uiRefHealingFinalStatus);
+  const adapterMode = toOptionalString(kpis.uiRefHealingAdapterMode);
+  const healedRefTargets = toStringArray(kpis.uiRefHealingHealedRefTargets);
+  const staleRefTargets = toStringArray(kpis.uiRefHealingStaleRefTargets);
+  const healedRefCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.uiRefHealingHealedRefCount) ?? healedRefTargets.length),
+  );
+  const staleRefCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.uiRefHealingStaleRefCount) ?? staleRefTargets.length),
+  );
+  const traceCount = Math.max(0, Math.trunc(toNumber(kpis.uiRefHealingTraceCount) ?? 0));
+  const retries = Math.max(0, Math.trunc(toNumber(kpis.uiRefHealingRetries) ?? 0));
+  const disabledSubmitSeen = toBoolean(kpis.uiRefHealingDisabledSubmitSeen);
+  const enabledSubmitSeen = toBoolean(kpis.uiRefHealingEnabledSubmitSeen);
+  const healingObservationSeen = toBoolean(kpis.uiRefHealingObservationSeen);
+  const healingNoteSeen = toBoolean(kpis.uiRefHealingNoteSeen);
+  const observed =
+    finalStatus !== null ||
+    adapterMode !== null ||
+    healedRefCount > 0 ||
+    staleRefCount > 0 ||
+    traceCount > 0;
+  const healedTargetsValid =
+    healedRefCount >= 2 &&
+    healedRefTargets.includes("email") &&
+    healedRefTargets.includes("submit_primary");
+  const countsConserved =
+    healedRefCount === healedRefTargets.length && staleRefCount === staleRefTargets.length;
+  const status =
+    validated &&
+    finalStatus === "completed" &&
+    adapterMode === "remote_http" &&
+    healedTargetsValid &&
+    countsConserved &&
+    staleRefCount === 0 &&
+    traceCount >= 5 &&
+    disabledSubmitSeen === true &&
+    enabledSubmitSeen === true &&
+    healingObservationSeen === true &&
+    healingNoteSeen === true
+      ? "pass"
+      : observed
+        ? "fail"
+        : "unavailable";
+
+  return {
+    status,
+    validated,
+    observed,
+    finalStatus,
+    adapterMode,
+    healedRefCount,
+    healedRefTargets,
+    staleRefCount,
+    staleRefTargets,
+    traceCount,
+    retries,
+    disabledSubmitSeen,
+    enabledSubmitSeen,
+    healingObservationSeen,
+    healingNoteSeen,
+  };
+}
+
+function buildBrowserWorkerRecoveryEvidence(kpis) {
+  const validated = toBoolean(kpis.browserWorkerRecoveryValidated) === true;
+  const finalStatus = toOptionalString(kpis.browserWorkerRecoveryFinalStatus);
+  const adapterMode = toOptionalString(kpis.browserWorkerRecoveryAdapterMode);
+  const checkpointCount = Math.max(0, Math.trunc(toNumber(kpis.browserWorkerRecoveryCheckpointCount) ?? 0));
+  const resumedCheckpointCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.browserWorkerRecoveryResumedCheckpointCount) ?? 0),
+  );
+  const healedRefTargets = toStringArray(kpis.browserWorkerRecoveryHealedRefTargets);
+  const healedRefCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.browserWorkerRecoveryHealedRefCount) ?? healedRefTargets.length),
+  );
+  const staleRefTargets = toStringArray(kpis.browserWorkerRecoveryStaleRefTargets);
+  const staleRefCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.browserWorkerRecoveryStaleRefCount) ?? staleRefTargets.length),
+  );
+  const traceCount = Math.max(0, Math.trunc(toNumber(kpis.browserWorkerRecoveryTraceCount) ?? 0));
+  const retryCount = Math.max(0, Math.trunc(toNumber(kpis.browserWorkerRecoveryRetryCount) ?? 0));
+  const runtimeRetryCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.browserWorkerRecoveryRuntimeRetryCount) ?? 0),
+  );
+  const runtimeResumedCheckpointCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.browserWorkerRecoveryRuntimeResumedCheckpointCount) ?? 0),
+  );
+  const runtimeStaleRefCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.browserWorkerRecoveryRuntimeStaleRefCount) ?? 0),
+  );
+  const runtimeHealedRefCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.browserWorkerRecoveryRuntimeHealedRefCount) ?? 0),
+  );
+  const checkpointReadyCleared = toBoolean(kpis.browserWorkerRecoveryCheckpointReadyCleared);
+  const summary = toOptionalString(kpis.browserWorkerRecoverySummary);
+  const observed =
+    finalStatus !== null ||
+    adapterMode !== null ||
+    checkpointCount > 0 ||
+    resumedCheckpointCount > 0 ||
+    healedRefCount > 0 ||
+    staleRefCount > 0 ||
+    traceCount > 0;
+  const healedTargetsValid =
+    healedRefCount >= 2 &&
+    healedRefTargets.includes("email") &&
+    healedRefTargets.includes("submit_primary");
+  const staleTargetsValid =
+    staleRefCount >= healedRefCount &&
+    staleRefTargets.includes("email") &&
+    staleRefTargets.includes("submit_primary");
+  const countsConserved =
+    healedRefCount === healedRefTargets.length && staleRefCount === staleRefTargets.length;
+  const status =
+    validated &&
+    finalStatus === "completed" &&
+    adapterMode === "remote_http" &&
+    checkpointCount >= 1 &&
+    resumedCheckpointCount >= 1 &&
+    healedTargetsValid &&
+    staleTargetsValid &&
+    countsConserved &&
+    traceCount >= 7 &&
+    checkpointReadyCleared === true &&
+    runtimeResumedCheckpointCount >= resumedCheckpointCount &&
+    runtimeHealedRefCount >= healedRefCount &&
+    runtimeStaleRefCount >= staleRefCount
+      ? "pass"
+      : observed
+        ? "fail"
+        : "unavailable";
+
+  return {
+    status,
+    validated,
+    observed,
+    finalStatus,
+    adapterMode,
+    checkpointCount,
+    resumedCheckpointCount,
+    healedRefCount,
+    healedRefTargets,
+    staleRefCount,
+    staleRefTargets,
+    traceCount,
+    retryCount,
+    runtimeRetryCount,
+    runtimeResumedCheckpointCount,
+    runtimeStaleRefCount,
+    runtimeHealedRefCount,
+    checkpointReadyCleared,
+    summary,
+  };
+}
+
+function buildNavigatorVisaFlowsEvidence(kpis) {
+  const validated = toBoolean(kpis.navigatorVisaFlowsValidated) === true;
+  // New execution-mode-aware evidence fields per
+  // `.kiro/specs/demo-e2e-visa-flows-execution-mode-aware-summary/design.md`
+  // "Proposed Contract". Purely descriptive forwarding — no gate change in
+  // the badge evidence shape; the consumers that actually gate are
+  // `demo-e2e-policy-check.mjs` (release-strict env-gated check) and
+  // `demo-e2e.ps1` scenario assertion (PR Quality opt-in env). Existing
+  // fields stay byte-identical.
+  const validationModeRaw = toOptionalString(kpis.navigatorVisaFlowsValidationMode);
+  const validationMode =
+    validationModeRaw === "real_playwright" ||
+    validationModeRaw === "simulated" ||
+    validationModeRaw === "mixed" ||
+    validationModeRaw === "unknown"
+      ? validationModeRaw
+      : "unknown";
+  const realPlaywrightValidated = toBoolean(kpis.navigatorVisaFlowsRealPlaywrightValidated) === true;
+  const simulatedValidated = toBoolean(kpis.navigatorVisaFlowsSimulatedValidated) === true;
+  const strictPersistentSessionValidated =
+    toBoolean(kpis.navigatorVisaFlowsStrictPersistentSessionValidated) === true;
+  const totalFlows = Math.max(0, Math.trunc(toNumber(kpis.navigatorVisaFlowsTotal) ?? 0));
+  const succeededFlows = Math.max(0, Math.trunc(toNumber(kpis.navigatorVisaFlowsSucceeded) ?? 0));
+  const successRate = Math.max(0, toNumber(kpis.navigatorVisaFlowsSuccessRate) ?? 0);
+  const persistentSessionCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.navigatorVisaFlowsPersistentSessionCount) ?? 0),
+  );
+  const replayBundleCount = Math.max(0, Math.trunc(toNumber(kpis.navigatorVisaFlowsReplayBundleCount) ?? 0));
+  const verifiedCount = Math.max(0, Math.trunc(toNumber(kpis.navigatorVisaFlowsVerifiedCount) ?? 0));
+  const staleRecoveryObservedCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.navigatorVisaFlowsStaleRecoveryObservedCount) ?? 0),
+  );
+  const healedRecoveryObservedCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.navigatorVisaFlowsHealedRecoveryObservedCount) ?? 0),
+  );
+  const resumedCheckpointCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.navigatorVisaFlowsResumedCheckpointCount) ?? 0),
+  );
+  const checkpointReadyClearedCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.navigatorVisaFlowsCheckpointReadyClearedCount) ?? 0),
+  );
+  const scenarioNames = toStringArray(kpis.navigatorVisaFlowsScenarioNames);
+  const summary = toOptionalString(kpis.navigatorVisaFlowsSummary);
+  const observed =
+    totalFlows > 0 ||
+    succeededFlows > 0 ||
+    scenarioNames.length > 0 ||
+    persistentSessionCount > 0 ||
+    replayBundleCount > 0 ||
+    verifiedCount > 0;
+  const countsConserved = succeededFlows <= totalFlows && scenarioNames.length === totalFlows;
+  const status =
+    validated &&
+    totalFlows >= 3 &&
+    succeededFlows === totalFlows &&
+    successRate >= 1 &&
+    countsConserved &&
+    persistentSessionCount === totalFlows &&
+    replayBundleCount === totalFlows &&
+    verifiedCount === totalFlows &&
+    staleRecoveryObservedCount === totalFlows &&
+    healedRecoveryObservedCount === totalFlows &&
+    resumedCheckpointCount === totalFlows &&
+    checkpointReadyClearedCount === totalFlows
+      ? "pass"
+      : observed
+        ? "fail"
+        : "unavailable";
+
+  return {
+    status,
+    validated,
+    validationMode,
+    realPlaywrightValidated,
+    simulatedValidated,
+    strictPersistentSessionValidated,
+    observed,
+    totalFlows,
+    succeededFlows,
+    successRate,
+    persistentSessionCount,
+    replayBundleCount,
+    verifiedCount,
+    staleRecoveryObservedCount,
+    healedRecoveryObservedCount,
+    resumedCheckpointCount,
+    checkpointReadyClearedCount,
+    scenarioNames,
+    summary,
   };
 }
 
@@ -1101,6 +1704,14 @@ async function main() {
   const agentUsageEvidence = buildAgentUsageEvidence(kpis);
   const runtimeGuardrailsSignalPathsEvidence = buildRuntimeGuardrailsSignalPathsEvidence(kpis);
   const liveTransport = buildLiveTransport(summary, kpis);
+  const caseWikiEvidenceSignature = buildCaseWikiEvidenceSignature(summary);
+  const caseWikiCompliance = buildCaseWikiComplianceEvidence(summary, kpis);
+  const caseWikiRoutingContext = buildCaseWikiRoutingContextEvidence(kpis);
+  const caseWikiGatewayHydration = buildCaseWikiGatewayHydrationEvidence(kpis);
+  const caseWikiContextAdoption = buildCaseWikiContextAdoptionEvidence(kpis);
+  const uiRefHealing = buildUiRefHealingEvidence(kpis);
+  const browserWorkerRecovery = buildBrowserWorkerRecoveryEvidence(kpis);
+  const navigatorVisaFlows = buildNavigatorVisaFlowsEvidence(kpis);
   const providerUsage = buildProviderUsage(kpis);
 
   let color = "red";
@@ -1147,6 +1758,14 @@ async function main() {
       deviceNodes: deviceNodesEvidence,
       agentUsage: agentUsageEvidence,
       runtimeGuardrailsSignalPaths: runtimeGuardrailsSignalPathsEvidence,
+      caseWikiEvidenceSignature,
+      caseWikiCompliance,
+      caseWikiRoutingContext,
+      caseWikiGatewayHydration,
+      caseWikiContextAdoption,
+      uiRefHealing,
+      browserWorkerRecovery,
+      navigatorVisaFlows,
     },
     badge,
   };

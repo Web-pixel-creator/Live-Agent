@@ -51,6 +51,9 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     "renderExportMenuHistory",
     "pushExportHistory",
     "syncExportControlAvailability",
+    "resolveOperatorCaseWikiComplianceExportGate",
+    "denyOperatorCaseWikiComplianceExport",
+    "buildComplianceArtifactDetailText",
     "closeExportMenu",
     "buildSessionExportPayload",
     "buildSessionExportRuntimeGuardrailsEvidence",
@@ -76,6 +79,10 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     "operatorDiscovery",
     "operatorCaseWiki",
     "liveTransport",
+    "latestContextSource:",
+    "latestContextIngressSource:",
+    "latestVerifiedContextSource:",
+    "latestVerifiedContextIngressSource:",
     "## Operator Purpose",
     "## Session Replay",
     "## Case Wiki",
@@ -94,6 +101,9 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     "previewPack:",
     "workspacePack:",
     "operatorPreviewPack:",
+    "remediationPreview:",
+    "compliance:",
+    "auditLog:",
     "evidencePackRefs:",
     "evidencePackProofs:",
     "evidencePackQuestions:",
@@ -102,6 +112,7 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     "focusedHandoffBlock:",
     "focusedHandoffRefs:",
     "focusedRoutingBlock:",
+    "focusedRemediationDraft:",
     "focusedRoutingLane:",
     "focusedRoutingApproval:",
     "focusedRoutingCta:",
@@ -111,9 +122,24 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     "historyStatus:",
     "lifecycleCounts:",
     "exported markdown",
+    "session export blocked",
+    "case wiki export blocked",
+    "Case Wiki export is blocked until raw evidence refs are redacted",
+    "Case Wiki export is blocked until evidence signing passes.",
+    "Case Wiki export is ready.",
+    "artifactPosture",
+    "remediation",
+    "primaryAction",
+    "operatorActionLabel",
+    "blockingRefs",
+    "Blocking refs:",
+    "buildComplianceRemediationNextStepText",
+    "Next step:",
     "no audio",
     "No exports yet",
     "EXPORT_HISTORY_LIMIT",
+    "el.exportMarkdownBtn.disabled = exportBlocked;",
+    "el.exportJsonBtn.disabled = exportBlocked;",
     "el.exportAudioBtn.disabled = !hasAudioEvidence;",
     "Assistant playback evidence (capture required)",
     "formatLocalizedTurnCount",
@@ -161,6 +187,8 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     operatorGuideSource.includes("`operatorCaseWiki`"),
     "operator guide missing operator case wiki export note",
   );
+  assert.match(operatorGuideSource, /compliance/i, "operator guide missing operator case wiki compliance export note");
+  assert.match(operatorGuideSource, /auditLog/i, "operator guide missing operator case wiki audit export note");
   assert.match(
     operatorGuideSource,
     /focused handoff block/i,
@@ -171,12 +199,33 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     /focused routing/i,
     "operator guide missing focused routing export note",
   );
+  assert.match(
+    operatorGuideSource,
+    /focused remediation/i,
+    "operator guide missing focused remediation export note",
+  );
   assert.ok(
     readmeSource.includes("`runtimeGuardrailsSignalPaths`"),
     "README missing runtime guardrails session export note",
   );
   assert.ok(readmeSource.includes("`operatorPurpose`"), "README missing operator purpose export note");
   assert.ok(readmeSource.includes("`operatorCaseWiki`"), "README missing operator case wiki export note");
+  assert.match(readmeSource, /compliance/i, "README missing operator case wiki compliance export note");
   assert.match(readmeSource, /focused handoff block/i, "README missing focused handoff export note");
   assert.match(readmeSource, /focused routing/i, "README missing focused routing export note");
+  assert.match(readmeSource, /focused remediation/i, "README missing focused remediation export note");
+  assert.match(readmeSource, /auditLog/i, "README missing operator case wiki audit export note");
+  assert.ok(
+    readmeSource.includes("`compliance.enforcement.exportReady=false`"),
+    "README missing compliance export gate enforcement note",
+  );
+  assert.ok(readmeSource.includes("`compliance.enforcement.remediation.primaryAction`"), "README missing compliance remediation primary action note");
+  assert.ok(
+    operatorGuideSource.includes("`compliance.enforcement.exportReady=false`"),
+    "operator guide missing compliance export gate enforcement note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("`compliance.enforcement.remediation.primaryAction`"),
+    "operator guide missing compliance remediation primary action note",
+  );
 });

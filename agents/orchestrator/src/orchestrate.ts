@@ -21,6 +21,7 @@ import {
   getOrchestratorWorkflowConfig,
   getOrchestratorWorkflowExecutionState,
   setOrchestratorWorkflowExecutionState,
+  type OrchestratorCostGuardConfig,
   type OrchestratorWorkflowRole,
   type OrchestratorWorkflowStage,
 } from "./workflow-store.js";
@@ -52,6 +53,65 @@ function stageReason(stage: OrchestratorWorkflowStage, detail: string): string {
   return `${stage}:${detail}`;
 }
 
+type RoutingEventMetadata = Pick<
+  AssistiveRoutingDecision,
+  | "route"
+  | "requestedIntent"
+  | "routedIntent"
+  | "mode"
+  | "contextSource"
+  | "contextIngressSource"
+  | "contextFocusId"
+  | "contextBlocker"
+  | "contextNextAction"
+>;
+
+function buildRoutingEventMetadata(routing?: RoutingEventMetadata | null): Record<string, unknown> {
+  if (!routing) {
+    return {};
+  }
+  return {
+    routingRequestedIntent: routing.requestedIntent,
+    routingRoutedIntent: routing.routedIntent,
+    routingMode: routing.mode,
+    routingContextSource: routing.contextSource,
+    routingContextIngressSource: routing.contextIngressSource,
+    routingContextFocusId: routing.contextFocusId,
+    routingContextBlocker: routing.contextBlocker,
+    routingContextNextAction: routing.contextNextAction,
+  };
+}
+
+function buildWorkflowRoutingContextState(
+  routing?: RoutingEventMetadata | null,
+  route?: string | null,
+): NonNullable<ReturnType<typeof getOrchestratorWorkflowExecutionState>["latestCaseWikiRoutingContext"]> | null {
+  if (!routing || routing.contextSource !== "case_wiki") {
+    return null;
+  }
+  return {
+    observed: true,
+    updatedAt: new Date().toISOString(),
+    contextSource: routing.contextSource,
+    ingressSource: routing.contextIngressSource,
+    focusId: routing.contextFocusId,
+    blocker: routing.contextBlocker,
+    nextAction: routing.contextNextAction,
+    route: route ?? routing.route ?? null,
+    mode: routing.mode,
+    requestedIntent: routing.requestedIntent,
+    routedIntent: routing.routedIntent,
+  };
+}
+
+function buildWorkflowRoutingContextPatch(
+  routing?: RoutingEventMetadata | null,
+  route?: string | null,
+): Pick<ReturnType<typeof getOrchestratorWorkflowExecutionState>, "latestCaseWikiRoutingContext"> | Record<string, never> {
+  const latestCaseWikiRoutingContext = buildWorkflowRoutingContextState(routing, route);
+  return latestCaseWikiRoutingContext ? { latestCaseWikiRoutingContext } : {};
+}
+
 async function persistWorkflowStageTransition(params: {
   request: OrchestratorRequest;
   taskId: string | null;
@@ -59,6 +119,7 @@ async function persistWorkflowStageTransition(params: {
   status: "running" | "pending_approval" | "completed" | "failed";
   reason: string;
   route: string | null;
+  routing?: RoutingEventMetadata | null;
 }): Promise<void> {
   const activeRole = WORKFLOW_STAGE_ROLES[params.stage];
   setOrchestratorWorkflowExecutionState({
@@ -71,6 +132,7 @@ async function persistWorkflowStageTransition(params: {
     intent: params.request.payload.intent,
     route: params.route,
     reason: params.reason,
+    ...buildWorkflowRoutingContextPatch(params.routing, params.route),
   });
   await persistEvent(
     createEnvelope({
@@ -89,6 +151,7 @@ async function persistWorkflowStageTransition(params: {
         activeRole,
         status: params.status,
         reason: params.reason,
+        ...buildRoutingEventMetadata(params.routing),
         updatedAt: new Date().toISOString(),
       },
     }),
@@ -115,6 +178,23 @@ function toNonEmptyString(value: unknown): string | null {
   }
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : null;
+}
+
+function toFiniteNumber(value: unknown): number | null {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function extractRequestCaseWikiIngressSource(
+  request: OrchestratorRequest,
+): AssistiveRoutingDecision["contextIngressSource"] {
+  const metadata = isRecord(request.metadata) ? request.metadata : null;
+  const caseWikiIngress = metadata && isRecord(metadata.caseWikiIngress) ? metadata.caseWikiIngress : null;
+  const source = toNonEmptyString(caseWikiIngress?.source);
+  if (source === "preserved_input_case_wiki" || source === "gateway_hydrated_case_wiki") {
+    return source;
+  }
+  return extractRequestCaseWiki(request.payload.input) ? "preserved_input_case_wiki" : null;
 }
 
 function sanitizeIdempotencyToken(value: string): string {
@@ -273,8 +353,9 @@ async function persistTaskStatus(params: {
   status: TaskStatus;
   stage: string;
   error?: unknown;
+  routing?: RoutingEventMetadata | null;
 }): Promise<void> {
-  const route = params.response?.payload.route ?? null;
+  const route = params.response?.payload.route ?? params.routing?.route ?? null;
   const activeRole =
     params.stage === "intake" ||
     params.stage === "planning" ||
@@ -300,6 +381,7 @@ async function persistTaskStatus(params: {
       workflowStage: params.stage,
       activeRole,
       error: params.error ?? null,
+      ...buildRoutingEventMetadata(params.routing),
       updatedAt: new Date().toISOString(),
     },
   });
@@ -332,6 +414,26 @@ type DelegationRequest = {
   intent: "story" | "ui_task";
   input: unknown;
   reason: string;
+};
+
+type RuntimeBudgetGuardAction = "allow" | "short_context" | "approval_required";
+
+type RuntimeBudgetGuardDecision = {
+  enabled: boolean;
+  status: "disabled" | "not_applicable" | "within_budget" | "degraded" | "approval_required";
+  action: RuntimeBudgetGuardAction;
+  reason: string;
+  source: "caseWiki.workspacePack.costSummary" | "missing";
+  pricingConfigured: boolean;
+  totalUsd: number | null;
+  totalTokens: number | null;
+  maxCaseUsd: number;
+  maxCaseTokens: number;
+  degradeAtRatio: number;
+  requireApproval: boolean;
+  shortContextPreferred: boolean;
+  approvalRequired: boolean;
+  exceeded: string[];
 };
 
 type BookingFlowSnapshot = {
@@ -594,6 +696,7 @@ function mergeDelegationResult(
 function withRoutingMetadata(
   response: OrchestratorResponse,
   routing: AssistiveRoutingDecision,
+  budgetGuard?: RuntimeBudgetGuardDecision,
 ): OrchestratorResponse {
   const output = isRecord(response.payload.output)
     ? response.payload.output
@@ -621,8 +724,14 @@ function withRoutingMetadata(
           selectionReason: routing.selectionReason,
           budgetPolicy: routing.budgetPolicy,
           promptCaching: routing.promptCaching,
-          watchlistEnabled: routing.watchlistEnabled,
-        },
+        watchlistEnabled: routing.watchlistEnabled,
+        contextSource: routing.contextSource,
+        contextIngressSource: routing.contextIngressSource,
+        contextFocusId: routing.contextFocusId,
+        contextBlocker: routing.contextBlocker,
+        contextNextAction: routing.contextNextAction,
+      },
+        ...(budgetGuard ? { runtimeBudgetGuard: budgetGuard } : {}),
       },
     },
   };
@@ -644,11 +753,243 @@ function withRoutedIntent(
   };
 }
 
+function buildRuntimeBudgetApprovalResponse(params: {
+  request: OrchestratorRequest;
+  routing: AssistiveRoutingDecision;
+  budgetGuard: RuntimeBudgetGuardDecision;
+}): OrchestratorResponse {
+  const approvalId = `approval-${params.request.runId ?? params.request.id}-cost-budget`;
+  return withRoutingMetadata(
+    createEnvelope({
+      userId: params.request.userId,
+      sessionId: params.request.sessionId,
+      runId: params.request.runId ?? params.request.id,
+      type: "orchestrator.response",
+      source: "orchestrator",
+      payload: {
+        route: params.routing.route,
+        status: "accepted",
+        output: {
+          approvalRequired: true,
+          approvalId,
+          approvalReason: "runtime_cost_budget_guard",
+          message:
+            "Runtime budget guard paused this route because the compiled Case Wiki cost summary exceeded the configured case budget.",
+          runtimeBudgetGuard: params.budgetGuard,
+        },
+      },
+    }) as OrchestratorResponse,
+    params.routing,
+    params.budgetGuard,
+  );
+}
+
+function extractRequestCaseWiki(input: unknown): Record<string, unknown> | null {
+  if (!isRecord(input)) {
+    return null;
+  }
+  for (const key of ["caseWiki", "caseWikiSnapshot", "runtimeCaseWiki", "compiledCaseWiki"]) {
+    const candidate = input[key];
+    if (isRecord(candidate)) {
+      return candidate;
+    }
+  }
+  const context = isRecord(input.context) ? input.context : null;
+  return context && isRecord(context.caseWiki) ? context.caseWiki : null;
+}
+
+function extractCaseWikiCostSummary(input: unknown): Record<string, unknown> | null {
+  const caseWiki = extractRequestCaseWiki(input);
+  if (!caseWiki) {
+    return null;
+  }
+  const workspacePack = isRecord(caseWiki.workspacePack) ? caseWiki.workspacePack : null;
+  if (workspacePack && isRecord(workspacePack.costSummary)) {
+    return workspacePack.costSummary;
+  }
+  return isRecord(caseWiki.costSummary) ? caseWiki.costSummary : null;
+}
+
+function evaluateRuntimeBudgetGuard(
+  config: OrchestratorCostGuardConfig,
+  request: OrchestratorRequest,
+): RuntimeBudgetGuardDecision {
+  const baseDecision = {
+    enabled: config.enabled,
+    maxCaseUsd: config.maxCaseUsd,
+    maxCaseTokens: config.maxCaseTokens,
+    degradeAtRatio: config.degradeAtRatio,
+    requireApproval: config.requireApproval,
+    pricingConfigured: false,
+    totalUsd: null,
+    totalTokens: null,
+    exceeded: [],
+  };
+
+  if (!config.enabled) {
+    return {
+      ...baseDecision,
+      status: "disabled",
+      action: "allow",
+      reason: "cost_guard_disabled",
+      source: "missing",
+      shortContextPreferred: false,
+      approvalRequired: false,
+    };
+  }
+
+  const costSummary = extractCaseWikiCostSummary(request.payload.input);
+  if (!costSummary) {
+    return {
+      ...baseDecision,
+      status: "not_applicable",
+      action: "allow",
+      reason: "case_wiki_cost_summary_missing",
+      source: "missing",
+      shortContextPreferred: false,
+      approvalRequired: false,
+    };
+  }
+
+  const pricingConfigured = costSummary.pricingConfigured === true;
+  const totalUsd = pricingConfigured ? toFiniteNumber(costSummary.totalUsd) : null;
+  const totalTokens = toFiniteNumber(costSummary.totalTokens);
+  const hardExceeded: string[] = [];
+  const softExceeded: string[] = [];
+  const softUsd = config.maxCaseUsd * config.degradeAtRatio;
+  const softTokens = config.maxCaseTokens * config.degradeAtRatio;
+
+  if (totalUsd !== null && totalUsd > config.maxCaseUsd) {
+    hardExceeded.push("usd");
+  } else if (totalUsd !== null && totalUsd >= softUsd) {
+    softExceeded.push("usd");
+  }
+
+  if (totalTokens !== null && totalTokens > config.maxCaseTokens) {
+    hardExceeded.push("tokens");
+  } else if (totalTokens !== null && totalTokens >= softTokens) {
+    softExceeded.push("tokens");
+  }
+
+  if (hardExceeded.length > 0 && config.requireApproval) {
+    return {
+      ...baseDecision,
+      status: "approval_required",
+      action: "approval_required",
+      reason: `case_wiki_cost_guard_hard_limit:${hardExceeded.join(",")}`,
+      source: "caseWiki.workspacePack.costSummary",
+      pricingConfigured,
+      totalUsd,
+      totalTokens,
+      exceeded: hardExceeded,
+      shortContextPreferred: true,
+      approvalRequired: true,
+    };
+  }
+
+  if (hardExceeded.length > 0 || softExceeded.length > 0) {
+    const exceeded = hardExceeded.length > 0 ? hardExceeded : softExceeded;
+    return {
+      ...baseDecision,
+      status: "degraded",
+      action: "short_context",
+      reason: `case_wiki_cost_guard_${hardExceeded.length > 0 ? "hard" : "soft"}_limit:${exceeded.join(",")}`,
+      source: "caseWiki.workspacePack.costSummary",
+      pricingConfigured,
+      totalUsd,
+      totalTokens,
+      exceeded,
+      shortContextPreferred: true,
+      approvalRequired: false,
+    };
+  }
+
+  return {
+    ...baseDecision,
+    status: "within_budget",
+    action: "allow",
+    reason: "case_wiki_cost_guard_within_budget",
+    source: "caseWiki.workspacePack.costSummary",
+    pricingConfigured,
+    totalUsd,
+    totalTokens,
+    shortContextPreferred: false,
+    approvalRequired: false,
+  };
+}
+
+function buildBudgetGuardRoutingDecision(
+  request: OrchestratorRequest,
+  config: ReturnType<typeof getOrchestratorWorkflowConfig>["assistiveRouter"],
+  reason: string,
+): AssistiveRoutingDecision {
+  const hasCaseWikiContext = extractRequestCaseWiki(request.payload.input) !== null;
+  return {
+    requestedIntent: request.payload.intent,
+    routedIntent: request.payload.intent,
+    route: routeIntent(request.payload.intent),
+    mode: "deterministic",
+    reason,
+    confidence: 1,
+    provider: config.provider,
+    defaultProvider: "gemini_api",
+    model: config.model,
+    defaultModel: "gemini-3.1-flash-lite-preview",
+    selectionReason: "cost_guard",
+    budgetPolicy: config.budgetPolicy,
+    promptCaching: config.promptCaching,
+    watchlistEnabled: config.watchlistEnabled,
+    contextSource: hasCaseWikiContext ? "case_wiki" : "input_only",
+    contextIngressSource: hasCaseWikiContext ? extractRequestCaseWikiIngressSource(request) : null,
+    contextFocusId: null,
+    contextBlocker: null,
+    contextNextAction: null,
+  };
+}
+
+function withRuntimeBudgetGuardInput(
+  request: OrchestratorRequest,
+  budgetGuard: RuntimeBudgetGuardDecision,
+): OrchestratorRequest {
+  if (!isRecord(request.payload.input)) {
+    return request;
+  }
+  return {
+    ...request,
+    payload: {
+      ...request.payload,
+      input: {
+        ...request.payload.input,
+        runtimeBudgetGuard: budgetGuard,
+      },
+    },
+  };
+}
+
+function mergeDelegatedInputWithCaseWiki(
+  delegatedInput: unknown,
+  sourceInput: unknown,
+): Record<string, unknown> {
+  const base = isRecord(delegatedInput) ? delegatedInput : {};
+  if (isRecord(base.caseWiki)) {
+    return base;
+  }
+  const caseWiki = extractRequestCaseWiki(sourceInput);
+  return caseWiki ? { ...base, caseWiki } : base;
+}
+
 async function orchestrateCore(request: OrchestratorRequest): Promise<OrchestratorResponse> {
   const baseRequest = ensureRunId(request);
   const workflow = getOrchestratorWorkflowConfig();
-  const routing = await resolveAssistiveRoute(baseRequest, workflow.assistiveRouter);
-  const normalizedRequest = withRoutedIntent(baseRequest, routing.routedIntent);
+  const budgetGuard = evaluateRuntimeBudgetGuard(workflow.costGuard, baseRequest);
+  const routing =
+    budgetGuard.action === "allow"
+      ? await resolveAssistiveRoute(baseRequest, workflow.assistiveRouter)
+      : buildBudgetGuardRoutingDecision(baseRequest, workflow.assistiveRouter, budgetGuard.reason);
+  const normalizedRequest = withRuntimeBudgetGuardInput(
+    withRoutedIntent(baseRequest, routing.routedIntent),
+    budgetGuard,
+  );
   const taskContext = extractTaskContext(normalizedRequest);
   const taskId = taskContext?.taskId ?? null;
 
@@ -659,6 +1000,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
       taskId: taskContext.taskId,
       status: "running",
       stage: "intake",
+      routing,
     });
   }
 
@@ -669,6 +1011,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
     status: "running",
     reason: stageReason("intake", "request received"),
     route: null,
+    routing,
   });
   await persistWorkflowStageTransition({
     request: normalizedRequest,
@@ -677,6 +1020,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
     status: "running",
     reason: stageReason("planning", routing.reason),
     route: routing.route,
+    routing,
   });
 
   const route = routing.route;
@@ -689,7 +1033,47 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
       status: "running",
       reason: stageReason("safety_review", `preparing ${route}`),
       route,
+      routing,
     });
+    if (budgetGuard.action === "approval_required") {
+      await persistWorkflowStageTransition({
+        request: normalizedRequest,
+        taskId,
+        stage: "safety_review",
+        status: "pending_approval",
+        reason: stageReason("safety_review", budgetGuard.reason),
+        route,
+        routing,
+      });
+      let budgetResponse = buildRuntimeBudgetApprovalResponse({
+        request: normalizedRequest,
+        routing,
+        budgetGuard,
+      });
+      if (taskContext) {
+        await persistTaskStatus({
+          request: normalizedRequest,
+          response: budgetResponse,
+          taskId: taskContext.taskId,
+          status: "pending_approval",
+          stage: "safety_review",
+          routing,
+        });
+        budgetResponse = {
+          ...budgetResponse,
+          payload: {
+            ...budgetResponse.payload,
+            task: buildWorkflowTaskMetadata({
+              taskId: taskContext.taskId,
+              status: "pending_approval",
+              route,
+            }),
+          },
+        };
+      }
+      await persistEvent(budgetResponse);
+      return budgetResponse;
+    }
     await persistWorkflowStageTransition({
       request: normalizedRequest,
       taskId,
@@ -697,6 +1081,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
       status: "running",
       reason: stageReason("execution", `dispatching ${route}`),
       route,
+      routing,
     });
     response = await executeRoute({
       route,
@@ -728,6 +1113,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
           error.retryDecision.classification === "continuation"
             ? "route awaiting retry"
             : "route failed",
+        ...buildWorkflowRoutingContextPatch(routing, route),
       });
       await persistTaskStatus({
         request: normalizedRequest,
@@ -735,11 +1121,12 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
         status: "failed",
         stage,
         error: normalized,
+        routing,
       });
     }
     throw error;
   }
-  response = withRoutingMetadata(response, routing);
+  response = withRoutingMetadata(response, routing, budgetGuard);
 
   const delegation = extractDelegationRequest(response);
   if (delegation) {
@@ -753,7 +1140,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
       ts: new Date().toISOString(),
       payload: {
         intent: delegation.intent,
-        input: delegation.input ?? {},
+        input: mergeDelegatedInputWithCaseWiki(delegation.input, normalizedRequest.payload.input),
       },
     };
     await persistEvent(delegatedRequest);
@@ -806,6 +1193,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
             error.retryDecision.classification === "continuation"
               ? "delegated route awaiting retry"
               : "delegated route failed",
+          ...buildWorkflowRoutingContextPatch(routing, delegatedRoute),
         });
         await persistTaskStatus({
           request: normalizedRequest,
@@ -813,6 +1201,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
           status: "failed",
           stage,
           error: normalized,
+          routing,
         });
       }
       throw error;
@@ -820,7 +1209,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
     await persistEvent(delegatedResponse);
 
     response = mergeDelegationResult(response, delegatedResponse, delegation, delegatedRoute);
-    response = withRoutingMetadata(response, routing);
+    response = withRoutingMetadata(response, routing, budgetGuard);
   }
 
   const bookingSnapshot = extractBookingSnapshot(response);
@@ -868,6 +1257,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
             ? stageReason(finalStage, "response verified and ready to report")
             : stageReason(finalStage, "response reported with errors"),
       route,
+      routing,
     });
     await persistTaskStatus({
       request: normalizedRequest,
@@ -876,6 +1266,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
       status: mappedStatus,
       stage: finalStage,
       error: response.payload.error ?? null,
+      routing,
     });
     response = {
       ...response,

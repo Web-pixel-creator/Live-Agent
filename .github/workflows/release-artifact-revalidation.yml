@@ -686,6 +686,33 @@ jobs:
           $badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus = "unavailable"
           $badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths = 0
           $badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath = $null
+          $badgeEvidenceCaseWikiRoutingContextStatus = "unavailable"
+          $badgeEvidenceCaseWikiRoutingContextValidated = $false
+          $badgeEvidenceCaseWikiRoutingContextObserved = $false
+          $badgeEvidenceCaseWikiRoutingContextSource = $null
+          $badgeEvidenceCaseWikiRoutingContextFocusId = $null
+          $badgeEvidenceCaseWikiRoutingContextBlocker = $null
+          $badgeEvidenceCaseWikiRoutingContextNextAction = $null
+          $badgeEvidenceCaseWikiRoutingContextRoute = $null
+          $badgeEvidenceCaseWikiRoutingContextMode = $null
+          $badgeEvidenceCaseWikiRoutingContextRequestedIntent = $null
+          $badgeEvidenceCaseWikiRoutingContextRoutedIntent = $null
+          $badgeEvidenceCaseWikiRuntimeSurfaceIngressStatus = "unavailable"
+          $badgeEvidenceCaseWikiRuntimeSurfaceIngressContextSource = $null
+          $badgeEvidenceCaseWikiRuntimeSurfaceIngressIngressSource = $null
+          $badgeEvidenceCaseWikiRuntimeSurfaceIngressFocusId = $null
+          $badgeEvidenceCaseWikiRuntimeSurfaceIngressBlocker = $null
+          $badgeEvidenceCaseWikiRuntimeSurfaceIngressNextAction = $null
+          $badgeEvidenceCaseWikiRuntimeSurfaceIngressRoute = $null
+          $badgeEvidenceCaseWikiRuntimeSurfaceIngressUpdatedAt = $null
+          $badgeEvidenceCaseWikiContextAdoptionStatus = "unavailable"
+          $badgeEvidenceCaseWikiContextAdoptionValidated = $false
+          $badgeEvidenceCaseWikiContextAdoptionObserved = $false
+          $badgeEvidenceCaseWikiContextAdoptionObservedCount = 0
+          $badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount = 0
+          $badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount = 0
+          $badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount = 0
+          $badgeEvidenceCaseWikiContextAdoptionCaseWikiRate = $null
           $badgeEvidenceProviderUsageStatus = "unavailable"
           $badgeEvidenceProviderUsageValidated = $false
           $badgeEvidenceProviderUsageActiveSecondaryProviders = 0
@@ -707,6 +734,15 @@ jobs:
           $railwayDeploySummaryRootDescriptorExpectedUiUrl = $null
           $railwayDeploySummaryPublicBadgeAttempted = $null
           $railwayDeploySummaryPublicBadgeSkipped = $null
+          $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus = "unavailable"
+          $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved = $false
+          $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource = $null
+          $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource = $null
+          $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId = $null
+          $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker = $null
+          $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction = $null
+          $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute = $null
+          $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = $null
           $repoPublishSummaryBranch = $null
           $repoPublishSummaryRemoteName = $null
           $repoPublishSummaryVerificationScript = $null
@@ -729,6 +765,15 @@ jobs:
           $repoPublishSummaryArtifactReleaseEvidenceReportJson = $null
           $repoPublishSummaryArtifactReleaseEvidenceManifestJson = $null
           $repoPublishSummaryArtifactBadgeDetailsJson = $null
+          $repoPublishSummaryCaseWikiRuntimeSurfaceIngressStatus = "unavailable"
+          $repoPublishSummaryCaseWikiRuntimeSurfaceIngressObserved = $false
+          $repoPublishSummaryCaseWikiRuntimeSurfaceIngressContextSource = $null
+          $repoPublishSummaryCaseWikiRuntimeSurfaceIngressIngressSource = $null
+          $repoPublishSummaryCaseWikiRuntimeSurfaceIngressFocusId = $null
+          $repoPublishSummaryCaseWikiRuntimeSurfaceIngressBlocker = $null
+          $repoPublishSummaryCaseWikiRuntimeSurfaceIngressNextAction = $null
+          $repoPublishSummaryCaseWikiRuntimeSurfaceIngressRoute = $null
+          $repoPublishSummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = $null
           $badgeEvidenceOperatorTurnTruncationStatus = "unavailable"
           $badgeEvidenceOperatorTurnDeleteStatus = "unavailable"
           if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.source -and $null -ne $releaseEvidenceReport.source.badgeDetailsPresent) {
@@ -762,6 +807,15 @@ jobs:
             if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.runtimeGuardrailsSignalPathsStatus)) {
               $badgeEvidenceRuntimeGuardrailsSignalPathsStatus = [string]$releaseEvidenceReport.statuses.runtimeGuardrailsSignalPathsStatus
             }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.caseWikiRoutingContextStatus)) {
+              $badgeEvidenceCaseWikiRoutingContextStatus = [string]$releaseEvidenceReport.statuses.caseWikiRoutingContextStatus
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.caseWikiRuntimeSurfaceIngressStatus)) {
+              $badgeEvidenceCaseWikiRuntimeSurfaceIngressStatus = [string]$releaseEvidenceReport.statuses.caseWikiRuntimeSurfaceIngressStatus
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.caseWikiContextAdoptionStatus)) {
+              $badgeEvidenceCaseWikiContextAdoptionStatus = [string]$releaseEvidenceReport.statuses.caseWikiContextAdoptionStatus
+            }
             if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.providerUsageStatus)) {
               $badgeEvidenceProviderUsageStatus = [string]$releaseEvidenceReport.statuses.providerUsageStatus
             }
@@ -778,6 +832,91 @@ jobs:
             }
             if ($null -ne $releaseEvidenceReport.runtimeGuardrailsSignalPaths.primaryPath) {
               $badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath = $releaseEvidenceReport.runtimeGuardrailsSignalPaths.primaryPath
+            }
+          }
+          if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.caseWikiRoutingContext) {
+            $badgeEvidenceCaseWikiRoutingContextValidated = ($releaseEvidenceReport.caseWikiRoutingContext.validated -eq $true)
+            $badgeEvidenceCaseWikiRoutingContextObserved = ($releaseEvidenceReport.caseWikiRoutingContext.observed -eq $true)
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.contextSource)) {
+              $badgeEvidenceCaseWikiRoutingContextSource = [string]$releaseEvidenceReport.caseWikiRoutingContext.contextSource
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.focusId)) {
+              $badgeEvidenceCaseWikiRoutingContextFocusId = [string]$releaseEvidenceReport.caseWikiRoutingContext.focusId
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.blocker)) {
+              $badgeEvidenceCaseWikiRoutingContextBlocker = [string]$releaseEvidenceReport.caseWikiRoutingContext.blocker
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.nextAction)) {
+              $badgeEvidenceCaseWikiRoutingContextNextAction = [string]$releaseEvidenceReport.caseWikiRoutingContext.nextAction
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.route)) {
+              $badgeEvidenceCaseWikiRoutingContextRoute = [string]$releaseEvidenceReport.caseWikiRoutingContext.route
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.mode)) {
+              $badgeEvidenceCaseWikiRoutingContextMode = [string]$releaseEvidenceReport.caseWikiRoutingContext.mode
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.requestedIntent)) {
+              $badgeEvidenceCaseWikiRoutingContextRequestedIntent = [string]$releaseEvidenceReport.caseWikiRoutingContext.requestedIntent
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.routedIntent)) {
+              $badgeEvidenceCaseWikiRoutingContextRoutedIntent = [string]$releaseEvidenceReport.caseWikiRoutingContext.routedIntent
+            }
+          }
+          if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.caseWikiRuntimeSurfaceIngress) {
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRuntimeSurfaceIngress.contextSource)) {
+              $badgeEvidenceCaseWikiRuntimeSurfaceIngressContextSource = [string]$releaseEvidenceReport.caseWikiRuntimeSurfaceIngress.contextSource
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRuntimeSurfaceIngress.ingressSource)) {
+              $badgeEvidenceCaseWikiRuntimeSurfaceIngressIngressSource = [string]$releaseEvidenceReport.caseWikiRuntimeSurfaceIngress.ingressSource
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRuntimeSurfaceIngress.focusId)) {
+              $badgeEvidenceCaseWikiRuntimeSurfaceIngressFocusId = [string]$releaseEvidenceReport.caseWikiRuntimeSurfaceIngress.focusId
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRuntimeSurfaceIngress.blocker)) {
+              $badgeEvidenceCaseWikiRuntimeSurfaceIngressBlocker = [string]$releaseEvidenceReport.caseWikiRuntimeSurfaceIngress.blocker
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRuntimeSurfaceIngress.nextAction)) {
+              $badgeEvidenceCaseWikiRuntimeSurfaceIngressNextAction = [string]$releaseEvidenceReport.caseWikiRuntimeSurfaceIngress.nextAction
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRuntimeSurfaceIngress.route)) {
+              $badgeEvidenceCaseWikiRuntimeSurfaceIngressRoute = [string]$releaseEvidenceReport.caseWikiRuntimeSurfaceIngress.route
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRuntimeSurfaceIngress.updatedAt)) {
+              $badgeEvidenceCaseWikiRuntimeSurfaceIngressUpdatedAt = [string]$releaseEvidenceReport.caseWikiRuntimeSurfaceIngress.updatedAt
+            }
+          }
+          if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.caseWikiContextAdoption) {
+            $badgeEvidenceCaseWikiContextAdoptionValidated = ($releaseEvidenceReport.caseWikiContextAdoption.validated -eq $true)
+            $badgeEvidenceCaseWikiContextAdoptionObserved = ($releaseEvidenceReport.caseWikiContextAdoption.observed -eq $true)
+            if ($null -ne $releaseEvidenceReport.caseWikiContextAdoption.observedCount) {
+              $parsedObservedCount = 0
+              if ([int]::TryParse([string]$releaseEvidenceReport.caseWikiContextAdoption.observedCount, [ref]$parsedObservedCount) -and $parsedObservedCount -ge 0) {
+                $badgeEvidenceCaseWikiContextAdoptionObservedCount = $parsedObservedCount
+              }
+            }
+            if ($null -ne $releaseEvidenceReport.caseWikiContextAdoption.caseWikiObservedCount) {
+              $parsedCaseWikiObservedCount = 0
+              if ([int]::TryParse([string]$releaseEvidenceReport.caseWikiContextAdoption.caseWikiObservedCount, [ref]$parsedCaseWikiObservedCount) -and $parsedCaseWikiObservedCount -ge 0) {
+                $badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount = $parsedCaseWikiObservedCount
+              }
+            }
+            if ($null -ne $releaseEvidenceReport.caseWikiContextAdoption.inputOnlyObservedCount) {
+              $parsedInputOnlyObservedCount = 0
+              if ([int]::TryParse([string]$releaseEvidenceReport.caseWikiContextAdoption.inputOnlyObservedCount, [ref]$parsedInputOnlyObservedCount) -and $parsedInputOnlyObservedCount -ge 0) {
+                $badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount = $parsedInputOnlyObservedCount
+              }
+            }
+            if ($null -ne $releaseEvidenceReport.caseWikiContextAdoption.unknownObservedCount) {
+              $parsedUnknownObservedCount = 0
+              if ([int]::TryParse([string]$releaseEvidenceReport.caseWikiContextAdoption.unknownObservedCount, [ref]$parsedUnknownObservedCount) -and $parsedUnknownObservedCount -ge 0) {
+                $badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount = $parsedUnknownObservedCount
+              }
+            }
+            if ($null -ne $releaseEvidenceReport.caseWikiContextAdoption.caseWikiRate) {
+              $parsedCaseWikiRate = 0.0
+              if ([double]::TryParse([string]$releaseEvidenceReport.caseWikiContextAdoption.caseWikiRate, [System.Globalization.NumberStyles]::Float, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$parsedCaseWikiRate)) {
+                $badgeEvidenceCaseWikiContextAdoptionCaseWikiRate = $parsedCaseWikiRate
+              }
             }
           }
           if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.providerUsage) {
@@ -844,6 +983,33 @@ jobs:
                 $railwayDeploySummaryBadgeDetailsEndpoint = [string]$railwayDeploySummary.checks.publicBadge.badgeDetailsEndpoint
               }
             }
+            if ($null -ne $railwayDeploySummary.caseWikiRuntimeSurfaceIngress) {
+              if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.status)) {
+                $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.status
+              }
+              $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved = ($railwayDeploySummary.caseWikiRuntimeSurfaceIngress.observed -eq $true)
+              if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.contextSource)) {
+                $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.contextSource
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.ingressSource)) {
+                $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.ingressSource
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.focusId)) {
+                $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.focusId
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.blocker)) {
+                $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.blocker
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.nextAction)) {
+                $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.nextAction
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.route)) {
+                $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.route
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.updatedAt)) {
+                $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = [string]$railwayDeploySummary.caseWikiRuntimeSurfaceIngress.updatedAt
+              }
+            }
           }
           if ($null -ne $repoPublishSummary) {
             if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.branch)) {
@@ -899,6 +1065,33 @@ jobs:
                 $repoPublishSummaryArtifactBadgeDetailsJson = [string]$repoPublishSummary.artifacts.badgeDetailsJson
               }
             }
+            if ($null -ne $repoPublishSummary.caseWikiRuntimeSurfaceIngress) {
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.status)) {
+                $repoPublishSummaryCaseWikiRuntimeSurfaceIngressStatus = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.status
+              }
+              $repoPublishSummaryCaseWikiRuntimeSurfaceIngressObserved = ($repoPublishSummary.caseWikiRuntimeSurfaceIngress.observed -eq $true)
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.contextSource)) {
+                $repoPublishSummaryCaseWikiRuntimeSurfaceIngressContextSource = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.contextSource
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.ingressSource)) {
+                $repoPublishSummaryCaseWikiRuntimeSurfaceIngressIngressSource = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.ingressSource
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.focusId)) {
+                $repoPublishSummaryCaseWikiRuntimeSurfaceIngressFocusId = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.focusId
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.blocker)) {
+                $repoPublishSummaryCaseWikiRuntimeSurfaceIngressBlocker = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.blocker
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.nextAction)) {
+                $repoPublishSummaryCaseWikiRuntimeSurfaceIngressNextAction = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.nextAction
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.route)) {
+                $repoPublishSummaryCaseWikiRuntimeSurfaceIngressRoute = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.route
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.updatedAt)) {
+                $repoPublishSummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = [string]$repoPublishSummary.caseWikiRuntimeSurfaceIngress.updatedAt
+              }
+            }
           }
 
           $gateEvidenceSnapshot = [ordered]@{
@@ -921,6 +1114,15 @@ jobs:
             railwayDeploySummaryRootDescriptorExpectedUiUrl = $railwayDeploySummaryRootDescriptorExpectedUiUrl
             railwayDeploySummaryPublicBadgeAttempted = $railwayDeploySummaryPublicBadgeAttempted
             railwayDeploySummaryPublicBadgeSkipped = $railwayDeploySummaryPublicBadgeSkipped
+            railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus
+            railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved
+            railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource
+            railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource
+            railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId
+            railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker
+            railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction
+            railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute
+            railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt
             repoPublishSummaryPresent = [bool]$repoPublishSummaryPresent
             repoPublishSummaryBranch = $repoPublishSummaryBranch
             repoPublishSummaryRemoteName = $repoPublishSummaryRemoteName
@@ -944,6 +1146,15 @@ jobs:
             repoPublishSummaryArtifactReleaseEvidenceReportJson = $repoPublishSummaryArtifactReleaseEvidenceReportJson
             repoPublishSummaryArtifactReleaseEvidenceManifestJson = $repoPublishSummaryArtifactReleaseEvidenceManifestJson
             repoPublishSummaryArtifactBadgeDetailsJson = $repoPublishSummaryArtifactBadgeDetailsJson
+            repoPublishSummaryCaseWikiRuntimeSurfaceIngressStatus = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressStatus
+            repoPublishSummaryCaseWikiRuntimeSurfaceIngressObserved = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressObserved
+            repoPublishSummaryCaseWikiRuntimeSurfaceIngressContextSource = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressContextSource
+            repoPublishSummaryCaseWikiRuntimeSurfaceIngressIngressSource = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressIngressSource
+            repoPublishSummaryCaseWikiRuntimeSurfaceIngressFocusId = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressFocusId
+            repoPublishSummaryCaseWikiRuntimeSurfaceIngressBlocker = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressBlocker
+            repoPublishSummaryCaseWikiRuntimeSurfaceIngressNextAction = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressNextAction
+            repoPublishSummaryCaseWikiRuntimeSurfaceIngressRoute = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressRoute
+            repoPublishSummaryCaseWikiRuntimeSurfaceIngressUpdatedAt = $repoPublishSummaryCaseWikiRuntimeSurfaceIngressUpdatedAt
             operatorTurnTruncationSummaryValidated = $operatorTurnTruncationSummaryValidated
             operatorTurnDeleteSummaryValidated = $operatorTurnDeleteSummaryValidated
             operatorDamageControlSummaryValidated = $operatorDamageControlSummaryValidated
@@ -963,6 +1174,33 @@ jobs:
             badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus = $badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus
             badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths = $badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths
             badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath = $badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath
+            badgeEvidenceCaseWikiRoutingContextStatus = $badgeEvidenceCaseWikiRoutingContextStatus
+            badgeEvidenceCaseWikiRoutingContextValidated = $badgeEvidenceCaseWikiRoutingContextValidated
+            badgeEvidenceCaseWikiRoutingContextObserved = $badgeEvidenceCaseWikiRoutingContextObserved
+            badgeEvidenceCaseWikiRoutingContextSource = $badgeEvidenceCaseWikiRoutingContextSource
+            badgeEvidenceCaseWikiRoutingContextFocusId = $badgeEvidenceCaseWikiRoutingContextFocusId
+            badgeEvidenceCaseWikiRoutingContextBlocker = $badgeEvidenceCaseWikiRoutingContextBlocker
+            badgeEvidenceCaseWikiRoutingContextNextAction = $badgeEvidenceCaseWikiRoutingContextNextAction
+            badgeEvidenceCaseWikiRoutingContextRoute = $badgeEvidenceCaseWikiRoutingContextRoute
+            badgeEvidenceCaseWikiRoutingContextMode = $badgeEvidenceCaseWikiRoutingContextMode
+            badgeEvidenceCaseWikiRoutingContextRequestedIntent = $badgeEvidenceCaseWikiRoutingContextRequestedIntent
+            badgeEvidenceCaseWikiRoutingContextRoutedIntent = $badgeEvidenceCaseWikiRoutingContextRoutedIntent
+            badgeEvidenceCaseWikiRuntimeSurfaceIngressStatus = $badgeEvidenceCaseWikiRuntimeSurfaceIngressStatus
+            badgeEvidenceCaseWikiRuntimeSurfaceIngressContextSource = $badgeEvidenceCaseWikiRuntimeSurfaceIngressContextSource
+            badgeEvidenceCaseWikiRuntimeSurfaceIngressIngressSource = $badgeEvidenceCaseWikiRuntimeSurfaceIngressIngressSource
+            badgeEvidenceCaseWikiRuntimeSurfaceIngressFocusId = $badgeEvidenceCaseWikiRuntimeSurfaceIngressFocusId
+            badgeEvidenceCaseWikiRuntimeSurfaceIngressBlocker = $badgeEvidenceCaseWikiRuntimeSurfaceIngressBlocker
+            badgeEvidenceCaseWikiRuntimeSurfaceIngressNextAction = $badgeEvidenceCaseWikiRuntimeSurfaceIngressNextAction
+            badgeEvidenceCaseWikiRuntimeSurfaceIngressRoute = $badgeEvidenceCaseWikiRuntimeSurfaceIngressRoute
+            badgeEvidenceCaseWikiRuntimeSurfaceIngressUpdatedAt = $badgeEvidenceCaseWikiRuntimeSurfaceIngressUpdatedAt
+            badgeEvidenceCaseWikiContextAdoptionStatus = $badgeEvidenceCaseWikiContextAdoptionStatus
+            badgeEvidenceCaseWikiContextAdoptionValidated = $badgeEvidenceCaseWikiContextAdoptionValidated
+            badgeEvidenceCaseWikiContextAdoptionObserved = $badgeEvidenceCaseWikiContextAdoptionObserved
+            badgeEvidenceCaseWikiContextAdoptionObservedCount = $badgeEvidenceCaseWikiContextAdoptionObservedCount
+            badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount = $badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount
+            badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount = $badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount
+            badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount = $badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount
+            badgeEvidenceCaseWikiContextAdoptionCaseWikiRate = $badgeEvidenceCaseWikiContextAdoptionCaseWikiRate
             badgeEvidenceProviderUsageStatus = $badgeEvidenceProviderUsageStatus
             badgeEvidenceProviderUsageValidated = $badgeEvidenceProviderUsageValidated
             badgeEvidenceProviderUsageActiveSecondaryProviders = $badgeEvidenceProviderUsageActiveSecondaryProviders
@@ -1029,6 +1267,33 @@ jobs:
           ("runtime_guardrails_signal_paths_summary_status=" + [string]$badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("runtime_guardrails_signal_paths_total_paths=" + [string]$badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("runtime_guardrails_signal_paths_primary_path_title=" + $(if ($null -ne $badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath) { [string]$badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath.title } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_status=" + [string]$badgeEvidenceCaseWikiRoutingContextStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_validated=" + $(if ($badgeEvidenceCaseWikiRoutingContextValidated) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_observed=" + $(if ($badgeEvidenceCaseWikiRoutingContextObserved) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_source=" + $(if ($null -ne $badgeEvidenceCaseWikiRoutingContextSource) { [string]$badgeEvidenceCaseWikiRoutingContextSource } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_focus_id=" + $(if ($null -ne $badgeEvidenceCaseWikiRoutingContextFocusId) { [string]$badgeEvidenceCaseWikiRoutingContextFocusId } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_blocker=" + $(if ($null -ne $badgeEvidenceCaseWikiRoutingContextBlocker) { [string]$badgeEvidenceCaseWikiRoutingContextBlocker } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_next_action=" + $(if ($null -ne $badgeEvidenceCaseWikiRoutingContextNextAction) { [string]$badgeEvidenceCaseWikiRoutingContextNextAction } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_route=" + $(if ($null -ne $badgeEvidenceCaseWikiRoutingContextRoute) { [string]$badgeEvidenceCaseWikiRoutingContextRoute } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_mode=" + $(if ($null -ne $badgeEvidenceCaseWikiRoutingContextMode) { [string]$badgeEvidenceCaseWikiRoutingContextMode } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_requested_intent=" + $(if ($null -ne $badgeEvidenceCaseWikiRoutingContextRequestedIntent) { [string]$badgeEvidenceCaseWikiRoutingContextRequestedIntent } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_routed_intent=" + $(if ($null -ne $badgeEvidenceCaseWikiRoutingContextRoutedIntent) { [string]$badgeEvidenceCaseWikiRoutingContextRoutedIntent } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_runtime_surface_ingress_status=" + [string]$badgeEvidenceCaseWikiRuntimeSurfaceIngressStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_runtime_surface_ingress_context_source=" + $(if ($null -ne $badgeEvidenceCaseWikiRuntimeSurfaceIngressContextSource) { [string]$badgeEvidenceCaseWikiRuntimeSurfaceIngressContextSource } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_runtime_surface_ingress_ingress_source=" + $(if ($null -ne $badgeEvidenceCaseWikiRuntimeSurfaceIngressIngressSource) { [string]$badgeEvidenceCaseWikiRuntimeSurfaceIngressIngressSource } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_runtime_surface_ingress_focus_id=" + $(if ($null -ne $badgeEvidenceCaseWikiRuntimeSurfaceIngressFocusId) { [string]$badgeEvidenceCaseWikiRuntimeSurfaceIngressFocusId } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_runtime_surface_ingress_blocker=" + $(if ($null -ne $badgeEvidenceCaseWikiRuntimeSurfaceIngressBlocker) { [string]$badgeEvidenceCaseWikiRuntimeSurfaceIngressBlocker } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_runtime_surface_ingress_next_action=" + $(if ($null -ne $badgeEvidenceCaseWikiRuntimeSurfaceIngressNextAction) { [string]$badgeEvidenceCaseWikiRuntimeSurfaceIngressNextAction } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_runtime_surface_ingress_route=" + $(if ($null -ne $badgeEvidenceCaseWikiRuntimeSurfaceIngressRoute) { [string]$badgeEvidenceCaseWikiRuntimeSurfaceIngressRoute } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_runtime_surface_ingress_updated_at=" + $(if ($null -ne $badgeEvidenceCaseWikiRuntimeSurfaceIngressUpdatedAt) { [string]$badgeEvidenceCaseWikiRuntimeSurfaceIngressUpdatedAt } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_context_adoption_status=" + [string]$badgeEvidenceCaseWikiContextAdoptionStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_context_adoption_validated=" + $(if ($badgeEvidenceCaseWikiContextAdoptionValidated) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_context_adoption_observed=" + $(if ($badgeEvidenceCaseWikiContextAdoptionObserved) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_context_adoption_observed_count=" + [string]$badgeEvidenceCaseWikiContextAdoptionObservedCount) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_context_adoption_case_wiki_observed_count=" + [string]$badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_context_adoption_input_only_observed_count=" + [string]$badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_context_adoption_unknown_observed_count=" + [string]$badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_context_adoption_case_wiki_rate=" + $(if ($null -ne $badgeEvidenceCaseWikiContextAdoptionCaseWikiRate) { [string]$badgeEvidenceCaseWikiContextAdoptionCaseWikiRate } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("provider_usage_status=" + [string]$badgeEvidenceProviderUsageStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("provider_usage_validated=" + $(if ($badgeEvidenceProviderUsageValidated) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("provider_usage_active_secondary_providers=" + [string]$badgeEvidenceProviderUsageActiveSecondaryProviders) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
@@ -1051,6 +1316,15 @@ jobs:
           ("railway_deploy_summary_expected_ui_url=" + $(if ($null -ne $railwayDeploySummaryRootDescriptorExpectedUiUrl) { [string]$railwayDeploySummaryRootDescriptorExpectedUiUrl } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("railway_deploy_summary_public_badge_attempted=" + $(if ($null -ne $railwayDeploySummaryPublicBadgeAttempted) { [string]$railwayDeploySummaryPublicBadgeAttempted } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("railway_deploy_summary_public_badge_skipped=" + $(if ($null -ne $railwayDeploySummaryPublicBadgeSkipped) { [string]$railwayDeploySummaryPublicBadgeSkipped } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_case_wiki_runtime_surface_ingress_status=" + [string]$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_case_wiki_runtime_surface_ingress_observed=" + $(if ($railwayDeploySummaryCaseWikiRuntimeSurfaceIngressObserved) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_case_wiki_runtime_surface_ingress_context_source=" + $(if ($null -ne $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource) { [string]$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressContextSource } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_case_wiki_runtime_surface_ingress_ingress_source=" + $(if ($null -ne $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource) { [string]$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressIngressSource } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_case_wiki_runtime_surface_ingress_focus_id=" + $(if ($null -ne $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId) { [string]$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressFocusId } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_case_wiki_runtime_surface_ingress_blocker=" + $(if ($null -ne $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker) { [string]$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressBlocker } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_case_wiki_runtime_surface_ingress_next_action=" + $(if ($null -ne $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction) { [string]$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressNextAction } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_case_wiki_runtime_surface_ingress_route=" + $(if ($null -ne $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute) { [string]$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressRoute } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_case_wiki_runtime_surface_ingress_updated_at=" + $(if ($null -ne $railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt) { [string]$railwayDeploySummaryCaseWikiRuntimeSurfaceIngressUpdatedAt } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("repo_publish_summary_present=" + $(if ($repoPublishSummaryPresent) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("repo_publish_summary_branch=" + $(if ($null -ne $repoPublishSummaryBranch) { [string]$repoPublishSummaryBranch } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("repo_publish_summary_remote_name=" + $(if ($null -ne $repoPublishSummaryRemoteName) { [string]$repoPublishSummaryRemoteName } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
@@ -1074,6 +1348,15 @@ jobs:
           ("repo_publish_summary_artifact_release_evidence_report_json=" + $(if ($null -ne $repoPublishSummaryArtifactReleaseEvidenceReportJson) { [string]$repoPublishSummaryArtifactReleaseEvidenceReportJson } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("repo_publish_summary_artifact_release_evidence_manifest_json=" + $(if ($null -ne $repoPublishSummaryArtifactReleaseEvidenceManifestJson) { [string]$repoPublishSummaryArtifactReleaseEvidenceManifestJson } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("repo_publish_summary_artifact_badge_details_json=" + $(if ($null -ne $repoPublishSummaryArtifactBadgeDetailsJson) { [string]$repoPublishSummaryArtifactBadgeDetailsJson } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_case_wiki_runtime_surface_ingress_status=" + [string]$repoPublishSummaryCaseWikiRuntimeSurfaceIngressStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_case_wiki_runtime_surface_ingress_observed=" + $(if ($repoPublishSummaryCaseWikiRuntimeSurfaceIngressObserved) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_case_wiki_runtime_surface_ingress_context_source=" + $(if ($null -ne $repoPublishSummaryCaseWikiRuntimeSurfaceIngressContextSource) { [string]$repoPublishSummaryCaseWikiRuntimeSurfaceIngressContextSource } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_case_wiki_runtime_surface_ingress_ingress_source=" + $(if ($null -ne $repoPublishSummaryCaseWikiRuntimeSurfaceIngressIngressSource) { [string]$repoPublishSummaryCaseWikiRuntimeSurfaceIngressIngressSource } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_case_wiki_runtime_surface_ingress_focus_id=" + $(if ($null -ne $repoPublishSummaryCaseWikiRuntimeSurfaceIngressFocusId) { [string]$repoPublishSummaryCaseWikiRuntimeSurfaceIngressFocusId } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_case_wiki_runtime_surface_ingress_blocker=" + $(if ($null -ne $repoPublishSummaryCaseWikiRuntimeSurfaceIngressBlocker) { [string]$repoPublishSummaryCaseWikiRuntimeSurfaceIngressBlocker } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_case_wiki_runtime_surface_ingress_next_action=" + $(if ($null -ne $repoPublishSummaryCaseWikiRuntimeSurfaceIngressNextAction) { [string]$repoPublishSummaryCaseWikiRuntimeSurfaceIngressNextAction } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_case_wiki_runtime_surface_ingress_route=" + $(if ($null -ne $repoPublishSummaryCaseWikiRuntimeSurfaceIngressRoute) { [string]$repoPublishSummaryCaseWikiRuntimeSurfaceIngressRoute } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_case_wiki_runtime_surface_ingress_updated_at=" + $(if ($null -ne $repoPublishSummaryCaseWikiRuntimeSurfaceIngressUpdatedAt) { [string]$repoPublishSummaryCaseWikiRuntimeSurfaceIngressUpdatedAt } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           Write-Host ("Source run manifest written: " + $manifestPath)
 
       - name: Run Artifact-Only Release Revalidation (With Perf Artifacts, Standard)
@@ -1134,6 +1417,33 @@ jobs:
           ("Runtime-guardrails-signal-paths summary status (badge evidence): ${{ steps.write_manifest.outputs.runtime_guardrails_signal_paths_summary_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Runtime-guardrails-signal-paths total paths (badge evidence): ${{ steps.write_manifest.outputs.runtime_guardrails_signal_paths_total_paths }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Runtime-guardrails-signal-paths primary path title (badge evidence): ${{ steps.write_manifest.outputs.runtime_guardrails_signal_paths_primary_path_title }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context status (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context validated (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_validated }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context observed (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_observed }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context source (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_source }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context focus id (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_focus_id }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context blocker (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_blocker }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context next action (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_next_action }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context route (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_route }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context mode (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_mode }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context requested intent (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_requested_intent }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context routed intent (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_routed_intent }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-runtime-surface-ingress status (release evidence): ${{ steps.write_manifest.outputs.case_wiki_runtime_surface_ingress_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-runtime-surface-ingress context source (release evidence): ${{ steps.write_manifest.outputs.case_wiki_runtime_surface_ingress_context_source }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-runtime-surface-ingress ingress source (release evidence): ${{ steps.write_manifest.outputs.case_wiki_runtime_surface_ingress_ingress_source }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-runtime-surface-ingress focus id (release evidence): ${{ steps.write_manifest.outputs.case_wiki_runtime_surface_ingress_focus_id }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-runtime-surface-ingress blocker (release evidence): ${{ steps.write_manifest.outputs.case_wiki_runtime_surface_ingress_blocker }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-runtime-surface-ingress next action (release evidence): ${{ steps.write_manifest.outputs.case_wiki_runtime_surface_ingress_next_action }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-runtime-surface-ingress route (release evidence): ${{ steps.write_manifest.outputs.case_wiki_runtime_surface_ingress_route }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-runtime-surface-ingress updated at (release evidence): ${{ steps.write_manifest.outputs.case_wiki_runtime_surface_ingress_updated_at }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-context-adoption status (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_context_adoption_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-context-adoption validated (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_context_adoption_validated }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-context-adoption observed (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_context_adoption_observed }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-context-adoption observed count (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_context_adoption_observed_count }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-context-adoption case-wiki observed count (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_context_adoption_case_wiki_observed_count }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-context-adoption input-only observed count (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_context_adoption_input_only_observed_count }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-context-adoption unknown observed count (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_context_adoption_unknown_observed_count }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-context-adoption case-wiki rate (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_context_adoption_case_wiki_rate }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Provider-usage status (badge evidence): ${{ steps.write_manifest.outputs.provider_usage_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Provider-usage validated (badge evidence): ${{ steps.write_manifest.outputs.provider_usage_validated }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Provider-usage active secondary providers (badge evidence): ${{ steps.write_manifest.outputs.provider_usage_active_secondary_providers }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
@@ -1179,6 +1489,15 @@ jobs:
           ("Repo publish summary artifact release-evidence report JSON: ${{ steps.write_manifest.outputs.repo_publish_summary_artifact_release_evidence_report_json }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Repo publish summary artifact release-evidence manifest JSON: ${{ steps.write_manifest.outputs.repo_publish_summary_artifact_release_evidence_manifest_json }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Repo publish summary artifact badge-details JSON: ${{ steps.write_manifest.outputs.repo_publish_summary_artifact_badge_details_json }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary case-wiki runtime-surface ingress status: ${{ steps.write_manifest.outputs.repo_publish_summary_case_wiki_runtime_surface_ingress_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary case-wiki runtime-surface ingress observed: ${{ steps.write_manifest.outputs.repo_publish_summary_case_wiki_runtime_surface_ingress_observed }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary case-wiki runtime-surface ingress context source: ${{ steps.write_manifest.outputs.repo_publish_summary_case_wiki_runtime_surface_ingress_context_source }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary case-wiki runtime-surface ingress ingress source: ${{ steps.write_manifest.outputs.repo_publish_summary_case_wiki_runtime_surface_ingress_ingress_source }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary case-wiki runtime-surface ingress focus id: ${{ steps.write_manifest.outputs.repo_publish_summary_case_wiki_runtime_surface_ingress_focus_id }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary case-wiki runtime-surface ingress blocker: ${{ steps.write_manifest.outputs.repo_publish_summary_case_wiki_runtime_surface_ingress_blocker }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary case-wiki runtime-surface ingress next action: ${{ steps.write_manifest.outputs.repo_publish_summary_case_wiki_runtime_surface_ingress_next_action }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary case-wiki runtime-surface ingress route: ${{ steps.write_manifest.outputs.repo_publish_summary_case_wiki_runtime_surface_ingress_route }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary case-wiki runtime-surface ingress updated at: ${{ steps.write_manifest.outputs.repo_publish_summary_case_wiki_runtime_surface_ingress_updated_at }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Release evidence report JSON: ${{ steps.release_evidence_report.outputs.report_json_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Release evidence report Markdown: ${{ steps.release_evidence_report.outputs.report_md_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Release evidence manifest JSON: ${{ steps.release_evidence_report.outputs.report_manifest_json_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

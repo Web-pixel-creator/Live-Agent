@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { createEnvelope, type OrchestratorRequest } from "../../shared/contracts/src/index.js";
 import { orchestrate } from "../../agents/orchestrator/src/orchestrate.js";
-import { getOrchestratorWorkflowStoreStatus } from "../../agents/orchestrator/src/workflow-store.js";
+import {
+  getOrchestratorWorkflowStoreStatus,
+  resetOrchestratorWorkflowStoreForTests,
+} from "../../agents/orchestrator/src/workflow-store.js";
 
 function asObject(value: unknown): Record<string, unknown> {
   if (typeof value !== "object" || value === null) {
@@ -12,29 +15,67 @@ function asObject(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
+async function withEnv(
+  overrides: Record<string, string | undefined>,
+  run: () => Promise<void>,
+): Promise<void> {
+  const previous = new Map<string, string | undefined>();
+  for (const [key, value] of Object.entries(overrides)) {
+    previous.set(key, process.env[key]);
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+
+  try {
+    await run();
+  } finally {
+    for (const [key, value] of previous.entries()) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+    resetOrchestratorWorkflowStoreForTests();
+  }
+}
+
 async function startGeminiMockServer(responseText: string): Promise<{
   baseUrl: string;
   close: () => Promise<void>;
+  requestBodies: Array<Record<string, unknown>>;
 }> {
+  const requestBodies: Array<Record<string, unknown>> = [];
   const server = createServer((req, res) => {
     if (req.method !== "POST") {
       res.statusCode = 405;
       res.end("method_not_allowed");
       return;
     }
-    res.statusCode = 200;
-    res.setHeader("Content-Type", "application/json");
-    res.end(
-      JSON.stringify({
-        candidates: [
-          {
-            content: {
-              parts: [{ text: responseText }],
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk) => {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    });
+    req.on("end", () => {
+      const rawBody = Buffer.concat(chunks).toString("utf8");
+      requestBodies.push(JSON.parse(rawBody) as Record<string, unknown>);
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/json");
+      res.end(
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: responseText }],
+              },
             },
-          },
-        ],
-      }),
-    );
+          ],
+        }),
+      );
+    });
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
   const address = server.address();
@@ -44,6 +85,7 @@ async function startGeminiMockServer(responseText: string): Promise<{
   const baseUrl = `http://127.0.0.1:${address.port}/v1beta`;
   return {
     baseUrl,
+    requestBodies,
     close: async () => {
       await new Promise<void>((resolve, reject) => {
         server.close((error) => {
@@ -411,6 +453,170 @@ test("orchestrator proxies and stores consultation booking state across the main
   assert.match(String(workflow.bookingState?.shortSummary ?? ""), /Confirmed visa and relocation consultation/);
 });
 
+test("orchestrator pauses hard-limit Case Wiki cost runs for approval before route execution", async () => {
+  await withEnv(
+    {
+      FIRESTORE_ENABLED: "false",
+      GEMINI_API_KEY: "",
+      LIVE_AGENT_GEMINI_API_KEY: "",
+      LIVE_AGENT_MOONSHOT_API_KEY: "",
+      MOONSHOT_API_KEY: "",
+      ORCHESTRATOR_COST_GUARD_ENABLED: "true",
+      ORCHESTRATOR_COST_GUARD_MAX_CASE_USD: "1",
+      ORCHESTRATOR_COST_GUARD_MAX_CASE_TOKENS: "5000",
+      ORCHESTRATOR_COST_GUARD_DEGRADE_AT_RATIO: "0.8",
+      ORCHESTRATOR_COST_GUARD_REQUIRE_APPROVAL: "true",
+      ORCHESTRATOR_ASSISTIVE_ROUTER_ENABLED: "true",
+    },
+    async () => {
+      const runId = `unit-run-cost-guard-hard-${Date.now()}`;
+      const request = createEnvelope({
+        userId: "unit-user",
+        sessionId: "unit-session-cost-guard-hard",
+        runId,
+        type: "orchestrator.request",
+        source: "frontend",
+        payload: {
+          intent: "conversation",
+          input: {
+            text: "What should we do next for this case?",
+            caseWiki: {
+              caseId: "case-cost-hard",
+              overview: {
+                summary: "Relocation case is near completion but cost budget is already exceeded.",
+                status: "blocked",
+                currentStage: "document_collection",
+              },
+              workspacePack: {
+                summaryValue: "Budget exceeded on this relocation case.",
+                blockerValue: "Operator must approve more runtime spend.",
+                nextActionValue: "Request operator approval before continuing.",
+                costSummary: {
+                  pricingConfigured: true,
+                  totalUsd: 1.25,
+                  totalTokens: 3000,
+                },
+              },
+            },
+          },
+          task: {
+            taskId: `task-${runId}`,
+            status: "queued",
+            stage: "intake",
+          },
+        },
+      }) as OrchestratorRequest;
+
+      const response = await orchestrate(request);
+      assert.equal(response.payload.route, "live-agent");
+      assert.equal(response.payload.status, "accepted");
+
+      const output = asObject(response.payload.output);
+      const routing = asObject(output.routing);
+      const runtimeBudgetGuard = asObject(output.runtimeBudgetGuard);
+      const task = asObject(response.payload.task);
+      const workflow = getOrchestratorWorkflowStoreStatus().workflowState;
+
+      assert.equal(output.approvalRequired, true);
+      assert.equal(output.approvalReason, "runtime_cost_budget_guard");
+      assert.equal(runtimeBudgetGuard.status, "approval_required");
+      assert.equal(runtimeBudgetGuard.action, "approval_required");
+      assert.equal(runtimeBudgetGuard.approvalRequired, true);
+      assert.deepEqual(runtimeBudgetGuard.exceeded, ["usd"]);
+      assert.equal(routing.selectionReason, "cost_guard");
+      assert.equal(routing.reason, "case_wiki_cost_guard_hard_limit:usd");
+      assert.equal(task.stage, "safety_review");
+      assert.equal(task.status, "pending_approval");
+      assert.equal(workflow.status, "pending_approval");
+      assert.equal(workflow.currentStage, "safety_review");
+    },
+  );
+});
+
+test("orchestrator degrades soft-limit Case Wiki cost runs to short-context routing", async () => {
+  await withEnv(
+    {
+      FIRESTORE_ENABLED: "false",
+      GEMINI_API_KEY: "",
+      LIVE_AGENT_GEMINI_API_KEY: "",
+      LIVE_AGENT_USE_GEMINI_CHAT: "false",
+      LIVE_AGENT_TEXT_PROVIDER: "gemini_api",
+      LIVE_AGENT_MOONSHOT_API_KEY: "",
+      MOONSHOT_API_KEY: "",
+      ORCHESTRATOR_COST_GUARD_ENABLED: "true",
+      ORCHESTRATOR_COST_GUARD_MAX_CASE_USD: "5",
+      ORCHESTRATOR_COST_GUARD_MAX_CASE_TOKENS: "1000",
+      ORCHESTRATOR_COST_GUARD_DEGRADE_AT_RATIO: "0.8",
+      ORCHESTRATOR_COST_GUARD_REQUIRE_APPROVAL: "true",
+      ORCHESTRATOR_ASSISTIVE_ROUTER_ENABLED: "true",
+    },
+    async () => {
+      const runId = `unit-run-cost-guard-soft-${Date.now()}`;
+      const request = createEnvelope({
+        userId: "unit-user",
+        sessionId: "unit-session-cost-guard-soft",
+        runId,
+        type: "orchestrator.request",
+        source: "frontend",
+        payload: {
+          intent: "conversation",
+          input: {
+            text: "What is the next action?",
+            caseWiki: {
+              caseId: "case-cost-soft",
+              overview: {
+                summary: "Customer is preparing a relocation visa packet and needs one identity document.",
+                status: "blocked",
+                currentStage: "document_collection",
+              },
+              workspacePack: {
+                summaryValue: "Relocation visa packet is blocked by one missing passport scan.",
+                blockerValue: "Passport scan is missing.",
+                nextActionValue: "Ask the customer to upload the passport scan.",
+                costSummary: {
+                  pricingConfigured: false,
+                  totalTokens: 900,
+                },
+              },
+              highlights: {
+                topBlockingQuestion: {
+                  id: "question:passport-scan",
+                  question: "Do we have the passport scan?",
+                  suggestedNextStep: "Ask the customer to upload the passport scan.",
+                },
+              },
+              evidencePack: {
+                sourceRefs: ["workflow:control-plane", "replay:session-soft"],
+              },
+            },
+          },
+        },
+      }) as OrchestratorRequest;
+
+      const response = await orchestrate(request);
+      assert.equal(response.payload.route, "live-agent");
+      assert.equal(response.payload.status, "completed");
+
+      const output = asObject(response.payload.output);
+      const routing = asObject(output.routing);
+      const runtimeBudgetGuard = asObject(output.runtimeBudgetGuard);
+      const context = asObject(output.context);
+      const caseWiki = asObject(context.caseWiki);
+      const caseWikiBudgetGuard = asObject(caseWiki.runtimeBudgetGuard);
+
+      assert.equal(routing.selectionReason, "cost_guard");
+      assert.equal(routing.reason, "case_wiki_cost_guard_soft_limit:tokens");
+      assert.equal(runtimeBudgetGuard.status, "degraded");
+      assert.equal(runtimeBudgetGuard.action, "short_context");
+      assert.equal(runtimeBudgetGuard.shortContextPreferred, true);
+      assert.equal(context.contextSource, "caseWiki");
+      assert.equal(caseWiki.caseId, "case-cost-soft");
+      assert.equal(caseWikiBudgetGuard.status, "degraded");
+      assert.equal(caseWikiBudgetGuard.shortContextPreferred, true);
+    },
+  );
+});
+
 test("assistive router overrides route on high confidence story classification", async () => {
   process.env.FIRESTORE_ENABLED = "false";
   process.env.GEMINI_API_KEY = "";
@@ -463,6 +669,150 @@ test("assistive router overrides route on high confidence story classification",
     assert.equal(routing.budgetPolicy, "judged_default");
     assert.equal(routing.promptCaching, "none");
     assert.equal(routing.watchlistEnabled, false);
+  } finally {
+    await mock.close();
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_BASE_URL;
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_API_KEY;
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_ENABLED;
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_PROVIDER;
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_MIN_CONFIDENCE;
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_BUDGET_POLICY;
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_PROMPT_CACHING;
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_WATCHLIST_ENABLED;
+  }
+});
+
+test("assistive router feeds Case Wiki routing context into classifier prompts", async () => {
+  process.env.FIRESTORE_ENABLED = "false";
+  process.env.GEMINI_API_KEY = "";
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_ENABLED = "true";
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_PROVIDER = "gemini_api";
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_API_KEY = "unit-test-key";
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_MIN_CONFIDENCE = "0.75";
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_BUDGET_POLICY = "judged_default";
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_PROMPT_CACHING = "none";
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_WATCHLIST_ENABLED = "false";
+
+  const mock = await startGeminiMockServer(
+    JSON.stringify({
+      intent: "negotiation",
+      confidence: 0.91,
+      reason: "case wiki says customer follow-up is required",
+    }),
+  );
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_BASE_URL = mock.baseUrl;
+
+  try {
+    const request = createEnvelope({
+      userId: "unit-user",
+      sessionId: "unit-session-assistive-case-wiki",
+      runId: "unit-run-assistive-case-wiki",
+      type: "orchestrator.request",
+      source: "frontend",
+      payload: {
+        intent: "conversation",
+        input: {
+          text: "Continue with this case.",
+          caseWiki: {
+            caseId: "case-42",
+            overview: {
+              summary: "Customer is blocked on one missing passport scan before submission.",
+              status: "waiting_on_customer",
+              currentStage: "document_collection",
+            },
+            highlights: {
+              topBlockingQuestion: {
+                id: "question:passport-scan",
+                question: "Do we have the passport scan?",
+                suggestedNextStep: "Ask the customer to upload the passport scan.",
+              },
+            },
+            workspacePack: {
+              summaryValue: "Passport scan is still missing for this case.",
+              blockerValue: "Do we have the passport scan?",
+              nextActionValue: "Ask the customer to upload the passport scan.",
+              defaultFocus: {
+                focusKind: "question",
+                focusId: "question:passport-scan",
+                focusLabel: "Passport scan is missing",
+              },
+            },
+            recommendedNextAction: {
+              type: "document_request",
+              title: "Request passport scan",
+              summary: "Ask the customer to upload the passport scan.",
+              owner: "customer",
+              blocking: true,
+              relatedQuestionIds: ["question:passport-scan"],
+              sourceRefs: ["workflow:control-plane"],
+            },
+            routingPack: {
+              proofs: [],
+              questions: [
+                {
+                  focusKind: "question",
+                  focusId: "question:passport-scan",
+                  focusLabel: "Passport scan is missing",
+                  route: {
+                    lane: "customer_followup",
+                    owner: "customer",
+                    priority: "high",
+                    status: "open",
+                    blocking: true,
+                    approvalRequired: false,
+                    dueBy: null,
+                    summary: "Collect the missing document from the customer.",
+                  },
+                  cta: {
+                    actionId: "run_negotiation",
+                    label: "Ask for passport scan",
+                    hint: "Message the customer for the missing passport scan.",
+                    owner: "customer",
+                    lane: "customer_followup",
+                    approvalRequired: false,
+                    blocking: true,
+                    summary: "Run a customer follow-up request.",
+                  },
+                  sourceRefs: ["workflow:control-plane"],
+                  relatedQuestionIds: ["question:passport-scan"],
+                  nextAction: null,
+                },
+              ],
+            },
+          },
+        },
+      },
+    }) as OrchestratorRequest;
+
+    const response = await orchestrate(request);
+    assert.equal(response.payload.route, "live-agent");
+    assert.equal(response.payload.status, "completed");
+
+    const output = asObject(response.payload.output);
+    const routing = asObject(output.routing);
+    assert.equal(routing.mode, "assistive_override");
+    assert.equal(routing.routedIntent, "negotiation");
+    assert.equal(routing.contextSource, "case_wiki");
+    assert.equal(routing.contextIngressSource, "preserved_input_case_wiki");
+    assert.equal(routing.contextFocusId, "question:passport-scan");
+    assert.equal(routing.contextBlocker, "Do we have the passport scan?");
+    assert.equal(routing.contextNextAction, "Request passport scan");
+
+    assert.equal(mock.requestBodies.length, 1);
+    const contents = Array.isArray(mock.requestBodies[0]?.contents) ? mock.requestBodies[0].contents : [];
+    const userContent = asObject(contents[0]);
+    const parts = Array.isArray(userContent.parts) ? userContent.parts : [];
+    const firstPart = asObject(parts[0]);
+    const prompt = String(firstPart.text ?? "");
+    assert.match(prompt, /Case Wiki compiled memory \(primary routing context\)/);
+    assert.match(prompt, /Case summary: Passport scan is still missing for this case\./);
+    assert.match(prompt, /Current stage: document_collection/);
+    assert.match(prompt, /Default focus: kind=question; id=question:passport-scan; label=Passport scan is missing/);
+    assert.match(prompt, /Blocking question: Do we have the passport scan\?/);
+    assert.match(prompt, /Next action: Request passport scan/);
+    assert.match(prompt, /Routing lane: customer_followup/);
+    assert.match(prompt, /Routing CTA: run_negotiation/);
+    assert.match(prompt, /User input: Continue with this case\./);
   } finally {
     await mock.close();
     delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_BASE_URL;

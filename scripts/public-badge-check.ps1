@@ -201,7 +201,7 @@ if (-not $SkipDetails) {
     Fail "badge-details tokensUsed.total must be >= input + output."
   }
 
-  Assert-RequiredFields -Required @("operatorTurnTruncation", "operatorTurnDelete", "damageControl", "operatorDamageControl", "governancePolicy", "skillsRegistry", "pluginMarketplace", "deviceNodes", "agentUsage") -Payload $details.evidence -ScopeName "badge-details.evidence"
+  Assert-RequiredFields -Required @("operatorTurnTruncation", "operatorTurnDelete", "damageControl", "operatorDamageControl", "governancePolicy", "skillsRegistry", "pluginMarketplace", "deviceNodes", "agentUsage", "caseWikiRoutingContext", "caseWikiGatewayHydration", "caseWikiContextAdoption") -Payload $details.evidence -ScopeName "badge-details.evidence"
 
   $truncationEvidence = $details.evidence.operatorTurnTruncation
   $deleteEvidence = $details.evidence.operatorTurnDelete
@@ -212,6 +212,9 @@ if (-not $SkipDetails) {
   $pluginMarketplaceEvidence = $details.evidence.pluginMarketplace
   $deviceNodesEvidence = $details.evidence.deviceNodes
   $agentUsageEvidence = $details.evidence.agentUsage
+  $caseWikiRoutingContextEvidence = $details.evidence.caseWikiRoutingContext
+  $caseWikiGatewayHydrationEvidence = $details.evidence.caseWikiGatewayHydration
+  $caseWikiContextAdoptionEvidence = $details.evidence.caseWikiContextAdoption
   $providerUsageEvidence = $details.providerUsage
   if ($null -eq $truncationEvidence) {
     Fail "badge-details evidence is missing operatorTurnTruncation block."
@@ -239,6 +242,15 @@ if (-not $SkipDetails) {
   }
   if ($null -eq $agentUsageEvidence) {
     Fail "badge-details evidence is missing agentUsage block."
+  }
+  if ($null -eq $caseWikiRoutingContextEvidence) {
+    Fail "badge-details evidence is missing caseWikiRoutingContext block."
+  }
+  if ($null -eq $caseWikiGatewayHydrationEvidence) {
+    Fail "badge-details evidence is missing caseWikiGatewayHydration block."
+  }
+  if ($null -eq $caseWikiContextAdoptionEvidence) {
+    Fail "badge-details evidence is missing caseWikiContextAdoption block."
   }
   if ($null -eq $providerUsageEvidence) {
     Fail "badge-details providerUsage block must be present."
@@ -392,6 +404,66 @@ if (-not $SkipDetails) {
     Fail "badge-details evidence agentUsage.status must be one of [pass, fail]."
   }
 
+  $caseWikiRoutingContextEvidenceRequired = @(
+    "status",
+    "validated",
+    "observed",
+    "contextSource",
+    "focusId",
+    "blocker",
+    "nextAction",
+    "route",
+    "mode",
+    "requestedIntent",
+    "routedIntent"
+  )
+  Assert-RequiredFields -Required $caseWikiRoutingContextEvidenceRequired -Payload $caseWikiRoutingContextEvidence -ScopeName "badge-details.evidence.caseWikiRoutingContext"
+  $caseWikiRoutingContextStatus = [string]$caseWikiRoutingContextEvidence.status
+  if (-not (@("pass", "fail", "unavailable") -contains $caseWikiRoutingContextStatus)) {
+    Fail "badge-details evidence caseWikiRoutingContext.status must be one of [pass, fail, unavailable]."
+  }
+
+  $caseWikiGatewayHydrationEvidenceRequired = @(
+    "status",
+    "validated",
+    "observed",
+    "sessionId",
+    "noteEventId",
+    "questionId",
+    "questionMatched",
+    "noteSourceRefSeen",
+    "questionSuggestedNextStep",
+    "contextSource",
+    "focusId",
+    "blocker",
+    "nextAction",
+    "route",
+    "mode",
+    "requestedIntent",
+    "routedIntent"
+  )
+  Assert-RequiredFields -Required $caseWikiGatewayHydrationEvidenceRequired -Payload $caseWikiGatewayHydrationEvidence -ScopeName "badge-details.evidence.caseWikiGatewayHydration"
+  $caseWikiGatewayHydrationStatus = [string]$caseWikiGatewayHydrationEvidence.status
+  if (-not (@("pass", "fail", "unavailable") -contains $caseWikiGatewayHydrationStatus)) {
+    Fail "badge-details evidence caseWikiGatewayHydration.status must be one of [pass, fail, unavailable]."
+  }
+
+  $caseWikiContextAdoptionEvidenceRequired = @(
+    "status",
+    "validated",
+    "observed",
+    "observedCount",
+    "caseWikiObservedCount",
+    "inputOnlyObservedCount",
+    "unknownObservedCount",
+    "caseWikiRate"
+  )
+  Assert-RequiredFields -Required $caseWikiContextAdoptionEvidenceRequired -Payload $caseWikiContextAdoptionEvidence -ScopeName "badge-details.evidence.caseWikiContextAdoption"
+  $caseWikiContextAdoptionStatus = [string]$caseWikiContextAdoptionEvidence.status
+  if (-not (@("pass", "fail", "unavailable") -contains $caseWikiContextAdoptionStatus)) {
+    Fail "badge-details evidence caseWikiContextAdoption.status must be one of [pass, fail, unavailable]."
+  }
+
   $providerUsageEvidenceRequired = @("status", "validated", "activeSecondaryProviders", "entries")
   Assert-RequiredFields -Required $providerUsageEvidenceRequired -Payload $providerUsageEvidence -ScopeName "badge-details.providerUsage"
   $providerUsageStatus = [string]$providerUsageEvidence.status
@@ -458,6 +530,9 @@ if (-not $SkipDetails) {
       @{ Name = "pluginMarketplace"; Status = $pluginMarketplaceStatus },
       @{ Name = "deviceNodes"; Status = $deviceNodesStatus },
       @{ Name = "agentUsage"; Status = $agentUsageStatus },
+      @{ Name = "caseWikiRoutingContext"; Status = $caseWikiRoutingContextStatus },
+      @{ Name = "caseWikiGatewayHydration"; Status = $caseWikiGatewayHydrationStatus },
+      @{ Name = "caseWikiContextAdoption"; Status = $caseWikiContextAdoptionStatus },
       @{ Name = "providerUsage"; Status = $providerUsageStatus }
     )
     foreach ($statusCheck in $statusChecks) {
@@ -559,6 +634,66 @@ if (-not $SkipDetails) {
     ) {
       Fail "badge-details evidence agentUsage must be validated with total/unique/calls/tokens consistency, models>=1, summarySource in [operator_summary,gateway_runtime], and summaryStatus=observed."
     }
+    $allowedRoutingModes = @("deterministic", "assistive_override", "assistive_match", "assistive_fallback")
+    if (
+      -not [bool]$caseWikiRoutingContextEvidence.validated -or
+      -not [bool]$caseWikiRoutingContextEvidence.observed -or
+      [string]$caseWikiRoutingContextEvidence.contextSource -ne "case_wiki" -or
+      [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextEvidence.focusId) -or
+      [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextEvidence.blocker) -or
+      [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextEvidence.nextAction) -or
+      [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextEvidence.route) -or
+      [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextEvidence.requestedIntent) -or
+      [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextEvidence.routedIntent) -or
+      -not ($allowedRoutingModes -contains [string]$caseWikiRoutingContextEvidence.mode)
+    ) {
+      Fail "badge-details evidence caseWikiRoutingContext must prove observed+validated case_wiki routing context with focus/blocker/nextAction and routing metadata."
+    }
+    if (
+      -not [bool]$caseWikiGatewayHydrationEvidence.validated -or
+      -not [bool]$caseWikiGatewayHydrationEvidence.observed -or
+      -not [bool]$caseWikiGatewayHydrationEvidence.questionMatched -or
+      -not [bool]$caseWikiGatewayHydrationEvidence.noteSourceRefSeen -or
+      [string]::IsNullOrWhiteSpace([string]$caseWikiGatewayHydrationEvidence.sessionId) -or
+      [string]::IsNullOrWhiteSpace([string]$caseWikiGatewayHydrationEvidence.noteEventId) -or
+      [string]::IsNullOrWhiteSpace([string]$caseWikiGatewayHydrationEvidence.questionId) -or
+      [string]::IsNullOrWhiteSpace([string]$caseWikiGatewayHydrationEvidence.questionSuggestedNextStep) -or
+      [string]$caseWikiGatewayHydrationEvidence.contextSource -ne "case_wiki" -or
+      [string]::IsNullOrWhiteSpace([string]$caseWikiGatewayHydrationEvidence.focusId) -or
+      [string]::IsNullOrWhiteSpace([string]$caseWikiGatewayHydrationEvidence.blocker) -or
+      [string]::IsNullOrWhiteSpace([string]$caseWikiGatewayHydrationEvidence.nextAction) -or
+      [string]$caseWikiGatewayHydrationEvidence.route -ne "live-agent" -or
+      [string]$caseWikiGatewayHydrationEvidence.requestedIntent -ne "conversation" -or
+      [string]::IsNullOrWhiteSpace([string]$caseWikiGatewayHydrationEvidence.routedIntent) -or
+      -not ($allowedRoutingModes -contains [string]$caseWikiGatewayHydrationEvidence.mode)
+    ) {
+      Fail "badge-details evidence caseWikiGatewayHydration must prove websocket gateway hydration from backend case wiki note state with note/question linkage and routing metadata."
+    }
+    $caseWikiContextAdoptionObservedCount = [int]$caseWikiContextAdoptionEvidence.observedCount
+    $caseWikiContextAdoptionCaseWikiObservedCount = [int]$caseWikiContextAdoptionEvidence.caseWikiObservedCount
+    $caseWikiContextAdoptionInputOnlyObservedCount = [int]$caseWikiContextAdoptionEvidence.inputOnlyObservedCount
+    $caseWikiContextAdoptionUnknownObservedCount = [int]$caseWikiContextAdoptionEvidence.unknownObservedCount
+    $caseWikiContextAdoptionRate = 0.0
+    if (-not (Try-ParseDecimalValue -RawValue $caseWikiContextAdoptionEvidence.caseWikiRate -Parsed ([ref]$caseWikiContextAdoptionRate))) {
+      Fail "badge-details evidence caseWikiContextAdoption.caseWikiRate must be numeric."
+    }
+    if (
+      -not [bool]$caseWikiContextAdoptionEvidence.validated -or
+      -not [bool]$caseWikiContextAdoptionEvidence.observed -or
+      $caseWikiContextAdoptionObservedCount -lt 3 -or
+      $caseWikiContextAdoptionCaseWikiObservedCount -lt 1 -or
+      $caseWikiContextAdoptionInputOnlyObservedCount -lt 0 -or
+      $caseWikiContextAdoptionUnknownObservedCount -lt 0 -or
+      ($caseWikiContextAdoptionCaseWikiObservedCount + $caseWikiContextAdoptionInputOnlyObservedCount + $caseWikiContextAdoptionUnknownObservedCount) -ne $caseWikiContextAdoptionObservedCount -or
+      $caseWikiContextAdoptionCaseWikiObservedCount -gt $caseWikiContextAdoptionObservedCount -or
+      $caseWikiContextAdoptionInputOnlyObservedCount -gt $caseWikiContextAdoptionObservedCount -or
+      $caseWikiContextAdoptionUnknownObservedCount -gt $caseWikiContextAdoptionObservedCount -or
+      $caseWikiContextAdoptionRate -lt 0 -or
+      $caseWikiContextAdoptionRate -gt 1 -or
+      $caseWikiContextAdoptionRate -lt 0.95
+    ) {
+      Fail "badge-details evidence caseWikiContextAdoption must prove observed+validated adoption with count conservation and caseWikiRate>=0.95."
+    }
     if (
       -not [bool]$providerUsageEvidence.validated -or
       $providerUsageEntries.Count -lt 1 -or
@@ -569,6 +704,10 @@ if (-not $SkipDetails) {
   }
 
   Write-Host ("Device-node-updates status (badge evidence): " + $deviceNodeUpdatesStatus)
+  Write-Host ("Case-wiki-routing-context status (badge evidence): " + $caseWikiRoutingContextStatus)
+  Write-Host ("Case-wiki-gateway-hydration status (badge evidence): " + $caseWikiGatewayHydrationStatus)
+  Write-Host ("Case-wiki-context-adoption status (badge evidence): " + $caseWikiContextAdoptionStatus)
+  Write-Host ("Case-wiki-context-adoption rate (badge evidence): " + [string]$caseWikiContextAdoptionEvidence.caseWikiRate)
   Write-Host ("Provider-usage status (badge evidence): " + $providerUsageStatus)
   Write-Host ("Provider-usage active secondary providers (badge evidence): " + $providerUsageActiveSecondaryProviders)
   Write-Host ("Provider-usage primary entry (badge evidence): " + [string]$providerUsagePrimaryEntry.route + "/" + [string]$providerUsagePrimaryEntry.capability + " -> " + [string]$providerUsagePrimaryEntry.selectedProvider + "/" + [string]$providerUsagePrimaryEntry.selectedModel)
