@@ -70,6 +70,29 @@ function Set-EnvValue {
   Set-Item -Path ("Env:" + $Name) -Value $Value
 }
 
+# Returns $true when DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT is unset
+# OR set to a value other than the falsy set ("0", "false", "no", "off",
+# case + whitespace insensitive). Returns $false ONLY when the env is
+# explicitly opted out.
+#
+# Mirrors the parsing rule from the visa-flows slice's
+# DEMO_E2E_VISA_FLOWS_ACCEPT_SIMULATION but inverted: this env names what
+# release-strict requires, so the default is $true. PR Quality opts out
+# (DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT="false") to skip the
+# real-DOM ref-healing assertions that simulateExecution() in
+# apps/ui-executor/src/index.ts cannot honestly satisfy. Release-strict
+# workflows leave the env unset so today's strict real-DOM ref-healing
+# requirement applies byte-identical. See
+# .kiro/specs/ui-executor-ref-healing-execution-mode-aware/.
+function Test-DemoE2eRefHealingRequiresRealPlaywright {
+  $envValue = [Environment]::GetEnvironmentVariable("DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT")
+  if ($null -eq $envValue) {
+    return $true
+  }
+  $normalized = $envValue.ToString().Trim().ToLowerInvariant()
+  return -not (@("0", "false", "no", "off") -contains $normalized)
+}
+
 function Write-Utf8NoBomFile {
   param(
     [Parameter(Mandatory = $true)]
@@ -2979,8 +3002,14 @@ try {
 
     $healedRefTargets = @((Get-FieldValue -Object $grounding -Path @("healedRefTargets")))
     $staleRefTargets = @((Get-FieldValue -Object $grounding -Path @("staleRefTargets")))
-    Assert-Condition -Condition ($healedRefTargets -contains "email") -Message "UI executor ref-healing should recover the email ref."
-    Assert-Condition -Condition ($healedRefTargets -contains "submit_primary") -Message "UI executor ref-healing should recover the submit ref."
+    $refHealingRequireRealPlaywrightEnv = [Environment]::GetEnvironmentVariable("DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT")
+    $refHealingRequireRealPlaywrightEnvDisplay = if ($null -eq $refHealingRequireRealPlaywrightEnv) { "<unset>" } else { $refHealingRequireRealPlaywrightEnv }
+    if (Test-DemoE2eRefHealingRequiresRealPlaywright) {
+      Assert-Condition -Condition ($healedRefTargets -contains "email") -Message "UI executor ref-healing should recover the email ref."
+      Assert-Condition -Condition ($healedRefTargets -contains "submit_primary") -Message "UI executor ref-healing should recover the submit ref."
+    } else {
+      Write-Step ("ui.executor.ref_healing: skipping real-DOM ref-healing assertions because DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT=`"" + $refHealingRequireRealPlaywrightEnvDisplay + "`"; simulation lane does not exercise real-DOM ref healing.")
+    }
     Assert-Condition -Condition (@($staleRefTargets).Count -eq 0) -Message "Recovered UI refs should not remain in staleRefTargets."
 
     $trace = @((Get-FieldValue -Object $response -Path @("trace")))
@@ -3167,16 +3196,24 @@ try {
     Assert-Condition -Condition ($adapterMode -eq "remote_http") -Message "Browser worker checkpoint/resume scenario must use remote_http adapter."
     Assert-Condition -Condition ($checkpointCount -ge 1) -Message "Browser worker replay bundle should include at least one checkpoint."
     Assert-Condition -Condition ($resumedCheckpointCount -ge 1) -Message "Browser worker replay bundle should include at least one resumed checkpoint."
-    Assert-Condition -Condition ($healedRefTargets -contains "email") -Message "Browser worker recovery should heal the email ref."
-    Assert-Condition -Condition ($healedRefTargets -contains "submit_primary") -Message "Browser worker recovery should heal the submit ref."
-    Assert-Condition -Condition ($healedRefCount -ge 2) -Message "Browser worker recovery should record both healed refs."
-    Assert-Condition -Condition ($staleRefCount -ge $healedRefCount) -Message "Browser worker recovery should expose observed stale refs alongside healed refs."
-    Assert-Condition -Condition ($staleRefTargets -contains "email") -Message "Browser worker recovery should record email as an observed stale ref."
-    Assert-Condition -Condition ($staleRefTargets -contains "submit_primary") -Message "Browser worker recovery should record submit_primary as an observed stale ref."
+    $browserWorkerRefHealingRequireRealPlaywrightEnv = [Environment]::GetEnvironmentVariable("DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT")
+    $browserWorkerRefHealingRequireRealPlaywrightEnvDisplay = if ($null -eq $browserWorkerRefHealingRequireRealPlaywrightEnv) { "<unset>" } else { $browserWorkerRefHealingRequireRealPlaywrightEnv }
+    if (Test-DemoE2eRefHealingRequiresRealPlaywright) {
+      Assert-Condition -Condition ($healedRefTargets -contains "email") -Message "Browser worker recovery should heal the email ref."
+      Assert-Condition -Condition ($healedRefTargets -contains "submit_primary") -Message "Browser worker recovery should heal the submit ref."
+      Assert-Condition -Condition ($healedRefCount -ge 2) -Message "Browser worker recovery should record both healed refs."
+      Assert-Condition -Condition ($staleRefCount -ge $healedRefCount) -Message "Browser worker recovery should expose observed stale refs alongside healed refs."
+      Assert-Condition -Condition ($staleRefTargets -contains "email") -Message "Browser worker recovery should record email as an observed stale ref."
+      Assert-Condition -Condition ($staleRefTargets -contains "submit_primary") -Message "Browser worker recovery should record submit_primary as an observed stale ref."
+    } else {
+      Write-Step ("ui.browser_worker.checkpoint_resume: skipping real-DOM ref-healing assertions because DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT=`"" + $browserWorkerRefHealingRequireRealPlaywrightEnvDisplay + "`"; simulation lane does not exercise real-DOM ref healing.")
+    }
     Assert-Condition -Condition ($traceCount -ge 7) -Message "Browser worker trace should include all expected actions."
     Assert-Condition -Condition ($runtimeResumedCheckpointCount -ge $resumedCheckpointCount) -Message "Browser worker runtime recovery counters should include resumed checkpoints."
-    Assert-Condition -Condition ($runtimeHealedRefCount -ge $healedRefCount) -Message "Browser worker runtime recovery counters should include healed refs."
-    Assert-Condition -Condition ($runtimeStaleRefCount -ge $staleRefCount) -Message "Browser worker runtime recovery counters should include observed stale refs."
+    if (Test-DemoE2eRefHealingRequiresRealPlaywright) {
+      Assert-Condition -Condition ($runtimeHealedRefCount -ge $healedRefCount) -Message "Browser worker runtime recovery counters should include healed refs."
+      Assert-Condition -Condition ($runtimeStaleRefCount -ge $staleRefCount) -Message "Browser worker runtime recovery counters should include observed stale refs."
+    }
     Assert-Condition -Condition $checkpointReadyCleared -Message "Browser worker runtime should clear checkpoint-ready queue entries after resume."
 
     $inputApproxTokens = Estimate-ApproxTokensFromObject -Value $submitRequest
