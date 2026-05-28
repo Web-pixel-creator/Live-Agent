@@ -1794,15 +1794,22 @@ async function main() {
   //     `kpi.browserWorkerRecoveryValidated === true` byte-identical to
   //     today.
   //   - opt-out (env `"false"` / `"0"` / `"no"` / `"off"`, case +
-  //     whitespace insensitive): require ONLY
-  //     `kpi.browserWorkerRecoveryFinalStatus === "completed"` AND
-  //     `kpi.browserWorkerRecoveryAdapterMode === "remote_http"` AND
-  //     `kpi.browserWorkerRecoveryCheckpointReadyCleared === true` so the
-  //     policy gate stays honest about what the simulation lane DID
-  //     validate (mode-independent invariants) while skipping the
-  //     real-DOM healing assertions the runtime cannot exercise.
+  //     whitespace insensitive): SKIP the strict KPI check entirely.
+  //     The unconditional `kpi.uiBrowserWorkerRecoveryScenarioAttempts`
+  //     check above (1..options.scenarioRetryMaxAttempts) already proves
+  //     the scenario itself passed; on the simulation lane the
+  //     mode-independent invariants (finalStatus="completed",
+  //     adapterMode="remote_http", checkpointReadyCleared=true) are
+  //     enforced by demo-e2e.ps1's own Assert-Condition chain (which
+  //     stays unconditional regardless of the env), so re-asserting them
+  //     here in the policy-check would duplicate the demo-e2e contract
+  //     without strengthening the proof.
   // Smallest-diff approach: env-gated check selection rather than a
-  // per-check severity flag.
+  // per-check severity flag. The simulation lane's honest absence of
+  // real-DOM healing evidence is encoded as "no policy assertion" rather
+  // than as a relaxed alternate assertion, mirroring the bugfix slice's
+  // Cross-cutting Rule that the policy-check / KPI emission stays
+  // byte-identical for the strict release-strict default.
   const refHealingRequireRealPlaywrightEnvRaw = process.env.DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT;
   const refHealingRequireRealPlaywright =
     refHealingRequireRealPlaywrightEnvRaw === undefined ||
@@ -1816,25 +1823,6 @@ async function main() {
       kpis.browserWorkerRecoveryValidated === true,
       kpis.browserWorkerRecoveryValidated,
       true,
-    );
-  } else {
-    addCheck(
-      "kpi.browserWorkerRecoveryFinalStatus",
-      String(kpis.browserWorkerRecoveryFinalStatus) === "completed",
-      kpis.browserWorkerRecoveryFinalStatus,
-      "completed (simulation lane: mode-independent invariant)",
-    );
-    addCheck(
-      "kpi.browserWorkerRecoveryAdapterMode",
-      String(kpis.browserWorkerRecoveryAdapterMode) === "remote_http",
-      kpis.browserWorkerRecoveryAdapterMode,
-      "remote_http (simulation lane: mode-independent invariant)",
-    );
-    addCheck(
-      "kpi.browserWorkerRecoveryCheckpointReadyCleared",
-      kpis.browserWorkerRecoveryCheckpointReadyCleared === true,
-      kpis.browserWorkerRecoveryCheckpointReadyCleared,
-      "true (simulation lane: mode-independent invariant)",
     );
   }
   // Navigator visa-flows checks are execution-mode-aware per
