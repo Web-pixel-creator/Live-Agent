@@ -100,7 +100,7 @@ any rule blocks the task from being marked complete.
 
 ## Tasks
 
-- [ ] 1. Write bug condition exploration property test
+- [x] 1. Write bug condition exploration property test
   - **Property 1: Bug Condition** - Simulation Lane Cannot Satisfy Strict Real-DOM Healing Assertions
   - **CRITICAL**: This test MUST FAIL on unfixed code. Failure confirms
     the bug exists. **DO NOT attempt to fix the test or the production
@@ -252,7 +252,7 @@ any rule blocks the task from being marked complete.
     is unset OR "true"_
   - _Requirements: R1, R2, R4_
 
-- [ ] 2. Write preservation property tests (BEFORE implementing fix)
+- [x] 2. Write preservation property tests (BEFORE implementing fix)
   - **Property 2: Preservation** - Real-Playwright Lane Behavior Byte-Identical
   - **IMPORTANT**: Follow observation-first methodology. Run UNFIXED
     code against non-bug-condition inputs first, observe the actual
@@ -349,9 +349,9 @@ any rule blocks the task from being marked complete.
     contract; the release-strict path is not weakened_
   - _Requirements: R3, R5_
 
-- [ ] 3. Two-step fix for execution-mode-aware ref-healing assertions
+- [x] 3. Two-step fix for execution-mode-aware ref-healing assertions
 
-  - [ ] 3.1 Implement the env discriminator + assertion gating in `scripts/demo-e2e.ps1`
+  - [x] 3.1 Implement the env discriminator + assertion gating in `scripts/demo-e2e.ps1`
     - **Add the env discriminator helper at the top of the script**.
       Mirror the inline `$navigatorVisaFlowsAcceptSimulationEnabled`
       check from the visa-flows slice (use the visa-flows comment style
@@ -450,7 +450,7 @@ any rule blocks the task from being marked complete.
       behavior is unchanged; KPI emission is unchanged_
     - _Requirements: R1, R2, R3, R4, R5_
 
-  - [ ] 3.2 Wire `DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT: "false"` into `.github/workflows/pr-quality.yml`
+  - [x] 3.2 Wire `DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT: "false"` into `.github/workflows/pr-quality.yml`
     - Add the single env line to the job env block, next to the
       existing `DEMO_E2E_VISA_FLOWS_ACCEPT_SIMULATION: "true"`. The
       naming is inverted because the defaults differ (visa-flows opts
@@ -505,7 +505,7 @@ any rule blocks the task from being marked complete.
       strict assertion behavior applies byte-identical_
     - _Requirements: R2, R3, R5_
 
-  - [ ] 3.3 Verify bug condition exploration test now passes
+  - [x] 3.3 Verify bug condition exploration test now passes
     - **Property 1: Expected Behavior** - Simulation Lane Cannot Satisfy Strict Real-DOM Healing Assertions
     - **IMPORTANT**: Re-run the SAME test from Task 1. **Do NOT write a
       new test.** The test from Task 1 encodes the expected behavior;
@@ -530,7 +530,7 @@ any rule blocks the task from being marked complete.
         invariants validate).
     - _Requirements: R1, R2, R4_
 
-  - [ ] 3.4 Verify preservation tests still pass
+  - [x] 3.4 Verify preservation tests still pass
     - **Property 2: Preservation** - Real-Playwright Lane Behavior Byte-Identical
     - **IMPORTANT**: Re-run the SAME tests from Task 2. **Do NOT write
       new tests.**
@@ -551,7 +551,7 @@ any rule blocks the task from being marked complete.
         both predicates return `false`; identical outcomes.
     - _Requirements: R3, R5_
 
-- [ ] 4. Checkpoint - Ensure all tests pass and cross-cutting constraints hold
+- [x] 4. Checkpoint - Ensure all tests pass and cross-cutting constraints hold
   - Run `npm run build` and confirm it succeeds with exit 0. The
     PowerShell-only edit in Task 3.1 should not perturb TS
     compilation, but the workspace build is the canonical green-light
