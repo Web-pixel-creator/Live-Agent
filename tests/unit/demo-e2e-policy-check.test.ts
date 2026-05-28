@@ -404,11 +404,22 @@ function runPolicyCheck(summary: Record<string, unknown>, extraArgs: string[] = 
     const jsonOutputPath = join(tempDir, "policy-check.json");
     writeFileSync(inputPath, `${JSON.stringify(summary, null, 2)}\n`, "utf8");
 
+    // Scrub CI-host env vars that opt OUT of strict release-strict default
+    // branches in scripts/demo-e2e-policy-check.mjs. The PR Quality lane
+    // (.github/workflows/pr-quality.yml) sets these envs at the job level,
+    // and they would otherwise leak into every spawned policy-check child
+    // process and silently change which branches execute.
+    const childEnv = { ...process.env };
+    delete childEnv.DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT;
+    delete childEnv.DEMO_E2E_VISA_FLOWS_ACCEPT_SIMULATION;
+    delete childEnv.DEMO_E2E_ALLOW_UI_EXECUTOR_RUNTIME_FALLBACK;
+
     const result = spawnSync(
       process.execPath,
       [policyScriptPath, "--input", inputPath, "--output", markdownOutputPath, "--jsonOutput", jsonOutputPath, ...extraArgs],
       {
         encoding: "utf8",
+        env: childEnv,
       },
     );
     const exitCode = result.status ?? 1;
