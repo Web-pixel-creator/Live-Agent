@@ -42,11 +42,35 @@ jobs:
       # workflows leave this env unset so today's strict real-DOM
       # ref-healing requirement applies byte-identical.
       # See .kiro/specs/ui-executor-ref-healing-execution-mode-aware
-      # ("Downstream Gate Update") for the audit conclusion: NO
-      # downstream gate (release-readiness, policy-check,
-      # release-evidence) becomes env-gated; only the demo-e2e
-      # assertion surface is execution-mode-aware.
+      # ("Downstream Gate Update"): the demo-e2e assertion surface in
+      # scripts/demo-e2e.ps1 is the primary execution-mode-aware gate;
+      # CI run 26564004324 surfaced one downstream gate that ALSO
+      # needed env-gating —
+      # `kpi.browserWorkerRecoveryValidated` in
+      # scripts/demo-e2e-policy-check.mjs reads the same real-DOM
+      # healing fields (healedRefTargets, healedRefCount, staleRefCount,
+      # runtimeHealedRefCount, runtimeStaleRefCount) that
+      # simulateExecution() honestly leaves empty. The policy-check
+      # gate now branches on this same env: when the env is opted out,
+      # the gate requires only mode-independent invariants
+      # (finalStatus, adapterMode, checkpointReadyCleared) for the
+      # browser-worker recovery KPI. Release-strict workflows leave
+      # this env unset and the strict KPI continues to apply
+      # byte-identical.
       DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT: "false"
+      # Allow `kpi.uiExecutorRuntimeValidated` in
+      # scripts/demo-e2e-policy-check.mjs to accept the remote_http
+      # fallback profile (strictPlaywright=false +
+      # simulateIfUnavailable=true) used on the windows-latest lane.
+      # Without this flag, the policy gate fails because the lane
+      # cannot install Playwright and the ui-executor health
+      # snapshot honestly reports the fallback profile. Release-strict
+      # workflows leave this env unset so they require the strict
+      # profile (strictPlaywright=true + simulateIfUnavailable=false)
+      # byte-identical to today. See scripts/release-readiness.ps1
+      # which already reads this env (line ~678) when forwarding the
+      # policy-check command.
+      DEMO_E2E_ALLOW_UI_EXECUTOR_RUNTIME_FALLBACK: "true"
       # Wire promptfoo eval keys symmetrically to release-strict-final.yml and
       # railway-deploy-api.yml so the red-team gate inside `verify:pr` can
       # generate a real artifact instead of failing on a missing

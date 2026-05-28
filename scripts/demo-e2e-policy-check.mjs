@@ -1778,12 +1778,65 @@ async function main() {
     kpis.uiGroundingSignalsValidated,
     true,
   );
-  addCheck(
-    "kpi.browserWorkerRecoveryValidated",
-    kpis.browserWorkerRecoveryValidated === true,
-    kpis.browserWorkerRecoveryValidated,
-    true,
-  );
+  // Browser-worker recovery validation is execution-mode-aware per
+  // `.kiro/specs/ui-executor-ref-healing-execution-mode-aware/design.md`
+  // "Downstream Gate Update". The KPI `browserWorkerRecoveryValidated` is
+  // computed from the same real-DOM healing fields that
+  // `scripts/demo-e2e.ps1` gates on
+  // `Test-DemoE2eRefHealingRequiresRealPlaywright`; on the PR-quality
+  // simulation lane those fields honestly stay zero and the KPI computes
+  // to false even though the scenario itself passes the mode-independent
+  // invariants. The env discriminator
+  // `DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT` (default `"true"` for
+  // release-strict; PR Quality opts out via `"false"`) decides whether
+  // the policy gate requires the strict KPI:
+  //   - default (env unset OR truthy): require
+  //     `kpi.browserWorkerRecoveryValidated === true` byte-identical to
+  //     today.
+  //   - opt-out (env `"false"` / `"0"` / `"no"` / `"off"`, case +
+  //     whitespace insensitive): require ONLY
+  //     `kpi.browserWorkerRecoveryFinalStatus === "completed"` AND
+  //     `kpi.browserWorkerRecoveryAdapterMode === "remote_http"` AND
+  //     `kpi.browserWorkerRecoveryCheckpointReadyCleared === true` so the
+  //     policy gate stays honest about what the simulation lane DID
+  //     validate (mode-independent invariants) while skipping the
+  //     real-DOM healing assertions the runtime cannot exercise.
+  // Smallest-diff approach: env-gated check selection rather than a
+  // per-check severity flag.
+  const refHealingRequireRealPlaywrightEnvRaw = process.env.DEMO_E2E_REF_HEALING_REQUIRE_REAL_PLAYWRIGHT;
+  const refHealingRequireRealPlaywright =
+    refHealingRequireRealPlaywrightEnvRaw === undefined ||
+    refHealingRequireRealPlaywrightEnvRaw === null ||
+    !["0", "false", "no", "off"].includes(
+      String(refHealingRequireRealPlaywrightEnvRaw).trim().toLowerCase(),
+    );
+  if (refHealingRequireRealPlaywright) {
+    addCheck(
+      "kpi.browserWorkerRecoveryValidated",
+      kpis.browserWorkerRecoveryValidated === true,
+      kpis.browserWorkerRecoveryValidated,
+      true,
+    );
+  } else {
+    addCheck(
+      "kpi.browserWorkerRecoveryFinalStatus",
+      String(kpis.browserWorkerRecoveryFinalStatus) === "completed",
+      kpis.browserWorkerRecoveryFinalStatus,
+      "completed (simulation lane: mode-independent invariant)",
+    );
+    addCheck(
+      "kpi.browserWorkerRecoveryAdapterMode",
+      String(kpis.browserWorkerRecoveryAdapterMode) === "remote_http",
+      kpis.browserWorkerRecoveryAdapterMode,
+      "remote_http (simulation lane: mode-independent invariant)",
+    );
+    addCheck(
+      "kpi.browserWorkerRecoveryCheckpointReadyCleared",
+      kpis.browserWorkerRecoveryCheckpointReadyCleared === true,
+      kpis.browserWorkerRecoveryCheckpointReadyCleared,
+      "true (simulation lane: mode-independent invariant)",
+    );
+  }
   // Navigator visa-flows checks are execution-mode-aware per
   // `.kiro/specs/demo-e2e-visa-flows-execution-mode-aware-summary/design.md`
   // "Downstream Gate Update" and bugfix.md R5 ("Downstream Gates Must Keep
